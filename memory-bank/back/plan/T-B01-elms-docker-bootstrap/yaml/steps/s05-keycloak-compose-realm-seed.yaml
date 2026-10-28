@@ -1,0 +1,103 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-B01-elms-docker-bootstrap
+title: "Keycloak + Postgres service in compose + realm stub + Yandex IdP config"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить сервисы keycloak и keycloak-db (PostgreSQL) в docker/compose.dev.yaml,
+  создать seed realm файл docker/keycloak/realm-elms.json с realm 'elms',
+  декларацией внешнего IdP Yandex 360 и локальными fallback credentials.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - FR-010
+    - FR-013
+    - FR-015
+    - US-004
+    - SC-004
+    - SC-006
+    - AC+5
+    - AC+8
+    - AC-3
+    - AC-6
+    - TM-008
+    - BN-007
+  nouns:
+    - keycloak
+    - keycloak-db
+    - realm-elms.json
+    - KEYCLOAK_PUBLISH_PORT
+    - Yandex 360 IdP
+    - local fallback credentials
+  layout_paths:
+    - docker/compose.dev.yaml
+    - docker/keycloak/realm-elms.json
+    - docker/.env.dev.example
+  ac_quotes:
+    - "Keycloak (+ db) running."
+    - "Keycloak контейнер уже в стеке и является единственной точкой SSO для Frappe."
+    - "Нет client_secret в git-tracked files."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:73-82"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:146-165"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:269-279"
+
+context:
+  consumes:
+    - docker/compose.dev.yaml
+    - "plan §Identity architecture decision"
+    - "plan §Functional Requirements FR-005/010/013/015"
+  produces:
+    - docker/compose.dev.yaml
+    - docker/keycloak/realm-elms.json
+    - docker/.env.dev.example
+  plan_refs:
+    - "plan.md#identity-architecture-decision"
+    - "plan.md#functional-requirements"
+  files:
+    - docker/compose.dev.yaml
+    - docker/keycloak/realm-elms.json
+    - docker/.env.dev.example
+
+as_built:
+  - "compose.dev.yaml defines Frappe core services"
+  - "no keycloak or keycloak-db service in compose.dev.yaml"
+  - "no docker/keycloak/realm-elms.json"
+
+delta:
+  - "add keycloak-db (postgres) service to compose.dev.yaml"
+  - "add keycloak service with KEYCLOAK_PUBLISH_PORT and realm import mount"
+  - "create docker/keycloak/realm-elms.json with realm 'elms' and Yandex broker placeholder"
+  - "declare KEYCLOAK and YANDEX variables in docker/.env.dev.example"
+
+deletes: []
+
+out_of_scope:
+  - "Frappe SSO integration (s06)"
+  - "Makefile cleanup (s07)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/iac-security-review/SKILL.md
+    - .agents/skills/secrets-scan/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "keycloak and keycloak-db services are defined in compose.dev.yaml"
+    verify: "grep -q 'keycloak:' docker/compose.dev.yaml && grep -q 'keycloak-db:' docker/compose.dev.yaml"
+  - id: cp2
+    criterion: "realm-elms.json exists and defines realm 'elms'"
+    verify: "test -f docker/keycloak/realm-elms.json && grep -q '\"realm\": \"elms\"' docker/keycloak/realm-elms.json"
+  - id: cp3
+    criterion: ".env.dev.example has KEYCLOAK and YANDEX variables"
+    verify: "grep -q 'KEYCLOAK_PUBLISH_PORT=' docker/.env.dev.example && grep -q 'YANDEX_CLIENT_ID=' docker/.env.dev.example"
+
+verify: []
+tdd: []

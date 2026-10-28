@@ -1,0 +1,138 @@
+schema: epic-decompose-index/v1
+plan_id: T-B01-elms-docker-bootstrap
+steps:
+- id: s01
+  file: s01-frappe-vendor-app-skeleton.yaml
+  title: Vendor frappe + root apps.json + custom app elms skeleton
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-dockerfile-slim.yaml
+  title: Slim Dockerfile — multi-stage base, apps.txt frappe+elms, deny vendor apps
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-compose-dev-environment.yaml
+  title: Compose dev stack + .env.dev.example + docker-up wrapper
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-create-site-fail-closed-login.yaml
+  title: Fail-closed create-site + Administrator credentials + smoke verification
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-keycloak-compose-realm-seed.yaml
+  title: Keycloak + Postgres service in compose + realm stub + Yandex IdP config
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-sso-identity-reconciliation-fallback.yaml
+  title: Frappe-Keycloak SSO wiring + one-way identity sync + Yandex outage fallback
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-readme-makefile-sunset-compose-prod.yaml
+  title: README docs + Makefile neftegaz cleanup + minimal compose.prod
+  next_phase: BACK IMPLEMENT
+  status: completed
+stages_coverage:
+  s01:
+  - Frappe v15 vendor/framework tree
+  - apps.json with frappe and elms only
+  - elms skeleton with Core, Operations, LMS
+  s02:
+  - slim multi-stage Dockerfile
+  - apps.txt and image contents limited to frappe and elms
+  s03:
+  - development Compose services db, redis-cache, redis-queue, configurator, create-site,
+    backend, websocket, queue-short, queue-long, scheduler, frontend
+  - editable frappe and elms mounts
+  - environment example and docker-up wrapper
+  s04:
+  - fail-closed site creation
+  - Administrator credentials and login smoke verification
+  s05:
+  - Keycloak and keycloak-db services
+  - realm seed and Yandex external IdP boundary
+  s06:
+  - Keycloak-to-Frappe one-way idempotent identity reconciliation
+  - Yandex SMTP boundary and local fallback login
+  s07:
+  - README and minimal production Compose
+  - neftegaz Makefile target sunset
+outcome_map:
+  s01:
+    outcome: Frappe-only ELMS app skeleton is available
+    acceptance:
+    - FR-001
+    - FR-002
+    - FR-003
+    - AC-5
+  s02:
+    outcome: Runtime image contains only frappe and elms
+    acceptance:
+    - FR-004
+    - AC-7
+    - TM-003
+  s03:
+    outcome: Local development stack exposes the complete Frappe service topology
+    acceptance:
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+  s04:
+    outcome: Site creation and Administrator login fail closed
+    acceptance:
+    - FR-011
+    - US-002
+    - BN-001
+    - BN-004
+  s05:
+    outcome: Keycloak is present as the canonical identity broker
+    acceptance:
+    - FR-010
+    - FR-013
+    - SC-004
+  s06:
+    outcome: Identity lifecycle, approved roles, SMTP, and outage fallback are explicit
+    acceptance:
+    - FR-012
+    - FR-014
+    - FR-015
+    - FR-016
+    - SC-006
+    - SC-007
+    - SC-008
+  s07:
+    outcome: Runtime documentation and production stub replace legacy project wiring
+    acceptance:
+    - FR-008
+    - FR-009
+replacement_cleanup:
+  s01:
+    replaces: empty git-only repository
+    target: ELMS Frappe app and runtime tree
+  s02:
+    replaces: full vendor-app image pattern
+    target: slim frappe+elms image
+  s03:
+    replaces: manual bench-only local startup
+    target: scripts/docker-up.sh and docker/compose.dev.yaml
+  s04:
+    replaces: non-deterministic site bootstrap
+    target: fail-closed create-site path
+  s05:
+    replaces: deferred identity infrastructure
+    target: Keycloak and keycloak-db Compose services
+  s06:
+    replaces: direct or unmanaged Frappe-to-Yandex login
+    target: Keycloak-mediated SSO, one-way sync, SMTP boundary, and local fallback
+  s07:
+    replaces: neftegaz Makefile remote-dev and loki targets
+    target: ELMS Docker development commands and minimal compose.prod
+  sunset:
+  - neftegaz remote-dev targets
+  - neftegaz loki targets
+  - neftegaz-specific Makefile references

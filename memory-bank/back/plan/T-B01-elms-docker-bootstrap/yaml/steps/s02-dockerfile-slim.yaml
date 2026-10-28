@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B01-elms-docker-bootstrap
+title: "Slim Dockerfile — multi-stage base, apps.txt frappe+elms, deny vendor apps"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать канонический docker/Dockerfile для Frappe v15 + elms без вендорных приложений
+  (erpnext, crm, hrms и т.д.). Исключить посторонние COPY и get-app шаги,
+  зафиксировав apps.txt строго на frappe и elms.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - SC-003
+    - AC+7
+    - AC-1
+    - TM-003
+    - BN-003
+  nouns:
+    - Dockerfile
+    - apps.txt
+    - frappe
+    - elms
+    - multi-stage build
+  layout_paths:
+    - docker/Dockerfile
+  ac_quotes:
+    - "AC- vendor apps 0."
+    - "Нет erpnext/crm/lms/education/hrms/payments/insights/raven/wiki/drive в apps.txt / Dockerfile COPY apps."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:145-146"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:214-223"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:240-268"
+
+context:
+  consumes:
+    - apps.json
+    - "plan §Functional Requirements FR-004"
+    - "plan §AC-"
+  produces:
+    - docker/Dockerfile
+  plan_refs:
+    - "plan.md#functional-requirements"
+    - "plan.md#ac-"
+  files:
+    - docker/Dockerfile
+
+as_built:
+  - "apps.json and elms skeleton created in s01"
+  - "no docker/Dockerfile in repository"
+
+delta:
+  - "create docker/Dockerfile based on slim multi-stage Frappe image"
+  - "restrict bench get-app / COPY to frappe and elms only"
+  - "configure sites/apps.txt with frappe and elms only"
+
+deletes: []
+
+out_of_scope:
+  - "compose.dev stack (s03)"
+  - "create-site container (s04)"
+  - "Keycloak service (s05)"
+  - "SSO sync (s06)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/iac-security-review/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Dockerfile exists and does not contain vendor app references"
+    verify: "test -f docker/Dockerfile && ! grep -E -i 'erpnext|hrms|education' docker/Dockerfile"
+  - id: cp2
+    criterion: "Dockerfile references frappe and elms app directories"
+    verify: "grep -q 'frappe' docker/Dockerfile && grep -q 'elms' docker/Dockerfile"
+
+verify: []
+tdd: []

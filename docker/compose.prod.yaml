@@ -1,0 +1,236 @@
+name: ${COMPOSE_PROJECT_NAME:-elms-prod}
+
+x-image: &image
+  image: ${CUSTOM_IMAGE:-elms}:${CUSTOM_TAG:-latest}
+  pull_policy: ${PULL_POLICY:-if_not_present}
+  restart: ${RESTART_POLICY:-unless-stopped}
+
+x-app-volumes: &app_volumes
+  - sites:/home/frappe/frappe-bench/sites
+  - logs:/home/frappe/frappe-bench/logs
+
+x-backend: &backend
+  <<: *image
+  volumes: *app_volumes
+  extra_hosts:
+    - "${SITE_NAME:-elms.localhost}:host-gateway"
+  depends_on:
+    configurator:
+      condition: service_completed_successfully
+    create-site:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: docker.io/mariadb:11.8
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123}
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis-cache:
+    image: docker.io/redis:7-alpine
+    restart: unless-stopped
+
+  redis-queue:
+    image: docker.io/redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-queue-data:/data
+
+  configurator:
+    <<: *image
+    restart: on-failure
+    entrypoint: ["bash", "-c"]
+    working_dir: /home/frappe/frappe-bench
+    command:
+      - >
+        mkdir -p config/pids sites logs;
+        printf "frappe\nelms\n" > sites/apps.txt;
+        bench set-config -g db_host $$DB_HOST;
+        bench set-config -gp db_port $$DB_PORT;
+        bench set-config -g redis_cache "redis://$$REDIS_CACHE";
+        bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
+        bench set-config -g redis_socketio "redis://$$REDIS_QUEUE";
+        bench set-config -gp socketio_port $$SOCKETIO_PORT;
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      REDIS_CACHE: redis-cache:6379
+      REDIS_QUEUE: redis-queue:6379
+      SOCKETIO_PORT: "9000"
+    volumes: *app_volumes
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+
+  create-site:
+    <<: *image
+    restart: "no"
+    working_dir: /home/frappe/frappe-bench
+    entrypoint: ["bash", "-c"]
+    command:
+      - >
+        set -euo pipefail;
+        if [ -z "$${ADMIN_PASSWORD}" ]; then
+          echo "ERROR: ADMIN_PASSWORD is empty" >&2;
+          exit 1;
+        fi;
+        if [ -z "$${DB_PASSWORD}" ]; then
+          echo "ERROR: DB_PASSWORD is empty" >&2;
+          exit 1;
+        fi;
+        mkdir -p config/pids sites logs;
+        wait-for-it -t 120 db:3306;
+        wait-for-it -t 120 redis-cache:6379;
+        wait-for-it -t 120 redis-queue:6379;
+        export start=`date +%s`;
+        until [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".db_host // empty"` ]] &&
+          [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".redis_cache // empty"` ]] &&
+          [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".redis_queue // empty"` ]];
+        do
+          echo "Waiting for sites/common_site_config.json";
+          sleep 5;
+          if (( `date +%s`-start > 180 )); then
+            echo "common_site_config.json missing required keys" >&2;
+            exit 1;
+          fi;
+        done;
+        if [ -d "sites/$${SITE_NAME}" ]; then
+          echo "Site $${SITE_NAME} already exists";
+          bench --site "$${SITE_NAME}" migrate;
+        else
+          bench new-site --mariadb-user-host-login-scope=% --admin-password="$${ADMIN_PASSWORD}" --db-root-username=root --db-root-password="$${DB_PASSWORD}" --no-mariadb-socket --set-default "$${SITE_NAME}";
+          bench --site "$${SITE_NAME}" install-app elms;
+          bench --site "$${SITE_NAME}" set-config developer_mode 0;
+        fi;
+        bench --site "$${SITE_NAME}" set-config host_name "$${SITE_HOST_NAME}";
+        bench --site "$${SITE_NAME}" clear-cache;
+        echo "create-site completed successfully";
+    environment:
+      SITE_NAME: ${SITE_NAME:-elms.localhost}
+      SITE_HOST_NAME: ${SITE_HOST_NAME:-http://elms.localhost:8082}
+      HTTP_PUBLISH_PORT: ${HTTP_PUBLISH_PORT:-8082}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      DB_PASSWORD: ${DB_PASSWORD:-123}
+    volumes: *app_volumes
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  backend:
+    <<: *backend
+    environment:
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+
+  websocket:
+    <<: *backend
+    command:
+      - node
+      - /home/frappe/frappe-bench/apps/frappe/socketio.js
+
+  queue-short:
+    <<: *backend
+    working_dir: /home/frappe/frappe-bench
+    entrypoint: ["bash", "-c"]
+    command:
+      - mkdir -p config/pids && exec bench worker --queue short,default
+
+  queue-long:
+    <<: *backend
+    working_dir: /home/frappe/frappe-bench
+    entrypoint: ["bash", "-c"]
+    command:
+      - mkdir -p config/pids && exec bench worker --queue long,default,short
+
+  scheduler:
+    <<: *backend
+    working_dir: /home/frappe/frappe-bench
+    entrypoint: ["bash", "-c"]
+    command:
+      - mkdir -p config/pids && exec bench schedule
+
+  frontend:
+    <<: *image
+    command: ["nginx-entrypoint.sh"]
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      NGINX_LISTEN_PORT: ${NGINX_LISTEN_PORT:-8080}
+      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$$host}
+      UPSTREAM_REAL_IP_ADDRESS: ${UPSTREAM_REAL_IP_ADDRESS:-127.0.0.1}
+      UPSTREAM_REAL_IP_HEADER: ${UPSTREAM_REAL_IP_HEADER:-X-Forwarded-For}
+      UPSTREAM_REAL_IP_RECURSIVE: ${UPSTREAM_REAL_IP_RECURSIVE:-off}
+      PROXY_READ_TIMEOUT: ${PROXY_READ_TIMEOUT:-120}
+      CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-50m}
+    volumes: *app_volumes
+    ports:
+      - "${HTTP_PUBLISH_PORT:-8082}:${NGINX_LISTEN_PORT:-8080}"
+    depends_on:
+      - backend
+      - websocket
+
+  keycloak-db:
+    image: docker.io/postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-keycloak} -d $${POSTGRES_DB:-keycloak}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    restart: unless-stopped
+    command:
+      - start-dev
+      - --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_PORT: "8080"
+      YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
+      YANDEX_CLIENT_SECRET: ${YANDEX_CLIENT_SECRET:-}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      KEYCLOAK_FALLBACK_PASSWORD: ${KEYCLOAK_FALLBACK_PASSWORD:-fallback123}
+    ports:
+      - "${KEYCLOAK_PUBLISH_PORT:-8480}:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  redis-queue-data:
+  sites:
+  logs:
+  keycloak-db-data:

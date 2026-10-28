@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-B01-elms-docker-bootstrap
+task_id: T-B01-elms-docker-bootstrap
+title: s02 — Slim Dockerfile — multi-stage base, apps.txt frappe+elms, deny vendor apps IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/yaml/steps/s02-dockerfile-slim.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/iac-security-review/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+done:
+  - "Created docker/Dockerfile based on slim multi-stage Frappe image"
+  - "Restricted bench get-app / COPY to frappe and elms only"
+  - "Configured sites/apps.txt with frappe and elms only"
+  - "Excluded all vendor applications (erpnext, crm, hrms, insights, raven, wiki, drive, payments, education, lms)"
+  - "Embedded secure nginx configuration, security headers, and entrypoint scripts"
+
+files:
+  - docker/Dockerfile
+
+deletes: []
+
+tests:
+  - 'test -f docker/Dockerfile && ! grep -E -i ''erpnext|hrms|education'' docker/Dockerfile'
+  - 'grep -q ''frappe'' docker/Dockerfile && grep -q ''elms'' docker/Dockerfile'
+  - '! grep -E -i ''erpnext|crm|hrms|education|payments|insights|raven|wiki|drive'' docker/Dockerfile'
+  - '! grep -E ''\bapps/lms\b'' docker/Dockerfile'
+
+integration_check:
+  - "docker/Dockerfile adheres to multi-stage pattern (base, builder, backend)"
+  - "apps.txt and build steps only include frappe and elms"
+
+checkpoints:
+  - id: cp1
+    criterion: "Dockerfile exists and does not contain vendor app references"
+    status: done
+  - id: cp2
+    criterion: "Dockerfile references frappe and elms app directories"
+    status: done
+
+resume_from: cp1

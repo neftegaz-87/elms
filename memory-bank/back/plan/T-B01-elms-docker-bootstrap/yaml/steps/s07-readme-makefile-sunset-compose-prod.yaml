@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-B01-elms-docker-bootstrap
+title: "README docs + Makefile neftegaz cleanup + minimal compose.prod"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Задокументировать быстрый старт в docker/README.md, очистить Makefile от устаревших
+  целей neftegaz (remote-dev/loki) с добавлением чистых local.up/local.down,
+  и подготовить минимальный production-ориентированный compose.prod.yaml без bind-mounts.
+
+plan_contract:
+  fr_ids:
+    - FR-008
+    - FR-009
+    - NFR-001
+    - AC+6
+    - TM-003
+  nouns:
+    - README.md
+    - Makefile
+    - compose.prod.yaml
+    - sunset neftegaz targets
+  layout_paths:
+    - docker/README.md
+    - Makefile
+    - docker/compose.prod.yaml
+  ac_quotes:
+    - "README описывает старт."
+    - "Убрать/заменить neftegaz-specific targets в корневом Makefile так, чтобы make не ссылался на чужой проект."
+    - "Verify: rg -n neftegaz Makefile -> 0 after epic."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:157-159"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:328-346"
+
+context:
+  consumes:
+    - "plan §Replacement / sunset"
+    - "plan §Functional Requirements FR-008/009"
+  produces:
+    - docker/README.md
+    - Makefile
+    - docker/compose.prod.yaml
+  plan_refs:
+    - "plan.md#replacement-sunset"
+    - "plan.md#functional-requirements"
+  files:
+    - docker/README.md
+    - Makefile
+    - docker/compose.prod.yaml
+
+as_built:
+  - "Makefile contains obsolete neftegaz targets"
+  - "docker/compose.prod.yaml missing"
+  - "docker/README.md missing or incomplete"
+
+delta:
+  - "write docker/README.md with quickstart, hosts config, port mapping, admin login, and troubleshooting"
+  - "purge all neftegaz references from Makefile, keeping only clean targets delegating to docker-up.sh"
+  - "create minimal docker/compose.prod.yaml without bind-mounts"
+
+deletes:
+  - "Makefile neftegaz targets and references"
+
+out_of_scope:
+  - "production TLS certificate configuration"
+  - "full suite -> QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/verification-before-completion/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Makefile has zero occurrences of neftegaz"
+    verify: "! grep -i 'neftegaz' Makefile"
+  - id: cp2
+    criterion: "docker/README.md exists and contains quickstart commands"
+    verify: "test -f docker/README.md && grep -q 'docker-up.sh' docker/README.md"
+  - id: cp3
+    criterion: "docker/compose.prod.yaml exists"
+    verify: "test -f docker/compose.prod.yaml"
+
+verify: []
+tdd: []

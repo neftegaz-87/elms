@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-B01-elms-docker-bootstrap
+task_id: T-B01-elms-docker-bootstrap
+title: s04 — Fail-closed create-site + Administrator credentials + smoke verification IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/yaml/steps/s04-create-site-fail-closed-login.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/iac-security-review/SKILL.md
+  - .agents/skills/secrets-scan/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+done:
+  - "Configured create-site service in docker/compose.dev.yaml with bench new-site using admin-password from environment"
+  - "Added fail-closed validation checks for non-empty ADMIN_PASSWORD and DB_PASSWORD"
+  - "Wired bench new-site with --no-mariadb-socket and explicit bench install-app elms and developer_mode 1"
+  - "Configured set -euo pipefail with no fallback masking (|| true avoided)"
+  - "Configured backend and dependent services to depend on create-site service_completed_successfully"
+
+files:
+  - docker/compose.dev.yaml
+
+deletes: []
+
+tests:
+  - "grep -q 'create-site:' docker/compose.dev.yaml"
+  - "grep -q 'install-app elms' docker/compose.dev.yaml && ! grep -q 'install-app.*|| true' docker/compose.dev.yaml"
+  - "grep -A 5 'create-site:' docker/compose.dev.yaml | grep -q 'completed_successfully'"
+
+integration_check:
+  - "create-site command propagates non-zero exits on bench failure and validates passwords"
+  - "backend, websocket, queues, and scheduler services wait for create-site completed_successfully"
+
+checkpoints:
+  - id: cp1
+    criterion: "create-site service is present in compose.dev.yaml"
+    status: done
+  - id: cp2
+    criterion: "create-site command invokes install-app elms and avoids || true"
+    status: done
+  - id: cp3
+    criterion: "backend depends on create-site completed_successfully"
+    status: done
+
+resume_from: cp1

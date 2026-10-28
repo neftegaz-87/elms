@@ -1,0 +1,33 @@
+version: roadmap-queue/v2
+role: back
+queue:
+- id: T-B02
+  epic_id: T-B02-elms-roles-rbac
+  kind: feature
+  plan: plan/T-B02-elms-roles-rbac/md/plan.md
+  batch: elms-foundation
+  deps:
+  - T-B01
+  status: planned
+- id: T-B03
+  epic_id: T-B03-elms-sso-keycloak-yandex
+  kind: feature
+  plan: plan/T-B03-elms-sso-keycloak-yandex/md/plan.md
+  batch: elms-foundation
+  deps:
+  - T-B01
+  - T-B02
+  status: planned
+done:
+- id: T-B01
+  epic_id: T-B01-elms-docker-bootstrap
+  kind: feature
+  plan: plan/T-B01-elms-docker-bootstrap/md/plan.md
+  batch: elms-foundation
+  deps: []
+batches:
+  elms-foundation:
+    title: ELMS foundation (Docker + RBAC + SSO Keycloak/Yandex)
+    note: Только Frappe Framework v15 + custom app elms. Vendor ERPNext/LMS/CRM FORBIDDEN.
+      Keycloak в compose; Yandex через Social Login Key Custom. Роли ELMS Admin /
+      ELMS ERP User / ELMS LMS User. FRONT T-F01 зависит от T-B02/T-B03.

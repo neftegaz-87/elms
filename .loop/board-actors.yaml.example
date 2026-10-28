@@ -1,0 +1,17 @@
+schema: loop-board-actors/v1
+
+actors:
+  erokhin:
+    bitrix_user_id: 274
+    display_name: Андрей Ерохин
+  sokolov:
+    bitrix_user_id: 240
+    display_name: Евгений Соколов
+
+default_actor: erokhin
+
+epics:
+  T-B01-elms-docker-bootstrap: sokolov
+  T-B02-elms-roles-rbac: sokolov
+  T-B03-elms-sso-keycloak-yandex: sokolov
+  T-F01-elms-desk-sections-roles: erokhin

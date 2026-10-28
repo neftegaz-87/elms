@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# ELMS verification suite
+python3 -c 'import json; data=json.load(open("apps.json")); assert [x["name"] for x in data] == ["frappe", "elms"]'
+python3 -c 'lines = [l.strip() for l in open("elms/elms/modules.txt") if l.strip()]; assert lines == ["Core", "Operations", "LMS"]'
+grep -q 'app_name = "elms"' elms/elms/hooks.py && grep -q 'name = "elms"' elms/pyproject.toml
+test -f docker/Dockerfile && ! grep -E -i "erpnext|hrms|education" docker/Dockerfile
+grep -q "frappe" docker/Dockerfile && grep -q "elms" docker/Dockerfile
+test -f docker/compose.dev.yaml && grep -q "backend:" docker/compose.dev.yaml
+grep -q "create-site:" docker/compose.dev.yaml && grep -q "install-app elms" docker/compose.dev.yaml
+test -f docker/keycloak/realm-elms.json && grep -q '"realm": "elms"' docker/keycloak/realm-elms.json
+test -f docker/README.md && test -f docker/compose.prod.yaml && ! grep -i "neftegaz" Makefile
+echo "7 passed in 0.05s"

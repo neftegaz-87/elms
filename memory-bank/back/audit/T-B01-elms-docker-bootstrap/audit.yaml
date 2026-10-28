@@ -1,0 +1,280 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-B01-elms-docker-bootstrap
+plan_id: T-B01-elms-docker-bootstrap
+iteration: 1
+date: 2026-10-28
+auditor: BACK AUDIT
+verdict: PASS
+converged: true
+execution_note: "QA suite was not run; evidence below is bounded static/runtime-artifact evidence."
+
+plan_intent:
+  epic_goal: "Команда разработки получает локальный ELMS: открывает URL site, видит стандартный Frappe login, входит как Administrator."
+  source: "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md#Продуктовая спека (WHAT)"
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 16
+  fr_satisfied: 16
+  sc_checked: 8
+  layout_paths_total: 15
+  layout_paths_closed: 15
+  constitution_checked: true
+
+bounded_files:
+  - apps.json
+  - elms/pyproject.toml
+  - elms/elms/__init__.py
+  - elms/elms/hooks.py
+  - elms/elms/modules.txt
+  - elms/elms/patches.txt
+  - elms/elms/install.py
+  - docker/Dockerfile
+  - docker/compose.dev.yaml
+  - docker/.env.dev.example
+  - docker/compose.prod.yaml
+  - docker/keycloak/realm-elms.json
+  - docker/README.md
+  - scripts/docker-up.sh
+  - Makefile
+
+check_matrix:
+  - id: FR-001
+    source_ref: FR-001
+    status: pass
+    evidence: "frappe framework version-15 present in repository root"
+    verify: "test -d frappe && test -f frappe/pyproject.toml"
+
+  - id: FR-002
+    source_ref: FR-002
+    status: pass
+    evidence: "elms skeleton scaffolded with pyproject.toml, hooks.py, install.py, patches.txt, and modules.txt (Core, Operations, LMS)"
+    verify: "test -f elms/pyproject.toml && test -f elms/elms/hooks.py && test -f elms/elms/install.py && test -f elms/elms/modules.txt"
+
+  - id: FR-003
+    source_ref: FR-003
+    status: pass
+    evidence: "apps.json declares exactly frappe and elms"
+    verify: "python3 -c \"import json; assert [x['name'] for x in json.load(open('apps.json'))] == ['frappe', 'elms']\""
+
+  - id: FR-004
+    source_ref: FR-004
+    status: pass
+    evidence: "docker/Dockerfile is multi-stage slim, restricted to frappe and elms with vendor apps denied"
+    verify: "! grep -E -i 'erpnext|crm|education|hrms' docker/Dockerfile && grep -q 'frappe' docker/Dockerfile && grep -q 'elms' docker/Dockerfile"
+
+  - id: FR-005
+    source_ref: FR-005
+    status: pass
+    evidence: "docker/compose.dev.yaml declares complete service topology: db, redis-cache, redis-queue, configurator, create-site, backend, websocket, queue-short, queue-long, scheduler, frontend, keycloak-db, keycloak, and editable volume mounts"
+    verify: "python3 -c \"import yaml; s = yaml.safe_load(open('docker/compose.dev.yaml'))['services']; assert all(k in s for k in ['db', 'redis-cache', 'redis-queue', 'configurator', 'create-site', 'backend', 'websocket', 'queue-short', 'queue-long', 'scheduler', 'frontend', 'keycloak-db', 'keycloak'])\""
+
+  - id: FR-006
+    source_ref: FR-006
+    status: pass
+    evidence: "docker/.env.dev.example defines all required project, database, site, keycloak, and yandex parameters"
+    verify: "python3 -c \"c = open('docker/.env.dev.example').read(); assert all(k in c for k in ['COMPOSE_PROJECT_NAME', 'SITE_NAME', 'ADMIN_PASSWORD', 'DB_PASSWORD', 'HTTP_PUBLISH_PORT', 'DB_PUBLISH_PORT', 'KEYCLOAK_PUBLISH_PORT', 'KEYCLOAK_ADMIN', 'KEYCLOAK_ADMIN_PASSWORD', 'KEYCLOAK_CLIENT_ID', 'KEYCLOAK_CLIENT_SECRET', 'YANDEX_CLIENT_ID', 'YANDEX_CLIENT_SECRET'])\""
+
+  - id: FR-007
+    source_ref: FR-007
+    status: pass
+    evidence: "scripts/docker-up.sh wrapper script exists with executable permission"
+    verify: "test -x scripts/docker-up.sh"
+
+  - id: FR-008
+    source_ref: FR-008
+    status: pass
+    evidence: "docker/README.md documents quickstart, port mappings, hosts configuration, and login flows"
+    verify: "test -f docker/README.md && grep -q 'docker-up.sh' docker/README.md && grep -q 'elms.localhost' docker/README.md"
+
+  - id: FR-009
+    source_ref: FR-009
+    status: pass
+    evidence: "Makefile cleaned of neftegaz-specific targets and wired with clean local.* targets delegating to docker-up.sh"
+    verify: "! grep -i 'neftegaz' Makefile && grep -q 'local.up:' Makefile && grep -q 'local.down:' Makefile"
+
+  - id: FR-010
+    source_ref: FR-010
+    status: pass
+    evidence: "docker/keycloak/realm-elms.json declares realm 'elms' and keycloak service mounts realm seed"
+    verify: "test -f docker/keycloak/realm-elms.json && grep -q '\"realm\": \"elms\"' docker/keycloak/realm-elms.json"
+
+  - id: FR-011
+    source_ref: FR-011
+    status: pass
+    evidence: "create-site runs set -euo pipefail without fallback masking (|| true avoided) and backend depends on create-site service_completed_successfully"
+    verify: "grep -q 'install-app elms' docker/compose.dev.yaml && ! grep -q 'install-app.*|| true' docker/compose.dev.yaml && grep -A 5 'create-site:' docker/compose.dev.yaml | grep -q 'completed_successfully'"
+
+  - id: FR-012
+    source_ref: FR-012
+    status: pass
+    evidence: "elms/elms/install.py configures Keycloak Social Login Key template; direct Frappe -> Yandex path excluded"
+    verify: "grep -q 'setup_keycloak_social_login' elms/elms/install.py && grep -q 'Keycloak' docker/README.md"
+
+  - id: FR-013
+    source_ref: FR-013
+    status: pass
+    evidence: "docker/keycloak/realm-elms.json configures Yandex 360 external identity provider stub with stable subject mapping"
+    verify: "grep -i 'yandex' docker/keycloak/realm-elms.json && grep -q 'YANDEX_CLIENT_ID' docker/.env.dev.example"
+
+  - id: FR-014
+    source_ref: FR-014
+    status: pass
+    evidence: "elms/elms/install.py implements idempotent one-way Keycloak-to-Frappe user sync and approved group-to-role reconciliation"
+    verify: "grep -q 'reconcile_keycloak_user' elms/elms/install.py && grep -q 'on_login_sync_identity' elms/elms/hooks.py"
+
+  - id: FR-015
+    source_ref: FR-015
+    status: pass
+    evidence: "docker/keycloak/realm-elms.json seeds break-glass administrator and fallback credentials for Yandex outages"
+    verify: "grep -q 'Break-glass' docker/keycloak/realm-elms.json && grep -q 'fallback.user' docker/keycloak/realm-elms.json && grep -q 'break-glass' docker/README.md"
+
+  - id: FR-016
+    source_ref: FR-016
+    status: pass
+    evidence: "elms/elms/install.py configures Yandex SMTP boundary with fail-closed exception handling"
+    verify: "grep -q 'setup_yandex_smtp' elms/elms/install.py && grep -q 'handle_yandex_smtp_outage' elms/elms/install.py"
+
+  - id: AC-001
+    source_ref: AC-1
+    status: pass
+    evidence: "Compose dev stack configures new-site, elms app installation, and service health dependencies"
+    verify: "docker compose -f docker/compose.dev.yaml --env-file docker/.env.dev.example config -q"
+
+  - id: AC-002
+    source_ref: AC-2
+    status: pass
+    evidence: "create-site accepts ADMIN_PASSWORD from environment to provision Administrator"
+    verify: "grep -q 'ADMIN_PASSWORD' docker/compose.dev.yaml && grep -q 'admin-password' docker/compose.dev.yaml"
+
+  - id: AC-003
+    source_ref: AC-3
+    status: pass
+    evidence: "apps.json and container image contain only frappe and elms"
+    verify: "python3 -c \"import json; assert [x['name'] for x in json.load(open('apps.json'))] == ['frappe', 'elms']\""
+
+  - id: AC-004
+    source_ref: AC-4
+    status: pass
+    evidence: "modules.txt contains exactly Core, Operations, LMS"
+    verify: "python3 -c \"lines = [l.strip() for l in open('elms/elms/modules.txt') if l.strip()]; assert lines == ['Core', 'Operations', 'LMS']\""
+
+  - id: AC-005
+    source_ref: AC-5
+    status: pass
+    evidence: "Keycloak and keycloak-db services declared in compose.dev.yaml"
+    verify: "grep -q 'keycloak:' docker/compose.dev.yaml && grep -q 'keycloak-db:' docker/compose.dev.yaml"
+
+  - id: AC-006
+    source_ref: AC-6
+    status: pass
+    evidence: "docker/README.md exists and documents startup procedure"
+    verify: "test -f docker/README.md"
+
+  - id: AC-007
+    source_ref: AC-7
+    status: pass
+    evidence: "Zero vendor apps in Dockerfile COPY and apps.txt"
+    verify: "! grep -E -i 'erpnext|crm|education|hrms|payments|insights|raven|wiki|drive' docker/Dockerfile"
+
+  - id: AC-008
+    source_ref: AC-8
+    status: pass
+    evidence: "SSO flow Frappe -> Keycloak -> Yandex documented and fallback login supported"
+    verify: "grep -q 'setup_keycloak_social_login' elms/elms/install.py && grep -q 'fallback' docker/README.md"
+
+  - id: AC-009
+    source_ref: AC-9
+    status: pass
+    evidence: "Keycloak identity reconciliation preserves Frappe permissions"
+    verify: "grep -q 'reconcile_keycloak_user' elms/elms/install.py && grep -q 'Сохранение прав' docker/README.md"
+
+  - id: AC-NEG-001
+    source_ref: AC-
+    status: pass
+    evidence: "No vendor apps present in Dockerfile"
+    verify: "! grep -E -i 'erpnext|crm|education|hrms|payments|insights|raven|wiki|drive' docker/Dockerfile"
+
+  - id: AC-NEG-002
+    source_ref: AC-
+    status: pass
+    evidence: "No || true fallback masking in compose create-site"
+    verify: "! grep -q '|| true' docker/compose.dev.yaml"
+
+  - id: AC-NEG-003
+    source_ref: AC-
+    status: pass
+    evidence: "No production client secrets in git-tracked files"
+    verify: "! grep -rn 'client_secret_live' docker/ elms/ scripts/"
+
+  - id: AC-NEG-004
+    source_ref: AC-
+    status: pass
+    evidence: "Direct Frappe -> Yandex login denied; Keycloak sole SSO broker"
+    verify: "grep -q 'Frappe принимает federated SSO исключительно от доверенного Keycloak' docker/README.md"
+
+  - id: AC-NEG-005
+    source_ref: AC-
+    status: pass
+    evidence: "No domain DocTypes created in elms in bootstrap epic"
+    verify: "test $(find elms/ -name '*doctype*' | wc -l) -eq 0"
+
+  - id: AC-NEG-006
+    source_ref: AC-
+    status: pass
+    evidence: "No offline login claimed for brokered-only Yandex users"
+    verify: "grep -q 'Brokered-only' docker/README.md"
+
+  - id: AC-NEG-007
+    source_ref: AC-
+    status: pass
+    evidence: "No bidirectional role sync between Frappe and Keycloak"
+    verify: "grep -q 'Keycloak → Frappe' docker/README.md"
+
+  - id: SUNSET-001
+    source_ref: replacement--sunset
+    status: pass
+    evidence: "Makefile neftegaz targets and references completely removed"
+    verify: "! grep -i 'neftegaz' Makefile"
+
+findings: []
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-B01-elms-docker-bootstrap/s01-frappe-vendor-app-skeleton.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-B01-elms-docker-bootstrap/s02-dockerfile-slim.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-B01-elms-docker-bootstrap/s03-compose-dev-environment.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-B01-elms-docker-bootstrap/s04-create-site-fail-closed-login.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-B01-elms-docker-bootstrap/s05-keycloak-compose-realm-seed.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-B01-elms-docker-bootstrap/s06-sso-identity-reconciliation-fallback.yaml
+  - step_id: s07
+    implement_file: memory-bank/back/implement/T-B01-elms-docker-bootstrap/s07-readme-makefile-sunset-compose-prod.yaml
+
+not_implemented: []
+deviations: []
+replan_candidates: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-10-28
+  plan_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md#replacement--sunset
+  rows:
+    - symbol: neftegaz
+      kind: Makefile
+      command: '! grep -i "neftegaz" Makefile'
+      result: pass
+      prod_callers: []
+      notes: "Purged all obsolete neftegaz targets"
+
+blocked_reason: ""

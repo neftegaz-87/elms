@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-B01-elms-docker-bootstrap
+task_id: T-B01-elms-docker-bootstrap
+title: s06 — Frappe-Keycloak SSO wiring + one-way identity sync + Yandex outage fallback IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/yaml/steps/s06-sso-identity-reconciliation-fallback.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+done:
+  - "Configured idempotent setup_keycloak_social_login in elms/elms/install.py registering Keycloak Social Login Key template"
+  - "Implemented idempotent one-way Keycloak-to-Frappe identity lifecycle (reconcile_keycloak_user) and approved group-to-role mappings (/Administrators -> System Manager, /Employees -> Employee, etc.) preserving Frappe DocType permissions"
+  - "Added on_login hook in elms/elms/hooks.py and handler on_login_sync_identity in elms/elms/install.py"
+  - "Configured Yandex 360 SMTP boundary setup_yandex_smtp and fail-closed error handling handle_yandex_smtp_outage (FR-016)"
+  - "Documented comprehensive identity architecture, SSO flow Frappe -> Keycloak -> Yandex 360, local Keycloak fallback login, break-glass administrator access, and fail-closed Yandex SMTP delivery in docker/README.md"
+
+files:
+  - elms/elms/install.py
+  - elms/elms/hooks.py
+  - docker/README.md
+
+deletes: []
+
+tests:
+  - "grep -q 'after_install' elms/elms/install.py"
+  - "grep -q 'Keycloak' docker/README.md && grep -q 'Yandex' docker/README.md"
+  - "python3 -m py_compile elms/elms/install.py elms/elms/hooks.py"
+
+integration_check:
+  - "install.py provides after_install setup hook for SSO and Yandex SMTP with fail-closed exception handling"
+  - "hooks.py wires after_install and on_login hooks for ELMS app"
+  - "docker/README.md documents Keycloak identity lifecycle, fallback login, and break-glass procedures"
+
+checkpoints:
+  - id: cp1
+    criterion: "install.py provides after_install setup hook for SSO"
+    status: done
+  - id: cp2
+    criterion: "README documents Keycloak identity lifecycle and fallback login"
+    status: done
+
+resume_from: cp1

@@ -1,0 +1,254 @@
+$check-icon-dark: url("data:image/svg+xml, <svg viewBox='0 0 8 7' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M1 4.00001L2.66667 5.80001L7 1.20001' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+[data-theme="dark"] {
+	--ds-radius-lg: 12px;
+	--neutral: var(--ds-ink);
+	--invert-neutral: var(--ds-surface-inverse);
+	--gray-700: var(--ds-outline-strong);
+	--gray-800: var(--ds-surface-muted);
+
+	// Type Colors
+	--text-neutral: var(--ds-ink);
+	--text-dark: var(--ds-ink);
+	--text-muted: var(--ds-ink-muted);
+	--text-light: var(--ds-ink-subtle);
+	--text-color: var(--ds-ink);
+	--heading-color: var(--ds-ink);
+
+	// SVG Colors
+	--icon-fill: transparent;
+	--icon-stroke: var(--ds-ink-muted);
+
+	// Error colors
+	--error-bg: var(--ds-surface-muted);
+	--error-border: var(--ds-danger);
+
+	// Layout Colors
+	--bg-color: var(--ds-surface);
+	--fg-color: var(--ds-surface);
+	--subtle-accent: var(--ds-outline);
+	--subtle-fg: var(--ds-surface-muted);
+	--navbar-bg: var(--ds-surface);
+	--fg-hover-color: var(--ds-surface-muted);
+	--card-bg: var(--ds-surface-raised);
+	--disabled-text-color: var(--ds-ink-muted);
+	--disabled-control-bg: var(--ds-surface-muted);
+	--control-bg: var(--ds-surface-muted);
+	--control-bg-on-gray: var(--ds-surface-muted);
+	--awesomebar-focus-bg: var(--control-bg);
+	--awesomplete-hover-bg: var(--ds-surface-muted);
+	--modal-bg: var(--ds-surface-raised);
+	--toast-bg: var(--modal-bg);
+	--popover-bg: var(--bg-color);
+
+	// Button Colors
+	--btn-default-bg: var(--ds-surface-muted);
+	--btn-default-hover-bg: var(--ds-outline-strong);
+	--primary: var(--ds-accent);
+	--primary-color: var(--ds-accent);
+
+	// Border Colors
+	--border-primary: var(--ds-outline);
+
+	// Background Text Color Pairs
+	--bg-blue: var(--ds-info);
+	--bg-light-blue: var(--ds-info);
+	--bg-dark-blue: var(--ds-info);
+	--bg-green: var(--ds-success);
+	--bg-yellow: var(--ds-warning);
+	--bg-orange: var(--ds-warning);
+	--bg-red: var(--ds-danger);
+	--bg-gray: var(--ds-outline);
+	--bg-grey: var(--ds-outline);
+	--bg-darkgrey: var(--ds-outline-strong);
+	--bg-dark-gray: var(--ds-outline-strong);
+	--bg-light-gray: var(--ds-surface-muted);
+	--bg-purple: var(--ds-info);
+	--bg-pink: var(--ds-danger);
+	--bg-cyan: var(--ds-info);
+
+	--text-on-blue: var(--ds-ink-inverse);
+	--text-on-light-blue: var(--ds-ink-inverse);
+	--text-on-dark-blue: var(--ds-ink-inverse);
+	--text-on-green: var(--ds-ink-inverse);
+	--text-on-yellow: var(--ds-ink-inverse);
+	--text-on-orange: var(--ds-ink-inverse);
+	--text-on-red: var(--ds-ink-inverse);
+	--text-on-gray: var(--ds-ink);
+	--text-on-grey: var(--ds-ink);
+	--text-on-darkgrey: var(--ds-ink);
+	--text-on-dark-gray: var(--ds-ink);
+	--text-on-light-gray: var(--ds-ink);
+	--text-on-purple: var(--ds-ink-inverse);
+	--text-on-pink: var(--ds-ink-inverse);
+	--text-on-cyan: var(--ds-ink-inverse);
+
+	// alert colors
+	--alert-text-danger: var(--ds-danger);
+	--alert-text-warning: var(--ds-warning);
+	--alert-text-info: var(--ds-info);
+	--alert-text-success: var(--ds-success);
+	--alert-bg-danger: var(--ds-surface-muted);
+	--alert-bg-warning: var(--ds-surface-muted);
+	--alert-bg-info: var(--ds-surface-muted);
+	--alert-bg-success: var(--ds-surface-muted);
+
+	--sidebar-select-color: var(--ds-surface-muted);
+
+	--scrollbar-thumb-color: var(--ds-outline-strong);
+	--scrollbar-track-color: var(--ds-outline);
+
+	--timeline-badge-color: var(--ds-ink-muted);
+	--timeline-badge-bg: var(--ds-surface);
+
+	--shadow-inset: var(--fg-color);
+	--border-color: var(--ds-outline);
+	--dark-border-color: var(--ds-outline-strong);
+	--table-border-color: var(--border-color);
+	--highlight-color: color-mix(in srgb, var(--ds-accent) 16%, var(--ds-surface-raised));
+	--yellow-highlight-color: var(--ds-warning);
+
+	--btn-group-border-color: var(--ds-outline-strong);
+
+	--placeholder-color: var(--ds-ink-subtle);
+
+	--highlight-shadow: 1px 1px 10px var(--ds-focus), 0px 0px 4px var(--ds-focus);
+
+	--shadow-base: 0px 4px 8px rgba(114, 176, 233, 0.06), 0px 0px 4px rgba(112, 172, 228, 0.12);
+
+	// "diff" colors
+	--diff-added: var(--ds-success);
+	--diff-removed: var(--ds-danger);
+	--diff-changed: var(--ds-info);
+
+	// sidebar toggle
+	.page-title .sidebar-toggle-btn {
+		--icon-stroke: var(--ds-ink-subtle);
+	}
+
+	// input
+	--input-disabled-bg: none;
+
+	// checkbox
+	--checkbox-color: var(--ds-ink-inverse);
+	--checkbox-gradient: linear-gradient(
+		180deg,
+		var(--ds-surface-inverse) -124.51%,
+		var(--ds-surface-inverse) 100%
+	);
+	--checkbox-disabled-gradient: linear-gradient(
+		180deg,
+		var(--ds-outline-strong) -124.51%,
+		var(--ds-outline-strong) 100%
+	);
+	--checkbox-focus-shadow: var(--focus-default);
+
+	input[type="checkbox"] {
+		&:checked {
+			background-image: $check-icon-dark, var(--checkbox-gradient);
+		}
+		&.disabled-selected,
+		&:disabled:checked {
+			background-image: $check-icon-dark, var(--checkbox-disabled-gradient);
+		}
+		&.disabled-deselected {
+			border: none;
+			background-color: var(--ds-outline-strong);
+		}
+	}
+
+	// switch
+	--switch-bg: var(--ds-outline-strong);
+
+	// date-picker
+	--date-active-text: var(--ds-ink);
+	--date-active-bg: var(--ds-outline-strong);
+	--date-range-bg: var(--ds-surface-muted);
+
+	// grid
+	.grid-body .editable-row {
+		--control-bg: var(--ds-surface-muted);
+		--input-disabled-bg: var(--ds-surface-muted);
+	}
+	color-scheme: dark;
+
+	.frappe-card {
+		.btn-default {
+			background-color: var(--control-bg);
+
+			&:hover {
+				background-color: var(--fg-hover-color);
+			}
+		}
+	}
+
+	.modal,
+	.form-in-grid {
+		--control-bg: var(--ds-surface-muted);
+		--border-color: var(--ds-outline);
+	}
+
+	.print-format {
+		--text-color: var(--ds-ink);
+		--border-color: var(--ds-outline);
+	}
+
+	.ql-editor {
+		color: var(--text-on-gray);
+		&.read-mode {
+			span:not(.mention),
+			p,
+			u,
+			strong {
+				background-color: inherit !important;
+				color: inherit !important;
+			}
+		}
+	}
+	.comment-input-wrapper .ql-editor.ql-blank::before {
+		color: var(--text-color);
+	}
+	// Frappe Charts Colors
+	.chart-container {
+		--charts-label-color: var(--ds-ink-subtle);
+		--charts-axis-line-color: var(--subtle-fg);
+
+		--charts-stroke-width: 5px;
+			--charts-dataset-circle-stroke: var(--ds-surface);
+		--charts-dataset-circle-stroke-width: var(--charts-stroke-width);
+
+		--charts-tooltip-title: var(--charts-label-color);
+		--charts-tooltip-label: var(--charts-label-color);
+			--charts-tooltip-value: var(--ds-ink);
+			--charts-tooltip-bg: var(--ds-surface-raised);
+
+		--charts-legend-label: var(--charts-label-color);
+	}
+
+	.rating {
+		// rating
+		--star-fill: var(--ds-ink-subtle);
+		.star-hover {
+			--star-fill: var(--ds-ink-muted);
+		}
+	}
+
+	// skeleton
+	--skeleton-bg: var(--ds-surface-muted);
+
+	--right-arrow-svg: url("data: image/svg+xml;utf8, <svg width='6' height='8' viewBox='0 0 6 8' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M1.25 7.5L4.75 4L1.25 0.5' stroke='white' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+
+	--left-arrow-svg: url("data: image/svg+xml;utf8, <svg width='6' height='8' viewBox='0 0 6 8' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M7.5 9.5L4 6l3.5-3.5' stroke='white' stroke-linecap='round' stroke-linejoin='round'></path></svg>");
+
+	::selection {
+		color: var(--text-color);
+		background: var(--ds-outline-strong);
+	}
+
+	$indicator-colors: green, cyan, blue, orange, yellow, gray, grey, red, pink, darkgrey, purple,
+		light-blue;
+	@each $color in $indicator-colors {
+		.indicator {
+			--indicator-dot-#{"" + $color}: var(--bg-#{$color});
+		}
+	}
+}

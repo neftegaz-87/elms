@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B01-elms-docker-bootstrap
+task_id: T-B01-elms-docker-bootstrap
+title: s03 — Compose dev stack + .env.dev.example + docker-up wrapper IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/yaml/steps/s03-compose-dev-environment.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/iac-security-review/SKILL.md
+  - .agents/skills/secrets-scan/SKILL.md
+
+done:
+  - "Created docker/compose.dev.yaml defining core Frappe dev services: db, redis-cache, redis-queue, configurator, create-site, backend, websocket, queue-short, queue-long, scheduler, frontend"
+  - "Configured editable bind mounts for ../frappe and ../elms only, excluding third-party vendor apps"
+  - "Configured create-site with fail-closed behavior on empty ADMIN_PASSWORD and wait-for-it checks"
+  - "Created docker/.env.dev.example with all required environment variables and placeholders"
+  - "Created executable scripts/docker-up.sh wrapper supporting dev/prod modes and automatic environment creation"
+
+files:
+  - docker/compose.dev.yaml
+  - docker/.env.dev.example
+  - scripts/docker-up.sh
+
+deletes: []
+
+tests:
+  - "test -f docker/compose.dev.yaml && grep -q 'services:' docker/compose.dev.yaml && grep -q 'backend:' docker/compose.dev.yaml && grep -q 'websocket:' docker/compose.dev.yaml && grep -q 'queue-short:' docker/compose.dev.yaml && grep -q 'queue-long:' docker/compose.dev.yaml && grep -q 'scheduler:' docker/compose.dev.yaml"
+  - "grep -q 'SITE_NAME=' docker/.env.dev.example && grep -q 'ADMIN_PASSWORD=' docker/.env.dev.example"
+  - "test -x scripts/docker-up.sh"
+  - "docker compose -f docker/compose.dev.yaml --env-file docker/.env.dev.example config -q"
+
+integration_check:
+  - "docker compose config validates compose.dev.yaml without syntax errors"
+  - "scripts/docker-up.sh is executable and targets compose.dev.yaml by default"
+
+checkpoints:
+  - id: cp1
+    criterion: "compose.dev.yaml exists and defines db, redis, configurator, create-site, backend, websocket, queue-short, queue-long, scheduler, and frontend services"
+    status: done
+  - id: cp2
+    criterion: ".env.dev.example has required environment variables"
+    status: done
+  - id: cp3
+    criterion: "scripts/docker-up.sh is present and executable"
+    status: done
+
+resume_from: cp1

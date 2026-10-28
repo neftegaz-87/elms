@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B01-elms-docker-bootstrap
+task_id: T-B01-elms-docker-bootstrap
+title: s01 — Vendor frappe + root apps.json + custom app elms skeleton IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/yaml/steps/s01-frappe-vendor-app-skeleton.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+
+done:
+  - "Linked frappe framework into monorepo root"
+  - "Created root apps.json with exactly frappe and elms entries"
+  - "Scaffolded elms app skeleton with pyproject.toml, hooks.py, modules.txt (Core, Operations, LMS), patches.txt, install.py"
+
+files:
+  - apps.json
+  - elms/pyproject.toml
+  - elms/elms/__init__.py
+  - elms/elms/hooks.py
+  - elms/elms/modules.txt
+  - elms/elms/patches.txt
+  - elms/elms/install.py
+
+deletes: []
+
+tests:
+  - '`python3 -c "import json; data=json.load(open(''apps.json'')); assert [x[''name''] for x in data] == [''frappe'', ''elms'']"`'
+  - '`python3 -c "lines = [l.strip() for l in open(''elms/elms/modules.txt'') if l.strip()]; assert lines == [''Core'', ''Operations'', ''LMS'']"`'
+  - '`grep -q "app_name = \"elms\"" elms/elms/hooks.py && grep -q "name = \"elms\"" elms/pyproject.toml`'
+
+integration_check:
+  - "apps.json matches expected schema and entries for bench/docker build"
+  - "elms structure conforms to standard Frappe v15 app package layout"
+
+checkpoints:
+  - id: cp1
+    criterion: "apps.json has exactly frappe and elms entries"
+    status: done
+  - id: cp2
+    criterion: "modules.txt contains Core, Operations, LMS and hooks.py defines elms"
+    status: done
+  - id: cp3
+    criterion: "elms pyproject.toml exists and hooks.py has required metadata"
+    status: done
+
+resume_from: cp1

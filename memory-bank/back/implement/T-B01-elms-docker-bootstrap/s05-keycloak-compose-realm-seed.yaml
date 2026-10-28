@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-B01-elms-docker-bootstrap
+task_id: T-B01-elms-docker-bootstrap
+title: s05 — Keycloak + Postgres service in compose + realm stub + Yandex IdP config IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/yaml/steps/s05-keycloak-compose-realm-seed.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/iac-security-review/SKILL.md
+  - .agents/skills/secrets-scan/SKILL.md
+
+done:
+  - "Added keycloak-db (PostgreSQL 16) service to docker/compose.dev.yaml with pg_isready healthcheck"
+  - "Added keycloak service (quay.io/keycloak/keycloak:24.0.5) to docker/compose.dev.yaml with start-dev --import-realm and realm bind mount"
+  - "Created docker/keycloak/realm-elms.json declaring realm 'elms', elms-frappe client, Yandex 360 IdP configuration stub, and local fallback credentials"
+  - "Declared KEYCLOAK and YANDEX environment variables in docker/.env.dev.example without hardcoded production secrets"
+
+files:
+  - docker/compose.dev.yaml
+  - docker/keycloak/realm-elms.json
+  - docker/.env.dev.example
+
+deletes: []
+
+tests:
+  - "grep -q 'keycloak:' docker/compose.dev.yaml && grep -q 'keycloak-db:' docker/compose.dev.yaml"
+  - "test -f docker/keycloak/realm-elms.json && grep -q '\"realm\": \"elms\"' docker/keycloak/realm-elms.json"
+  - "grep -q 'KEYCLOAK_PUBLISH_PORT=' docker/.env.dev.example && grep -q 'YANDEX_CLIENT_ID=' docker/.env.dev.example"
+  - "docker compose -f docker/compose.dev.yaml --env-file docker/.env.dev.example config -q"
+  - "jq empty docker/keycloak/realm-elms.json"
+
+integration_check:
+  - "docker compose config validates compose.dev.yaml including keycloak and keycloak-db services without syntax errors"
+  - "docker/keycloak/realm-elms.json is valid JSON with realm elms, elms-frappe client, Yandex IdP stub, and local fallback users"
+
+checkpoints:
+  - id: cp1
+    criterion: "keycloak and keycloak-db services are defined in compose.dev.yaml"
+    status: done
+  - id: cp2
+    criterion: "realm-elms.json exists and defines realm 'elms'"
+    status: done
+  - id: cp3
+    criterion: ".env.dev.example has KEYCLOAK and YANDEX variables"
+    status: done
+
+resume_from: cp1

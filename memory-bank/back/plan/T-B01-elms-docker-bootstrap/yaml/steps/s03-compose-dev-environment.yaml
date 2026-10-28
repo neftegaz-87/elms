@@ -1,0 +1,106 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-B01-elms-docker-bootstrap
+title: "Compose dev stack + .env.dev.example + docker-up wrapper"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Описать локальный dev-стек в docker/compose.dev.yaml (db, redis, configurator, backend,
+  create-site, backend, websocket, queue-short, queue-long, scheduler, frontend), создать типовой
+  docker/.env.dev.example и исполняемый скрипт scripts/docker-up.sh.
+  Обеспечить изоляцию секретов и гибкое переопределение портов.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - FR-007
+    - US-001
+    - SC-001
+    - NFR-002
+    - TM-002
+    - TM-006
+    - BN-002
+    - BN-006
+  nouns:
+    - compose.dev.yaml
+    - .env.dev.example
+    - docker-up.sh
+    - db
+    - redis-cache
+    - redis-queue
+    - configurator
+    - websocket
+    - queue-short
+    - queue-long
+    - scheduler
+    - backend
+    - frontend
+  layout_paths:
+    - docker/compose.dev.yaml
+    - docker/.env.dev.example
+    - scripts/docker-up.sh
+  ac_quotes:
+    - "Compose up создаёт site и ставит elms."
+    - "Stack up: compose ps + curl /login."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:146-157"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:269-279"
+
+context:
+  consumes:
+    - docker/Dockerfile
+    - "plan §Functional Requirements FR-005/006/007"
+    - "plan §Compose topology"
+  produces:
+    - docker/compose.dev.yaml
+    - docker/.env.dev.example
+    - scripts/docker-up.sh
+  plan_refs:
+    - "plan.md#functional-requirements"
+    - "plan.md#compose-topology"
+  files:
+    - docker/compose.dev.yaml
+    - docker/.env.dev.example
+    - scripts/docker-up.sh
+
+as_built:
+  - "Dockerfile created in s02"
+  - "no docker/compose.dev.yaml or .env.dev.example"
+  - "scripts/ directory exists without docker-up.sh"
+
+delta:
+  - "create docker/compose.dev.yaml with core services: db, redis-cache, redis-queue, configurator, create-site, backend, websocket, queue-short, queue-long, scheduler, frontend"
+  - "bind mount ../frappe and ../elms for editable development"
+  - "create docker/.env.dev.example with all config variables"
+  - "add scripts/docker-up.sh script with execute permissions"
+
+deletes: []
+
+out_of_scope:
+  - "create-site execution (s04)"
+  - "Keycloak service (s05)"
+  - "SSO sync (s06)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/iac-security-review/SKILL.md
+    - .agents/skills/secrets-scan/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "compose.dev.yaml exists and defines db, redis, configurator, create-site, backend, websocket, queue-short, queue-long, scheduler, and frontend services"
+    verify: "test -f docker/compose.dev.yaml && grep -q 'services:' docker/compose.dev.yaml && grep -q 'backend:' docker/compose.dev.yaml && grep -q 'websocket:' docker/compose.dev.yaml && grep -q 'queue-short:' docker/compose.dev.yaml && grep -q 'queue-long:' docker/compose.dev.yaml && grep -q 'scheduler:' docker/compose.dev.yaml"
+  - id: cp2
+    criterion: ".env.dev.example has required environment variables"
+    verify: "grep -q 'SITE_NAME=' docker/.env.dev.example && grep -q 'ADMIN_PASSWORD=' docker/.env.dev.example"
+  - id: cp3
+    criterion: "scripts/docker-up.sh is present and executable"
+    verify: "test -x scripts/docker-up.sh"
+
+verify: []
+tdd: []

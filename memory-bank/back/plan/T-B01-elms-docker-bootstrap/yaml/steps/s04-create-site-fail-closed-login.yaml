@@ -1,0 +1,104 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-B01-elms-docker-bootstrap
+title: "Fail-closed create-site + Administrator credentials + smoke verification"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать fail-closed сервис create-site в compose.dev.yaml: bench new-site с паролем
+  из env, установка elms, включение developer_mode. Ошибки bench/MariaDB не маскируются
+  (|| true запрещён), backend стартует только после completed_successfully.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-011
+    - US-002
+    - SC-001
+    - SC-002
+    - SC-003
+    - NFR-003
+    - NFR-004
+    - AC+1
+    - AC+2
+    - AC+3
+    - AC-2
+    - TM-001
+    - TM-004
+    - TM-005
+    - TM-007
+    - BN-001
+    - BN-004
+    - BN-005
+  nouns:
+    - create-site
+    - new-site
+    - install-app
+    - SITE_NAME
+    - ADMIN_PASSWORD
+    - DB_PASSWORD
+    - developer_mode
+    - fail-closed
+  layout_paths:
+    - docker/compose.dev.yaml
+  ac_quotes:
+    - "Administrator login работает с env password."
+    - "Fail-closed create-site: entrypoint exit code propagates; depends_on condition completed_successfully."
+    - "Нет || true на create-site / install-app."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:146-160"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:288-298"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:309-319"
+
+context:
+  consumes:
+    - docker/compose.dev.yaml
+    - docker/.env.dev.example
+    - "plan §create-site command sketch (fail-closed)"
+  produces:
+    - docker/compose.dev.yaml
+  plan_refs:
+    - "plan.md#create-site-command-sketch-fail-closed"
+    - "plan.md#failure-matrix"
+  files:
+    - docker/compose.dev.yaml
+
+as_built:
+  - "compose.dev.yaml created in s03"
+  - "create-site definition needs fail-closed bench wiring"
+
+delta:
+  - "wire create-site service with bench new-site, install-app elms and developer_mode"
+  - "verify command propagates non-zero exits without fallback masking"
+  - "configure depends_on completed_successfully for backend"
+
+deletes: []
+
+out_of_scope:
+  - "Keycloak service (s05)"
+  - "SSO sync (s06)"
+  - "Makefile cleanup (s07)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/iac-security-review/SKILL.md
+    - .agents/skills/secrets-scan/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "create-site service is present in compose.dev.yaml"
+    verify: "grep -q 'create-site:' docker/compose.dev.yaml"
+  - id: cp2
+    criterion: "create-site command invokes install-app elms and avoids || true"
+    verify: "grep -q 'install-app elms' docker/compose.dev.yaml && ! grep -q 'install-app.*|| true' docker/compose.dev.yaml"
+  - id: cp3
+    criterion: "backend depends on create-site completed_successfully"
+    verify: "grep -A 5 'create-site:' docker/compose.dev.yaml | grep -q 'completed_successfully'"
+
+verify: []
+tdd: []

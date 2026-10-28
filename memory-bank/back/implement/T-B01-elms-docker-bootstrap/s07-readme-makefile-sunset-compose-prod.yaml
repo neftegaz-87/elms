@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-B01-elms-docker-bootstrap
+task_id: T-B01-elms-docker-bootstrap
+title: s07 — README docs + Makefile neftegaz cleanup + minimal compose.prod IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B01-elms-docker-bootstrap/yaml/steps/s07-readme-makefile-sunset-compose-prod.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/verification-before-completion/SKILL.md
+
+done:
+  - "Purged all obsolete neftegaz targets (remote-dev, loki logging) from Makefile, introducing clean targets local.up, local.down, local.ps, and local.logs delegating to scripts/docker-up.sh"
+  - "Created minimal standalone docker/compose.prod.yaml without host source code bind-mounts using container image baked frappe and elms apps"
+  - "Updated docker/README.md with quickstart, hosts configuration, service ports, Makefile targets, compose.prod architecture, Keycloak SSO, and troubleshooting guide"
+
+files:
+  - docker/README.md
+  - Makefile
+  - docker/compose.prod.yaml
+
+deletes:
+  - "Makefile neftegaz targets and references"
+
+tests:
+  - "! grep -i 'neftegaz' Makefile"
+  - "test -f docker/README.md && grep -q 'docker-up.sh' docker/README.md"
+  - "test -f docker/compose.prod.yaml"
+  - "docker compose -f docker/compose.prod.yaml --env-file docker/.env.dev.example config -q"
+
+integration_check:
+  - "Makefile contains clean targets with zero references to foreign project neftegaz"
+  - "docker/compose.prod.yaml config check passes without errors"
+  - "docker/README.md contains quickstart, port mappings, and troubleshooting"
+
+checkpoints:
+  - id: cp1
+    criterion: "Makefile has zero occurrences of neftegaz"
+    status: done
+  - id: cp2
+    criterion: "docker/README.md exists and contains quickstart commands"
+    status: done
+  - id: cp3
+    criterion: "docker/compose.prod.yaml exists"
+    status: done
+
+resume_from: cp1
+
+plan_parity_scan:
+  target_tree_complete: true
+  fr_coverage:
+    FR-001: "frappe v15 vendor skeleton present in repo (s01)"
+    FR-002: "elms app skeleton present with modules and hooks (s01)"
+    FR-003: "apps.json configured with frappe and elms (s01)"
+    FR-004: "Dockerfile slim multi-stage with apps.txt frappe+elms (s02)"
+    FR-005: "compose.dev.yaml complete dev service topology (s03)"
+    FR-006: ".env.dev.example with all config keys and defaults (s03)"
+    FR-007: "scripts/docker-up.sh wrapper for dev and prod (s03)"
+    FR-008: "docker/README.md quickstart, ports, login, and identity (s07)"
+    FR-009: "Makefile cleaned of neftegaz targets, delegating to docker-up.sh (s07)"
+    FR-010: "Keycloak service and realm-elms.json seed stub (s05)"
+    FR-011: "Fail-closed create-site and health dependencies (s04)"
+    FR-012: "Frappe accepts external SSO strictly from Keycloak (s06)"
+    FR-013: "Keycloak brokering Yandex 360 external IdP boundary (s05)"
+    FR-014: "One-way idempotent identity reconciliation and group mapping (s06)"
+    FR-015: "Keycloak local credentials for fallback and break-glass (s06)"
+    FR-016: "Yandex SMTP boundary and fail-closed error handling (s06)"

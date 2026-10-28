@@ -1,0 +1,122 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-B01-elms-docker-bootstrap
+title: "Vendor frappe + root apps.json + custom app elms skeleton"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить Frappe Framework v15 в monorepo, создать канонический apps.json (только frappe и elms)
+  и развернуть скелет custom app elms/ с pyproject.toml, hooks.py, install.py, patches.txt
+  и modules.txt (Core, Operations, LMS). Обеспечивает основу для контейнеризации без вендорных приложений.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - US-003
+    - SC-003
+    - SC-005
+    - AC+3
+    - AC+4
+    - AC+7
+    - AC-5
+    - AC-1
+    - TM-003
+    - BN-003
+  nouns:
+    - frappe
+    - elms
+    - apps.json
+    - pyproject.toml
+    - hooks.py
+    - modules.txt
+    - patches.txt
+    - install.py
+  layout_paths:
+    - apps.json
+    - elms/pyproject.toml
+    - elms/elms/__init__.py
+    - elms/elms/hooks.py
+    - elms/elms/modules.txt
+    - elms/elms/patches.txt
+    - elms/elms/install.py
+  ac_quotes:
+    - "list-apps = frappe, elms only."
+    - "modules.txt = Core, Operations, LMS."
+    - "AC-5: modules.txt фиксирует Core, Operations, LMS."
+    - "Нет erpnext/crm/lms/education/hrms/payments/insights/raven/wiki/drive в apps.txt / Dockerfile."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:131-145"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:240-268"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:280-287"
+
+context:
+  consumes:
+    - "plan §Functional Requirements FR-001/002/003"
+    - "plan §Target tree"
+    - "plan §Technology axiom (replace-not-wrap)"
+  produces:
+    - apps.json
+    - elms/pyproject.toml
+    - elms/elms/__init__.py
+    - elms/elms/hooks.py
+    - elms/elms/modules.txt
+    - elms/elms/patches.txt
+    - elms/elms/install.py
+  plan_refs:
+    - "plan.md#functional-requirements"
+    - "plan.md#target-tree"
+    - "plan.md#technology-axiom-replace-not-wrap"
+  files:
+    - apps.json
+    - elms/pyproject.toml
+    - elms/elms/__init__.py
+    - elms/elms/hooks.py
+    - elms/elms/modules.txt
+    - elms/elms/patches.txt
+    - elms/elms/install.py
+
+as_built:
+  - "greenfield repo without frappe framework or elms app layout"
+  - "no apps.json"
+  - "no elms skeleton"
+
+delta:
+  - "vendor or link frappe framework v15 into monorepo root"
+  - "create root apps.json with exactly frappe and elms entries"
+  - "scaffold app elms with pyproject.toml, hooks.py, modules.txt (Core, Operations, LMS), patches.txt, install.py"
+
+deletes: []
+
+out_of_scope:
+  - "Dockerfile slim (s02)"
+  - "compose.dev stack (s03)"
+  - "create-site (s04)"
+  - "Keycloak service (s05)"
+  - "Frappe SSO integration (s06)"
+  - "Makefile cleanup (s07)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "apps.json has exactly frappe and elms entries"
+    verify: "python3 -c 'import json; data=json.load(open(\"apps.json\")); assert [x[\"name\"] for x in data] == [\"frappe\", \"elms\"]'"
+  - id: cp2
+    criterion: "modules.txt contains Core, Operations, LMS and hooks.py defines elms"
+    verify: "python3 -c 'lines = [l.strip() for l in open(\"elms/elms/modules.txt\") if l.strip()]; assert lines == [\"Core\", \"Operations\", \"LMS\"]'"
+  - id: cp3
+    criterion: "elms pyproject.toml exists and hooks.py has required metadata"
+    verify: "grep -q 'app_name = \"elms\"' elms/elms/hooks.py && grep -q 'name = \"elms\"' elms/pyproject.toml"
+
+verify: []
+tdd: []

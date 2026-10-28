@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-B01-elms-docker-bootstrap
+title: "Frappe-Keycloak SSO wiring + one-way identity sync + Yandex outage fallback"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сконфигурировать интеграционный каркас SSO Frappe↔Keycloak: подготовка Social Login Key
+  через after_install в elms/elms/install.py, однонаправленная синхронизация идентичности
+  Keycloak→Frappe, контракт сопоставления групп ролям и резервный вход при сбое Yandex.
+
+plan_contract:
+  fr_ids:
+    - FR-012
+    - FR-013
+    - FR-014
+    - FR-015
+    - FR-016
+    - SC-006
+    - SC-007
+    - SC-008
+    - AC+8
+    - AC+9
+    - AC-4
+    - AC-6
+    - AC-7
+    - NFR-005
+    - NFR-006
+    - TM-008
+    - TM-009
+    - TM-010
+    - BN-007
+    - BN-008
+    - BN-009
+  nouns:
+    - Keycloak SSO
+    - Social Login Key
+    - identity sync
+    - group-to-role mapping
+    - Yandex outage fallback
+    - Frappe permissions
+  layout_paths:
+    - elms/elms/install.py
+    - elms/elms/hooks.py
+    - docker/README.md
+  ac_quotes:
+    - "SSO path is Frappe → Keycloak → Yandex 360; local Keycloak fallback path documented and tested."
+    - "Keycloak identity lifecycle and approved role mappings reconcile into Frappe without replacing Frappe permission rules."
+    - "Нет претензии «прямой Frappe → Yandex login работает»: SSO идёт через Keycloak."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:73-82"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:161-166"
+    - "memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md:202-213"
+
+context:
+  consumes:
+    - "plan §Identity architecture decision"
+    - "plan §Functional Requirements FR-012/013/014/015/016"
+    - docker/keycloak/realm-elms.json
+  produces:
+    - elms/elms/install.py
+    - elms/elms/hooks.py
+    - docker/README.md
+  plan_refs:
+    - "plan.md#identity-architecture-decision"
+    - "plan.md#functional-requirements"
+  files:
+    - elms/elms/install.py
+    - elms/elms/hooks.py
+    - docker/README.md
+
+as_built:
+  - "elms app skeleton created in s01 with empty install.py"
+  - "Keycloak realm seeded in s05"
+  - "no Frappe-side SSO setup"
+
+delta:
+  - "add after_install handler in elms/elms/install.py registering Keycloak Social Login Key template"
+  - "implement idempotent one-way Keycloak-to-Frappe identity lifecycle and approved group-to-role reconciliation"
+  - "configure the Yandex SMTP boundary for FR-016 with explicit failure handling for unavailable delivery"
+  - "document and test the local Keycloak fallback login path for enabled users when Yandex is unavailable"
+  - "document identity lifecycle contract and group-to-role reconciliation rule in README"
+  - "document emergency break-glass login procedure for Yandex IdP outages"
+
+deletes: []
+
+out_of_scope:
+  - "custom roles and permissions (T-B02)"
+  - "live OAuth client secret provisioning in Keycloak (T-B03)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "install.py provides after_install setup hook for SSO"
+    verify: "grep -q 'after_install' elms/elms/install.py"
+  - id: cp2
+    criterion: "README documents Keycloak identity lifecycle and fallback login"
+    verify: "grep -q 'Keycloak' docker/README.md && grep -q 'Yandex' docker/README.md"
+
+verify: []
+tdd: []
