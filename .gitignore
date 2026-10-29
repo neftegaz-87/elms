@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+!docker/.env.*.example
 
 .loop/board-projection.yaml
 .loop/board-epic-map.yaml
@@ -22,3 +23,5 @@ build/
 sites/
 logs/
 *.log
+runtime/
+graphify-out/

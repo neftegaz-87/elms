@@ -306,6 +306,8 @@ RUN . ${NVM_DIR}/nvm.sh \
     && cd /home/frappe/frappe-bench \
     && for i in 1 2 3 4 5; do yarn --cwd apps/frappe install && break || sleep 15; done
 
+COPY --chown=frappe:0 design-system /home/frappe/frappe-bench/apps/design-system
+
 RUN . ${NVM_DIR}/nvm.sh \
     && cd /home/frappe/frappe-bench \
     && printf 'frappe\nelms\n' > sites/apps.txt \

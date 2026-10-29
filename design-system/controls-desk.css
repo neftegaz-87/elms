@@ -1,0 +1,208 @@
+html body .btn {
+  border: 1px solid var(--ds-outline-strong);
+  border-radius: var(--ds-radius-md) !important;
+  background-color: var(--ds-surface-raised);
+  color: var(--ds-ink);
+  font-family: var(--ds-font-family);
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-medium);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+html body .btn:hover {
+  border-color: var(--ds-ink-muted);
+  background-color: var(--ds-surface-muted);
+}
+
+html body .btn:active {
+  background-color: var(--ds-surface);
+}
+
+html body .btn.btn-primary,
+html body .btn-primary,
+html body button.btn.btn-primary,
+html body .modal-footer .btn.btn-primary {
+	border-color: var(--ds-accent);
+	background-color: var(--ds-accent);
+	border-radius: var(--ds-radius-md) !important;
+	color: var(--ds-accent-ink);
+	--icon-fill-bg: var(--ds-accent);
+}
+
+html body button.btn.btn-primary,
+html body a.btn.btn-primary,
+html body .modal-footer button.btn.btn-primary,
+html body .modal-footer a.btn.btn-primary {
+	border-radius: var(--ds-radius-md);
+}
+
+html body .btn.btn-primary:hover,
+html body .modal-footer .btn.btn-primary:hover {
+	border-color: var(--ds-accent);
+	background-color: color-mix(in srgb, var(--ds-accent) 88%, var(--ds-ink));
+	color: var(--ds-accent-ink);
+}
+
+html body .btn.btn-primary:active,
+html body .modal-footer .btn.btn-primary:active {
+	border-color: var(--ds-accent);
+	background-color: color-mix(in srgb, var(--ds-accent) 78%, var(--ds-ink));
+	color: var(--ds-accent-ink);
+}
+
+html body .btn.btn-secondary,
+html body .btn.btn-default,
+html body .modal-footer .btn.btn-secondary,
+html body .modal-footer .btn.btn-default {
+	border-color: var(--ds-outline-strong);
+	background-color: var(--ds-surface-raised);
+	color: var(--ds-ink);
+}
+
+html body .btn.btn-secondary:hover,
+html body .btn.btn-default:hover,
+html body .modal-footer .btn.btn-secondary:hover,
+html body .modal-footer .btn.btn-default:hover {
+	border-color: var(--ds-ink-muted);
+	background-color: var(--ds-surface-muted);
+	color: var(--ds-ink);
+}
+
+html body .btn.btn-secondary:active,
+html body .btn.btn-default:active,
+html body .modal-footer .btn.btn-secondary:active,
+html body .modal-footer .btn.btn-default:active {
+	border-color: var(--ds-outline-strong);
+	background-color: var(--ds-surface);
+	color: var(--ds-ink);
+}
+
+html body .btn.btn-danger,
+html body .modal-footer .btn.btn-danger {
+	border-color: var(--ds-danger);
+	background-color: var(--ds-danger);
+	color: var(--ds-ink-inverse);
+}
+
+html body .btn.btn-warning,
+html body .btn.btn-success,
+html body .btn.btn-info,
+html body .btn.btn-primary-light,
+html body .modal-footer .btn.btn-warning,
+html body .modal-footer .btn.btn-success,
+html body .modal-footer .btn.btn-info,
+html body .modal-footer .btn.btn-primary-light {
+	border-color: var(--ds-accent);
+	background-color: var(--ds-accent);
+	color: var(--ds-accent-ink);
+}
+
+html body .btn.btn-warning:hover,
+html body .btn.btn-success:hover,
+html body .btn.btn-info:hover,
+html body .btn.btn-primary-light:hover,
+html body .modal-footer .btn.btn-warning:hover,
+html body .modal-footer .btn.btn-success:hover,
+html body .modal-footer .btn.btn-info:hover,
+html body .modal-footer .btn.btn-primary-light:hover {
+	border-color: var(--ds-accent);
+	background-color: color-mix(in srgb, var(--ds-accent) 88%, var(--ds-ink));
+	color: var(--ds-accent-ink);
+}
+
+html body .btn.btn-warning:active,
+html body .btn.btn-success:active,
+html body .btn.btn-info:active,
+html body .btn.btn-primary-light:active,
+html body .modal-footer .btn.btn-warning:active,
+html body .modal-footer .btn.btn-success:active,
+html body .modal-footer .btn.btn-info:active,
+html body .modal-footer .btn.btn-primary-light:active {
+	border-color: var(--ds-accent);
+	background-color: color-mix(in srgb, var(--ds-accent) 78%, var(--ds-ink));
+	color: var(--ds-accent-ink);
+}
+
+html body .btn.btn-danger:hover,
+html body .modal-footer .btn.btn-danger:hover {
+  border-color: var(--ds-danger);
+  background-color: color-mix(in srgb, var(--ds-danger) 88%, var(--ds-ink));
+  color: var(--ds-ink-inverse);
+}
+
+html body .btn.btn-danger:active,
+html body .modal-footer .btn.btn-danger:active {
+  border-color: var(--ds-danger);
+  background-color: color-mix(in srgb, var(--ds-danger) 78%, var(--ds-ink));
+  color: var(--ds-ink-inverse);
+}
+
+html body .form-control,
+html body select.form-control {
+  border: 1px solid var(--ds-outline-strong);
+  border-radius: var(--ds-radius-md);
+  background-color: var(--ds-surface);
+  color: var(--ds-ink);
+  font-family: var(--ds-font-family);
+  font-size: var(--ds-font-size-base);
+}
+
+html body .form-control:hover,
+html body select.form-control:hover {
+  border-color: var(--ds-ink-muted);
+}
+
+html body input[type="checkbox"],
+html body input[type="radio"] {
+  accent-color: var(--ds-accent);
+}
+
+html body input[type="checkbox"]:disabled,
+html body input[type="radio"]:disabled {
+  accent-color: var(--ds-ink-subtle);
+}
+
+html body .btn:focus-visible,
+html body .form-control:focus,
+html body select.form-control:focus,
+html body .form-control:focus-visible,
+html body select.form-control:focus-visible,
+html body input[type="checkbox"]:focus-visible,
+html body input[type="radio"]:focus-visible {
+  outline: 2px solid var(--ds-focus) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--ds-focus) !important;
+}
+
+html body input.form-control:focus-visible,
+html body textarea.form-control:focus-visible,
+html body select.form-control:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
+}
+
+html body [data-fieldname="customer_name"] input.form-control:focus-visible {
+	outline: 2px solid var(--ds-focus);
+	outline-offset: 2px;
+}
+
+html body [data-fieldname="customer_name"] input.form-control:focus {
+	outline: 2px solid var(--ds-focus) !important;
+	outline-offset: 2px;
+	outline-color: var(--ds-focus) !important;
+	border-color: var(--ds-focus) !important;
+	box-shadow: 0 0 0 2px var(--ds-focus) !important;
+}
+
+html body .btn:disabled,
+html body .modal-footer .btn:disabled,
+html body .form-control:disabled,
+html body select.form-control:disabled,
+html body input[type="checkbox"]:disabled,
+html body input[type="radio"]:disabled {
+  border-color: var(--ds-outline);
+  background-color: var(--ds-surface-muted);
+  color: var(--ds-ink-subtle);
+  cursor: not-allowed;
+  opacity: 0.72;
+}

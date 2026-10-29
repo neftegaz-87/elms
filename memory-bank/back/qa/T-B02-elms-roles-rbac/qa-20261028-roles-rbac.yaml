@@ -1,0 +1,62 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B02
+plan_id: T-B02-elms-roles-rbac
+epic_id: T-B02-elms-roles-rbac
+date: "2026-10-28"
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: a54bed52392b72cf5340503d11a95e95480b955479888fb4715cf3d4217f7314
+verify_scope: full
+
+scope:
+  - "task: T-B02"
+  - "epic: T-B02-elms-roles-rbac"
+  - "steps: s01–s03"
+  - "files: elms/elms/install.py, elms/elms/hooks.py, elms/elms/modules.txt, elms/elms/operations/doctype/elms_operations_section/, elms/elms/lms/doctype/elms_lms_section/, elms/elms/core/doctype/elms_settings_section/, elms/elms/tests/test_roles_rbac.py, memory-bank/product/modules.md"
+
+ac_plus:
+  - "Three ELMS roles seeded in Frappe database: ELMS Admin, ELMS Operations User, ELMS LMS User (FR-001, AC-1)"
+  - "Three Single DocTypes exist: ELMS Operations Section in module Operations, ELMS LMS Section in module LMS, ELMS Settings Section in module Core and modules.txt aligns Core, Operations, LMS (FR-002, FR-003, AC-2)"
+  - "DocPerm matrix matches FR-004 specifications granting Admin RWCD across all three, Operations User RW on Operations section, LMS User RW on LMS section (FR-004, AC-3)"
+  - "RBAC test suite TM tests pass green covering Admin allow, Operations/LMS cross-role denial, and Guest denial (AC-4, FR-007, TM-001..TM-007)"
+  - "Seed logic in install.py fails closed upon role insertion failure without silent suppression (FR-005, AC-5, BN-004, TM-004)"
+  - "Python ensure logic in install.py is required Single Source of Truth wired into after_install and after_migrate hooks (FR-005, FR-006)"
+  - "Roles taxonomy and DocPerm matrix documented in memory-bank/product/modules.md (FR-008)"
+  - "Platform roles retained: Administrator and System Manager not blocked (FR-009)"
+
+ac_minus:
+  - "No try/except pass suppression around Role creation (AC--1)"
+  - "No fourth ELMS role created without plan update (AC--2)"
+  - "No API whitelist bypassing DocPerm permissions for Section DocTypes (AC--3)"
+  - "No domain fields placed in placeholder DocTypes (AC--4)"
+  - "No Guest permissions granted and no silent fallback (AC-6, BN-003, TM-003)"
+
+section_011:
+  - "No orphan external references across touched files"
+
+prior_blockers:
+  - none
+
+checks:
+  - "full suite check: bin/pytest -q --tb=line — PASS (13 unit tests, 7 integration/smoke assertions in 0.05s)"
+  - "RBAC unit test suite: PYTHONPATH=elms python3 -m unittest elms.tests.test_roles_rbac — PASS (13 tests in 0.010s)"
+  - "Step checkpoints s01-s03 verified"
+  - "DocType JSON structure and Single flag verification"
+  - "DocPerm matrix verification across Operations, LMS, Core sections"
+  - "Bugfix queue items BF-001, BF-002, BF-003 verified closed"
+  - "live_smoke: skipped (no live_smoke.sh script; Frappe backend runs under Docker compose)"
+  - "verify-qa: PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "Full integration tests with live Frappe MariaDB require running Docker compose environment (docker/compose.dev.yaml)"
+
+suite:
+  - "bin/pytest -q --tb=line — PASS (13 unit tests, 7 smoke assertions in 0.05s)"
+  - "PYTHONPATH=elms python3 -m unittest elms.tests.test_roles_rbac — PASS (13 tests in 0.010s)"

@@ -15,3 +15,4 @@ epics:
   T-B02-elms-roles-rbac: erokhin
   T-B03-elms-sso-keycloak-yandex: erokhin
   T-F01-elms-desk-sections-roles: sokolov
+  T-B04-bitrix-rest-client: erokhin

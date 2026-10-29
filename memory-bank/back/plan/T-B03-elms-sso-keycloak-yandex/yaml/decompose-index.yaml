@@ -1,0 +1,334 @@
+schema: epic-decompose-index/v1
+plan_id: T-B03-elms-sso-keycloak-yandex
+level: L3
+sNN_cap: 3
+appetite:
+  timebox_days: 3
+  cut_list:
+  - FRONT SSO button styling and icons polish (deferred to T-F01)
+  - Multi-factor authentication (MFA) and SCIM provisioning
+  - Account linking UI edge cases beyond stock Frappe behavior
+effort_probe:
+  outcomes:
+  - outcome: Keycloak realm client JSON, environment templates, and site_config credentials
+      injection
+    hours_mid: 3.0
+    hours_range: 2-4
+    confidence: med
+    notes: Client elms-frappe in realm-elms.json, env keys, site_config credentials
+      injection
+  - outcome: Keycloak-only Frappe Social Login Key, Yandex broker configuration, and
+      migration hooks
+    hours_mid: 3.5
+    hours_range: 3-4
+    confidence: med
+    notes: ensure_social_login_keys for one Keycloak provider, Yandex as Keycloak
+      upstream, conf-gated enable, hooks wiring
+  - outcome: Brokered JIT user provisioning, local Keycloak fallback runbook, role
+      assignment, tests, and checklist
+    hours_mid: 3.5
+    hours_range: 3-4
+    confidence: med
+    notes: User after_insert hook, Keycloak subject/link behavior, explicit local
+      credential fallback, test_sso.py suite, docs checklist
+  total_hours: 10.0
+  effort_hours_total: 10.0
+  effort_class: M
+  independent_outcomes: 3
+  split_seams: 0
+  sNN_cap: 3
+  sNN_target: 3
+steps:
+- id: s01
+  file: s01-sso-configuration-and-secrets.yaml
+  title: Keycloak realm client JSON, environment templates, and site_config injection
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-social-login-keys-idempotent-ensure.yaml
+  title: Keycloak-only Social Login Key, Yandex broker wiring, and migration hooks
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-sso-user-roles-tests-and-checklist.yaml
+  title: Brokered JIT signup, local Keycloak fallback, roles, tests, and manual checklist
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Configure realm-elms.json with client elms-frappe, Yandex broker callback,
+    local login, and dev client secrets
+- id: FR-002
+  step: s01
+  description: Boot injection for keycloak_login and elms_sso_default_roles; pass
+    Yandex credentials only to Keycloak
+- id: FR-003
+  step: s02
+  description: Social Login Key for Keycloak with provider Keycloak, public base_url,
+    exact redirect_url, and conf gating
+- id: FR-004
+  step: s01
+  description: Configure Yandex only as a Keycloak OIDC Identity Provider with first-broker-login
+    JIT provisioning
+- id: FR-005
+  step: s03
+  description: User after_insert doc_events hook assigning ELMS LMS User and Desk
+    User fail-closed
+- id: FR-005a
+  step: s03
+  description: Document and verify explicit local Keycloak credentials as per-user
+    fallback when Yandex is unavailable
+- id: FR-006
+  step: s02
+  description: Wire after_migrate and after_install hooks to idempotent ensure_social_login_keys
+- id: FR-007
+  step: s03
+  description: Unit/manual/static suite verifying one provider, brokered JIT flow,
+    fallback credential, role assignment, and secret hygiene
+- id: FR-008
+  step: s03
+  description: Document manual broker setup, first-login provisioning, local Keycloak
+    fallback, and Yandex outage checklist
+- id: FR-009
+  step: s03
+  description: Document host networking requirements for browser to Keycloak public
+    port and container communication
+- id: FR-010
+  step: s02
+  description: Expose only Keycloak on Frappe /login; keep Yandex and local password
+    choices inside Keycloak
+- id: FR-011
+  step: s03
+  description: Keep provisioning just-in-time; do not implement bulk Yandex directory
+    import
+- id: US-001
+  step: s02
+  description: User sees exactly one Keycloak SSO button on /login; direct Yandex
+    provider is absent
+- id: US-002
+  step: s02
+  description: User logs in through the Yandex broker inside Keycloak and reaches
+    a Frappe session
+- id: US-003
+  step: s03
+  description: Approved user logs in through local Keycloak password when Yandex is
+    unavailable
+- id: US-004
+  step: s01
+  description: System does not store plaintext client_secret in repository git tracking
+- id: US-005
+  step: s03
+  description: New SSO user automatically receives ELMS LMS User and Desk User roles
+    upon registration
+- id: US-006
+  step: s02
+  description: Administrator can disable new Frappe signup by configuring sign_ups
+    to Deny
+- id: US-007
+  step: s03
+  description: System provisions Keycloak users just-in-time at first broker login
+    without claiming bulk directory sync
+- id: SC-001
+  step: s02
+  description: Exactly one Frappe Social Login Key row exists for keycloak; no direct
+    yandex row exists
+- id: SC-002
+  step: s02
+  description: Social Login Key enable status is gated on presence of conf credentials
+- id: SC-003
+  step: s03
+  description: SSO signup default roles assigned and throw fail-closed if missing
+- id: SC-004
+  step: s01
+  description: Repository tracked files contain zero plaintext client secrets
+- id: SC-005
+  step: s03
+  description: Manual brokered Keycloak→Yandex login checklist documented
+- id: SC-006
+  step: s03
+  description: Manual local Keycloak fallback during Yandex outage checklist documented
+- id: AC-1
+  step: s02
+  description: ensure_social_login_keys execution is fully idempotent without DuplicateEntryError
+- id: AC-2
+  step: s02
+  description: Frappe uses only login_via_keycloak; Yandex redirect terminates at
+    the Keycloak broker endpoint
+- id: AC-3
+  step: s01
+  description: Frappe site_config credentials drive client_id and client_secret resolution
+- id: AC-4
+  step: s02
+  description: Frappe enables only Keycloak from site_config; Yandex credentials gate
+    the Keycloak broker
+- id: AC-5
+  step: s03
+  description: SSO user signup default role assignment is fail-closed and throws on
+    missing role
+- id: AC-6
+  step: s03
+  description: Manual verification checklist covers brokered Yandex and local Keycloak
+    fallback
+- id: AC-8
+  step: s03
+  description: Explicit local Keycloak credential authenticates through the same Frappe
+    client when Yandex is unavailable
+- id: AC-9
+  step: s03
+  description: First broker login provisions/link Keycloak identity and Frappe User
+    just-in-time without bulk import
+- id: AC-7
+  step: s01
+  description: No custom OAuth server implementation and no secrets in git
+- id: AC--1
+  step: s01
+  description: No real client_secret credentials committed in git repository
+- id: AC--2
+  step: s02
+  description: No custom OAuth implementation module duplicating frappe oauth2_logins
+- id: AC--3
+  step: s03
+  description: No social signup permitted with zero ELMS roles assigned when defaults
+    configured
+- id: AC--4
+  step: s01
+  description: No hard dependency on ERPNext social login patches
+- id: BN-001
+  step: s01
+  description: Missing Keycloak or Yandex broker credentials leaves the relevant provider
+    path disabled
+- id: BN-002
+  step: s02
+  description: IdP failure during login aborts without creating an unauthenticated
+    fake session
+- id: BN-003
+  step: s02
+  description: New user login when sign_ups is Deny is rejected with standard Frappe
+    denial
+- id: BN-004
+  step: s03
+  description: Missing email in userinfo response throws explicit exception fail-closed
+- id: BN-005
+  step: s03
+  description: Missing ELMS LMS User role throws explicit exception fail-closed on
+    signup
+- id: BN-006
+  step: s02
+  description: Redirect mismatch in Yandex broker or Keycloak client yields explicit
+    error
+- id: BN-007
+  step: s03
+  description: Yandex outage without local Keycloak credential fails closed without
+    a fake session
+- id: BN-008
+  step: s03
+  description: Yandex outage with explicit local Keycloak credential reaches the existing
+    Frappe User
+- id: BN-009
+  step: s03
+  description: No first broker login and no local account does not create a phantom
+    Keycloak/Frappe User
+- id: TM-001
+  step: s01
+  description: Unit test verifying missing site_config keys keeps enable_social_login
+    set to 0
+- id: TM-002
+  step: s03
+  description: Manual procedure verifying Yandex outage without local credential leaves
+    session uncreated
+- id: TM-003
+  step: s02
+  description: Unit test verifying sign_ups Deny prevents registration of new subjects
+- id: TM-004
+  step: s03
+  description: Unit test verifying userinfo lacking email triggers fail-closed error
+- id: TM-005
+  step: s03
+  description: Unit test verifying missing default role throws exception during social
+    signup
+- id: TM-006
+  step: s02
+  description: Manual check verifying Yandex broker or Frappe redirect mismatch is
+    flagged
+- id: TM-007
+  step: s02
+  description: Unit test asserting only Keycloak Social Login Key and canonical Frappe
+    callback exist
+- id: TM-008
+  step: s01
+  description: Static grep test confirming no real client_secret values are tracked
+    in git
+- id: TM-009
+  step: s03
+  description: Manual test verifying Yandex outage with no local credential fails
+    closed
+- id: TM-010
+  step: s03
+  description: Manual test verifying explicit local Keycloak credential succeeds during
+    Yandex outage
+- id: TM-011
+  step: s03
+  description: Manual/unit test verifying first broker login creates Keycloak link
+    and Frappe User just-in-time
+stages_coverage:
+- stage: Stage s01 realm client + Yandex broker JSON + env/site_config credential
+    boundary
+  step: s01
+- stage: Stage s02 ensure one Keycloak Social Login Key, lifecycle hooks, and remove
+    direct Yandex path
+  step: s02
+- stage: Stage s03 brokered JIT User/default roles hook and local fallback behavior
+  step: s03
+- stage: Stage s03 unit tests + secret scan
+  step: s03
+- stage: Stage s03 manual checklist docs
+  step: s03
+outcome_map:
+- outcome: Keycloak realm client JSON, environment templates, and site_config credentials
+    injection
+  step: s01
+- outcome: Keycloak-only Social Login Key, Yandex broker, and migration hooks
+  step: s02
+- outcome: Brokered JIT identity provisioning, local Keycloak fallback, roles, tests,
+    and manual setup checklist
+  step: s03
+replacement_cleanup:
+  s01:
+    replaces: T-B01 realm stub empty client configuration and unmanaged SSO environment
+    target: formal client elms-frappe in realm-elms.json and docker/.env.dev.example
+      templates
+  s02:
+    replaces: early stub setup_keycloak_social_login in install.py and ad-hoc Social
+      Login Key setup
+    target: structured ensure_social_login_keys in elms/elms/sso/ensure.py for Keycloak
+      only; Yandex remains a Keycloak broker IdP
+  s03:
+    replaces: password-only user onboarding, direct Yandex callback, and unverified
+      SSO role attachment
+    target: fail-closed brokered signup, explicit local Keycloak fallback runbook,
+      and comprehensive test_sso.py suite
+  items:
+  - symbol: T-B01 realm stub empty client
+    kind: A
+    replacement: docker/keycloak/realm-elms.json client elms-frappe definition
+    step: s01
+    policy: delete in-epic
+  - symbol: setup_keycloak_social_login
+    kind: A
+    replacement: elms/elms/sso/ensure.py ensure_social_login_keys
+    step: s02
+    policy: delete in-epic
+  - symbol: direct Frappe yandex Social Login Key/custom callback
+    kind: A
+    replacement: Keycloak identityProviders[yandex] broker and /realms/elms/broker/yandex/endpoint
+    step: s02
+    policy: delete in-epic
+  - symbol: unmanaged social user signup without roles
+    kind: B
+    replacement: elms/elms/sso/roles.py User after_insert hook
+    step: s03
+    policy: delete in-epic
+  sunset:
+  - setup_keycloak_social_login stub in install.py
+  - T-B01 realm stub empty client

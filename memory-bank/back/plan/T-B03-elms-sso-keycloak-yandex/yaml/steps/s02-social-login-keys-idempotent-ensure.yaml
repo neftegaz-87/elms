@@ -1,0 +1,160 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B03-elms-sso-keycloak-yandex
+title: 'Keycloak-only Social Login Key, Yandex broker boundary, and migration hooks'
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать функцию ensure_social_login_keys() в elms/elms/sso/ensure.py только для Frappe-facing провайдера Keycloak,
+  обеспечивающую идемпотентное создание/обновление единственного Social Login Key, точный login_via_keycloak redirect,
+  гвардирование enable_social_login только при наличии keycloak_login в frappe.conf, обработку sign_ups (Allow/Deny),
+  и подключить её к after_install/after_migrate с удалением устаревшего стаба. Yandex не должен появляться как Frappe
+  Social Login Key: его Identity Provider и broker callback принадлежат Keycloak и проверяются отдельным negative path.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-004
+    - FR-006
+    - FR-010
+    - US-001
+    - US-002
+    - US-006
+    - SC-001
+    - SC-002
+    - AC-1
+    - AC-2
+    - AC-4
+    - AC--2
+    - BN-002
+    - BN-003
+    - BN-006
+    - TM-003
+    - TM-006
+    - TM-007
+  nouns:
+    - Social Login Key
+    - ensure_social_login_keys
+    - elms/elms/sso/ensure.py
+    - after_migrate
+    - after_install
+    - hooks.py
+    - install.py
+    - keycloak
+    - yandex
+    - no direct yandex row
+    - login_via_keycloak
+    - identity provider boundary
+  layout_paths:
+    - elms/elms/sso/ensure.py
+    - elms/elms/hooks.py
+    - elms/elms/install.py
+    - elms/elms/tests/test_sso_ensure.py
+  ac_quotes:
+    - 'FR-003: Social Login Key keycloak: provider Keycloak, base_url, redirect_url, enable when conf present'
+    - 'FR-004: Configure Yandex only inside Keycloak as an OIDC broker; no direct Frappe Social Login Key'
+    - 'AC-1: ensure_social_login_keys idempotent.'
+    - 'AC-2: Frappe uses login_via_keycloak; Yandex redirect terminates at the Keycloak broker endpoint.'
+    - 'AC-4: Frappe enables only Keycloak when keycloak_login is present; Yandex credentials gate Keycloak.'
+    - 'AC--2: Нет второго OAuth implementation module duplicating oauth2_logins.'
+  plan_jumps:
+    - 'memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/md/plan.md:131-161'
+    - 'memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/md/plan.md:197-229'
+    - 'memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/md/plan.md:232-257'
+
+context:
+  consumes:
+    - 'plan §Functional Requirements FR-003, FR-004, FR-006, FR-010'
+    - 'plan §Acceptance Criteria AC-1, AC-2, AC-4, AC--2'
+    - 'plan §Boundary cases BN-002, BN-003, BN-006'
+    - 'elms/elms/sso/constants.py'
+    - 'elms/elms/install.py'
+    - 'elms/elms/hooks.py'
+  produces:
+    - elms/elms/sso/ensure.py
+    - elms/elms/hooks.py
+    - elms/elms/install.py
+    - elms/elms/tests/test_sso_ensure.py
+  plan_refs:
+    - 'plan.md#functional-requirements'
+    - 'plan.md#ac'
+    - 'plan.md#code-paths'
+    - 'plan.md#sequence-keycloak'
+    - 'plan.md#sequence-local-fallback'
+  files:
+    - elms/elms/sso/ensure.py
+    - elms/elms/hooks.py
+    - elms/elms/install.py
+    - elms/elms/tests/test_sso_ensure.py
+
+as_built:
+  - 'install.py contains legacy setup_keycloak_social_login stub reading raw environment variables without conf gating'
+  - 'hooks.py registers after_install and after_migrate pointing to elms.install'
+  - 'no idempotent Keycloak-only Social Login Key ensure module exists'
+
+delta:
+  - 'implement ensure_social_login_keys() in elms/elms/sso/ensure.py for Keycloak OIDC only'
+  - 'configure exact Frappe redirect URL /api/method/frappe.integrations.oauth2_logins.login_via_keycloak; do not configure custom/yandex'
+  - 'enforce conf gating: set enable_social_login=1 only when frappe.conf contains keycloak_login client_id and client_secret'
+  - 'support sign_ups configuration (Allow in dev, Deny supported for prod-like hardening)'
+  - 'replace legacy setup_keycloak_social_login in install.py with ensure_social_login_keys() call in after_install and after_migrate'
+  - 'wire after_migrate hook in hooks.py to run ensure_social_login_keys'
+  - 'assert that no direct Yandex Social Login Key row or custom/yandex Frappe callback is introduced'
+
+deletes:
+  - 'elms.install.setup_keycloak_social_login'
+  - 'direct Frappe Yandex provider configuration if introduced by the old plan'
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: 'early stub setup_keycloak_social_login in install.py, ad-hoc Social Login Key setup, and direct Yandex path'
+  target: 'structured ensure_social_login_keys in elms/elms/sso/ensure.py for Keycloak only; Yandex remains a Keycloak broker'
+  items:
+    - symbol: 'setup_keycloak_social_login'
+      kind: A
+      replacement: 'elms/elms/sso/ensure.py ensure_social_login_keys'
+      policy: 'delete in-epic'
+
+out_of_scope:
+  - 'User signup default roles assignment (s03)'
+  - 'Unit test suite in test_sso.py and docs checklist (s03)'
+  - 'Frappe direct Yandex Social Login Key or custom/yandex callback; this path is forbidden'
+  - 'full suite -> QA'
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  omit_justification:
+    async-python-patterns: 'Frappe Framework is a synchronous WSGI runtime; async python patterns do not apply'
+
+checkpoints:
+  - id: cp1
+    criterion: 'ensure_social_login_keys function exists and is exported from elms.sso.ensure'
+    verify: 'python3 -c "import inspect, elms.sso.ensure; assert hasattr(elms.sso.ensure, \"ensure_social_login_keys\")"'
+  - id: cp2
+    criterion: 'hooks.py and install.py wire ensure_social_login_keys into migration lifecycle'
+    verify: 'grep -q "ensure_social_login_keys" elms/elms/install.py'
+  - id: cp3
+    criterion: 'Legacy setup_keycloak_social_login stub is deleted from install.py'
+    verify: '! grep -q "def setup_keycloak_social_login" elms/elms/install.py'
+  - id: cp4
+    criterion: 'Only Keycloak Social Login Key redirect is configured; direct Yandex callback is absent'
+    verify: 'grep -q "login_via_keycloak" elms/elms/sso/ensure.py && test "$(rg -n "custom/yandex|yandex_login" elms/elms/sso elms/elms/install.py || true)" = ""'
+
+verify:
+  - 'python3 -c "from elms.sso.ensure import ensure_social_login_keys; assert callable(ensure_social_login_keys)"'
+tdd:
+  - 'test_ensure_social_login_keys_creates_keycloak_only'
+  - 'test_ensure_social_login_keys_idempotent'
+  - 'test_ensure_social_login_keys_disabled_without_conf'
+  - 'test_ensure_social_login_keys_uses_keycloak_redirect_only'
+  - 'test_no_direct_yandex_social_login_key'
+  - 'test_signups_deny_mode_configured'

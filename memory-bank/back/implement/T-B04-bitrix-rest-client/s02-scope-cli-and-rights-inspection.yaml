@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-B04-bitrix-rest-client
+task_id: T-B04-bitrix-rest-client
+title: s02 — Bitrix scope inspection CLI and full rights flag IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B04-bitrix-rest-client/yaml/steps/s02-scope-cli-and-rights-inspection.yaml
+date: 2026-10-29
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/secrets-scan/SKILL.md
+
+done:
+  - 'Implemented scripts/bitrix/scope.py CLI with --full flag calling scope method'
+  - 'Reused WebhookEndpoint, CallArgs, RestEnvelope, post_json, and BitrixRestError from scripts/bitrix/rest_client.py'
+  - 'Preserved standard exit codes: 0 for success, 1 for portal/transport errors, 2 for config/arg errors'
+  - 'Added ScopeFullTest test suite to tests/bitrix/test_rest_client.py covering empty payload, full payload, error envelope, missing env, and unknown args'
+  - 'Verified all checkpoints and targeted tests pass via python3 -m unittest'
+
+files:
+  - scripts/bitrix/scope.py
+  - tests/bitrix/test_rest_client.py
+
+deletes: []
+
+tests:
+  - '`python3 -c "import scripts.bitrix.scope; print(\"OK\")"`'
+  - '`timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.ScopeFullTest`'
+
+integration_check:
+  - 'python3 -c "import scripts.bitrix.scope; assert hasattr(scripts.bitrix.scope, \"main\"); print(\"OK\")"'
+
+checkpoints:
+  - id: cp1
+    criterion: 'scope.py provides main entrypoint with --full option'
+    status: done
+  - id: cp2
+    criterion: 'Scope unit tests pass via python3 -m unittest'
+    status: done
+
+resume_from: cp2

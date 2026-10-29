@@ -112,19 +112,21 @@
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
       "secret": "${env.KEYCLOAK_CLIENT_SECRET:}",
-      "rootUrl": "${SITE_HOST_NAME:-http://elms.localhost:8082}",
-      "baseUrl": "${SITE_HOST_NAME:-http://elms.localhost:8082}",
+      "rootUrl": "http://elms.localhost:8082",
+      "baseUrl": "http://elms.localhost:8082",
       "redirectUris": [
+        "http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak",
+        "http://elms.localhost/api/method/frappe.integrations.oauth2_logins.login_via_keycloak",
+        "http://localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak",
+        "http://127.0.0.1:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak",
         "http://elms.localhost:8082/*",
         "http://localhost:8082/*",
-        "http://127.0.0.1:8082/*",
-        "/*"
+        "http://127.0.0.1:8082/*"
       ],
       "webOrigins": [
         "http://elms.localhost:8082",
         "http://localhost:8082",
-        "/*",
-        "+"
+        "http://127.0.0.1:8082"
       ],
       "attributes": {
         "access.token.lifespan": "300"
@@ -185,7 +187,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${env.KEYCLOAK_ADMIN_PASSWORD:admin}",
+          "value": "${env.KEYCLOAK_ADMIN_PASSWORD}",
           "temporary": false
         }
       ],
@@ -206,7 +208,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${env.KEYCLOAK_FALLBACK_PASSWORD:fallback123}",
+          "value": "${env.KEYCLOAK_FALLBACK_PASSWORD}",
           "temporary": false
         }
       ],

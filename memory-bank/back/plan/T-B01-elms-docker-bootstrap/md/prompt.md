@@ -6,14 +6,14 @@
 ### In
 - Monorepo layout: `frappe/` (v15) + app `elms/`
 - Docker compose.dev: db, redis, configurator, create-site, backend, workers, frontend, keycloak(+db)
-- Скелет app: hooks, modules Core/ERP/LMS, install hooks-заглушки
+- Скелет app: hooks, modules Core/Operations/LMS, install hooks-заглушки
 - Site с Administrator из env
 
 ### Out
 - Роли и DocType permissions (следующая ось)
 - Настройка Social Login Key / OAuth callbacks (следующая ось)
 - Desk Workspaces UI (FRONT)
-- Доменные сущности ERP/LMS
+- Доменные сущности Operations/LMS
 
 ### Done when
 1. `docker compose … up -d --build` завершает create-site без silent fallback
@@ -33,7 +33,7 @@
 ## Covering
 
 ### Outcome
-ELMS получает воспроизводимый foundation: один Frappe site в Docker с custom app, БД User, тремя ролями-разделами и базовым SSO Keycloak+Яндекс — без vendor ERP/LMS apps и без доменной логики.
+ELMS получает воспроизводимый foundation: один Frappe site в Docker с custom app, БД User, тремя ролями-разделами и базовым SSO Keycloak+Яндекс — без vendor Operations/LMS apps и без доменной логики.
 
 ### Axes
 - Docker + site + скелет app `elms`
@@ -47,7 +47,7 @@ ELMS получает воспроизводимый foundation: один Frappe
 - Эталон `frappe-erp-crm` — read-only паттерны
 
 ### Out
-- Доменные DocTypes ERP/LMS (курсы, склады, документы)
+- Доменные DocTypes Operations/LMS (курсы, склады, документы)
 - Отдельный Vue SPA
 - Prod TLS / MFA
 - Forge / 1С контур
@@ -62,8 +62,8 @@ ELMS получает воспроизводимый foundation: один Frappe
 
 ### Chat decisions
 - SSO = Keycloak + Яндекс
-- Роли = ELMS Admin / ELMS ERP User / ELMS LMS User
-- Разделы = Desk Workspaces ERP / LMS / Settings
+- Роли = ELMS Admin / ELMS Operations User / ELMS LMS User
+- Разделы = Desk Workspaces Operations / LMS / Settings
 
 ---
 
@@ -76,7 +76,7 @@ summary: |
   Собираем и запускаем систему ELMS так, чтобы любой разработчик одной командой поднял рабочий сайт: база данных, вход администратора, пустое приложение ELMS и сервис Keycloak рядом.
 
   Зачем
-  Без этого нельзя стабильно проверять роли, вход через SSO и разделы Desk. Нужна общая «коробка», в которой дальше появляются права и обучение/ERP-скелет.
+  Без этого нельзя стабильно проверять роли, вход через SSO и разделы Desk. Нужна общая «коробка», в которой дальше появляются права и обучение/Operations-скелет.
 
   Стадии
   1) Положить в проект платформу Frappe и каркас приложения ELMS.

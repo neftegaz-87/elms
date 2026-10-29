@@ -1,0 +1,200 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-B03-elms-sso-keycloak-yandex
+role: back
+source_qa: memory-bank/back/qa/T-B03-elms-sso-keycloak-yandex/qa-20261029-sso.yaml
+checklist_sha256: 9560094b65ef92715ebcb513c838a40c8c665940b006b4a6631d82703f5c6355
+created_at: '2026-10-29T06:05:00Z'
+updated_at: '2026-10-29T15:36:41Z'
+current_id: BF-011
+verification:
+  status: pass
+  command: "EVIDENCE_FILE=docs/reports/sso-browser-api-trace.json LIVE_SMOKE_COMMAND='timeout -k 10s 300s bash scripts/live_smoke.sh' timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: docs/reports/sso-browser-api-trace.json
+  last_run_at: '2026-10-29T15:36:41Z'
+  evidence: 'Live smoke exited 0 against the real Docker stack and wrote docs/reports/sso-browser-api-trace.json with status=pass, live_evidence=true, exit_code=0, timestamp, raw HTTP responses, and observed journeys. Keycloak discovery and authorization returned 200; Frappe /login returned 200 with a real OAuth state and login_via_keycloak callback; the Yandex broker route returned Keycloak 502 with the expected missing-state error because no external Yandex authorization was submitted. Full suite also passed: 51 tests.'
+items:
+- id: BF-001
+  status: done
+  done_at: '2026-10-29T06:12:00Z'
+  evidence: bin/pytest updated to forward args (-q --tb=line) to pytest runner and
+    pass clean (40 passed in 0.07s)
+  class: suite_red
+  title: 'suite_red: suite not full — record bin/pytest -q --tb=line'
+  blocker_ref: suite_red:suite_not_full — qa-20261029-sso.yaml contains bin/pytest,
+    but lacks bin/pytest -q --tb=line
+  fix_plan_ref: Run bin/pytest -q --tb=line and verify standard full suite output
+  targets:
+  - bin/pytest
+  verify: bin/pytest -q --tb=line
+  notes: Ensure suite runner supports -q --tb=line and passes clean.
+- id: BF-002
+  status: done
+  done_at: '2026-10-29T06:10:00Z'
+  evidence: Added simulate_keycloak_broker_login and 4 JIT broker login unit test
+    scenarios in elms/elms/tests/test_sso.py
+  class: ac_gap
+  title: 'ac_gap: AC-6 — broker login contract coverage'
+  blocker_ref: ac_gap:AC-6 — broker login contract coverage was missing; external
+    browser journey unavailable
+  fix_plan_ref: Add and execute automated test scenario verifying JIT broker login
+    flow with mock response
+  targets:
+  - elms/elms/tests/test_sso.py
+  verify: bin/pytest -q --tb=line
+  notes: Provide explicit test evidence for first-broker JIT login creation/linking.
+- id: BF-003
+  status: done
+  done_at: '2026-10-29T06:15:00Z'
+  evidence: Added simulate_keycloak_auth_flow and 4 local fallback test scenarios
+    in elms/elms/tests/test_sso.py verifying outage handling
+  class: ac_gap
+  title: 'ac_gap: AC-7 — local fallback contract coverage'
+  blocker_ref: ac_gap:AC-7 — local fallback contract coverage was missing; external
+    outage journey unavailable
+  fix_plan_ref: Add and execute automated test scenario verifying local Keycloak fallback
+    flow during Yandex outage
+  targets:
+  - elms/elms/tests/test_sso.py
+  verify: bin/pytest -q --tb=line
+  notes: Provide explicit test evidence for local Keycloak fallback when Yandex IdP
+    is unreachable.
+- id: BF-004
+  status: done
+  done_at: '2026-10-29T06:32:09Z'
+  evidence: bin/pytest -q --tb=line (40 passed in 0.07s) reconciled and recorded as
+    verified single full-suite result
+  class: suite_red
+  title: 'suite_red: contradictory full-suite results'
+  blocker_ref: 'suite_red: contradictory full-suite results (checks: 40 passed vs
+    suite: 13 unit tests) and two suite commands; reconcile and record one verified
+    full result'
+  fix_plan_ref: Reconcile suite command and evidence to single verified full result
+    (bin/pytest -q --tb=line — 40 passed in 0.07s)
+  targets:
+  - memory-bank/back/qa/T-B03-elms-sso-keycloak-yandex/qa-20261029-sso.yaml
+  verify: bin/pytest -q --tb=line
+  notes: Ensure single verified full result format across QA artifact.
+- id: BF-005
+  status: done
+  done_at: '2026-10-29T06:45:00Z'
+  evidence: 'bin/pytest -q --tb=line: 40 passed in 0.07s; AC-8 concrete checklist
+    outcomes documented and verified in docs/sso.md and docker/README.md'
+  class: ac_gap
+  title: 'ac_gap: AC+8 evidence is status-only'
+  blocker_ref: 'ac_gap: AC+8 evidence is status-only; provide concrete checklist outcomes'
+  fix_plan_ref: Provide concrete checklist outcomes in AC+8 evidence (outage branch
+    checklist, host networking port 8000/8080 mapping, curl validation commands)
+  targets:
+  - docs/sso.md
+  - docker/README.md
+  - memory-bank/back/qa/T-B03-elms-sso-keycloak-yandex/qa-20261029-sso.yaml
+  verify: bin/pytest -q --tb=line
+  notes: Document explicit outcomes of checklist verification.
+- id: BF-006
+  status: done
+  class: ac_gap
+  title: 'ac_gap: AC+3 — tracked realm contains default plaintext passwords'
+  blocker_ref: 'ac_gap: AC+3 — tracked realm contains default plaintext passwords
+    at docker/keycloak/realm-elms.json:192 and docker/keycloak/realm-elms.json:213
+    · remove defaults; inject secrets only via environment'
+  fix_plan_ref: Remove default plaintext passwords from tracked docker/keycloak/realm-elms.json
+    and inject secrets only via environment
+  targets:
+  - docker/keycloak/realm-elms.json
+  verify: bin/pytest -q --tb=line
+  notes: Ensure no plaintext passwords in realm-elms.json
+  done_at: '2026-10-29T07:01:00Z'
+  evidence: Removed default plaintext passwords (:admin, :fallback123) from docker/keycloak/realm-elms.json;
+    secrets injected via environment; bin/pytest -q --tb=line passed (40 passed in
+    0.08s)
+- id: BF-007
+  status: done
+  class: ac_gap
+  title: 'ac_gap: AC+4 — whitespace-only credentials enable SSO'
+  blocker_ref: 'ac_gap: AC+4 — whitespace-only credentials enable SSO before stripping
+    at elms/elms/sso/ensure.py:122 and elms/elms/sso/ensure.py:125 · strip and validate
+    before enabling'
+  fix_plan_ref: Strip credentials before empty-check and gating enable status in elms/elms/sso/ensure.py
+  targets:
+  - elms/elms/sso/ensure.py
+  verify: bin/pytest -q --tb=line
+  notes: Strip and validate credentials before enabling Social Login Key
+  done_at: '2026-10-29T07:01:00Z'
+  evidence: Cleaned credentials with .strip() prior to validation in elms/elms/sso/ensure.py
+    so whitespace-only inputs do not enable Social Login Key; bin/pytest -q --tb=line
+    passed (40 passed in 0.08s)
+- id: BF-008
+  status: done
+  class: ac_gap
+  done_at: '2026-10-29T15:36:41Z'
+  title: 'ac_gap: AC+2 — live browser/API evidence for Keycloak OAuth redirect and
+    broker endpoint'
+  blocker_ref: 'ac_gap: AC+2 — live browser/API evidence for Keycloak OAuth redirect
+    and broker endpoint unresolved'
+  fix_plan_ref: 'ac_gap: AC+2 — provide live browser/API evidence and HTTP/auth path
+    verification for AC+2'
+  targets:
+  - elms/elms/tests/test_sso.py
+  - docs/reports/sso-browser-api-trace.json
+  verify: "EVIDENCE_FILE=docs/reports/sso-browser-api-trace.json LIVE_SMOKE_COMMAND='timeout -k 10s 300s bash scripts/live_smoke.sh' timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: docs/reports/sso-browser-api-trace.json
+  notes: Revalidated with the real HTTP trace at the final BUGFIX verification epoch.
+  evidence: Updated docs/reports/sso-browser-api-trace.json with JRN-SSO-001/JRN-SSO-001B
+    live browser/API trace and broker endpoint contract; added 4 unit test cases in
+    elms/elms/tests/test_sso.py verifying Frappe OAuth 302 redirect, Yandex broker
+    termination, and fail-closed direct callback check; bin/pytest -q --tb=line passed
+    (51 passed in 0.13s); the artifact records a real HTTP run with exit_code 0.
+- id: BF-009
+  status: done
+  class: suite_red
+  title: 'suite_red: conflicting suite count (40 in test_audit, 44 in full-suite result)'
+  blocker_ref: 'suite_red: conflicting suite count (40 in test_audit, 44 in full-suite
+    result) · qa-20261029-sso.yaml:190,304 · reconcile evidence to one count'
+  fix_plan_ref: 'suite_red: reconcile suite count in test_audit (from 40 to 44) to
+    match verified full-suite result (bin/pytest -q --tb=line — 44 passed)'
+  targets:
+  - memory-bank/back/qa/T-B03-elms-sso-keycloak-yandex/qa-20261029-sso.yaml
+  verify: bin/pytest -q --tb=line
+  notes: Reconcile test_audit suite count to 44.
+  done_at: '2026-10-29T07:45:00Z'
+  evidence: Reconciled test_audit suite count from 40 to 44; bin/pytest -q --tb=line
+    passed (44 passed in 0.07s)
+- id: BF-010
+  status: done
+  done_at: '2026-10-29T15:36:41Z'
+  class: live_smoke
+  title: 'live_smoke: real Frappe → Keycloak HTTP evidence is missing'
+  blocker_ref: 'live_smoke: scripts/live_smoke.sh is absent; the Docker stack is not running; the committed trace uses mock_* codes and is not an HTTP capture'
+  fix_plan_ref: 'Implement a black-box smoke check for the Docker Frappe/Keycloak stack; capture real status, headers, timestamp and command output; keep the Yandex journey BLOCKED unless real credentials and callback registration are available'
+  targets:
+  - scripts/live_smoke.sh
+  - docs/reports/sso-browser-api-trace.json
+  - elms/elms/tests/test_sso.py
+  verify: "EVIDENCE_FILE=docs/reports/sso-browser-api-trace.json LIVE_SMOKE_COMMAND='timeout -k 10s 300s bash scripts/live_smoke.sh' timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: docs/reports/sso-browser-api-trace.json
+  notes: 'Closed with real runtime evidence. The smoke reached Keycloak discovery, Frappe /login, the authorization endpoint, and the Yandex broker route without inventing an authorization code. Interactive Yandex remains not_run because credentials and callback registration are not available.'
+  evidence: 'EVIDENCE_FILE=docs/reports/sso-browser-api-trace.json LIVE_SMOKE_COMMAND=timeout -k 10s 300s bash scripts/live_smoke.sh timeout -k 10s 300s bash scripts/live_smoke.sh exited 0; the evidence file records status=pass, live_evidence=true, exit_code=0, timestamp, raw HTTP capture, OAuth state, callback URL, and journeys JRN-SSO-001/JRN-SSO-001A/JRN-SSO-001B.'
+- id: BF-011
+  status: done
+  done_at: '2026-10-29T15:31:16Z'
+  class: container_bootstrap
+  title: 'container_bootstrap: ELMS Core module shadows Frappe Core during site creation'
+  blocker_ref: 'container_bootstrap: create-site fails with ModuleNotFoundError for elms.core.doctype.doctype because elms/modules.txt declares reserved Frappe module Core'
+  fix_plan_ref: 'Rename the ELMS Core module to a namespaced module, preserve its DocType import path, add a regression guard, and rerun real create-site plus HTTP smoke'
+  targets:
+  - elms/elms/modules.txt
+  - bin/pytest
+  - elms/elms/core/doctype/elms_settings_section/__init__.py
+  - elms/elms/core/doctype/elms_settings_section/elms_settings_section.json
+  - elms/elms/core/doctype/elms_settings_section/elms_settings_section.py
+  - elms/elms/elms_core/doctype/elms_settings_section/__init__.py
+  - elms/elms/elms_core/__init__.py
+  - elms/elms/elms_core/doctype/elms_settings_section/elms_settings_section.json
+  - elms/elms/elms_core/doctype/elms_settings_section/elms_settings_section.py
+  - elms/elms/lms/__init__.py
+  - elms/elms/tests/test_roles_rbac.py
+  - elms/elms/tests/test_sso.py
+  - elms/elms/install.py
+  verify: 'bin/pytest -q --tb=line elms/elms/tests/test_sso.py elms/elms/tests/test_roles_rbac.py'
+  notes: 'Fixed the reserved Core module collision, corrected the SMTP authentication method, and added regression coverage. Real create-site completed with exit 0; bench list-apps reports frappe 15.123.1 and elms 0.0.1; targeted SSO/RBAC tests passed 39/39 and full suite passed 51/51.'
+  evidence: 'Real docker compose create-site container is Exited (0) after installing elms and running migrate/configuration; docker compose exec backend bench --site elms.localhost list-apps reports frappe and elms; bin/pytest -q --tb=line elms/elms/tests/test_sso.py elms/elms/tests/test_roles_rbac.py passed 39 tests and bin/pytest -q --tb=line passed 51 tests.'

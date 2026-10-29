@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B02-elms-roles-rbac
+task_id: T-B02-elms-roles-rbac
+title: s01 — Role constants definition, fail-closed ensure_roles logic, and install/migrate hooks wiring IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B02-elms-roles-rbac/yaml/steps/s01-roles-constants-and-seed.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+
+done:
+  - "Defined exact ELMS role constants ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE and ELMS_ROLES tuple in elms/elms/install.py"
+  - "Implemented idempotent fail-closed ensure_roles() in elms/elms/install.py creating Role docs and verifying existence without try/except swallowing"
+  - "Wired ensure_roles() to after_install() and after_migrate() hooks in elms/elms/install.py and registered in elms/elms/hooks.py"
+  - "Added targeted unit tests in elms/elms/tests/test_roles_rbac.py covering constants, creation, idempotency, and fail-closed missing role detection"
+
+files:
+  - elms/elms/install.py
+  - elms/elms/hooks.py
+  - elms/elms/tests/test_roles_rbac.py
+
+deletes: []
+
+tests:
+  - "`python3 -c 'from elms.install import ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE; assert (ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE) == (\"ELMS Admin\", \"ELMS Operations User\", \"ELMS LMS User\")'` — PASS"
+  - "`python3 -m unittest elms.tests.test_roles_rbac` — PASS"
+
+integration_check:
+  - "install.py exports ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE, ELMS_ROLES and ensure_roles"
+  - "hooks.py registers after_install = 'elms.install.after_install' and after_migrate = 'elms.install.after_migrate'"
+  - "test_roles_rbac.py is importable and passes all 4 unit test cases"
+
+checkpoints:
+  - id: cp1
+    criterion: "Role name constants defined and exported"
+    status: done
+  - id: cp2
+    criterion: "ensure_roles function creates roles fail-closed and throws on failure"
+    status: done
+  - id: cp3
+    criterion: "hooks.py registers after_install and after_migrate hooks"
+    status: done
+  - id: cp4
+    criterion: "seed tests pass green validating role creation and idempotency"
+    status: done
+
+resume_from: cp1

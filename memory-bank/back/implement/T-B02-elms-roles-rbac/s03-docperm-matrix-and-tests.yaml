@@ -1,0 +1,100 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B02-elms-roles-rbac
+task_id: T-B02-elms-roles-rbac
+title: s03 — DocPerm matrix configuration, permission test suite, and role documentation IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B02-elms-roles-rbac/yaml/steps/s03-docperm-matrix-and-tests.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+
+done:
+  - "Configured and verified DocPerm matrix: ELMS Admin RWCD across all three sections; ELMS Operations User RW on Operations section only; ELMS LMS User RW on LMS section only; Guest denied all access (FR-004, AC-3, AC-6)"
+  - "Implemented SECTION_DOCPERM_MATRIX and idempotent ensure_section_perms() in elms/elms/install.py and wired into after_install() and after_migrate() hooks (FR-005, FR-006)"
+  - "Expanded comprehensive RBAC test suite in elms/elms/tests/test_roles_rbac.py covering Admin allow, Operations/LMS cross-role deny, Guest deny, and Administrator platform user bypass (FR-007, FR-009, TM-001..TM-003, TM-007, BN-001..BN-003, US-001..US-004)"
+  - "Documented ELMS roles taxonomy and full DocPerm permissions matrix in memory-bank/product/modules.md (FR-008)"
+
+files:
+  - elms/elms/install.py
+  - elms/elms/tests/test_roles_rbac.py
+  - memory-bank/product/modules.md
+
+deletes: []
+
+tests:
+  - "`python3 -c 'import json; erp=json.load(open(\"elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json\")); assert any(p.get(\"role\") == \"ELMS Operations User\" for p in erp.get(\"permissions\", []))'` — PASS"
+  - "`python3 -m unittest elms.tests.test_roles_rbac` — PASS (10 tests)"
+  - "`python3 -c 'import elms.tests.test_roles_rbac; print(\"RBAC test suite import verified\")'` — PASS"
+
+integration_check:
+  - "elms/elms/install.py exports SECTION_DOCPERM_MATRIX, SECTION_DOCTYPES, and ensure_section_perms"
+  - "after_install and after_migrate hooks execute ensure_roles and ensure_section_perms idempotently"
+  - "test_roles_rbac.py verifies all RBAC matrix permissions, cross-role boundaries, and Guest rejection"
+  - "memory-bank/product/modules.md reflects complete role taxonomy and DocPerm matrix"
+
+checkpoints:
+  - id: cp1
+    criterion: "DocPerm matrix configured for all three section DocTypes"
+    status: done
+  - id: cp2
+    criterion: "RBAC matrix tests verify positive, cross-role negative, and guest boundaries"
+    status: done
+  - id: cp3
+    criterion: "Role taxonomy and DocPerm matrix documented in modules.md"
+    status: done
+
+plan_parity_scan:
+  parity_status: converged
+  requirements:
+    - id: FR-001
+      status: completed
+      evidence: "Roles ELMS Admin, ELMS Operations User, ELMS LMS User seeded in s01 via ensure_roles()"
+    - id: FR-002
+      status: completed
+      evidence: "modules.txt aligned to Core, Operations, LMS in s02"
+    - id: FR-003
+      status: completed
+      evidence: "Single DocTypes ELMS Operations Section, ELMS LMS Section, ELMS Settings Section created in s02"
+    - id: FR-004
+      status: completed
+      evidence: "DocPerm matrix configured in DocType manifests and SECTION_DOCPERM_MATRIX in s03"
+    - id: FR-005
+      status: completed
+      evidence: "ensure_roles() and ensure_section_perms() wired into after_install/after_migrate in install.py"
+    - id: FR-006
+      status: completed
+      evidence: "Python ensure logic in install.py is single source of truth"
+    - id: FR-007
+      status: completed
+      evidence: "Unit tests in test_roles_rbac.py verify RBAC matrix, cross-role deny, and Guest deny"
+    - id: FR-008
+      status: completed
+      evidence: "Role taxonomy and DocPerm matrix documented in memory-bank/product/modules.md"
+    - id: FR-009
+      status: completed
+      evidence: "Administrator platform user verified not blocked in test_roles_rbac.py"
+  layout_verified:
+    - path: elms/elms/install.py
+      status: completed
+    - path: elms/elms/modules.txt
+      status: completed
+    - path: elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json
+      status: completed
+    - path: elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json
+      status: completed
+    - path: elms/elms/core/doctype/elms_settings_section/elms_settings_section.json
+      status: completed
+    - path: elms/elms/tests/test_roles_rbac.py
+      status: completed
+    - path: memory-bank/product/modules.md
+      status: completed
+
+resume_from: cp1

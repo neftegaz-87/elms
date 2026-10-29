@@ -4,7 +4,7 @@
 **Режим:** FRONT PLAN  
 **Уровень:** L3  
 **Статус:** active  
-**Clarify:** Phase 0 skipped — Desk workspaces + SSO labels locked chat 2026-10-28  
+**Clarify:** Phase 0 skipped — Desk workspaces + single Keycloak SSO affordance locked chat 2026-10-29  
 **Prompt:** [md/prompt.md](prompt.md)  
 **Queue:** `memory-bank/front/roadmap/queue.yaml` → `T-F01` / `T-F01-elms-desk-sections-roles`  
 **Batch:** `elms-desk-shell`  
@@ -30,7 +30,7 @@
 | Path | Что вошло |
 |------|-----------|
 | `memory-bank/product/vision.md` | Desk/Website later; свой app |
-| Chat 2026-10-28 | Workspaces ERP/LMS/Settings; SSO Keycloak+Yandex UI |
+| Chat 2026-10-28/29 | Workspaces Operations/LMS/Settings; one Keycloak button; Yandex/local fallback live inside Keycloak |
 | BACK T-B02 | Roles + Section DocTypes |
 | BACK T-B03 | Social Login Key enable + redirects |
 | Frappe Workspace doctype | `roles` child / public flags |
@@ -42,8 +42,8 @@
 
 | Capability / outcome | Classification | Production entrypoint and caller | Success / failure enforcement | Independent outcome test | Foundation approval / follow-up |
 |---|---|---|---|---|---|
-| Role-filtered Desk workspaces | `vertical_slice` | Desk sidebar `/app` loads Workspace list filtered by User roles | ERP User seeing LMS workspace link = FAIL | Given ERP User login; When open Desk; Then sidebar has ERP, not LMS/Settings | domain UI later |
-| SSO login affordances | `vertical_slice` | `/login` social buttons | enabled providers without readable label = FAIL (must set provider_name/icon) | Given enabled keys; When GET /login; Then texts Keycloak and Яндекс visible | — |
+| Role-filtered Desk workspaces | `vertical_slice` | Desk sidebar `/app` loads Workspace list filtered by User roles | Operations User seeing LMS workspace link = FAIL | Given Operations User login; When open Desk; Then sidebar has Operations, not LMS/Settings | domain UI later |
+| SSO login affordance | `vertical_slice` | `/login` single social button | enabled Keycloak provider without readable label = FAIL | Given Keycloak is enabled; When GET /login; Then exactly one clear Keycloak control is visible and Yandex is not a direct Frappe provider | BACK broker |
 
 ---
 
@@ -54,13 +54,13 @@
 | Frappe Workspace fixtures in app `elms` | `elms/elms/fixtures/workspace.json` or Module Onboarding + Workspace docs via ensure | Vue SPA sidebar dual SoT |
 | Visibility via Workspace roles | child table roles = ELMS_* | hide-only CSS; client-only filter without Workspace.roles |
 | Stock Frappe login page | Social Login Key `provider_name`, `icon` | rewrite `www/login.py` template fork without need; custom React login |
-| RU labels for SSO | provider_name / title «Яндекс», «Keycloak» | English-only cryptic client_id as button text |
+| RU labels for SSO | provider_name / title «Войти через Keycloak» | English-only cryptic client_id as button text or a direct Yandex Frappe provider |
 
 ---
 
 ## Продуктовая спека (WHAT)
 
-После логина сотрудник видит в левой навигации Desk только свои разделы: учебный контур (LMS), операционный ERP или оба + Settings для Admin. На странице входа понятно, что можно войти через корпоративный Keycloak или Яндекс. Заглушки разделов честно говорят, что домен ещё не реализован («Скоро»), но навигация и права уже рабочие.
+После логина сотрудник видит в левой навигации Desk только свои разделы: учебный контур (LMS), операционный контур Operations или оба + Settings для Admin. На стандартной странице Frappe видна одна понятная кнопка Keycloak; выбор Yandex или локального fallback-пароля происходит уже на странице Keycloak. Заглушки разделов честно говорят, что домен ещё не реализован («Скоро»), но навигация и права уже рабочие.
 
 ---
 
@@ -79,23 +79,23 @@
 
 | # | Story | Priority | Independent Test |
 | :--- | :--- | :--- | :--- |
-| US-001 | Как ELMS Admin, я вижу Workspaces ERP, LMS и Settings. | P0 | sidebar contains three |
-| US-002 | Как ELMS ERP User, я вижу только ERP. | P0 | LMS/Settings absent |
-| US-003 | Как ELMS LMS User, я вижу только LMS. | P0 | ERP/Settings absent |
-| US-004 | Как гость на `/login`, я вижу кнопки Keycloak и Яндекс когда SSO enabled. | P0 | button text/icon assert |
+| US-001 | Как ELMS Admin, я вижу Workspaces Operations, LMS и Settings. | P0 | sidebar contains three |
+| US-002 | Как ELMS Operations User, я вижу только Operations. | P0 | LMS/Settings absent |
+| US-003 | Как ELMS LMS User, я вижу только LMS. | P0 | Operations/Settings absent |
+| US-004 | Как гость на `/login`, я вижу одну понятную кнопку Keycloak когда SSO enabled. | P0 | button text/icon assert; direct Yandex absent |
 | US-005 | Как пользователь раздела, я открываю workspace и вижу link на Section DocType или page «Скоро». | P1 | click → form/list/page 200 |
 
 #### Acceptance Scenarios — US-001
 
 - **Given:** User roles include `Desk User` + `ELMS Admin`  
 - **When:** open `/app`  
-- **Then:** sidebar/workspace switcher shows ERP, LMS, Settings
+- **Then:** sidebar/workspace switcher shows Operations, LMS, Settings
 
 #### Acceptance Scenarios — US-002
 
-- **Given:** `Desk User` + `ELMS ERP User` only (no Admin/LMS)  
+- **Given:** `Desk User` + `ELMS Operations User` only (no Admin/LMS)  
 - **When:** `/app`  
-- **Then:** ERP visible; LMS and Settings not listed
+- **Then:** Operations visible; LMS and Settings not listed
 
 #### Acceptance Scenarios — US-003
 
@@ -103,14 +103,14 @@
 
 #### Acceptance Scenarios — US-004
 
-- **Given:** Social Login Key keycloak+yandex enable_social_login=1  
+- **Given:** the Keycloak Social Login Key is enabled  
 - **When:** GET `/login`  
-- **Then:** visible controls/labels containing Keycloak and Яндекс (case-insensitive OK for Keycloak)
+- **Then:** exactly one visible control contains Keycloak; no direct Yandex Social Login Key is rendered
 
 #### Acceptance Scenarios — US-005
 
-- **Given:** ERP User  
-- **When:** open ERP workspace shortcut to ELMS ERP Section  
+- **Given:** Operations User  
+- **When:** open Operations workspace shortcut to ELMS Operations Section  
 - **Then:** permitted page; LMS Section URL → PermissionError/403 Desk message (not empty 200 with data)
 
 ---
@@ -121,7 +121,7 @@
 
 | Workspace name | Title | Roles | Content |
 |----------------|-------|-------|---------|
-| `ERP` | ERP | ELMS Admin, ELMS ERP User | Link/card → ELMS ERP Section; short description «Операционный контур (скелет)» |
+| `Operations` | Operations | ELMS Admin, ELMS Operations User | Link/card → ELMS Operations Section; short description «Операционный контур (скелет)» |
 | `LMS` | LMS | ELMS Admin, ELMS LMS User | Link → ELMS LMS Section; «Учебный контур (скелет)» |
 | `Settings` | Settings | ELMS Admin | Link → ELMS Settings Section; «Настройки ELMS» |
 
@@ -129,20 +129,20 @@
 - **FR-003:** Icons: use standard Frappe icons (e.g. `organization`, `education`, `setting`) — no custom design system.
 - **FR-004:** SSO Social Login Key display:
   - Keycloak: provider_name / label `Keycloak` (or «Войти через Keycloak» if field allows); icon URL or stock
-  - Yandex: `Яндекс` / «Войти через Яндекс»
-  - Ensure FRONT verify strings after BACK ensure — if BACK leaves English-only, FRONT patch ensure display fields in same app module `elms/elms/sso/display.py` or fixtures update **in this epic**.
+  - Yandex is not a Frappe Social Login Key and must not be rendered as a second `/login` button; its label belongs to the Keycloak login page
+  - Ensure FRONT verifies the single Keycloak string after BACK ensure — if BACK leaves English-only, FRONT patches the display field in the same app module `elms/elms/sso/display.py` or fixtures update **in this epic**.
 - **FR-005:** Seed three demo Users (optional, documented) for smoke:
   - `admin.elms@example.com` → Admin+Desk
-  - `erp.elms@example.com` → ERP+Desk
+  - `operations.elms@example.com` → Operations+Desk
   - `lms.elms@example.com` → LMS+Desk  
   Passwords only in `.env.dev` / site script, not committed. Script `scripts/seed-desk-smoke-users.py` or bench console snippet in README.
 - **FR-006:** Playwright smoke (preferred) under `elms/elms/tests/playwright/` or repo `e2e/`:
   - login password users
   - assert sidebar workspace names
-  - login page SSO text (providers enabled — may mock Social Login Key in test site)
+  - login page Keycloak text (Social Login Key enabled — may mock it in test site)
   If Playwright infra heavy for v1: **manual AC checklist** required in README + plan; mark SC accordingly. **Решение:** ship manual checklist P0; Playwright P1 if time — but plan must include checklist file `memory-bank/front/plan/T-F01-elms-desk-sections-roles/md/manual-ac.md`.
 - **FR-007:** No custom CSS theme epic; stock Desk OK.
-- **FR-008:** Russian UI strings for workspace titles/descriptions as in table (ERP/LMS/Settings titles may stay Latin module codes with Russian description).
+- **FR-008:** Russian UI strings for workspace titles/descriptions as in table (Operations/LMS/Settings titles may stay Latin module codes with Russian description).
 
 ### Non-Functional
 
@@ -154,15 +154,15 @@
 | ID | Результат | Проверка |
 |----|-----------|----------|
 | SC-001 | Admin sees 3 | manual/playwright |
-| SC-002 | ERP only ERP | manual/playwright |
+| SC-002 | Operations only Operations | manual/playwright |
 | SC-003 | LMS only LMS | manual/playwright |
-| SC-004 | SSO labels | /login |
+| SC-004 | Single Keycloak SSO label | /login |
 | SC-005 | manual-ac.md exists | file |
 
 ### Assumptions
 
 - BACK roles + Section DocTypes installed.
-- BACK SSO keys can be enabled on test site.
+- BACK Keycloak Social Login Key can be enabled on test site; Yandex is exercised inside Keycloak, not as a Frappe provider.
 - Users have Desk User role.
 
 ### Clarifications
@@ -174,7 +174,7 @@
 
 1. Three workspaces with correct roles.
 2. Role matrix visible in Desk sidebar.
-3. SSO labels Keycloak + Яндекс on login when enabled.
+3. Single SSO label Keycloak on Frappe login when enabled; Yandex/local fallback choices remain inside Keycloak.
 4. Placeholder links work under perm.
 5. manual-ac.md checklist complete.
 6. AC− no SPA; no CSS-only hide.
@@ -183,16 +183,16 @@
 
 1. Нет Vue/React login app.
 2. Нет Workspace без roles «для всех».
-3. Нет показа LMS workspace ERP User.
+3. Нет показа LMS workspace Operations User.
 4. Нет зависимости от ERPNext Desk pages.
 
 ## Boundary / negative cases
 
 | ID | Class | Input / condition | Expected | Maps TM |
 |----|-------|-------------------|----------|---------|
-| BN-001 | authz | ERP user open LMS workspace URL direct | deny / not in list | TM-001 |
+| BN-001 | authz | Operations user open LMS workspace URL direct | deny / not in list | TM-001 |
 | BN-002 | authz | Guest /app | login redirect | TM-002 |
-| BN-003 | empty | SSO disabled | no Yandex/Keycloak buttons | TM-003 |
+| BN-003 | empty | SSO disabled | no Keycloak button | TM-003 |
 | BN-004 | misconfig | workspace fixture missing roles | ensure test FAIL | TM-004 |
 | BN-005 | duplicate | migrate twice | one workspace each name | TM-005 |
 
@@ -204,7 +204,7 @@
 User roles
   -> Frappe Desk boots
   -> filters Workspace by roles child
-  -> sidebar shows ERP | LMS | Settings subset
+  -> sidebar shows Operations | LMS | Settings subset
   -> link -> Single DocType form ELMS * Section
 ```
 
@@ -213,7 +213,8 @@ User roles
 ```text
 GET /login
   -> Frappe template lists enabled Social Login Key
-  -> buttons show provider_name + icon
+  -> exactly one button shows Keycloak provider_name + icon
+  -> Keycloak page offers Yandex broker and approved local-password fallback
 ```
 
 ### Files
@@ -244,14 +245,14 @@ Coordinate with BACK ensure order: roles → doctypes → social keys → worksp
 
 ```text
 [fixtures/ensure] -> [Workspace + roles] -> [Desk sidebar]
-[Social Login Key display fields] -> [/login buttons]
+[Keycloak Social Login Key display fields] -> [/login single button]
 ```
 
 ### Failure matrix
 
 | Component | Failure | Detection | Response | Test ID |
 |-----------|---------|-----------|----------|---------|
-| Workspace roles | missing | ERP sees LMS | FAIL AC | TM-001 |
+| Workspace roles | missing | Operations sees LMS | FAIL AC | TM-001 |
 | Guest | /app | redirect login | OK | TM-002 |
 | SSO off | buttons | absent | OK | TM-003 |
 | ensure | dup | idempotent | OK | TM-005 |
@@ -268,8 +269,8 @@ Coordinate with BACK ensure order: roles → doctypes → social keys → worksp
 
 | Устаревает | Замена |
 |------------|--------|
-| Empty Desk with only stock workspaces | ELMS ERP/LMS/Settings |
-| Unlabeled social client_id buttons | RU/clear provider_name |
+| Empty Desk with only stock workspaces | ELMS Operations/LMS/Settings |
+| Unlabeled social client_id button | RU/clear Keycloak provider_name |
 
 deletes: n/a (greenfield workspaces).
 
@@ -277,13 +278,13 @@ deletes: n/a (greenfield workspaces).
 
 | ID | Type | Assert |
 |----|------|--------|
-| TM-001 | manual/e2e | ERP user no LMS |
+| TM-001 | manual/e2e | Operations user no LMS |
 | TM-002 | manual | Guest redirect |
-| TM-003 | manual | SSO off no buttons |
+| TM-003 | manual | SSO off no Keycloak button |
 | TM-004 | unit | workspace has roles |
 | TM-005 | unit | idempotent ensure |
 | TM-006 | manual | Admin three sections |
-| TM-007 | manual | SSO labels |
+| TM-007 | manual | Single Keycloak SSO label |
 
 ## Implementation stages
 
@@ -312,8 +313,8 @@ deletes: n/a (greenfield workspaces).
 
 ## Manual AC outline (to be written as manual-ac.md in IMPLEMENT)
 
-1. Login admin.elms → see ERP, LMS, Settings.  
-2. Login erp.elms → see only ERP; open section OK; hit LMS URL deny.  
+1. Login admin.elms → see Operations, LMS, Settings.  
+2. Login operations.elms → see only Operations; open section OK; hit LMS URL deny.  
 3. Login lms.elms → only LMS.  
-4. Logout → /login shows Keycloak and Яндекс when env set.  
+4. Logout → /login shows only Keycloak when configured; choose Yandex on the Keycloak page.  
 5. Disable provider → button disappears after cache clear.

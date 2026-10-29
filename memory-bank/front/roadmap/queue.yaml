@@ -9,11 +9,14 @@ queue:
   deps:
   - T-B02
   - T-B03
+  - T-A01
   status: planned
 done: []
 batches:
   elms-desk-shell:
-    title: ELMS Desk sections + SSO login affordances
+    title: ELMS Desk sections + role visibility
     note: >-
-      Workspaces ERP/LMS/Settings по ролям; лейблы/иконки SSO Keycloak+Яндекс
-      на стандартной /login. Без отдельного Vue SPA и без дизайн-системы.
+      Workspaces Operations/LMS/Settings по ролям. SSO affordance на стандартной
+      /login теперь покрывается APP T-A01; этот FRONT epic сохраняет
+      Workspaces/Desk navigation. Yandex/local fallback находятся внутри
+      Keycloak; без отдельного Vue SPA и без дизайн-системы.

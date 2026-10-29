@@ -1,0 +1,71 @@
+{
+  "schema": "browser-qa-trace/v1",
+  "base_url": "http://elms.localhost:8082",
+  "checks": [
+    {
+      "name": "login_page_status_200",
+      "status": "pass",
+      "observed": 200
+    },
+    {
+      "name": "login_page_title",
+      "status": "pass",
+      "observed": "Login"
+    },
+    {
+      "name": "login_css_asset_linked",
+      "status": "pass",
+      "observed": [
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.5C6KSYFB.css",
+        "http://elms.localhost:8082/assets/elms/css/login.css",
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.JW5PI7JI.css"
+      ]
+    },
+    {
+      "name": "btn_keycloak_present",
+      "status": "pass"
+    },
+    {
+      "name": "no_direct_yandex_button",
+      "status": "pass"
+    },
+    {
+      "name": "btn_keycloak_href_public_url",
+      "status": "pass",
+      "href": "http://127.0.0.1:8480/realms/elms/protocol/openid-connect/auth?redirect_uri=http%3A%2F%2Felms.localhost%3A8082%2Fapi%2Fmethod%2Ffrappe.integrations.oauth2_logins.login_via_keycloak&state=52028c188ee74f99b59938c79e6f5ca8&response_type=code&scope=openid+email+profile&client_id=elms-frappe"
+    },
+    {
+      "name": "btn_geometry_44px_3px",
+      "status": "pass",
+      "observed": {
+        "height": "44px",
+        "borderRadius": "3px"
+      }
+    },
+    {
+      "name": "btn_color_cobalt_action",
+      "status": "pass",
+      "observed": {
+        "backgroundColor": "rgb(13, 76, 211)",
+        "color": "rgb(255, 255, 255)"
+      }
+    }
+  ],
+  "passed": true,
+  "errors": [],
+  "computed_style": {
+    "height": "44px",
+    "borderRadius": "3px",
+    "backgroundColor": "rgb(13, 76, 211)",
+    "color": "rgb(255, 255, 255)",
+    "display": "inline-flex",
+    "minHeight": "44px"
+  },
+  "screenshot": "/home/aero/PyProject/elms/browser-artifacts/login-page.png",
+  "status": "pass",
+  "evidence_type": "runtime_browser",
+  "live_evidence": true,
+  "timestamp": "2026-10-29T20:23:56Z",
+  "command": "python3 scripts/run_browser_qa.py",
+  "exit_code": 0
+}

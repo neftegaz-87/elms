@@ -1,0 +1,701 @@
+html[data-ds-layout] {
+  --ds-desk-rail-width: 228px;
+  font-family: var(--ds-font-family);
+}
+
+html[data-ds-layout] body,
+html[data-ds-layout] .btn,
+html[data-ds-layout] .form-control,
+html[data-ds-layout] input,
+html[data-ds-layout] select,
+html[data-ds-layout] textarea {
+  font-family: var(--ds-font-family);
+}
+
+html[data-ds-layout].ds-sidebar-collapsed {
+  --ds-desk-rail-width: 64px;
+}
+
+html[data-ds-layout] .container,
+html[data-ds-layout] .navbar .container,
+html[data-ds-layout] .sticky-top .container,
+html[data-ds-layout] .page-body,
+html[data-ds-layout] .page-container > .container,
+html[data-ds-layout] .page-head > .container,
+html[data-ds-layout] body.full-width .container {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html[data-ds-layout] .sticky-top,
+html[data-ds-layout] #body {
+  margin-left: var(--ds-desk-rail-width) !important;
+  width: calc(100% - var(--ds-desk-rail-width)) !important;
+  max-width: none !important;
+  box-sizing: border-box;
+  transition: margin-left 150ms ease, width 150ms ease;
+}
+
+html[data-ds-layout] .sticky-top .navbar,
+html[data-ds-layout] .page-container,
+html[data-ds-layout] .page-head,
+html[data-ds-layout] .page-body {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+}
+
+html[data-ds-layout] .dropdown-navbar-user.ds-navbar-user-hidden {
+  display: none !important;
+}
+
+html[data-ds-layout] #ds-app-rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1045;
+  width: var(--ds-desk-rail-width);
+  padding: 14px 10px;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: var(--ds-font-family);
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-ink-muted);
+  background-color: var(--ds-surface-muted) !important;
+  border-right: 1px solid var(--ds-outline) !important;
+  transition: width 150ms ease, padding 150ms ease;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-desk-sidebar-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px;
+  border-radius: var(--ds-radius-md);
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-btn:hover,
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user.show .ds-sidebar-user-btn {
+  background: color-mix(in srgb, var(--ds-ink) 6%, transparent);
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  margin-left: 8px;
+  text-align: left;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-app {
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-medium);
+  color: var(--ds-ink);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-name {
+  margin-top: 4px;
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-ink-muted);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-chevron {
+  margin-left: 8px;
+  color: var(--ds-ink-subtle);
+  flex-shrink: 0;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-menu {
+  left: 0 !important;
+  right: auto !important;
+  top: calc(100% + 4px) !important;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--ds-outline) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface-raised) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ds-ink) 12%, transparent) !important;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-menu .dropdown-item {
+  border-radius: var(--ds-radius-sm);
+  padding: 8px 10px;
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-ink-muted) !important;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-user-menu .dropdown-item:hover {
+  background: color-mix(in srgb, var(--ds-ink) 6%, transparent) !important;
+  color: var(--ds-ink) !important;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-footer {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--ds-outline);
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-ink-muted);
+  font-size: var(--ds-font-size-sm);
+  font-weight: var(--ds-font-weight-medium);
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-collapse-btn:hover {
+  background: color-mix(in srgb, var(--ds-ink) 6%, transparent);
+  color: var(--ds-ink);
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-collapse-btn.is-collapsed {
+  justify-content: center;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-collapse-btn.is-collapsed .ds-sidebar-collapse-label {
+  display: none;
+}
+
+html[data-ds-layout] #ds-app-rail .ds-sidebar-collapse-btn.is-collapsed .ds-sidebar-collapse-icon {
+  transform: scaleX(-1);
+}
+
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail {
+  padding: 8px 4px;
+}
+
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .ds-sidebar-user-text,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .ds-sidebar-user-chevron,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .sidebar-item-label,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .standard-sidebar-label,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .sidebar-item-control,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .drop-icon,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .sidebar-child-item {
+  display: none !important;
+}
+
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .ds-sidebar-user-btn,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .standard-sidebar-item,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .desk-sidebar-item,
+html[data-ds-layout].ds-sidebar-collapsed #ds-app-rail .item-anchor {
+  justify-content: center !important;
+}
+
+html[data-ds-layout] #ds-app-rail .standard-sidebar-section {
+  margin-bottom: 6px !important;
+}
+
+html[data-ds-layout] #ds-app-rail .desk-sidebar-item,
+html[data-ds-layout] #ds-app-rail .standard-sidebar-item {
+  display: flex !important;
+  align-items: center;
+  width: 100%;
+  min-height: 28px;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+}
+
+html[data-ds-layout] #ds-app-rail .item-anchor {
+  display: flex !important;
+  align-items: center;
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 36px;
+  padding: 8px 10px !important;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: var(--ds-font-size-sm);
+  font-weight: var(--ds-font-weight-medium);
+  color: var(--ds-ink-muted);
+  text-decoration: none !important;
+  transition: background-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--ds-font-size-sm);
+  font-weight: var(--ds-font-weight-medium);
+  color: var(--ds-ink-muted);
+}
+
+html[data-ds-layout] #ds-app-rail .standard-sidebar-item:hover,
+html[data-ds-layout] #ds-app-rail .desk-sidebar-item:hover {
+  background: color-mix(in srgb, var(--ds-ink) 6%, transparent);
+  border-radius: var(--ds-radius-sm);
+}
+
+html[data-ds-layout] #ds-app-rail .standard-sidebar-item:hover .item-anchor,
+html[data-ds-layout] #ds-app-rail .desk-sidebar-item:hover .item-anchor {
+  color: var(--ds-ink);
+}
+
+html[data-ds-layout] #ds-app-rail .standard-sidebar-item.selected,
+html[data-ds-layout] #ds-app-rail .desk-sidebar-item.selected {
+  background: var(--ds-surface-raised);
+  border-radius: var(--ds-radius-sm);
+  box-shadow: inset 2px 0 0 var(--ds-accent);
+}
+
+html[data-ds-layout] #ds-app-rail .standard-sidebar-item.selected .item-anchor,
+html[data-ds-layout] #ds-app-rail .standard-sidebar-item.selected .sidebar-item-label {
+  color: var(--ds-ink);
+}
+
+html[data-ds-layout][data-theme="dark"] #ds-app-rail .standard-sidebar-item:hover,
+html[data-ds-layout][data-theme="dark"] #ds-app-rail .desk-sidebar-item:hover,
+html[data-ds-layout][data-theme="dark"] #ds-app-rail .standard-sidebar-item.selected,
+html[data-ds-layout][data-theme="dark"] #ds-app-rail .desk-sidebar-item.selected {
+  background: #1c2530;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-item-control {
+  display: flex !important;
+  flex: 0 0 auto;
+  align-items: center;
+  padding-right: 4px;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-item-control > :not(.drop-icon) {
+  display: none !important;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-item-container {
+  margin-left: 0 !important;
+}
+
+html[data-ds-layout] .sidebar-child-item.nested-container,
+html[data-ds-layout] #ds-app-rail .sidebar-child-item {
+  margin: 0 0 0 10px !important;
+  padding: 0 0 0 8px;
+  border: 0 !important;
+  border-left: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+html[data-ds-layout] .sidebar-child-item.nested-container:empty,
+html[data-ds-layout] #ds-app-rail .sidebar-child-item:empty {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-child-item .sidebar-item-container {
+  margin-left: 0 !important;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-item-container[item-parent]:not([item-parent=""]) > .desk-sidebar-item,
+html[data-ds-layout] #ds-app-rail .sidebar-item-container[item-parent]:not([item-parent=""]) > .standard-sidebar-item {
+  min-height: 26px;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-item-container[item-parent]:not([item-parent=""]) > .desk-sidebar-item .item-anchor,
+html[data-ds-layout] #ds-app-rail .sidebar-item-container[item-parent]:not([item-parent=""]) > .standard-sidebar-item .item-anchor {
+  padding-left: 8px !important;
+  min-height: 26px;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-item-container[item-parent]:not([item-parent=""]) .sidebar-item-label {
+  font-weight: var(--ds-font-weight-regular, 400);
+  color: var(--ds-ink);
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-child-item .desk-sidebar-item,
+html[data-ds-layout] #ds-app-rail .sidebar-child-item .standard-sidebar-item {
+  min-height: 26px;
+}
+
+html[data-ds-layout] #ds-app-rail .sidebar-child-item .sidebar-item-icon {
+  margin-right: 8px;
+}
+
+html[data-ds-layout] .layout-main .layout-side-section.ds-side-hosted {
+  display: none !important;
+}
+
+html[data-ds-layout] .layout-main.row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html[data-ds-layout] .layout-main .layout-side-section {
+  position: static !important;
+  flex: 0 0 auto;
+  width: auto !important;
+  max-width: 240px;
+  height: auto !important;
+  float: none !important;
+  margin: 0 !important;
+  padding-right: 15px !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+html[data-ds-layout] .layout-main .layout-main-section-wrapper {
+  flex: 1 1 auto !important;
+  float: none !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  background-color: var(--ds-surface-raised) !important;
+}
+
+html[data-ds-layout] #body {
+  background-color: var(--ds-surface-raised) !important;
+}
+
+html[data-ds-layout] .layout-main .layout-main-section {
+	width: 100% !important;
+	max-width: none !important;
+	border: none !important;
+	box-shadow: none !important;
+	background-color: var(--ds-surface-raised) !important;
+}
+
+html[data-ds-layout] .ds-crm-workspace .layout-main-section-wrapper,
+html[data-ds-layout] .ds-crm-workspace .layout-main-section,
+html[data-ds-layout] .ds-crm-workspace #editorjs {
+	background-color: var(--ds-surface) !important;
+}
+
+html[data-ds-layout] .ds-crm-workspace .layout-main-section {
+	padding: 0 !important;
+	border-radius: 0 !important;
+}
+
+html[data-ds-layout] .ds-crm-workspace .editor-js-container {
+	padding: 28px clamp(20px, 3vw, 48px) 0;
+}
+
+html[data-ds-layout] .ds-crm-workspace .desk-page {
+	max-width: 1320px;
+	min-height: 0;
+	margin: 0 auto;
+}
+
+html[data-ds-layout] .ds-crm-workspace #editorjs::before {
+	content: "Рабочая область CRM";
+	display: block;
+	padding: 24px 26px 4px;
+	color: var(--ds-ink);
+	font-size: 25px;
+	font-weight: var(--ds-font-weight-semibold);
+	letter-spacing: -0.02em;
+}
+
+html[data-ds-layout] .ds-crm-workspace #editorjs::after {
+	content: "Лиды, сделки и справочники в одном рабочем контуре";
+	display: block;
+	padding: 0 26px 18px;
+	color: var(--ds-ink-muted);
+	font-size: var(--ds-font-size-sm);
+}
+
+html[data-ds-layout] .ds-crm-workspace .codex-editor {
+	min-height: 0;
+}
+
+html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor {
+	display: grid !important;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	gap: 12px;
+	margin: 0 !important;
+	padding: 6px 26px 28px !important;
+}
+
+html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block {
+	grid-column: span 3;
+	flex: none !important;
+	width: auto !important;
+	max-width: none !important;
+	min-width: 0;
+	padding: 0 !important;
+}
+
+html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has(.ce-header) {
+	grid-column: 1 / -1;
+	margin-top: 12px;
+}
+
+html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:first-child {
+	margin-top: 0;
+}
+
+html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Portal Page"]),
+html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Dashboard"]) {
+	grid-column: span 6;
+}
+
+html[data-ds-layout] .ds-crm-workspace .ce-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 28px;
+	padding: 0 2px !important;
+	margin: 0 !important;
+	color: var(--ds-ink-muted);
+	font-size: var(--ds-font-size-sm);
+	font-weight: var(--ds-font-weight-semibold);
+	letter-spacing: 0.01em;
+}
+
+html[data-ds-layout] .ds-crm-workspace .ce-header::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: var(--ds-outline);
+}
+
+html[data-ds-layout] .ds-crm-workspace .ce-header b {
+	font-weight: inherit !important;
+}
+
+html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	min-height: 78px;
+	padding: 16px 18px !important;
+	border: 1px solid var(--ds-outline) !important;
+	border-radius: var(--ds-radius-lg) !important;
+	background: var(--ds-surface-raised) !important;
+	box-shadow: 0 8px 18px color-mix(in srgb, var(--ds-ink) 7%, transparent) !important;
+	transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease,
+		box-shadow 150ms ease;
+}
+
+html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-head {
+	width: 100%;
+	align-items: center;
+}
+
+html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-title {
+	color: var(--ds-ink) !important;
+	font-size: var(--ds-font-size-base);
+	font-weight: var(--ds-font-weight-semibold);
+}
+
+html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-control {
+	color: var(--ds-ink-subtle);
+}
+
+html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-control > svg {
+	color: var(--ds-accent);
+}
+
+html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .indicator-pill {
+	padding: 3px 8px;
+	border: 1px solid color-mix(in srgb, var(--ds-accent) 30%, var(--ds-outline));
+	border-radius: var(--ds-radius-full);
+	background: color-mix(in srgb, var(--ds-accent) 12%, var(--ds-surface-muted));
+	color: var(--ds-ink) !important;
+	font-variant-numeric: tabular-nums;
+}
+
+html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Dashboard"]) .shortcut-widget-box {
+	border-color: color-mix(in srgb, var(--ds-accent) 62%, var(--ds-outline)) !important;
+	background: color-mix(in srgb, var(--ds-accent) 10%, var(--ds-surface-raised)) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box:hover {
+		transform: translateY(-2px);
+		border-color: color-mix(in srgb, var(--ds-accent) 68%, var(--ds-outline)) !important;
+		background: color-mix(in srgb, var(--ds-accent) 7%, var(--ds-surface-raised)) !important;
+		box-shadow: 0 12px 24px color-mix(in srgb, var(--ds-ink) 14%, transparent) !important;
+	}
+}
+
+html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box:focus-visible {
+	outline: 2px solid var(--ds-focus);
+	outline-offset: 2px;
+}
+
+html[data-ds-layout] .ds-crm-workspace .workspace-footer {
+	height: auto;
+	gap: 8px;
+	padding: 0 26px 24px;
+}
+
+html[data-ds-layout] .ds-crm-workspace .workspace-footer .btn {
+	border: 1px solid var(--ds-outline-strong) !important;
+	border-radius: var(--ds-radius-md) !important;
+	background: transparent !important;
+	color: var(--ds-ink-muted) !important;
+}
+
+html[data-ds-layout] .ds-crm-workspace .workspace-footer .btn:hover {
+	border-color: var(--ds-accent) !important;
+	color: var(--ds-ink) !important;
+}
+
+@media (max-width: 1100px) {
+	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block {
+		grid-column: span 4;
+	}
+}
+
+@media (max-width: 720px) {
+	html[data-ds-layout] .ds-crm-workspace .editor-js-container {
+		padding: 20px 14px 0;
+	}
+
+	html[data-ds-layout] .ds-crm-workspace #editorjs::before,
+	html[data-ds-layout] .ds-crm-workspace #editorjs::after,
+	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor,
+	html[data-ds-layout] .ds-crm-workspace .workspace-footer {
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block,
+	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Portal Page"]),
+	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Dashboard"]) {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box {
+		transition: none;
+	}
+}
+
+html[data-ds-layout] a:not(.btn):not(.dropdown-item):not(.nav-link):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ds-accent) 58%, var(--ds-outline));
+  outline-offset: 3px;
+  border-radius: var(--ds-radius-sm);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-ds-layout] a:not(.btn):not(.dropdown-item):not(.nav-link):not(.sidebar-item-label):not(.item-anchor):hover {
+    outline: 1px solid color-mix(in srgb, var(--ds-accent) 48%, var(--ds-outline));
+    outline-offset: 2px;
+    border-radius: var(--ds-radius-sm);
+  }
+}
+
+html[data-ds-layout] .list-row-container:focus .list-row,
+html[data-ds-layout] .list-row-container:focus .list-row-head,
+html[data-ds-layout] .list-row:hover:not(.list-row-head) {
+  background-color: var(--highlight-color) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html[data-ds-layout] .list-row a,
+html[data-ds-layout] .list-row a:hover,
+html[data-ds-layout] .list-row a:focus-visible,
+html[data-ds-layout] .list-subject a,
+html[data-ds-layout] .list-subject a:hover,
+html[data-ds-layout] .list-subject a:focus-visible,
+html[data-ds-layout] .standard-sidebar-item a,
+html[data-ds-layout] .standard-sidebar-item a:hover,
+html[data-ds-layout] .standard-sidebar-item a:focus-visible,
+html[data-ds-layout] .desk-sidebar-item a,
+html[data-ds-layout] .desk-sidebar-item a:hover,
+html[data-ds-layout] .desk-sidebar-item a:focus-visible,
+html[data-ds-layout] .dropdown-menu a,
+html[data-ds-layout] .dropdown-menu a:hover,
+html[data-ds-layout] .dropdown-menu a:focus-visible,
+html[data-ds-layout] .awesomplete > ul > li,
+html[data-ds-layout] .awesomplete > ul > li:hover,
+html[data-ds-layout] .awesomplete > ul > li[aria-selected="true"],
+html[data-ds-layout] .tree-link,
+html[data-ds-layout] .tree-link:hover,
+html[data-ds-layout] .tree-link:focus-visible,
+html[data-ds-layout] .link-btn,
+html[data-ds-layout] .link-btn:hover,
+html[data-ds-layout] .link-btn:focus-visible,
+html[data-ds-layout] .breadcrumb a,
+html[data-ds-layout] .breadcrumb a:hover,
+html[data-ds-layout] .breadcrumb a:focus-visible,
+html[data-ds-layout] .navbar a,
+html[data-ds-layout] .navbar a:hover,
+html[data-ds-layout] .navbar a:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-ds-layout] .awesomplete > ul > li:hover,
+html[data-ds-layout] .awesomplete > ul > li[aria-selected="true"],
+html[data-ds-layout] .dropdown-menu .dropdown-item:hover,
+html[data-ds-layout] .dropdown-menu .dropdown-item:focus,
+html[data-ds-layout] .dropdown-menu .dropdown-item.active {
+  background-color: var(--highlight-color) !important;
+}
+
+@media (max-width: 991px) {
+  html[data-ds-layout] #ds-app-rail {
+    display: none !important;
+  }
+
+  html[data-ds-layout] .sticky-top,
+  html[data-ds-layout] #body {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  html[data-ds-layout] .layout-main .layout-side-section.ds-side-hosted {
+    display: block !important;
+  }
+}

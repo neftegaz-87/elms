@@ -1,0 +1,96 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B04-bitrix-rest-client
+task_id: T-B04-bitrix-rest-client
+title: s03 — Operator incoming webhook documentation and env template IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B04-bitrix-rest-client/yaml/steps/s03-webhook-operator-documentation-and-env.yaml
+date: 2026-10-29
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+
+done:
+  - 'Created docs/bitrix-incoming-webhook.md in Russian with Bitrix24 incoming webhook creation steps, scope assignment, and BITRIX_REST_WEBHOOK_URL configuration instructions'
+  - 'Explicitly documented prohibition of using board key BITRIX_WEBHOOK_URL in integration REST scripts and documented that empty BITRIX_REST_WEBHOOK_URL does not fall back to board key'
+  - 'Updated .env.example with BITRIX_REST_WEBHOOK_URL placeholder and explanatory comment not to confuse it with board key'
+  - 'Added InstructionTest in tests/bitrix/test_rest_client.py asserting required keywords, navigation steps, env vars, and board key prohibition'
+  - 'Verified all checkpoints and targeted tests pass via python3 -m unittest'
+
+files:
+  - docs/bitrix-incoming-webhook.md
+  - .env.example
+  - tests/bitrix/test_rest_client.py
+
+deletes: []
+
+tests:
+  - '`grep -q "BITRIX_REST_WEBHOOK_URL" docs/bitrix-incoming-webhook.md && grep -q "Входящий вебхук" docs/bitrix-incoming-webhook.md`'
+  - '`grep -q "BITRIX_REST_WEBHOOK_URL" .env.example`'
+  - '`timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.InstructionTest`'
+  - '`timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client`'
+
+integration_check:
+  - 'python3 -c "from tests.bitrix.test_rest_client import InstructionTest; print(\"OK\")"'
+
+checkpoints:
+  - id: cp1
+    criterion: 'docs/bitrix-incoming-webhook.md exists and contains webhook creation steps and BITRIX_REST_WEBHOOK_URL'
+    status: done
+  - id: cp2
+    criterion: '.env.example contains BITRIX_REST_WEBHOOK_URL'
+    status: done
+  - id: cp3
+    criterion: 'InstructionTest passes via python3 -m unittest'
+    status: done
+  - id: cp4
+    criterion: 'Full bitrix test suite passes cleanly'
+    status: done
+
+resume_from: cp4
+
+plan_parity_scan:
+  fr_coverage:
+    - id: FR-001
+      status: completed
+      notes: 'scripts/bitrix/call.py reads BITRIX_REST_WEBHOOK_URL and calls POST {url}{method}.json (s01)'
+    - id: FR-002
+      status: completed
+      notes: 'scripts/bitrix/call.py handles error envelope exiting with code 1 (s01)'
+    - id: FR-003
+      status: completed
+      notes: 'Missing/invalid BITRIX_REST_WEBHOOK_URL exits 2 without HTTP call; BITRIX_WEBHOOK_URL ignored (s01)'
+    - id: FR-004
+      status: completed
+      notes: 'scripts/bitrix/scope.py calls scope method with {} or {"full": true} (s02)'
+    - id: FR-005
+      status: completed
+      notes: 'docs/bitrix-incoming-webhook.md created in Russian with webhook creation steps, scopes, and env instructions (s03)'
+    - id: FR-006
+      status: completed
+      notes: 'Method name validated with regex ^[a-z][a-z0-9_]{0,63}(\.[a-z][a-z0-9_]{0,63})+$ (s01)'
+    - id: FR-007
+      status: completed
+      notes: '--params validated as JSON object (s01)'
+    - id: FR-008
+      status: completed
+      notes: 'Local guard rejects batch > 50 or nested batch commands with code 2 (s01)'
+    - id: FR-009
+      status: completed
+      notes: '.env.example contains BITRIX_REST_WEBHOOK_URL and comment that it is not board key (s03)'
+  target_layout:
+    - path: scripts/bitrix/rest_client.py
+      status: completed
+    - path: scripts/bitrix/call.py
+      status: completed
+    - path: scripts/bitrix/scope.py
+      status: completed
+    - path: docs/bitrix-incoming-webhook.md
+      status: completed
+    - path: .env.example
+      status: completed
+    - path: tests/bitrix/test_rest_client.py
+      status: completed

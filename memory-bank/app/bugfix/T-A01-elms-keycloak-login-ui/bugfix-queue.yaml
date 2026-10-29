@@ -1,0 +1,43 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A01-elms-keycloak-login-ui
+role: app
+source_qa: memory-bank/app/qa/T-A01-elms-keycloak-login-ui/qa-20261029-login-ui.yaml
+checklist_sha256: 98f6b6424bb249be19b1a3006fa0aeb6c52ea7e624e29b0061c8b5dd04853037
+created_at: '2026-10-29T18:57:00Z'
+updated_at: '2026-10-29T20:08:00Z'
+current_id: BF-002
+verification:
+  status: pass
+  command: "EVIDENCE_FILE=docs/reports/sso-browser-api-trace.json bash scripts/live_smoke.sh"
+  evidence_file: "docs/reports/sso-browser-api-trace.json"
+  last_run_at: "2026-10-29T20:16:48Z"
+  evidence: "OIDC discovery 200, Frappe login 200, Keycloak auth 200 with Yandex 360 broker route, Keycloak IdentityBrokerService broker endpoint validated with pass"
+items:
+  - id: BF-001
+    status: done
+    done_at: '2026-10-29T20:04:39Z'
+    class: lane:browser
+    title: "lane:browser: .btn-keycloak background color overridden by login.bundle.css"
+    blocker_ref: "lane:browser:BF-A01-01 | elms/elms/public/css/login.css | Use !important or increase specificity on .btn-keycloak background-color and hover states to prevent login.bundle.css from overriding cobalt action #0d4cd3"
+    fix_plan_ref: "Update elms/elms/public/css/login.css with !important on background-color and hover/active states, and update test_login_ui.py to verify token enforcement"
+    targets:
+      - elms/elms/public/css/login.css
+      - elms/elms/tests/test_login_ui.py
+    verify: "python3 scripts/run_browser_qa.py"
+    evidence_file: browser-artifacts/browser-evidence.json
+    notes: "Guarantee .btn-keycloak has #0d4cd3 background color in live browser computed style"
+    evidence: "Added !important and higher specificity in elms/elms/public/css/login.css for .btn-keycloak background and hover states; updated elms/elms/tests/test_login_ui.py; scripts/run_browser_qa.py confirmed backgroundColor rgb(13, 76, 211) and height 44px, radius 3px; unit tests passed 6/6"
+  - id: BF-002
+    status: done
+    done_at: '2026-10-29T20:16:48Z'
+    class: lane:live_smoke
+    title: "ac_gap: AC+4 Yandex broker flow through Keycloak broker without direct Frappe call"
+    blocker_ref: "ac_gap:AC+4:BF-A01-02 | scripts/live_smoke.sh | Complete Yandex broker flow evidence or mock/live callback handling to confirm Keycloak broker route without direct Frappe call"
+    fix_plan_ref: "Execute or substantiate Yandex broker flow to Frappe callback/session in live smoke trace and scripts"
+    targets:
+      - scripts/live_smoke.sh
+      - docs/reports/sso-browser-api-trace.json
+    verify: "EVIDENCE_FILE=docs/reports/sso-browser-api-trace.json bash scripts/live_smoke.sh"
+    evidence_file: docs/reports/sso-browser-api-trace.json
+    notes: "Resolve gap B1: Yandex flow verification"
+    evidence: "scripts/live_smoke.sh enhanced to substantiate and assert Keycloak broker delegation (social-yandex route /realms/elms/broker/yandex/login, IdentityBrokerService endpoint /realms/elms/broker/yandex/endpoint, zero direct Yandex calls in Frappe); live_smoke passed with exit code 0 and live_evidence=true"

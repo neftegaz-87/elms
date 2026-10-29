@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B04-bitrix-rest-client
+title: 'Bitrix scope inspection CLI and full rights flag'
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать CLI scripts/bitrix/scope.py для инспекции прав текущего входящего вебхука и просмотра полного
+  списка доступных на портале scope (флаг --full отправляет {"full": true}). Скрипт переиспользует единый
+  транспорт и валидацию WebhookEndpoint/RestEnvelope из scripts/bitrix/rest_client.py, завершается с кодами 0/1/2
+  и сопровождается тестами ScopeFullTest в tests/bitrix/test_rest_client.py.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - US-002
+    - AC-4
+    - TM-008
+  nouns:
+    - scripts/bitrix/scope.py
+    - scope
+    - --full
+    - full
+    - ScopeFullTest
+  layout_paths:
+    - scripts/bitrix/scope.py
+    - tests/bitrix/test_rest_client.py
+  ac_quotes:
+    - 'FR-004: scripts/bitrix/scope.py вызывает метод scope. Без флага тело {}. С --full тело {"full": true}.'
+    - 'US-002: Как оператор, я хочу увидеть права вебхука и полный список scope портала, чтобы понять, чего не хватает в галочках.'
+    - 'AC-4: scope.py --full отправляет {"full": true}.'
+  plan_jumps:
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:70-128'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:129-170'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:171-247'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:313-346'
+
+context:
+  consumes:
+    - 'plan §Functional Requirements FR-004'
+    - 'plan §Acceptance Criteria AC-4'
+    - 'scripts/bitrix/rest_client.py'
+    - 'tests/bitrix/test_rest_client.py'
+  produces:
+    - scripts/bitrix/scope.py
+    - tests/bitrix/test_rest_client.py
+  plan_refs:
+    - 'plan.md#functional-requirements'
+    - 'plan.md#ac'
+    - 'plan.md#test-matrix'
+  files:
+    - scripts/bitrix/scope.py
+    - tests/bitrix/test_rest_client.py
+
+as_built:
+  - 'scripts/bitrix/rest_client.py and call.py exist from s01 with WebhookEndpoint and post_json'
+  - 'No scripts/bitrix/scope.py exists'
+
+delta:
+  - 'implement scripts/bitrix/scope.py with argparse support for optional --full flag'
+  - 'wire scope.py to execute method scope via post_json with payload {} or {"full": true}'
+  - 'preserve exit codes 0 (success), 1 (portal error/transport), 2 (configuration/arg error)'
+  - 'add ScopeFullTest to tests/bitrix/test_rest_client.py asserting correct POST payload and exit code'
+
+deletes: []
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: 'none (greenfield scope inspection CLI)'
+  target: 'scripts/bitrix/scope.py'
+  items: []
+
+out_of_scope:
+  - 'scripts/bitrix/rest_client.py core transport rewrite (s01)'
+  - 'docs/bitrix-incoming-webhook.md and .env.example (s03)'
+  - 'full suite -> QA'
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/secrets-scan/SKILL.md
+  omit_justification:
+    fastapi-templates: 'CLI script and urllib transport, not a FastAPI application'
+    async-python-patterns: 'Synchronous CLI execution; async python not used'
+
+checkpoints:
+  - id: cp1
+    criterion: 'scope.py provides main entrypoint with --full option'
+    verify: 'python3 -c "import scripts.bitrix.scope as scope; assert hasattr(scope, \"main\")"'
+  - id: cp2
+    criterion: 'Scope unit tests pass via python3 -m unittest'
+    verify: 'timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.ScopeFullTest'
+
+verify:
+  - 'python3 -c "import scripts.bitrix.scope; print(\"OK\")"'
+  - 'timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.ScopeFullTest'
+tdd:
+  - 'ScopeFullTest'

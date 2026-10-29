@@ -2,7 +2,10 @@ name: ${COMPOSE_PROJECT_NAME:-elms-prod}
 
 x-image: &image
   image: ${CUSTOM_IMAGE:-elms}:${CUSTOM_TAG:-latest}
-  pull_policy: ${PULL_POLICY:-if_not_present}
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  pull_policy: ${PULL_POLICY:-missing}
   restart: ${RESTART_POLICY:-unless-stopped}
 
 x-app-volumes: &app_volumes
@@ -13,7 +16,7 @@ x-backend: &backend
   <<: *image
   volumes: *app_volumes
   extra_hosts:
-    - "${SITE_NAME:-elms.localhost}:host-gateway"
+    - "${SITE_NAME:-elms.example.com}:host-gateway"
   depends_on:
     configurator:
       condition: service_completed_successfully
@@ -29,7 +32,7 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --skip-character-set-client-handshake
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       MARIADB_AUTO_UPGRADE: "1"
     volumes:
       - db-data:/var/lib/mysql
@@ -96,6 +99,30 @@ services:
           echo "ERROR: DB_PASSWORD is empty" >&2;
           exit 1;
         fi;
+        if [ -z "$${SITE_NAME}" ] || [ "$${SITE_NAME}" = "elms.localhost" ] || [ "$${SITE_NAME}" = "elms.example.com" ]; then
+          echo "ERROR: SITE_NAME must be your real public hostname (not example/localhost placeholder)" >&2;
+          exit 1;
+        fi;
+        case "$${SITE_HOST_NAME}" in
+          https://*) ;;
+          *)
+            echo "ERROR: SITE_HOST_NAME must be https://… (got: $${SITE_HOST_NAME})" >&2;
+            exit 1;
+            ;;
+        esac;
+        case "$${KEYCLOAK_PUBLIC_URL}" in
+          https://*) ;;
+          *)
+            echo "ERROR: KEYCLOAK_PUBLIC_URL must be https://… (got: $${KEYCLOAK_PUBLIC_URL})" >&2;
+            exit 1;
+            ;;
+        esac;
+        if [ "$${ELMS_SSO_REQUIRE}" = "1" ] || [ "$${ELMS_SSO_REQUIRE}" = "true" ]; then
+          if [ -z "$${KEYCLOAK_CLIENT_ID}" ] || [ -z "$${KEYCLOAK_CLIENT_SECRET}" ]; then
+            echo "ERROR: ELMS_SSO_REQUIRE=1 needs KEYCLOAK_CLIENT_ID and KEYCLOAK_CLIENT_SECRET" >&2;
+            exit 1;
+          fi;
+        fi;
         mkdir -p config/pids sites logs;
         wait-for-it -t 120 db:3306;
         wait-for-it -t 120 redis-cache:6379;
@@ -121,14 +148,19 @@ services:
           bench --site "$${SITE_NAME}" set-config developer_mode 0;
         fi;
         bench --site "$${SITE_NAME}" set-config host_name "$${SITE_HOST_NAME}";
+        bench --site "$${SITE_NAME}" execute elms.sso.conf.inject_sso_site_config;
         bench --site "$${SITE_NAME}" clear-cache;
         echo "create-site completed successfully";
     environment:
-      SITE_NAME: ${SITE_NAME:-elms.localhost}
-      SITE_HOST_NAME: ${SITE_HOST_NAME:-http://elms.localhost:8082}
-      HTTP_PUBLISH_PORT: ${HTTP_PUBLISH_PORT:-8082}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
-      DB_PASSWORD: ${DB_PASSWORD:-123}
+      SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
+      SITE_HOST_NAME: ${SITE_HOST_NAME:?SITE_HOST_NAME is required}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}
+      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
+      ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-1}
     volumes: *app_volumes
     depends_on:
       configurator:
@@ -137,9 +169,14 @@ services:
   backend:
     <<: *backend
     environment:
-      GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}
+      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
+      ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-1}
 
   websocket:
     <<: *backend
@@ -176,14 +213,14 @@ services:
       SOCKETIO: websocket:9000
       NGINX_LISTEN_PORT: ${NGINX_LISTEN_PORT:-8080}
       FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$$host}
-      UPSTREAM_REAL_IP_ADDRESS: ${UPSTREAM_REAL_IP_ADDRESS:-127.0.0.1}
+      UPSTREAM_REAL_IP_ADDRESS: ${UPSTREAM_REAL_IP_ADDRESS:-0.0.0.0/0}
       UPSTREAM_REAL_IP_HEADER: ${UPSTREAM_REAL_IP_HEADER:-X-Forwarded-For}
-      UPSTREAM_REAL_IP_RECURSIVE: ${UPSTREAM_REAL_IP_RECURSIVE:-off}
+      UPSTREAM_REAL_IP_RECURSIVE: ${UPSTREAM_REAL_IP_RECURSIVE:-on}
       PROXY_READ_TIMEOUT: ${PROXY_READ_TIMEOUT:-120}
       CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-50m}
     volumes: *app_volumes
-    ports:
-      - "${HTTP_PUBLISH_PORT:-8082}:${NGINX_LISTEN_PORT:-8080}"
+    expose:
+      - "${NGINX_LISTEN_PORT:-8080}"
     depends_on:
       - backend
       - websocket
@@ -194,7 +231,7 @@ services:
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak}
       POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
     volumes:
       - keycloak-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -207,26 +244,55 @@ services:
     image: quay.io/keycloak/keycloak:24.0.5
     restart: unless-stopped
     command:
-      - start-dev
+      - start
       - --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_DB_NAME:-keycloak}
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
       KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
       KC_HTTP_PORT: "8080"
+      KC_HOSTNAME: ${AUTH_HOSTNAME:?AUTH_HOSTNAME is required}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "true"
+      KC_PROXY_HEADERS: xforwarded
+      FRAPPE_PUBLIC_URL: ${FRAPPE_PUBLIC_URL:?FRAPPE_PUBLIC_URL is required}
       YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
       YANDEX_CLIENT_SECRET: ${YANDEX_CLIENT_SECRET:-}
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
-      KEYCLOAK_FALLBACK_PASSWORD: ${KEYCLOAK_FALLBACK_PASSWORD:-fallback123}
-    ports:
-      - "${KEYCLOAK_PUBLISH_PORT:-8480}:8080"
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required}
+      KEYCLOAK_FALLBACK_PASSWORD: ${KEYCLOAK_FALLBACK_PASSWORD:?KEYCLOAK_FALLBACK_PASSWORD is required}
+    entrypoint: ["/opt/keycloak/entrypoint.sh"]
+    volumes:
+      - ./keycloak/entrypoint.sh:/opt/keycloak/entrypoint.sh:ro
+      - ./keycloak/realm-elms.json:/opt/keycloak/data/import-template/realm-elms.json:ro
+    expose:
+      - "8080"
     depends_on:
       keycloak-db:
         condition: service_healthy
+
+  caddy:
+    image: docker.io/library/caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PUBLISH_PORT:-80}:80"
+      - "${HTTPS_PUBLISH_PORT:-443}:443"
+    environment:
+      SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
+      AUTH_HOSTNAME: ${AUTH_HOSTNAME:?AUTH_HOSTNAME is required}
+      NGINX_LISTEN_PORT: ${NGINX_LISTEN_PORT:-8080}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - keycloak
 
 volumes:
   db-data:
@@ -234,3 +300,5 @@ volumes:
   sites:
   logs:
   keycloak-db-data:
+  caddy-data:
+  caddy-config:

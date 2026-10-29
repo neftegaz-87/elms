@@ -75,10 +75,10 @@ for arg in "$@"; do
   fi
 done
 
-if [[ "$is_up" -eq 1 && "$MODE" == "dev" ]]; then
+if [[ "$is_up" -eq 1 ]]; then
   # create-site is a one-shot: compose up does not re-run it after success.
   # Force sync on every up so site creation/migration always applies.
-  echo ">>> site sync (migrate)"
+  echo ">>> site sync (migrate) [$MODE]"
   if [[ "$detached" -eq 1 ]]; then
     compose up -d --force-recreate --no-deps create-site
     cid="$(compose ps -a -q create-site | head -n1)"
@@ -93,7 +93,7 @@ if [[ "$is_up" -eq 1 && "$MODE" == "dev" ]]; then
       compose logs --no-color --tail 80 create-site >&2
       exit "$exit_code"
     fi
-    echo ">>> site sync complete (logs: ./scripts/docker-up.sh logs create-site)"
+    echo ">>> site sync complete (logs: ./scripts/docker-up.sh $MODE logs create-site)"
   else
     compose up --force-recreate --no-deps create-site
   fi

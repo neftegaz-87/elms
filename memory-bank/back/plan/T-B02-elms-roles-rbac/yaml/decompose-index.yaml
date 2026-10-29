@@ -1,0 +1,254 @@
+schema: epic-decompose-index/v1
+plan_id: T-B02-elms-roles-rbac
+appetite:
+  timebox_days: 2
+  cut_list:
+  - SSO default role assignment (deferred to T-B03)
+  - Desk Workspace JSON layout (deferred to T-F01)
+  - Domain fields in placeholder DocTypes
+effort_probe:
+  outcomes:
+  - outcome: Role constants definition, fail-closed ensure_roles seeding in install.py,
+      and after_install/after_migrate hooks wiring
+    hours_mid: 3.0
+    hours_range: 2-4
+    confidence: med
+    notes: Roles ELMS Admin, ELMS Operations User, ELMS LMS User are created idempotently;
+      fails closed on insert error
+  - outcome: Module Def alignment in modules.txt and section placeholder Single DocTypes
+      in Core, Operations, and LMS modules
+    hours_mid: 2.5
+    hours_range: 2-3
+    confidence: med
+    notes: modules.txt updated to Core, Operations, LMS; Single DocTypes ELMS Operations Section,
+      ELMS LMS Section, ELMS Settings Section serve as permission anchors
+  - outcome: DocPerm matrix configuration, comprehensive RBAC matrix test suite in
+      test_roles_rbac.py, and modules documentation update
+    hours_mid: 3.5
+    hours_range: 3-4
+    confidence: med
+    notes: Strict permissions matrix enforced via DocPerm and verified with unit/integration
+      tests and role documentation
+  total_hours: 9.0
+  effort_hours_total: 9.0
+  effort_class: M
+  independent_outcomes: 3
+  split_seams: 0
+  sNN_cap: 5
+  sNN_target: 3
+steps:
+- id: s01
+  file: s01-roles-constants-and-seed.yaml
+  title: Role constants definition, fail-closed ensure_roles logic, and install/migrate
+    hooks wiring
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-section-placeholder-doctypes.yaml
+  title: Module Def alignment in modules.txt and section placeholder Single DocTypes
+    in Core, Operations, and LMS modules
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-docperm-matrix-and-tests.yaml
+  title: DocPerm matrix configuration, permission test suite, and role documentation
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Create Roles with exact names ELMS Admin, ELMS Operations User, ELMS LMS User
+- id: FR-002
+  step: s02
+  description: Module Def alignment updating modules.txt to Core, Operations, LMS and placing
+    DocTypes in Operations, LMS, Core modules
+- id: FR-003
+  step: s02
+  description: Placeholder Single DocTypes ELMS Operations Section, ELMS LMS Section, ELMS
+    Settings Section with minimal title field
+- id: FR-004
+  step: s03
+  description: DocPerm matrix granting RWCD to Admin, RW to Operations/LMS sections respectively,
+    and denying Guest/cross-role access
+- id: FR-005
+  step: s01
+  description: Seed in elms/elms/install.py after_install and after_migrate hooks
+    with idempotent ensure_roles and fail-closed throw
+- id: FR-006
+  step: s01
+  description: Python ensure logic in install.py is required Single Source of Truth
+- id: FR-007
+  step: s03
+  description: Unit/integration tests in elms/elms/tests/test_roles_rbac.py verifying
+    RBAC matrix, cross-role denial, and Guest denial
+- id: FR-008
+  step: s03
+  description: Document roles taxonomy and permissions matrix in memory-bank/product/modules.md
+- id: FR-009
+  step: s01
+  description: Do not assign ELMS Admin automatically; retain System Manager and Administrator
+    platform roles
+- id: NFR-001
+  step: s01
+  description: Role seed executes in less than 2 seconds on empty site
+- id: NFR-002
+  step: s01
+  description: Error messages on seed failure use clear English in frappe.throw
+- id: US-001
+  step: s03
+  description: Admin has read/write permissions across all three Section DocTypes
+- id: US-002
+  step: s03
+  description: Operations User has access only to Operations Section and is denied LMS and Settings
+    sections
+- id: US-003
+  step: s03
+  description: LMS User has access only to LMS Section and is denied Operations and Settings
+    sections
+- id: US-004
+  step: s03
+  description: Guest user cannot read any Section DocType
+- id: US-005
+  step: s01
+  description: Idempotent seed upon re-migrate without DuplicateError
+- id: SC-001
+  step: s01
+  description: All 3 ELMS roles exist in Frappe database after ensure_roles executes
+- id: SC-002
+  step: s03
+  description: RBAC matrix tests pass green via test runner
+- id: SC-003
+  step: s01
+  description: Running migration twice executes cleanly and idempotently
+- id: AC-1
+  step: s01
+  description: Three ELMS roles seeded into Frappe database
+- id: AC-2
+  step: s02
+  description: Three Single DocTypes exist in Operations, LMS, Core modules and modules.txt
+    aligns Core, Operations, LMS
+- id: AC-3
+  step: s03
+  description: DocPerm matrix matches FR-004 specifications
+- id: AC-4
+  step: s03
+  description: Test map TM tests are green
+- id: AC-5
+  step: s01
+  description: Seed logic fails closed upon role insertion failure
+- id: AC-6
+  step: s03
+  description: No Guest permissions granted and no silent fallback
+- id: AC--1
+  step: s01
+  description: No try/except pass suppression around Role creation
+- id: AC--2
+  step: s01
+  description: No fourth ELMS role created without plan update
+- id: AC--3
+  step: s03
+  description: No API whitelist bypassing DocPerm permissions for Section DocTypes
+- id: AC--4
+  step: s02
+  description: No domain fields placed in placeholder DocTypes
+- id: BN-001
+  step: s03
+  description: Operations user read on LMS Section returns False
+- id: BN-002
+  step: s03
+  description: LMS user read on Settings Section returns False
+- id: BN-003
+  step: s03
+  description: Guest read on Operations Section returns False
+- id: BN-004
+  step: s01
+  description: Seed failure throws exception and fails installation
+- id: BN-005
+  step: s01
+  description: Duplicate ensure execution succeeds idempotently
+- id: BN-006
+  step: s01
+  description: Role string typo in code is rejected without soft matching
+- id: TM-001
+  step: s03
+  description: Unit test Operations user denied access to LMS Section
+- id: TM-002
+  step: s03
+  description: Unit test LMS user denied access to Settings Section
+- id: TM-003
+  step: s03
+  description: Unit test Guest denied access to all sections
+- id: TM-004
+  step: s01
+  description: Unit test seed failure throws mock exception fail-closed
+- id: TM-005
+  step: s01
+  description: Unit test idempotent ensure does not duplicate roles
+- id: TM-006
+  step: s01
+  description: Static verification that role constants are single source of truth
+- id: TM-007
+  step: s03
+  description: Unit test Admin allowed read/write on all three sections
+stages_coverage:
+- stage: Stage s01 constants + ensure roles
+  step: s01
+- stage: Stage s02 DocType JSON placeholders
+  step: s02
+- stage: Stage s03 DocPerm matrix
+  step: s03
+- stage: Stage s04 tests
+  step: s03
+- stage: Stage s05 after_install/migrate wire
+  step: s01
+outcome_map:
+- outcome: Three ELMS roles exist idempotently and fail-closed in Frappe database
+    with install and migrate hooks wired
+  step: s01
+- outcome: Module Def alignment in modules.txt and three section anchor Single DocTypes
+    in modules Operations, LMS, Core
+  step: s02
+- outcome: DocPerm RBAC matrix strictly enforced across sections with green tests
+    and documented taxonomy
+  step: s03
+replacement_cleanup:
+  s01:
+    replaces: manual or non-idempotent role creation
+    target: automated fail-closed ensure_roles in elms/elms/install.py
+  s02:
+    replaces: Operations module placeholder in modules.txt and arbitrary UI-only section
+      gating
+    target: Operations module in modules.txt and Frappe Single DocType anchors (ELMS Operations/LMS/Settings
+      Section)
+  s03:
+    replaces: bypass of Frappe DocPerm authorization and undocumented role taxonomy
+    target: explicit DocPerm matrix enforced via has_permission and documented modules.md
+  items:
+  - symbol: manual/unmanaged role creation
+    kind: A
+    replacement: automated fail-closed ensure_roles in elms/elms/install.py
+    step: s01
+    policy: delete in-epic
+  - symbol: Operations module entry in modules.txt
+    kind: A
+    replacement: Operations module entry in modules.txt
+    step: s02
+    policy: delete in-epic
+  - symbol: arbitrary UI-only section gating
+    kind: B
+    replacement: Frappe Single DocType anchors (ELMS Operations/LMS/Settings Section)
+    step: s02
+    policy: delete in-epic
+  - symbol: bypass of Frappe DocPerm authorization
+    kind: C
+    replacement: explicit DocPerm matrix enforced via has_permission
+    step: s03
+    policy: delete in-epic
+  - symbol: undocumented module roles
+    kind: I
+    replacement: updated memory-bank/product/modules.md role taxonomy
+    step: s03
+    policy: delete in-epic
+  sunset:
+  - Operations placeholder in modules.txt
+  - manual unmanaged role creation

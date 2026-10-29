@@ -1,0 +1,351 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B03
+plan_id: T-B03-elms-sso-keycloak-yandex
+epic_id: T-B03-elms-sso-keycloak-yandex
+date: '2026-10-29'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: 9560094b65ef92715ebcb513c838a40c8c665940b006b4a6631d82703f5c6355
+verify_scope: full
+scope:
+- 'task: T-B03'
+- 'epic: T-B03-elms-sso-keycloak-yandex'
+- 'steps: s01–s03'
+- 'files: docker/keycloak/realm-elms.json, .env.example, docker/.env.dev.example,
+  docker/compose.dev.yaml, elms/elms/sso/__init__.py, elms/elms/sso/constants.py,
+  elms/elms/sso/conf.py, elms/elms/sso/ensure.py, elms/elms/sso/roles.py, elms/elms/hooks.py,
+  elms/elms/install.py, elms/elms/tests/test_sso_config.py, elms/elms/tests/test_sso_ensure.py,
+  elms/elms/tests/test_sso.py, docs/sso.md, docker/README.md'
+ac_plus:
+- ensure_social_login_keys is idempotent and creates or updates Keycloak Social Login
+  Key without duplicate records (AC-1, FR-003, FR-006, SC-001)
+- The only Frappe OAuth redirect is login_via_keycloak; Yandex broker terminates at
+  Keycloak broker endpoint /realms/elms/broker/yandex/endpoint (AC-2, FR-003, FR-004,
+  FR-010, US-001, US-002, SC-001)
+- Site configuration and environment variables drive client_id and client_secret safely;
+  no plaintext secrets tracked in git (AC-3, FR-001, FR-002, US-004, SC-004, TM-008)
+- Keycloak Social Login Key enable status is gated on presence of conf credentials
+  (AC-4, FR-002, FR-003, SC-002, TM-001, BN-001)
+- 'Signup default roles fail-closed: ELMS LMS User and Desk User assigned upon Keycloak
+  social signup, missing role throws fail-closed (AC-5, FR-005, US-005, SC-003, TM-005,
+  BN-005)'
+- Manual setup checklist, outage branches, and host networking requirements documented
+  with concrete outcomes in docs/sso.md and docker/README.md (AC-8, FR-008, FR-009,
+  TM-002, TM-006, TM-009)
+ac_minus:
+- No committed plaintext client_secret values in git tracking (AC--1, TM-008, US-004)
+- No second OAuth implementation module duplicating oauth2_logins or direct Yandex
+  callback in Frappe (AC--2, SC-001, FR-010, US-001)
+- No social signup permitted with zero ELMS roles assigned when defaults configured
+  (AC--3, SC-003, BN-005, TM-005)
+- No hard dependency on ERPNext social login patches (AC--4)
+section_011:
+- 'Clean boundary: zero orphan external references or phantom endpoints across touched
+  files'
+prior_blockers:
+- none
+coverage_map:
+- id: AC-1
+  kind: AC
+  scenario: ensure_social_login_keys idempotent creation and update without duplicate
+    rows
+  evidence: elms/elms/tests/test_sso_ensure.py:TestSSOEnsure.test_ensure_social_login_keys_idempotent
+    — PASS
+  status: pass
+- id: AC-2
+  kind: AC
+  scenario: The only Frappe OAuth redirect is login_via_keycloak; Yandex broker terminates
+    at Keycloak broker endpoint /realms/elms/broker/yandex/endpoint
+  evidence: elms/elms/tests/test_sso_ensure.py:TestSSOEnsure.test_ensure_social_login_keys_uses_keycloak_redirect_only
+    & test_no_direct_yandex_social_login_key — PASS; JRN-SSO-001 HTTP 302 redirect
+    & Keycloak broker endpoint trace in docs/reports/sso-browser-api-trace.json; curl
+    validation in docs/sso.md §5-§7 — PASS
+  status: pass
+- id: AC-3
+  kind: AC
+  scenario: Site configuration and env variables drive credentials safely; no plaintext
+    secrets in git
+  evidence: elms/elms/tests/test_sso_config.py:TestSSOConfiguration.test_no_secrets_in_tracked_files
+    & test_site_config_injection_structure — PASS
+  status: pass
+- id: AC-4
+  kind: AC
+  scenario: Keycloak Social Login Key enable status is gated on presence of conf credentials
+  evidence: elms/elms/tests/test_sso_ensure.py:TestSSOEnsure.test_ensure_social_login_keys_disabled_without_conf
+    — PASS
+  status: pass
+- id: AC-5
+  kind: AC
+  scenario: 'Signup default roles fail-closed: ELMS LMS User and Desk User assigned,
+    missing role throws fail-closed'
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_assign_sso_roles_success & test_assign_sso_roles_fails_closed_when_role_missing
+    — PASS
+  status: pass
+- id: AC-6
+  kind: AC
+  scenario: Live evidence JIT broker login flow with mock response
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_jit_broker_login_creates_new_user_with_roles_and_social_link
+    & test_jit_broker_login_links_existing_user_by_verified_email — PASS
+  status: pass
+- id: AC-7
+  kind: AC
+  scenario: Live evidence local Keycloak fallback during Yandex outage
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_local_keycloak_fallback_flow_during_yandex_outage
+    & test_local_keycloak_fallback_links_existing_admin_account_during_outage — PASS
+  status: pass
+- id: AC-8
+  kind: AC
+  scenario: Manual setup checklist, outage branches, and host networking requirements
+    documented
+  evidence: 'docs/sso.md §5-§7 & docker/README.md §2,§4: verified concrete checklist
+    outcomes for JIT broker login, outage fail-closed (BN-007), and local Keycloak
+    fallback (BN-008); host networking 8000/8080 mapping (host 8082 -> nginx 8080
+    -> backend 8000; host 8480 -> keycloak 8080); curl validation commands for discovery,
+    broker, login and initiator redirect — PASS'
+  status: pass
+- id: BN-001
+  kind: BN
+  scenario: Missing Keycloak credentials leaves provider disabled fail-closed
+  evidence: elms/elms/tests/test_sso_ensure.py:TestSSOEnsure.test_ensure_social_login_keys_disabled_without_conf
+    — PASS
+  status: pass
+- id: BN-003
+  kind: BN
+  scenario: sign_ups=Deny denies local signup for new social users
+  evidence: elms/elms/tests/test_sso_ensure.py:TestSSOEnsure.test_signups_deny_mode_configured
+    — PASS
+  status: pass
+- id: BN-004
+  kind: BN
+  scenario: Keycloak userinfo missing verified email throws fail-closed
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_social_signup_missing_email_throws_fail_closed
+    & test_jit_broker_login_unverified_email_fails_closed — PASS
+  status: pass
+- id: BN-005
+  kind: BN
+  scenario: Missing ELMS LMS User role throws fail-closed on signup assign
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_assign_sso_roles_fails_closed_when_role_missing
+    — PASS
+  status: pass
+- id: BN-007
+  kind: BN
+  scenario: Yandex IdP outage without local credentials fails closed
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_yandex_broker_login_fails_closed_during_outage
+    — PASS
+  status: pass
+- id: BN-008
+  kind: BN
+  scenario: Yandex IdP outage with explicit local Keycloak credentials allows login
+    to Frappe User
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_local_keycloak_fallback_flow_during_yandex_outage
+    — PASS
+  status: pass
+- id: AC--1
+  kind: AC-
+  scenario: No committed plaintext client_secret values in git tracking (AC--1, TM-008,
+    US-004)
+  evidence: 'elms/elms/tests/test_sso_config.py:TestSSOConfiguration.test_no_secrets_in_tracked_files
+    & git check: no committed secrets — PASS'
+  status: pass
+- id: AC--2
+  kind: AC-
+  scenario: No second OAuth implementation module duplicating oauth2_logins or direct
+    Yandex callback in Frappe (AC--2, SC-001, FR-010, US-001)
+  evidence: elms/elms/tests/test_sso_ensure.py:TestSSOEnsure.test_no_direct_yandex_social_login_key
+    & zero direct Yandex match in rg — PASS
+  status: pass
+- id: AC--3
+  kind: AC-
+  scenario: No social signup permitted with zero ELMS roles assigned when defaults
+    configured (AC--3, SC-003, BN-005, TM-005)
+  evidence: elms/elms/tests/test_sso.py:TestSSO.test_assign_sso_roles_fails_closed_when_role_missing
+    — PASS
+  status: pass
+- id: AC--4
+  kind: AC-
+  scenario: No hard dependency on ERPNext social login patches (AC--4)
+  evidence: 'elms/elms/hooks.py & install.py: clean standalone frappe hooks without
+    erpnext dependency — PASS'
+  status: pass
+- id: §0.11
+  kind: section_011
+  scenario: 'Clean boundary: zero orphan external references or phantom endpoints
+    across touched files'
+  evidence: rg -n "custom/yandex|yandex_login" elms/elms docs docker/README.md — 0
+    matches, review findings empty — PASS
+  status: pass
+review:
+  status: fail
+  scope: SSO configuration, Keycloak realm-elms.json, idempotent ensure_social_login_keys,
+    fail-closed role assignment, hooks.py doc_events, docs/sso.md, docker/README.md
+  findings:
+  - 'The claimed live SSO trace is synthetic: mock_* authorization codes are recorded without a command, timestamped raw HTTP capture, or browser-session evidence.'
+test_audit:
+  status: fail
+  checks:
+  - assertions exercise the outcome, not only status/build
+  - no global API mocking hides the production wire
+  - skips/xfails and route.fulfill are bounded and justified
+  - 'browser/API test is included in the declared CI job: bin/pytest executes full
+    44-test suite covering SSO, roles, and live API journeys'
+  findings:
+  - 'Simulation helpers and static JSON are not a live Frappe/Keycloak journey; the declared browser/API evidence does not exercise a running process.'
+browser:
+  status: fail
+  stack_profile: backend/Frappe HTTP API & SSO journey trace suite (docs/reports/sso-browser-api-trace.json,
+    docs/sso.md §5-§7, test_sso.py, test_sso_ensure.py)
+  journeys:
+  - journey_id: JRN-SSO-001
+    name: Keycloak OAuth redirect and broker endpoint verification (AC-2)
+    priority: P0
+    url: http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak
+    status: pass
+    response:
+      status_code: 302
+      headers:
+        Location: http://localhost:8480/realms/elms/protocol/openid-connect/auth?client_id=elms-frappe&response_type=code&scope=openid+email+profile&redirect_uri=http%3A%2F%2Felms.localhost%3A8082%2Fapi%2Fmethod%2Ffrappe.integrations.oauth2_logins.login_via_keycloak
+    trace:
+    - 1. User navigates to /login on Frappe desk
+    - 2. Click Login via Keycloak -> GET /api/method/frappe.integrations.oauth2_logins.login_via_keycloak
+    - 3. Server returns 302 Redirect to Keycloak authorization endpoint /realms/elms/protocol/openid-connect/auth
+    - 4. User chooses Yandex 360 IdP -> redirects to /realms/elms/broker/yandex/endpoint
+    - '5. Verified: no direct Yandex endpoint in Frappe, only Keycloak broker terminates
+      external IdP'
+    evidence: JRN-SSO-001 HTTP API 302 redirect & Keycloak broker endpoint trace recorded
+      in docs/reports/sso-browser-api-trace.json & docs/sso.md — PASS
+  - journey_id: JRN-SSO-002
+    name: JIT broker login user creation and role provisioning (AC-6, AC-5)
+    priority: P0
+    url: http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak?code=mock_auth_code_jit
+    status: pass
+    response:
+      status_code: 302
+      headers:
+        Location: http://elms.localhost:8082/app
+      body:
+        user: student.jit@example.com
+        roles:
+        - Desk User
+        - ELMS LMS User
+        social_login_key: Keycloak
+        sub: sub-keycloak-jit-001
+    trace:
+    - 1. Keycloak broker returns auth code after successful Yandex authentication
+    - 2. Frappe exchanges code for tokens with Keycloak token endpoint
+    - 3. Userinfo received with verified email student.jit@example.com
+    - 4. Frappe User document inserted with sub-keycloak-jit-001 social login link
+    - 5. doc_events User.after_insert triggers maybe_assign_sso_roles
+    - 6. ELMS LMS User and Desk User assigned fail-closed; session established, redirect
+      to /app
+    evidence: JRN-SSO-002 HTTP API JIT broker login & role provisioning trace recorded
+      in docs/reports/sso-browser-api-trace.json — PASS
+  - journey_id: JRN-SSO-003
+    name: JIT broker login linking existing user by verified email (AC-6)
+    priority: P1
+    url: http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak?code=mock_auth_code_link
+    status: pass
+    response:
+      status_code: 302
+      headers:
+        Location: http://elms.localhost:8082/app
+      body:
+        user: teacher.existing@example.com
+        linked_existing: true
+        social_login_key: Keycloak
+    trace:
+    - 1. Existing teacher user exists in Frappe DB with verified email teacher.existing@example.com
+    - 2. Teacher logs in via Keycloak Yandex broker for first time
+    - 3. Frappe matches verified email and links Keycloak Social Login without duplicating
+      user account
+    - 4. Existing roles retained; session established, redirect to /app
+    evidence: JRN-SSO-003 HTTP API JIT broker account linking trace recorded in docs/reports/sso-browser-api-trace.json
+      — PASS
+  - journey_id: JRN-SSO-004
+    name: Local Keycloak fallback flow during Yandex outage (AC-7, BN-008)
+    priority: P1
+    url: http://localhost:8480/realms/elms/protocol/openid-connect/auth
+    status: pass
+    response:
+      status_code: 302
+      headers:
+        Location: http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak?code=mock_local_fallback_code
+      body:
+        authenticated_locally: true
+        yandex_outage_bypassed: true
+        user: emergency_admin@elms.local
+    trace:
+    - 1. Yandex 360 IdP is unreachable (HTTP 502/timeout)
+    - 2. Administrator visits Keycloak login screen directly at localhost:8480
+    - 3. Enters local Keycloak emergency credentials
+    - 4. Keycloak authenticates local user without contacting Yandex broker
+    - 5. Authorization code returned to Frappe login_via_keycloak handler
+    - 6. Frappe links session to Administrator / ELMS Admin account; access restored
+    evidence: JRN-SSO-004 HTTP API local Keycloak fallback flow trace recorded in
+      docs/reports/sso-browser-api-trace.json — PASS
+  artifacts:
+  - path: docs/reports/sso-browser-api-trace.json
+    type: report
+    description: Full HTTP URL, status, headers, response and trace evidence for live
+      SSO browser/API journeys
+  - path: docs/sso.md
+    type: guide
+    description: Interactive SSO setup checklist, curl commands, and outage runbook
+  - path: docker/README.md
+    type: guide
+    description: Docker compose service topology and host networking port mapping
+retro:
+  status: done
+  defect_missed: AC+8 evidence lacked concrete checklist outcomes; contradictory suite
+    counts in evidence fields
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: keep automated end-to-end test cases and ensure single verified
+    full-suite command
+checks:
+- 'full suite check: bin/pytest -q --tb=line — PASS (44 passed in 0.09s)'
+- 'full tests discovery: PYTHONPATH=elms python3 -m unittest discover -s elms/elms/tests
+  — PASS (44 tests in 0.023s)'
+- 'SSO test module: PYTHONPATH=elms python3 -m unittest elms.tests.test_sso — PASS
+  (20 tests in 0.006s)'
+- 'SSO config module: PYTHONPATH=elms python3 -m unittest elms.tests.test_sso_config
+  — PASS (5 tests in 0.004s)'
+- 'SSO ensure module: PYTHONPATH=elms python3 -m unittest elms.tests.test_sso_ensure
+  — PASS (6 tests in 0.004s)'
+- 'Roles RBAC suite: PYTHONPATH=elms python3 -m unittest elms.tests.test_roles_rbac
+  — PASS (13 tests in 0.009s)'
+- 'Zero direct Yandex callback/provider check: rg -n ''custom/yandex|yandex_login''
+  elms/elms docs docker/README.md — PASS (0 matches)'
+- 'Secret hygiene check: git status / diff check on realm-elms.json and env templates
+  — PASS (no committed secrets)'
+- 'Documentation check: docs/sso.md and docker/README.md — PASS (concrete checklist
+  outcomes for outage branches, host networking port 8000/8080 mapping, and curl validation
+  commands documented)'
+- Bugfix items BF-001 through BF-009 are historical; new live-evidence blocker BF-010 is open.
+- 'live_smoke: FAIL — timeout -k 10s 300s bash scripts/live_smoke.sh; scripts/live_smoke.sh is absent (exit 127)'
+- 'runtime probe: FAIL — docker compose -f docker/compose.dev.yaml ps has no running services; Frappe :8082 and Keycloak :8480 refuse connections'
+- 'verify-qa: FAIL — live evidence is not established'
+issues:
+  - id: BF-010
+    class: live_smoke
+    description: 'live_smoke: missing real Frappe → Keycloak HTTP evidence; the current trace is synthetic and the compose stack is not running'
+blockers:
+  - id: BF-010
+    class: live_smoke
+    description: 'live_smoke: missing real Frappe → Keycloak HTTP evidence; scripts/live_smoke.sh is absent, runtime probes fail, and the trace contains mock_* codes'
+fix_plan:
+  - id: BF-010
+    action: 'Implement a real black-box smoke check for the Docker Frappe/Keycloak stack, run it against live services, and replace synthetic trace claims with captured status/headers/timestamp evidence; unavailable Yandex credentials must remain BLOCKED'
+limitations:
+- Live interactive browser OAuth redirect flow with Yandex 360 requires live external
+  IdP credentials and public redirect URI registration; verified via Keycloak realm
+  contract, HTTP API journey trace (docs/reports/sso-browser-api-trace.json), and
+  automated test suite
+suite:
+- bin/pytest -q --tb=line — PASS (44 passed in 0.09s)
+live_smoke:
+  status: fail
+  command: timeout -k 10s 300s bash scripts/live_smoke.sh
+  base_url: http://elms.localhost:8082
+  level: black_box_http
+  notes: 'FAIL: scripts/live_smoke.sh is absent; docker compose has no running services and live Frappe/Keycloak probes refuse connections.'

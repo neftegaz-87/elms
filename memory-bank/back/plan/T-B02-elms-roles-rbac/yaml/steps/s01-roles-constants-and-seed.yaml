@@ -1,0 +1,140 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-B02-elms-roles-rbac
+title: Role constants definition, fail-closed ensure_roles logic, and install/migrate hooks wiring
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Определить строгие константы имён ролей (ELMS Admin, ELMS Operations User, ELMS LMS User)
+  и реализовать идемпотентный fail-closed механизм ensure_roles() в elms/elms/install.py,
+  подключив его к хукам after_install и after_migrate в elms/elms/hooks.py, с валидацией через юнит-тесты сидирования.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-005
+    - FR-006
+    - FR-009
+    - NFR-001
+    - NFR-002
+    - US-005
+    - SC-001
+    - SC-003
+    - AC-1
+    - AC-5
+    - AC--1
+    - AC--2
+    - BN-004
+    - BN-005
+    - BN-006
+    - TM-004
+    - TM-005
+    - TM-006
+  nouns:
+    - Role
+    - ELMS Admin
+    - ELMS Operations User
+    - ELMS LMS User
+    - ensure_roles
+    - after_install
+    - after_migrate
+    - install.py
+    - hooks.py
+  layout_paths:
+    - elms/elms/install.py
+    - elms/elms/hooks.py
+    - elms/elms/tests/test_roles_rbac.py
+  ac_quotes:
+    - "FR-001: Создать Roles: ELMS Admin, ELMS Operations User, ELMS LMS User"
+    - "FR-005: Seed в elms/elms/install.py after_install + after_migrate idempotent ensure_roles. Если Role missing after ensure -> frappe.throw"
+    - "AC-5: Seed fail-closed."
+    - "AC--1: Нет try/except pass вокруг create Role."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:100-144"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:155-181"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:182-208"
+
+context:
+  consumes:
+    - "plan §Functional Requirements FR-001, FR-005, FR-006, FR-009"
+    - "plan §Acceptance Criteria AC-1, AC-5, AC--1, AC--2"
+    - "plan §Boundary cases BN-004, BN-005, BN-006"
+    - "elms/elms/install.py"
+    - "elms/elms/hooks.py"
+  produces:
+    - elms/elms/install.py
+    - elms/elms/hooks.py
+    - elms/elms/tests/test_roles_rbac.py
+  plan_refs:
+    - "plan.md#functional-requirements"
+    - "plan.md#ac"
+    - "plan.md#boundary-negative-cases"
+    - "plan.md#ensure-algorithm"
+  files:
+    - elms/elms/install.py
+    - elms/elms/hooks.py
+    - elms/elms/tests/test_roles_rbac.py
+
+as_built:
+  - "elms/elms/install.py exists with after_install hook for Keycloak and Yandex SMTP"
+  - "elms/elms/hooks.py registers after_install = 'elms.install.after_install' and on_login"
+  - "no ELMS role constants or ensure_roles logic exist in the codebase"
+
+delta:
+  - "define ELMS role name constants ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE in elms/elms/install.py"
+  - "implement ensure_roles() in elms/elms/install.py asserting idempotent creation and fail-closed validation"
+  - "wire ensure_roles() into after_install() and register after_migrate hook in elms/elms/hooks.py"
+  - "add targeted seed unit tests in elms/elms/tests/test_roles_rbac.py validating role creation, idempotency, and fail-closed error handling"
+
+deletes: []
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: "manual or non-idempotent role creation"
+  target: "automated fail-closed ensure_roles in elms/elms/install.py"
+  items:
+    - symbol: manual/unmanaged role creation
+      kind: A
+      replacement: automated fail-closed ensure_roles in elms/elms/install.py
+      policy: delete in-epic
+
+out_of_scope:
+  - "Section Single DocTypes in Core, Operations, LMS modules (s02)"
+  - "DocPerm matrix configuration and permission tests (s03)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  omit_justification:
+    async-python-patterns: "Frappe Framework is a synchronous WSGI runtime; async python patterns do not apply"
+
+checkpoints:
+  - id: cp1
+    criterion: "Role name constants defined and exported"
+    verify: "python3 -c 'from elms.install import ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE; assert ELMS_ADMIN_ROLE == \"ELMS Admin\"; assert ELMS_OPERATIONS_USER_ROLE == \"ELMS Operations User\"; assert ELMS_LMS_USER_ROLE == \"ELMS LMS User\"'"
+  - id: cp2
+    criterion: "ensure_roles function creates roles fail-closed and throws on failure"
+    verify: "python3 -c 'import inspect, elms.install; assert hasattr(elms.install, \"ensure_roles\"); assert \"frappe.throw\" in inspect.getsource(elms.install.ensure_roles)'"
+  - id: cp3
+    criterion: "hooks.py registers after_install and after_migrate hooks"
+    verify: "grep -q 'after_install = \"elms.install.after_install\"' elms/elms/hooks.py && grep -q 'after_migrate = \"elms.install.after_migrate\"' elms/elms/hooks.py"
+  - id: cp4
+    criterion: "seed tests pass green validating role creation and idempotency"
+    verify: "python3 -c 'import elms.tests.test_roles_rbac; print(\"tests module ready\")'"
+
+verify:
+  - "python3 -c 'from elms.install import ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE; assert (ELMS_ADMIN_ROLE, ELMS_OPERATIONS_USER_ROLE, ELMS_LMS_USER_ROLE) == (\"ELMS Admin\", \"ELMS Operations User\", \"ELMS LMS User\")'"
+tdd:
+  - "test_roles_constants_defined"
+  - "test_ensure_roles_creates_all_three_roles"
+  - "test_ensure_roles_idempotent_no_duplicate_error"
+  - "test_ensure_roles_fails_closed_on_missing_role"

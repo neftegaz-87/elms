@@ -1,13 +1,13 @@
 ## Epic
 
 ### Outcome
-Оператор ELMS после входа в Desk видит только разрешённые разделы (ERP / LMS / Settings) согласно роли, а на `/login` однозначно читает кнопки входа через Keycloak и Яндекс — без отдельного SPA.
+Оператор ELMS после входа в Desk видит только разрешённые разделы (Operations / LMS / Settings) согласно роли, а на `/login` видит одну понятную кнопку входа через Keycloak. Выбор Yandex или локального fallback-пароля происходит внутри Keycloak — без отдельного SPA.
 
 ### In
-- Workspace fixtures ERP, LMS, Settings с roles
+- Workspace fixtures Operations, LMS, Settings с roles
 - Ссылки на placeholder Section DocTypes / «скоро»
-- SSO button labels/icons для Keycloak и Yandex
-- UI smoke: три роли → разный sidebar; login показывает 2 SSO
+- SSO button label/icon для Keycloak
+- UI smoke: три роли → разный sidebar; Frappe login показывает 1 SSO
 
 ### Out
 - Создание Roles/DocPerm (BACK)
@@ -16,9 +16,9 @@
 - Доменные экраны курсов и склада
 
 ### Done when
-1. ELMS ERP User в sidebar видит ERP и не видит LMS/Settings
+1. ELMS Operations User в sidebar видит Operations и не видит LMS/Settings
 2. ELMS Admin видит все три workspace
-3. На `/login` при enabled providers подписи «Войти через Keycloak» и «Войти через Яндекс» (или эквивалент через Social Login Key title/icon)
+3. На `/login` при enabled Keycloak Social Login Key видна подпись «Войти через Keycloak» (или эквивалент через Social Login Key title/icon); Yandex не является прямой кнопкой Frappe
 4. Проверка зафиксирована Playwright или ручной AC-чеклист в plan
 
 ### Forbidden after
@@ -34,7 +34,7 @@
 ## Covering
 
 ### Outcome
-Пользовательский контур foundation ELMS: Desk-навигация по трём разделам с ролевой видимостью и понятный SSO-вход Keycloak/Яндекс на штатной login-странице.
+Пользовательский контур foundation ELMS: Desk-навигация по трём разделам с ролевой видимостью и понятный единый SSO-вход через Keycloak на штатной login-странице; Yandex и локальный fallback доступны внутри Keycloak.
 
 ### Axes
 - Desk Workspaces + role visibility (этот эпик)
@@ -45,13 +45,13 @@
 - Копирайт SSO согласован с Social Login Key
 
 ### Out
-- Полный product UI ERP/LMS
+- Полный product UI Operations/LMS
 - Unified design tokens epic
 - Mobile app
 
 ### Done when
 1. Sidebar соответствует матрице ролей
-2. SSO кнопки видимы и подписаны при enable
+2. Единственная SSO-кнопка Keycloak видима и подписана при enable
 
 ### Forbidden after
 кастомный SPA «вместо Desk» в этом эпике · dual navigation SoT
@@ -68,22 +68,22 @@ title: Разделы меню и кнопки входа для людей
 
 summary: |
   Что делаем
-  Настраиваем рабочий стол ELMS так, чтобы сотрудник после входа видел только свои разделы меню: ERP, LMS или Настройки — в зависимости от роли. На странице входа подписи кнопок Keycloak и Яндекс делаем понятными для людей.
+Настраиваем рабочий стол ELMS так, чтобы сотрудник после входа видел только свои разделы меню: Operations, LMS или Настройки — в зависимости от роли. На странице входа делаем понятной единственную кнопку Keycloak; Yandex и локальный fallback остаются на стороне Keycloak.
 
   Зачем
   Права уже есть на уровне системы (предыдущие задачи). Здесь человек реально «видит» границы доступа в интерфейсе и понимает, чем можно войти.
 
   Что увидят роли
-  • Администратор — ERP, LMS и Настройки.
-  • Сотрудник ERP — только ERP.
-  • Сотрудник LMS — только LMS.
+  • ELMS Admin — Operations, LMS и Settings.
+  • ELMS Operations User — только Operations.
+  • ELMS LMS User — только LMS.
 
   Стадии
   1) Создать три раздела меню (workspaces) с привязкой к ролям.
   2) В каждом разделе дать простую ссылку на заглушку раздела («скоро» / скелет).
-  3) Подписать кнопки входа: «Войти через Keycloak», «Войти через Яндекс».
+3) Подписать кнопку входа: «Войти через Keycloak».
   4) Подготовить трёх тестовых пользователей под роли и проверить меню глазами.
   5) Зафиксировать чеклист приёмки (кто что должен видеть).
 
   Результат для наблюдателя
-  После входа меню совпадает с ролью. На входе две понятные кнопки SSO. Отдельное мобильное приложение и дизайн-система в эту задачу не входят.
+После входа меню совпадает с ролью. На Frappe login одна понятная кнопка SSO, а внутри Keycloak доступны Yandex и локальный fallback. Отдельное мобильное приложение и дизайн-система в эту задачу не входят.

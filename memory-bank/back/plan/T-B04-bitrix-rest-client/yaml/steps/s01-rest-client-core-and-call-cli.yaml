@@ -1,0 +1,176 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-B04-bitrix-rest-client
+title: 'Webhook transport, pydantic boundary, and call.py CLI'
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать единый транспорт и Pydantic-модели валидации границы в scripts/bitrix/rest_client.py
+  (WebhookEndpoint, CallArgs, RestEnvelope, post_json), CLI scripts/bitrix/call.py с кодами выхода 0/1/2,
+  и модульные тесты в tests/bitrix/test_rest_client.py с подставленным HTTP opener. Скрипт читает исключительно
+  BITRIX_REST_WEBHOOK_URL, никогда не читает BITRIX_WEBHOOK_URL доски, скрывает секрет в ошибках, локально
+  валидирует имя метода, JSON аргументов и batch-лимиты (<=50 команд, запрет вложенности).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-006
+    - FR-007
+    - FR-008
+    - US-001
+    - SC-001
+    - SC-002
+    - AC-1
+    - AC-2
+    - AC-3
+    - AC-6
+    - AC--1
+    - AC--2
+    - AC--3
+    - AC--4
+    - AC--5
+    - BN-001
+    - BN-002
+    - BN-003
+    - BN-004
+    - BN-005
+    - BN-006
+    - BN-007
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-004
+    - TM-005
+    - TM-006
+    - TM-007
+  nouns:
+    - scripts/bitrix/rest_client.py
+    - scripts/bitrix/call.py
+    - tests/bitrix/test_rest_client.py
+    - WebhookEndpoint
+    - CallArgs
+    - RestEnvelope
+    - post_json
+    - BITRIX_REST_WEBHOOK_URL
+    - BITRIX_WEBHOOK_URL
+    - user.current
+    - batch
+    - insufficient_scope
+    - ERROR_BATCH_LENGTH_EXCEEDED
+    - ERROR_BATCH_METHOD_NOT_ALLOWED
+  layout_paths:
+    - scripts/bitrix/__init__.py
+    - scripts/bitrix/rest_client.py
+    - scripts/bitrix/call.py
+    - tests/bitrix/__init__.py
+    - tests/bitrix/test_rest_client.py
+  ac_quotes:
+    - 'FR-001: scripts/bitrix/call.py <method> [--params <json-object>] читает только BITRIX_REST_WEBHOOK_URL, делает POST {url}{method}.json и при успехе печатает исходное JSON-тело в stdout.'
+    - 'FR-002: Если в JSON есть непустое поле error, скрипт печатает error и error_description в stderr и завершается с кодом 1. Успешный stdout при этом пуст.'
+    - 'FR-003: Нет переменной, пустое значение, не-https, путь не вида /rest/<цифры>/<код>/ — код 2, HTTP нет. Переменная BITRIX_WEBHOOK_URL не читается.'
+    - 'FR-008: Для метода batch локально отклоняются пакет больше 50 команд и команда, чьё значение начинается с batch. Код 2, текст с ERROR_BATCH_LENGTH_EXCEEDED или ERROR_BATCH_METHOD_NOT_ALLOWED.'
+    - 'AC-1: call.py user.current с валидным URL печатает JSON портала и выходит с кодом 0.'
+    - 'AC-2: Тело с error даёт код 1, stderr содержит код ошибки, stdout пуст.'
+    - 'AC-3: Нет BITRIX_REST_WEBHOOK_URL — код 2, даже если BITRIX_WEBHOOK_URL задан, и HTTP не вызывается.'
+    - 'AC-6: batch длиннее 50 или с вложенным batch не уходит в сеть.'
+  plan_jumps:
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:70-128'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:129-170'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:171-247'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:313-346'
+
+context:
+  consumes:
+    - 'plan §Functional Requirements FR-001, FR-002, FR-003, FR-006, FR-007, FR-008'
+    - 'plan §Acceptance Criteria AC-1, AC-2, AC-3, AC-6, AC--1, AC--2, AC--3, AC--4, AC--5'
+    - 'plan §Boundary cases BN-001, BN-002, BN-003, BN-004, BN-005, BN-006, BN-007'
+  produces:
+    - scripts/bitrix/__init__.py
+    - scripts/bitrix/rest_client.py
+    - scripts/bitrix/call.py
+    - tests/bitrix/__init__.py
+    - tests/bitrix/test_rest_client.py
+  plan_refs:
+    - 'plan.md#functional-requirements'
+    - 'plan.md#ac'
+    - 'plan.md#boundary-negative-cases'
+    - 'plan.md#data-flow-ascii'
+    - 'plan.md#failure-matrix'
+    - 'plan.md#test-matrix'
+  files:
+    - scripts/bitrix/__init__.py
+    - scripts/bitrix/rest_client.py
+    - scripts/bitrix/call.py
+    - tests/bitrix/__init__.py
+    - tests/bitrix/test_rest_client.py
+
+as_built:
+  - 'No scripts/bitrix/ directory or REST integration client exists in the repository'
+  - 'Existing BITRIX_WEBHOOK_URL is used exclusively by board projection scripts (.loop/board-projection.yaml)'
+  - 'No tests/bitrix/ module exists'
+
+delta:
+  - 'create scripts/bitrix/__init__.py and tests/bitrix/__init__.py'
+  - 'implement scripts/bitrix/rest_client.py with WebhookEndpoint, CallArgs, RestEnvelope, post_json, and BitrixRestError'
+  - 'implement scripts/bitrix/call.py CLI entrypoint with main(argv, env, opener=None) supporting standard exit codes 0/1/2'
+  - 'enforce pydantic validations on BITRIX_REST_WEBHOOK_URL: https scheme only, path /rest/<digits>/<code>/, never fallback to BITRIX_WEBHOOK_URL'
+  - 'enforce method name lowercase dot-separated format and batch limits (<= 50 commands, no nested batch)'
+  - 'hide secret token from exception messages, str/repr outputs, and stderr'
+  - 'create tests/bitrix/test_rest_client.py implementing test classes CallSuccessTest, CallBitrixErrorTest, MissingWebhookTest, BadWebhookUrlTest, BadArgsTest, BatchGuardTest, and TransportFailureTest'
+
+deletes: []
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: 'none (greenfield Bitrix REST client transport and call CLI)'
+  target: 'scripts/bitrix/rest_client.py and scripts/bitrix/call.py'
+  items: []
+
+out_of_scope:
+  - 'scripts/bitrix/scope.py (s02)'
+  - 'docs/bitrix-incoming-webhook.md and .env.example (s03)'
+  - 'live Bitrix portal network interaction'
+  - 'full suite -> QA'
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/secrets-scan/SKILL.md
+  omit_justification:
+    fastapi-templates: 'CLI script and urllib transport, not a FastAPI application'
+    async-python-patterns: 'Synchronous CLI execution; async python not used'
+
+checkpoints:
+  - id: cp1
+    criterion: 'rest_client.py defines WebhookEndpoint, CallArgs, RestEnvelope, and post_json'
+    verify: 'python3 -c "import scripts.bitrix.rest_client as rc; assert hasattr(rc, \"WebhookEndpoint\") and hasattr(rc, \"CallArgs\") and hasattr(rc, \"post_json\")"'
+  - id: cp2
+    criterion: 'call.py provides main entrypoint with exit codes 0, 1, 2'
+    verify: 'python3 -c "import scripts.bitrix.call as call; assert hasattr(call, \"main\")"'
+  - id: cp3
+    criterion: 'Zero secrets committed or exposed in error messages'
+    verify: '! rg -i "https://[a-zA-Z0-9.-]+/rest/[0-9]+/[a-zA-Z0-9]{16,}" scripts/ tests/'
+  - id: cp4
+    criterion: 'Core unit test suite passes via python3 -m unittest'
+    verify: 'timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.CallSuccessTest tests.bitrix.test_rest_client.CallBitrixErrorTest tests.bitrix.test_rest_client.MissingWebhookTest tests.bitrix.test_rest_client.BadWebhookUrlTest tests.bitrix.test_rest_client.BadArgsTest tests.bitrix.test_rest_client.BatchGuardTest tests.bitrix.test_rest_client.TransportFailureTest'
+
+verify:
+  - 'python3 -c "import scripts.bitrix.rest_client, scripts.bitrix.call; print(\"OK\")"'
+  - 'timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.CallSuccessTest'
+tdd:
+  - 'CallSuccessTest'
+  - 'CallBitrixErrorTest'
+  - 'MissingWebhookTest'
+  - 'BadWebhookUrlTest'
+  - 'BadArgsTest'
+  - 'BatchGuardTest'
+  - 'TransportFailureTest'

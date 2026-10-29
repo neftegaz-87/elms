@@ -1,6 +1,13 @@
 version: roadmap-queue/v2
 role: back
-queue:
+queue: []
+done:
+- id: T-B01
+  epic_id: T-B01-elms-docker-bootstrap
+  kind: feature
+  plan: plan/T-B01-elms-docker-bootstrap/md/plan.md
+  batch: elms-foundation
+  deps: []
 - id: T-B02
   epic_id: T-B02-elms-roles-rbac
   kind: feature
@@ -8,7 +15,6 @@ queue:
   batch: elms-foundation
   deps:
   - T-B01
-  status: planned
 - id: T-B03
   epic_id: T-B03-elms-sso-keycloak-yandex
   kind: feature
@@ -17,17 +23,20 @@ queue:
   deps:
   - T-B01
   - T-B02
-  status: planned
-done:
-- id: T-B01
-  epic_id: T-B01-elms-docker-bootstrap
+- id: T-B04
+  epic_id: T-B04-bitrix-rest-client
   kind: feature
-  plan: plan/T-B01-elms-docker-bootstrap/md/plan.md
-  batch: elms-foundation
+  plan: plan/T-B04-bitrix-rest-client/md/plan.md
+  batch: bitrix-rest
   deps: []
 batches:
   elms-foundation:
     title: ELMS foundation (Docker + RBAC + SSO Keycloak/Yandex)
     note: Только Frappe Framework v15 + custom app elms. Vendor ERPNext/LMS/CRM FORBIDDEN.
-      Keycloak в compose; Yandex через Social Login Key Custom. Роли ELMS Admin /
-      ELMS ERP User / ELMS LMS User. FRONT T-F01 зависит от T-B02/T-B03.
+      Keycloak в compose; Yandex как brokered OIDC Identity Provider внутри Keycloak.
+      Frappe использует единственный Social Login Key Keycloak. Роли ELMS Admin /
+      ELMS Operations User / ELMS LMS User. FRONT T-F01 зависит от T-B02/T-B03.
+  bitrix-rest:
+    title: Вызов REST Bitrix24 отдельными скриптами
+    note: Входящий вебхук в BITRIX_REST_WEBHOOK_URL. Не секрет доски. План plan/T-B04-bitrix-rest-client/md/plan.md.
+      Constitution — md/prompt.md.

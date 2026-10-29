@@ -1,0 +1,108 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-B04-bitrix-rest-client
+title: 'Operator incoming webhook documentation and env template'
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать файл инструкции docs/bitrix-incoming-webhook.md на русском языке с подробным руководством
+  по созданию входящего вебхука в интерфейсе Bitrix24, списком шагов, описанием переменной BITRIX_REST_WEBHOOK_URL
+  и запретом использовать ключ доски, добавить строку настройки в .env.example, и реализовать юнит-тест
+  InstructionTest в tests/bitrix/test_rest_client.py, проверяющий соответствие инструкции и конфигурации.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-009
+    - US-003
+    - SC-003
+    - AC-5
+    - TM-009
+  nouns:
+    - docs/bitrix-incoming-webhook.md
+    - .env.example
+    - BITRIX_REST_WEBHOOK_URL
+    - BITRIX_WEBHOOK_URL
+    - InstructionTest
+  layout_paths:
+    - docs/bitrix-incoming-webhook.md
+    - .env.example
+    - tests/bitrix/test_rest_client.py
+  ac_quotes:
+    - 'FR-005: docs/bitrix-incoming-webhook.md на русском объясняет, как создать входящий вебхук, какие права отметить и в какую переменную вставить URL.'
+    - 'FR-009: .env.example содержит пустой пример BITRIX_REST_WEBHOOK_URL и фразу, что это не ключ доски.'
+    - 'US-003: Как оператор, я хочу по инструкции создать входящий вебхук и вписать URL в настройку, чтобы скрипты завелись без секрета доски.'
+    - 'SC-003: Оператор может создать вебхук по файлу инструкции, не открывая план.'
+    - 'AC-5: Инструкция и .env.example называют BITRIX_REST_WEBHOOK_URL и не учат читать ключ доски.'
+  plan_jumps:
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:70-128'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:129-170'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:171-247'
+    - 'memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md:313-346'
+
+context:
+  consumes:
+    - 'plan §Functional Requirements FR-005, FR-009'
+    - 'plan §Acceptance Criteria AC-5'
+    - '.env.example'
+    - 'tests/bitrix/test_rest_client.py'
+  produces:
+    - docs/bitrix-incoming-webhook.md
+    - .env.example
+    - tests/bitrix/test_rest_client.py
+  plan_refs:
+    - 'plan.md#functional-requirements'
+    - 'plan.md#ac'
+    - 'plan.md#test-matrix'
+  files:
+    - docs/bitrix-incoming-webhook.md
+    - .env.example
+    - tests/bitrix/test_rest_client.py
+
+as_built:
+  - '.env.example exists with BITRIX_WEBHOOK_URL for board projection and Keycloak SSO settings'
+  - 'No docs/bitrix-incoming-webhook.md exists'
+
+delta:
+  - 'create docs/bitrix-incoming-webhook.md matching exact instructions from plan.md: menu navigation, scope permissions, secret handling, BITRIX_REST_WEBHOOK_URL usage'
+  - 'add BITRIX_REST_WEBHOOK_URL placeholder block to .env.example with clear separation comment from board key'
+  - 'add InstructionTest to tests/bitrix/test_rest_client.py asserting required keywords, environment variable names, and absence of board key endorsement'
+
+deletes: []
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: 'none (greenfield webhook setup documentation and env example)'
+  target: 'docs/bitrix-incoming-webhook.md and .env.example'
+  items: []
+
+out_of_scope:
+  - 'scripts/bitrix/rest_client.py and call.py (s01)'
+  - 'scripts/bitrix/scope.py (s02)'
+  - 'full suite -> QA'
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: 'docs/bitrix-incoming-webhook.md exists and contains webhook creation steps and BITRIX_REST_WEBHOOK_URL'
+    verify: 'grep -q "BITRIX_REST_WEBHOOK_URL" docs/bitrix-incoming-webhook.md && grep -q "Входящий вебхук" docs/bitrix-incoming-webhook.md'
+  - id: cp2
+    criterion: '.env.example contains BITRIX_REST_WEBHOOK_URL'
+    verify: 'grep -q "BITRIX_REST_WEBHOOK_URL" .env.example'
+  - id: cp3
+    criterion: 'InstructionTest passes via python3 -m unittest'
+    verify: 'timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.InstructionTest'
+  - id: cp4
+    criterion: 'Full bitrix test suite passes cleanly'
+    verify: 'timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client'
+
+verify:
+  - 'grep -q "BITRIX_REST_WEBHOOK_URL" docs/bitrix-incoming-webhook.md'
+  - 'timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client'
+tdd:
+  - 'InstructionTest'

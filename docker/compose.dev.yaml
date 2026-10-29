@@ -130,6 +130,7 @@ services:
           bench --site "$${SITE_NAME}" set-config developer_mode 1;
         fi;
         bench --site "$${SITE_NAME}" set-config host_name "$${SITE_HOST_NAME}";
+        bench --site "$${SITE_NAME}" execute elms.sso.conf.inject_sso_site_config;
         bench --site "$${SITE_NAME}" clear-cache;
         echo "create-site completed successfully";
     environment:
@@ -138,6 +139,11 @@ services:
       HTTP_PUBLISH_PORT: ${HTTP_PUBLISH_PORT:-8082}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       DB_PASSWORD: ${DB_PASSWORD:-123}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://127.0.0.1:8480}
+      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
+      ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-0}
     volumes: *app_volumes
     depends_on:
       configurator:
@@ -149,6 +155,11 @@ services:
       GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://127.0.0.1:8480}
+      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
+      ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-0}
 
   websocket:
     <<: *backend
@@ -227,12 +238,15 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_PORT: "8080"
+      FRAPPE_PUBLIC_URL: ${FRAPPE_PUBLIC_URL:-http://elms.localhost:8082}
       YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
       YANDEX_CLIENT_SECRET: ${YANDEX_CLIENT_SECRET:-}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
       KEYCLOAK_FALLBACK_PASSWORD: ${KEYCLOAK_FALLBACK_PASSWORD:-fallback123}
+    entrypoint: ["/opt/keycloak/entrypoint.sh"]
     volumes:
-      - ./keycloak/realm-elms.json:/opt/keycloak/data/import/realm-elms.json:ro
+      - ./keycloak/entrypoint.sh:/opt/keycloak/entrypoint.sh:ro
+      - ./keycloak/realm-elms.json:/opt/keycloak/data/import-template/realm-elms.json:ro
     ports:
       - "${KEYCLOAK_PUBLISH_PORT:-8480}:8080"
     depends_on:

@@ -1,0 +1,52 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-B02-elms-roles-rbac
+role: back
+source_qa: memory-bank/back/qa/T-B02-elms-roles-rbac/qa-20261028-roles-rbac.yaml
+checklist_sha256: a54bed52392b72cf5340503d11a95e95480b955479888fb4715cf3d4217f7314
+created_at: '2026-10-28T23:35:00Z'
+updated_at: '2026-10-28T20:56:00Z'
+current_id: BF-003
+verification:
+  status: pass
+  command: bin/pytest
+  last_run_at: '2026-10-28T20:56:00Z'
+  evidence: "All items resolved: bin/pytest passed exit 0 (13 unittest cases + 7 pytest smoke assertions green)"
+items:
+  - id: BF-001
+    status: done
+    class: suite_red
+    title: "suite_red: bin/pytest fails with AssertionError on modules.txt containing Operations instead of Operations"
+    blocker_ref: "suite_red:bin_pytest_modules_assertion_failure: bin/pytest fails with AssertionError at line 5 asserting canon Operations module in elms/elms/modules.txt instead of Operations, and does not invoke elms.tests.test_roles_rbac"
+    fix_plan_ref: "Update bin/pytest line 5 to assert ['Core', 'Operations', 'LMS'] and append PYTHONPATH=elms python3 -m unittest elms.tests.test_roles_rbac to verification suite"
+    targets:
+      - bin/pytest
+    verify: bin/pytest
+    evidence: "bin/pytest exit 0 (10 tests passed, verification suite green)"
+    done_at: '2026-10-28T20:19:25Z'
+    notes: "Update bin/pytest to reflect Operations module alignment and execute RBAC unit tests."
+  - id: BF-002
+    status: done
+    class: ac_gap
+    title: "ac_gap: AC− silent fallback in elms/elms/install.py:92,96"
+    blocker_ref: "ac_gap:silent_fallback_install_perms: AC− silent fallback in elms/elms/install.py lines 92 and 96 using return/continue instead of fail-closed error"
+    fix_plan_ref: "Replace silent return/continue in ensure_section_perms in elms/elms/install.py with fail-closed frappe.throw exception"
+    targets:
+      - elms/elms/install.py
+      - elms/elms/tests/test_roles_rbac.py
+    verify: bin/pytest
+    evidence: "Replaced return and continue with frappe.throw in ensure_section_perms; added unit tests test_ensure_section_perms_fails_closed_when_db_absent and test_ensure_section_perms_fails_closed_when_doctype_missing; bin/pytest passed exit 0 (12 tests passed)"
+    done_at: '2026-10-28T20:32:11Z'
+    notes: "Fail closed when DocTypes are missing or database connection is absent during ensure_section_perms."
+  - id: BF-003
+    status: done
+    class: ac_gap
+    title: "ac_gap: silent Custom DocPerm fallback in elms/elms/install.py:99"
+    blocker_ref: "ac_gap:silent_custom_docperm_fallback: elms/elms/install.py:99 silently skips permission synchronization when Custom DocPerm is unavailable"
+    fix_plan_ref: "Fail closed with frappe.throw in elms/elms/install.py when Custom DocPerm is missing, and verify with unit tests"
+    targets:
+      - elms/elms/install.py
+      - elms/elms/tests/test_roles_rbac.py
+    verify: bin/pytest
+    evidence: "Replaced silent Custom DocPerm check with fail-closed frappe.throw exception; added unit test test_ensure_section_perms_fails_closed_when_custom_docperm_missing; bin/pytest passed exit 0 (13 tests passed)"
+    done_at: '2026-10-28T20:55:00Z'
+    notes: "ensure_section_perms must raise frappe.throw if Custom DocPerm doctype does not exist instead of if check silently bypassing permission assignment."

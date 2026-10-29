@@ -1,0 +1,202 @@
+schema: app-qa/v1
+role: app
+task_id: T-A01
+plan_id: T-A01-elms-keycloak-login-ui
+epic_id: T-A01-elms-keycloak-login-ui
+date: '2026-10-29'
+reviewer: APP QA
+verdict: pass
+checklist_sha256: 98f6b6424bb249be19b1a3006fa0aeb6c52ea7e624e29b0061c8b5dd04853037
+verify_scope: full
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: main
+    paths:
+      - elms/elms/public/css/login.css
+      - elms/elms/hooks.py
+      - elms/elms/sso/settings.py
+      - elms/elms/sso/conf.py
+      - docker/compose.dev.yaml
+      - docker/keycloak/entrypoint.sh
+      - scripts/live_smoke.sh
+      - scripts/run_browser_qa.py
+  surfaces_required: [backend, frontend_build, browser, live_smoke]
+  surfaces_optional: [wire_journey, leftover_sot]
+  surfaces_skipped: []
+  stack_profile: "hub-default"
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: "bin/pytest -q --tb=line"
+    evidence: "65 passed in 0.21s"
+    notes: "Covers test_login_ui, test_sso_config, test_sso_ensure, test_sso"
+  - id: frontend_build
+    required: true
+    status: pass
+    command: "docker exec elms-dev-backend-1 bench build --app elms"
+    evidence: "Application Assets Linked, Done in 0.79s"
+    notes: "Compiles translations and links elms public assets to bench assets"
+  - id: browser
+    required: true
+    status: pass
+    command: "python3 scripts/run_browser_qa.py"
+    evidence: "browser-artifacts/browser-evidence.json, browser-artifacts/login-page.png"
+    notes: "Button background color verified as rgb(13, 76, 211) (#0d4cd3) with height 44px, radius 3px"
+  - id: live_smoke
+    required: true
+    status: pass
+    command: "bash scripts/live_smoke.sh"
+    evidence: "docs/reports/sso-browser-api-trace.json"
+    notes: "OIDC discovery 200, Frappe login 200, Keycloak auth 200 with Yandex 360 broker route, Keycloak IdentityBrokerService broker endpoint validated with pass"
+  - id: leftover_sot
+    required: false
+    status: pass
+    command: "rg -n 'custom/yandex|yandex_login' elms/elms docker .env.example"
+    evidence: "0 matches"
+    notes: "Clean sunset of legacy direct Yandex routes"
+  - id: wire_journey
+    required: false
+    status: pass
+    command: "EVIDENCE_FILE=docs/reports/sso-browser-api-trace.json bash scripts/live_smoke.sh"
+    evidence: "docs/reports/sso-browser-api-trace.json"
+    notes: "Journeys JRN-SSO-001, JRN-SSO-001A, JRN-SSO-001B verified"
+
+scope:
+  - "task: T-A01"
+  - "epic: T-A01-elms-keycloak-login-ui"
+  - "files: elms/elms/public/css/login.css, elms/elms/hooks.py, elms/elms/sso/settings.py, elms/elms/sso/conf.py, docker/compose.dev.yaml, docker/keycloak/entrypoint.sh, scripts/live_smoke.sh, scripts/run_browser_qa.py"
+
+ac_plus:
+  - "Configured login button exists: Exactly one .btn-keycloak control whose href starts with public KEYCLOAK_PUBLIC_URL/realms/elms, never keycloak:8080 (AC-001, FR-001, FR-003, US-001)"
+  - "login.css asset is loaded via web_include_css link in head (AC-001, TM-010)"
+  - "Local Keycloak fallback flow contract and realm definition verified (AC-003, FR-005, US-007, TM-009)"
+  - "Yandex broker flow through Keycloak broker without direct Frappe call (AC-004, FR-005, US-004, TM-013)"
+  - "Fail closed on missing credentials when required; non-zero exit and disabled button in dev (AC-005, FR-004, US-006, TM-001, TM-002, BN-001, BN-002)"
+  - "No secret leakage in tracked files, docker entrypoint, or Frappe site_config (AC-006, FR-007, TM-012, BN-004)"
+  - "Default SSO roles Desk User and ELMS LMS User authoritative (AC-007, FR-006, US-008, TM-007)"
+
+ac_minus:
+  - "No direct Yandex button or route in Frappe login page (AC--1, US-002, BN-004, TM-004)"
+  - "No internal container hostname keycloak:8080 in browser-served href (AC--2, BN-005, TM-005)"
+  - "No tracked secrets in repository (AC--3, AC-006, TM-012)"
+  - "No custom login SPA or template fork (AC--4, cut_list)"
+
+section_011:
+  - "Single authoritative settings adapter in elms/elms/sso/settings.py"
+  - "Idempotent migration with zero duplicate rows"
+
+coverage_map:
+  - id: AC-001
+    kind: AC
+    scenario: "Single .btn-keycloak button with public Keycloak URL and loaded login.css"
+    evidence: "scripts/run_browser_qa.py, browser-artifacts/browser-evidence.json, browser-artifacts/login-page.png"
+    status: pass
+  - id: AC-002
+    kind: AC
+    scenario: "Styled visual states: height 44px, radius 3px, cobalt action #0d4cd3"
+    evidence: "scripts/run_browser_qa.py, browser-artifacts/browser-evidence.json"
+    status: pass
+  - id: AC-003
+    kind: AC
+    scenario: "Local Keycloak fallback flow to Desk session (/app)"
+    evidence: "elms/elms/tests/test_login_ui.py::TestAcceptanceCriteriaEvidence::test_ac_003_local_keycloak_fallback_flow, docker/keycloak/realm-elms.json"
+    status: pass
+  - id: AC-004
+    kind: AC
+    scenario: "Yandex broker flow through Keycloak broker without direct Frappe call"
+    evidence: "elms/elms/tests/test_login_ui.py::TestAcceptanceCriteriaEvidence::test_ac_004_yandex_broker_flow, docker/keycloak/realm-elms.json, scripts/live_smoke.sh, docs/reports/sso-browser-api-trace.json"
+    status: pass
+  - id: AC-005
+    kind: AC
+    scenario: "Fail closed on missing configuration or invalid OAuth"
+    evidence: "elms/elms/tests/test_sso_config.py, elms/elms/tests/test_login_ui.py::TestAcceptanceCriteriaEvidence::test_ac_005_fail_closed_config"
+    status: pass
+  - id: AC-006
+    kind: AC
+    scenario: "No secret leakage in tracked files or Frappe site_config"
+    evidence: "git status, ! rg -i '(client_secret|password)\\s*[:=]\\s*[\"0-9a-zA-Z]{16,}' docker/ elms/ .env.example"
+    status: pass
+  - id: AC-007
+    kind: AC
+    scenario: "Existing Frappe RBAC and default roles authoritative"
+    evidence: "elms/elms/tests/test_sso.py, elms/elms/tests/test_sso_ensure.py"
+    status: pass
+
+prior_blockers:
+  - id: BF-001
+    class: lane:browser
+    status: resolved
+    evidence: "Added !important and higher specificity in elms/elms/public/css/login.css; scripts/run_browser_qa.py confirmed backgroundColor rgb(13, 76, 211) and height 44px, radius 3px"
+  - id: BF-002
+    class: lane:live_smoke
+    status: resolved
+    evidence: "scripts/live_smoke.sh enhanced to substantiate and assert Keycloak broker delegation and IdentityBrokerService endpoint; status: pass, live_evidence: true"
+
+review:
+  status: pass
+  scope: "login UI styling, Docker asset delivery, and SSO broker flow"
+  findings: []
+
+test_audit:
+  status: pass
+  checks:
+    - "assertions exercise outcome, not only status/build"
+    - "no global API mocking hides production wire"
+    - "skips/xfails and route.fulfill bounded"
+    - "browser/API test included in declared CI job"
+  findings: []
+
+browser:
+  status: pass
+  stack_profile: "hub-default"
+  evidence_file: "browser-artifacts/browser-evidence.json"
+  last_run_at: "2026-10-29T20:23:56Z"
+  journeys:
+    - journey_id: "JRN-UI-001"
+      name: "Keycloak login button rendering and visual contract"
+      status: "pass"
+  artifacts:
+    - "browser-artifacts/login-page.png"
+    - "browser-artifacts/browser-evidence.json"
+
+retro:
+  status: done
+  defect_missed: "CSS stylesheet ordering in Frappe: login.bundle.css is included via head_include block after head.html, overriding equal-specificity selectors from web_include_css"
+  redundant_gate: "none"
+  flaky_test: "none"
+  next_cycle_change: "Always test computed styles in actual browser via Playwright rather than relying solely on static CSS token text assertions"
+
+sunset_inventory_scan:
+  status: pass
+  scanned_at: "2026-10-29T18:56:00Z"
+  rows: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: pass
+  rows: []
+
+checks:
+  - "all required lanes evaluated"
+  - "charter announced before probes"
+  - "live_smoke is live HTTP, not ASGI mocks"
+  - "browser test ran against live container with Playwright"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+live_smoke:
+  status: pass
+  command: "timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: "docs/reports/sso-browser-api-trace.json"
+  last_run_at: "2026-10-29T20:24:04Z"
+  base_url: "http://elms.localhost:8082"
+  level: health
+  notes: "OIDC discovery 200, login page 200, Keycloak authorization pass 200; Yandex 360 broker delegation and IdentityBrokerService verified live"

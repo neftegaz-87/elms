@@ -4,6 +4,40 @@ from typing import Any
 
 import frappe
 
+ELMS_ADMIN_ROLE: str = "ELMS Admin"
+ELMS_OPERATIONS_USER_ROLE: str = "ELMS Operations User"
+ELMS_LMS_USER_ROLE: str = "ELMS LMS User"
+
+ELMS_ROLES: tuple[str, ...] = (
+    ELMS_ADMIN_ROLE,
+    ELMS_OPERATIONS_USER_ROLE,
+    ELMS_LMS_USER_ROLE,
+)
+
+ELMS_OPERATIONS_SECTION_DOCTYPE: str = "ELMS Operations Section"
+ELMS_LMS_SECTION_DOCTYPE: str = "ELMS LMS Section"
+ELMS_SETTINGS_SECTION_DOCTYPE: str = "ELMS Settings Section"
+
+SECTION_DOCTYPES: tuple[str, ...] = (
+    ELMS_OPERATIONS_SECTION_DOCTYPE,
+    ELMS_LMS_SECTION_DOCTYPE,
+    ELMS_SETTINGS_SECTION_DOCTYPE,
+)
+
+SECTION_DOCPERM_MATRIX: dict[str, list[dict[str, Any]]] = {
+    ELMS_OPERATIONS_SECTION_DOCTYPE: [
+        {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
+        {"role": ELMS_OPERATIONS_USER_ROLE, "read": 1, "write": 1, "create": 0, "delete": 0},
+    ],
+    ELMS_LMS_SECTION_DOCTYPE: [
+        {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
+        {"role": ELMS_LMS_USER_ROLE, "read": 1, "write": 1, "create": 0, "delete": 0},
+    ],
+    ELMS_SETTINGS_SECTION_DOCTYPE: [
+        {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
+    ],
+}
+
 APPROVED_ROLE_MAPPINGS: dict[str, list[str]] = {
     "Administrators": ["System Manager"],
     "/Administrators": ["System Manager"],
@@ -15,6 +49,11 @@ APPROVED_ROLE_MAPPINGS: dict[str, list[str]] = {
     "/Students": ["Student"],
 }
 
+if not hasattr(frappe, "ValidationError"):
+    class ValidationError(Exception):
+        pass
+    frappe.ValidationError = ValidationError
+
 
 class YandexSMTPDeliveryError(frappe.ValidationError):
     """Raised when Yandex SMTP delivery fails; masking delivery failure is forbidden (FR-016)."""
@@ -22,47 +61,65 @@ class YandexSMTPDeliveryError(frappe.ValidationError):
     pass
 
 
-def setup_keycloak_social_login() -> str:
-    """Create or update Keycloak Social Login Key template idempotently."""
-    provider_name = "Keycloak"
-    key_name = frappe.scrub(provider_name)
-    base_url = os.getenv("KEYCLOAK_BASE_URL", "http://keycloak:8080/realms/elms")
-    client_id = os.getenv("KEYCLOAK_CLIENT_ID", "elms-frappe")
-    client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
+def ensure_roles() -> None:
+    """Idempotently ensure required ELMS roles exist in Frappe.
 
-    doc = None
-    if frappe.db.exists("Social Login Key", key_name):
-        doc = frappe.get_doc("Social Login Key", key_name)
-    elif frappe.db.exists("Social Login Key", {"provider_name": provider_name}):
-        doc = frappe.get_doc("Social Login Key", {"provider_name": provider_name})
-    else:
-        doc = frappe.new_doc("Social Login Key")
-        doc.provider_name = provider_name
+    Fail-closed: if any role fails to create or is missing after creation,
+    raises frappe.throw. Swallowing exceptions with try/except pass is strictly forbidden (AC--1).
+    """
+    for role_name in ELMS_ROLES:
+        if not frappe.db.exists("Role", role_name):
+            doc = frappe.new_doc("Role")
+            doc.role_name = role_name
+            doc.flags.ignore_permissions = True
+            doc.insert()
 
-    doc.update(
-        {
-            "enable_social_login": 1,
-            "custom_base_url": 1,
-            "base_url": base_url,
-            "authorize_url": "/protocol/openid-connect/auth",
-            "access_token_url": "/protocol/openid-connect/token",
-            "redirect_url": "/api/method/frappe.integrations.oauth2_logins.login_via_keycloak",
-            "api_endpoint": "/protocol/openid-connect/userinfo",
-            "client_id": client_id,
-            "client_secret": client_secret or None,
-            "user_id_property": "preferred_username",
-            "auth_url_data": json.dumps({"response_type": "code", "scope": "openid email profile"}),
-            "sign_ups": "Allow",
-        }
-    )
+    # Fail-closed verification
+    for role_name in ELMS_ROLES:
+        if not frappe.db.exists("Role", role_name):
+            frappe.throw(f"ELMS role '{role_name}' could not be created or found after ensure_roles.")
 
-    doc.flags.ignore_permissions = True
-    if doc.is_new():
-        doc.insert()
-    else:
-        doc.save()
 
-    return doc.name
+def ensure_section_perms() -> None:
+    """Idempotently ensure required DocPerm entries for ELMS section DocTypes (FR-004, FR-005).
+
+    Synchronizes permissions across ELMS section DocTypes:
+    - ELMS Admin: full RWCD on Operations, LMS, Settings sections.
+    - ELMS Operations User: RW on Operations section only.
+    - ELMS LMS User: RW on LMS section only.
+    - Guest / Other roles: strictly denied access.
+    """
+    if not hasattr(frappe, "db") or frappe.db is None:
+        frappe.throw("Database connection is not available for ensure_section_perms.")
+
+    if not frappe.db.exists("DocType", "Custom DocPerm"):
+        frappe.throw("Required DocType 'Custom DocPerm' not found for ensure_section_perms.")
+
+    for doctype_name, perms in SECTION_DOCPERM_MATRIX.items():
+        if not frappe.db.exists("DocType", doctype_name):
+            frappe.throw(f"Required DocType '{doctype_name}' not found for ensure_section_perms.")
+
+        for perm in perms:
+            role = perm["role"]
+            custom_perm_name = frappe.db.get_value(
+                "Custom DocPerm",
+                {"parent": doctype_name, "role": role, "permlevel": 0},
+                "name",
+            )
+            if custom_perm_name:
+                doc = frappe.get_doc("Custom DocPerm", custom_perm_name)
+                doc.update(perm)
+                doc.flags.ignore_permissions = True
+                doc.save()
+            else:
+                doc = frappe.new_doc("Custom DocPerm")
+                doc.parent = doctype_name
+                doc.parenttype = "DocType"
+                doc.parentfield = "permissions"
+                doc.permlevel = 0
+                doc.update(perm)
+                doc.flags.ignore_permissions = True
+                doc.insert()
 
 
 def reconcile_keycloak_user(user_doc, keycloak_data: dict[str, Any]) -> None:
@@ -151,7 +208,7 @@ def setup_yandex_smtp() -> str:
             "use_ssl": 1,
             "enable_outgoing": 1,
             "default_outgoing": 1,
-            "auth_method": "LOGIN",
+            "auth_method": "Basic",
             "password": smtp_password or None,
         }
     )
@@ -175,15 +232,31 @@ def handle_yandex_smtp_outage(error: Exception) -> None:
     raise YandexSMTPDeliveryError(error_msg) from error
 
 
+def after_migrate() -> None:
+    """Post-migration hook for ELMS app.
+
+    Idempotently ensures required ELMS roles, section permissions, and Social Login Key exist.
+    """
+    ensure_roles()
+    ensure_section_perms()
+    from elms.sso.ensure import ensure_social_login_keys
+    ensure_social_login_keys()
+
+
 def after_install() -> None:
     """Post-installation hook for ELMS app.
 
-    Sets up Keycloak Social Login Key template and Yandex SMTP configuration.
+    Sets up Keycloak Social Login Key, Yandex SMTP configuration,
+    and ensures required ELMS roles and section permissions exist.
     """
+    ensure_roles()
+    ensure_section_perms()
+
     try:
-        setup_keycloak_social_login()
+        from elms.sso.ensure import ensure_social_login_keys
+        ensure_social_login_keys()
     except Exception as e:
-        frappe.log_error(title="ELMS setup_keycloak_social_login error", message=str(e))
+        frappe.log_error(title="ELMS ensure_social_login_keys error", message=str(e))
         raise
 
     try:

@@ -1,0 +1,366 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A01-elms-keycloak-login-ui
+title: Unified Keycloak login vertical slice (scoped CSS, typed settings, Docker env,
+  tests, and wire journey)
+next_phase: APP IMPLEMENT
+needs_creative: 'no'
+goal: 'Реализовать единый вертикальный срез входа через Keycloak на стандартной странице
+  Frappe /login:
+
+  1. Scoped CSS asset elms/elms/public/css/login.css в визуальном языке Neftegaz (44px
+  control, 3px radius, cobalt action, focus/reduced-motion) и подключение через web_include_css
+  в hooks.py.
+
+  2. Адаптер настроек elms/elms/sso/settings.py на базе pydantic-settings для строгой
+  типизации и валидации env (KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET, KEYCLOAK_PUBLIC_URL,
+  ELMS_SSO_REQUIRE), с делегированием из conf.py и сохранением fail-closed поведения.
+
+  3. Передача env и проверка секретов в docker/compose.dev.yaml, docker/compose.prod.yaml,
+  docker/keycloak/realm-elms.json, docker/keycloak/entrypoint.sh, docker/.env.dev.example,
+  docker/.env.prod.example и docker/README.md.
+
+  4. Тесты контракта login UI, типизированных настроек, callback/RBAC и отсутствия
+  прямого Yandex провайдера в Frappe.
+
+  5. Проверка live smoke и подготовка manual-ac.md чеклиста для приёмки оператора.'
+plan_contract:
+  fr_ids:
+  - FR-001
+  - FR-002
+  - FR-003
+  - FR-004
+  - FR-005
+  - FR-006
+  - FR-007
+  - FR-008
+  - US-001
+  - US-002
+  - US-003
+  - US-004
+  - US-005
+  - US-006
+  - US-007
+  - US-008
+  - AC-001
+  - AC-002
+  - AC-003
+  - AC-004
+  - AC-005
+  - AC-006
+  - AC-007
+  - BN-001
+  - BN-002
+  - BN-003
+  - BN-004
+  - BN-005
+  - BN-006
+  - BN-007
+  - BN-008
+  - BN-009
+  - BN-010
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+  - TM-007
+  - TM-008
+  - TM-009
+  - TM-010
+  - TM-011
+  - TM-012
+  - TM-013
+  fr_coverage:
+  - id: FR-004
+    section: FR-004 — Environment and typed Python settings
+    details: The typed adapter uses pydantic-settings and SecretStr for all seven
+      settings variables, validates URLs/booleans/roles, preserves unconfigured Yandex
+      in development, removes legacy yandex_login, and keeps Yandex credentials out
+      of Frappe site_config.json.
+  - id: FR-005
+    section: FR-005 — Keycloak realm and Yandex broker
+    details: The env-backed elms realm uses the confidential elms-frappe client, public
+      issuer, bounded redirect, exact yandex OIDC broker, normalized claims, registrationAllowed=false,
+      and entrypoint branches for empty, partial, and present Yandex credentials.
+  nouns:
+  - Keycloak
+  - Social Login Key
+  - login.css
+  - hooks.py
+  - settings.py
+  - pydantic-settings
+  - site_config.json
+  - keycloak_login
+  - realm-elms.json
+  - elms-frappe
+  - entrypoint.sh
+  - Yandex OIDC broker
+  - sub
+  - Desk User
+  - ELMS LMS User
+  - live_smoke.sh
+  - manual-ac.md
+  layout_paths:
+  - elms/elms/public/css/login.css
+  - elms/elms/hooks.py
+  - elms/elms/sso/settings.py
+  - elms/elms/sso/conf.py
+  - elms/pyproject.toml
+  - elms/elms/tests/test_login_ui.py
+  - elms/elms/tests/test_sso_config.py
+  - elms/elms/tests/test_sso_ensure.py
+  - elms/elms/tests/test_sso.py
+  - docker/compose.dev.yaml
+  - docker/compose.prod.yaml
+  - docker/keycloak/realm-elms.json
+  - docker/keycloak/entrypoint.sh
+  - docker/.env.dev.example
+  - docker/.env.prod.example
+  - docker/README.md
+  - scripts/live_smoke.sh
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/manual-ac.md
+  ac_quotes:
+  - 'AC-001 — Configured login button: Given valid Keycloak configuration, the page
+    contains exactly one visible .btn-keycloak control whose href starts with the
+    public KEYCLOAK_PUBLIC_URL/realms/elms, never keycloak:8080, and the ELMS login
+    CSS asset is loaded'
+  - 'AC-002 — Styled visual states: Given the configured button, hover, focus, activation,
+    disabled, and reduced-motion states use the Neftegaz palette/geometry, maintain
+    readable contrast, and do not shift layout'
+  - 'AC-003 — Local Keycloak end-to-end flow: Given an explicitly provisioned local
+    Keycloak user, the callback creates an authenticated Frappe session with linked
+    sub, expected default roles, and a redirect to /app'
+  - 'AC-004 — Yandex broker end-to-end flow: Given non-empty Yandex credentials, Keycloak
+    creates/links the realm user and Frappe creates/links the User by Keycloak sub;
+    Frappe never calls a Yandex endpoint directly'
+  - 'AC-005 — Fail closed: Missing Keycloak credentials disable the Social Login Key
+    in dev, missing required credentials make create-site exit non-zero, and OAuth
+    denial/state mismatch/token error/missing role creates no authenticated session'
+  - 'AC-006 — No secret leakage: No real Keycloak/Yandex secret is tracked, no secret
+    is printed in settings errors/logs, and Yandex secrets are absent from Frappe
+    site_config.json'
+  - 'AC-007 — Existing RBAC remains intact: Default SSO roles are applied through
+    the existing hook and Frappe DocPerm remains authoritative when a role is absent'
+  plan_jumps:
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md:112-228
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md:243-280
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md:299-311
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md:402-428
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md:465-504
+context:
+  consumes:
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md
+  - elms/elms/sso/conf.py
+  - elms/elms/sso/ensure.py
+  - elms/elms/tests/test_sso.py
+  - docker/compose.dev.yaml
+  - docker/compose.prod.yaml
+  - docker/keycloak/realm-elms.json
+  - scripts/live_smoke.sh
+  produces:
+  - elms/elms/public/css/login.css
+  - elms/elms/hooks.py
+  - elms/elms/sso/settings.py
+  - elms/elms/sso/conf.py
+  - elms/pyproject.toml
+  - elms/elms/tests/test_login_ui.py
+  - elms/elms/tests/test_sso_config.py
+  - elms/elms/tests/test_sso_ensure.py
+  - elms/elms/tests/test_sso.py
+  - docker/compose.dev.yaml
+  - docker/compose.prod.yaml
+  - docker/keycloak/realm-elms.json
+  - docker/keycloak/entrypoint.sh
+  - docker/.env.dev.example
+  - docker/.env.prod.example
+  - docker/README.md
+  - scripts/live_smoke.sh
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/manual-ac.md
+  plan_refs:
+  - plan.md#functional-requirements
+  - plan.md#acceptance-scenarios
+  - plan.md#negative-boundary-cases
+  - plan.md#design-translation-contract
+  - plan.md#environment-and-docker-matrix
+  - plan.md#files-implementation-delta
+  - plan.md#test-map
+  - plan.md#implementation-outline
+  files:
+  - elms/elms/public/css/login.css
+  - elms/elms/hooks.py
+  - elms/elms/sso/settings.py
+  - elms/elms/sso/conf.py
+  - elms/pyproject.toml
+  - elms/elms/tests/test_login_ui.py
+  - elms/elms/tests/test_sso_config.py
+  - elms/elms/tests/test_sso_ensure.py
+  - elms/elms/tests/test_sso.py
+  - docker/compose.dev.yaml
+  - docker/compose.prod.yaml
+  - docker/keycloak/realm-elms.json
+  - docker/keycloak/entrypoint.sh
+  - docker/.env.dev.example
+  - docker/.env.prod.example
+  - docker/README.md
+  - scripts/live_smoke.sh
+  - memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/manual-ac.md
+as_built:
+- Frappe login page /login serves stock buttons and supports Social Login Key Keycloak
+  via ensure.py and conf.py
+- elms/elms/hooks.py exists without login CSS web_include_css registration
+- elms/elms/sso/conf.py injects raw os.environ values into site_config without typed
+  pydantic validation
+- docker/keycloak/realm-elms.json defines elms realm and elms-frappe client but entrypoint.sh
+  does not yet isolate env substitution safely
+- scripts/live_smoke.sh tests basic health without checking login CSS asset inclusion
+  or public Keycloak issuer in browser HTML
+delta:
+- 'Create scoped login CSS asset in elms/elms/public/css/login.css with Neftegaz tokens
+  (44px control, 3px radius, #0d4cd3 action, focus/reduced-motion) and register in
+  elms/elms/hooks.py via web_include_css'
+- Implement typed env settings in elms/elms/sso/settings.py using pydantic-settings,
+  validating client ID/secret, public URL and requirement flags, and wire into elms/elms/sso/conf.py
+- Add pydantic-settings dependency to elms/pyproject.toml
+- Update docker/compose.dev.yaml and docker/compose.prod.yaml to ensure environment
+  variable propagation, and add docker/keycloak/entrypoint.sh for secure realm import
+  rendering without secret leakage
+- Add test_login_ui.py to verify rendered HTML, single Keycloak button, public URL,
+  absence of direct Yandex provider, and CSS asset inclusion
+- Update test_sso_config.py, test_sso_ensure.py, and test_sso.py to cover typed settings
+  and fail-closed branches
+- Update scripts/live_smoke.sh and add memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/manual-ac.md
+  for operator verification
+deletes: []
+wire_complete_required: true
+replacement_cleanup:
+  replaces: Stock Frappe login button appearance, plain untyped env loading, and T-F01
+    login-related scope
+  target: Scoped Neftegaz-derived login.css, typed pydantic-settings SSO adapter,
+    unified APP login slice
+  items:
+  - symbol: Stock Frappe Social Login Key styling
+    kind: A
+    replacement: elms/elms/public/css/login.css scoped rules
+    policy: replace in-epic
+  - symbol: Plain env parsing in elms/elms/sso/conf.py
+    kind: A
+    replacement: elms/elms/sso/settings.py typed settings adapter
+    policy: replace in-epic
+  - symbol: T-F01 login button and CSS scope
+    kind: B
+    replacement: T-A01 s01 unified APP login vertical slice
+    policy: reconcile in-epic
+out_of_scope:
+  - Vue or React login SPA or Frappe template fork
+  - Direct Frappe to Yandex Social Login Key or direct Yandex callback
+  - SCIM or bulk directory import
+  - Copying Yandex passwords into Keycloak or Frappe
+  - Workspaces, Section DocTypes, Desk shell and role navigation from T-F01
+  - Product domain screens for Operations or LMS
+  - Global Frappe theme rewrite or dark mode
+  - Separate BACK/FRONT/INTEG epics for this slice
+skills:
+  code_surface: mixed
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/frontend-patterns/SKILL.md
+  - .agents/skills/design-taste-frontend/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/secrets-scan/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  omit_justification:
+    async-python-patterns: Frappe Framework is a synchronous WSGI runtime; async python
+      patterns do not apply
+checkpoints:
+- id: cp1
+  criterion: Scoped login CSS asset exists with Neftegaz tokens and is registered
+    in hooks.py
+  verify: test -f elms/elms/public/css/login.css && grep -q 'login.css' elms/elms/hooks.py
+- id: cp2
+  criterion: Typed SSO settings adapter validates environment variables using pydantic-settings
+  verify: python3 -c 'from elms.sso.settings import SsoSettings; s = SsoSettings(keycloak_client_id="elms-frappe",
+    keycloak_client_secret="sec", keycloak_public_url="http://127.0.0.1:8480"); assert
+    s.keycloak_client_id == "elms-frappe"'
+- id: cp3
+  criterion: Site config injection integrates with typed settings and enforces fail-closed
+    behavior
+  verify: python3 -c 'import elms.sso.conf; assert hasattr(elms.sso.conf, "inject_sso_site_config")'
+- id: cp4
+  criterion: Keycloak entrypoint and compose files handle env substitution safely
+    without leaking secrets
+  verify: test -f docker/keycloak/entrypoint.sh && ! rg -i "(client_secret|password)\\s*[:=]\\s*[\"0-9a-zA-Z]{16,}"
+    docker/keycloak/entrypoint.sh
+- id: cp5
+  criterion: Rendered login and SSO tests assert single Keycloak provider, public
+    URL, and absence of direct Yandex provider
+  verify: test "$(rg -n 'custom/yandex|yandex_login' elms/elms docker .env.example
+    || true)" = ""
+- id: cp6
+  criterion: Live smoke script verifies Keycloak discovery, login CSS, and absence
+    of container-only URLs
+  verify: grep -q 'KEYCLOAK_PUBLIC_URL' scripts/live_smoke.sh
+- id: cp7
+  criterion: FR-004 settings coverage names and tests all seven contract variables
+    — KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET, KEYCLOAK_PUBLIC_URL, YANDEX_CLIENT_ID,
+    YANDEX_CLIENT_SECRET, ELMS_SSO_DEFAULT_ROLES, and ELMS_SSO_REQUIRE
+  verify: rg -q 'KEYCLOAK_CLIENT_ID' elms/elms/sso/settings.py && rg -q 'KEYCLOAK_CLIENT_SECRET'
+    elms/elms/sso/settings.py && rg -q 'KEYCLOAK_PUBLIC_URL' elms/elms/sso/settings.py
+    && rg -q 'YANDEX_CLIENT_ID' elms/elms/sso/settings.py && rg -q 'YANDEX_CLIENT_SECRET'
+    elms/elms/sso/settings.py && rg -q 'ELMS_SSO_DEFAULT_ROLES' elms/elms/sso/settings.py
+    && rg -q 'ELMS_SSO_REQUIRE' elms/elms/sso/settings.py
+- id: cp8
+  criterion: FR-004 settings integration removes legacy direct yandex_login from site
+    config while retaining only the Keycloak provider contract
+  verify: test "$(rg -n 'custom/yandex|yandex_login' elms/elms docker .env.example
+    || true)" = ""
+- id: cp9
+  criterion: 'FR-005 entrypoint explicitly handles the three Yandex credential branches:
+    both empty disables the broker, exactly one fails bootstrap, and both present
+    enables the broker'
+  verify: rg -q 'YANDEX_CLIENT_ID' docker/keycloak/entrypoint.sh && rg -q 'YANDEX_CLIENT_SECRET'
+    docker/keycloak/entrypoint.sh
+verify:
+- python3 -c 'from elms.sso.constants import KEYCLOAK_PROVIDER_NAME, YANDEX_IDP_ALIAS;
+  assert (KEYCLOAK_PROVIDER_NAME, YANDEX_IDP_ALIAS) == ("Keycloak", "yandex")'
+- test -f elms/elms/public/css/login.css
+- grep -q 'login.css' elms/elms/hooks.py
+- test "$(rg -n 'custom/yandex|yandex_login' elms/elms docker .env.example || true)"
+  = ""
+- '! rg -i ''(client_secret|password)\s*[:=]\s*["0-9a-zA-Z]{16,}'' docker/ elms/ .env.example'
+tdd:
+- test_login_page_renders_single_keycloak_button
+- test_login_page_has_no_yandex_provider
+- test_sso_settings_typed_validation
+- test_sso_settings_fail_closed_on_missing_secret_when_required
+- test_sso_settings_validates_all_seven_contract_variables
+- test_sso_config_removes_legacy_yandex_login
+- test_keycloak_entrypoint_disables_yandex_when_both_credentials_empty
+- test_keycloak_entrypoint_fails_on_partial_yandex_credentials
+- test_keycloak_entrypoint_enables_yandex_when_both_credentials_present
+- test_login_css_asset_included_in_hooks
+- test_public_url_never_contains_container_hostname
+- test_no_tracked_secrets
+files:
+- elms/elms/public/css/login.css
+- elms/elms/hooks.py
+- elms/elms/sso/settings.py
+- elms/elms/sso/conf.py
+- elms/pyproject.toml
+- elms/elms/tests/test_login_ui.py
+- elms/elms/tests/test_sso_config.py
+- elms/elms/tests/test_sso_ensure.py
+- elms/elms/tests/test_sso.py
+- docker/compose.dev.yaml
+- docker/compose.prod.yaml
+- docker/keycloak/realm-elms.json
+- docker/keycloak/entrypoint.sh
+- docker/.env.dev.example
+- docker/.env.prod.example
+- docker/README.md
+- scripts/live_smoke.sh
+- memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/manual-ac.md

@@ -1,0 +1,107 @@
+/* ELMS scoped login styling — Neftegaz design tokens */
+
+.for-login {
+  --elms-login-paper: #f5f7fa;
+  --elms-login-surface: #ffffff;
+  --elms-login-text: #0b1f33;
+  --elms-login-muted: #66727f;
+  --elms-login-line: #d5dce3;
+  --elms-login-action: #0d4cd3;
+  --elms-login-action-hover: #0a3fb0;
+  --elms-login-soft-action: #eaf2ff;
+  --elms-login-radius: 3px;
+  --elms-login-control-height: 44px;
+}
+
+.for-login .page-card,
+.for-login .login-content {
+  background-color: var(--elms-login-surface, #ffffff);
+  border: 1px solid var(--elms-login-line, #d5dce3);
+  border-radius: var(--elms-login-radius, 3px);
+  color: var(--elms-login-text, #0b1f33);
+}
+
+.for-login .page-card-head {
+  color: var(--elms-login-text, #0b1f33);
+}
+
+.for-login .social-logins {
+  margin-top: 1rem;
+}
+
+/* Keycloak single social login button */
+.for-login .page-card .page-card-body .btn-login-option.btn-keycloak,
+.for-login .social-logins .btn-login-option.btn-keycloak,
+.for-login .social-login-buttons .btn-keycloak,
+.for-login a.btn-keycloak {
+  min-height: var(--elms-login-control-height, 44px) !important;
+  height: var(--elms-login-control-height, 44px) !important;
+  padding: 0 16px;
+  border-radius: var(--elms-login-radius, 3px) !important;
+  background: var(--elms-login-action, #0d4cd3) !important;
+  background-color: var(--elms-login-action, #0d4cd3) !important;
+  border: 1px solid var(--elms-login-action-hover, #0a3fb0) !important;
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(13, 76, 211, 0.28);
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  cursor: pointer;
+}
+
+.for-login .page-card .page-card-body .btn-login-option.btn-keycloak:hover,
+.for-login .social-logins .btn-login-option.btn-keycloak:hover,
+.for-login .social-login-buttons .btn-keycloak:hover,
+.for-login a.btn-keycloak:hover {
+  background: var(--elms-login-action-hover, #0a3fb0) !important;
+  background-color: var(--elms-login-action-hover, #0a3fb0) !important;
+  border-color: var(--elms-login-action-hover, #0a3fb0) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(10, 63, 176, 0.35);
+}
+
+.for-login .page-card .page-card-body .btn-login-option.btn-keycloak:focus-visible,
+.for-login .social-logins .btn-login-option.btn-keycloak:focus-visible,
+.for-login .social-login-buttons .btn-keycloak:focus-visible,
+.for-login a.btn-keycloak:focus-visible {
+  outline: 2px solid var(--elms-login-action, #0d4cd3) !important;
+  outline-offset: 2px;
+}
+
+.for-login .page-card .page-card-body .btn-login-option.btn-keycloak:active,
+.for-login .social-logins .btn-login-option.btn-keycloak:active,
+.for-login .social-login-buttons .btn-keycloak:active,
+.for-login a.btn-keycloak:active {
+  background: var(--elms-login-action-hover, #0a3fb0) !important;
+  background-color: var(--elms-login-action-hover, #0a3fb0) !important;
+  transform: translateY(1px);
+  box-shadow: 0 1px 1px rgba(13, 76, 211, 0.2);
+}
+
+.for-login .page-card .page-card-body .btn-login-option.btn-keycloak[disabled],
+.for-login .social-logins .btn-login-option.btn-keycloak[disabled],
+.for-login .social-login-buttons .btn-keycloak[disabled],
+.for-login .social-logins .btn-login-option.btn-keycloak[aria-disabled="true"],
+.for-login a.btn-keycloak.disabled {
+  opacity: 0.56;
+  pointer-events: none;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .for-login .page-card .page-card-body .btn-login-option.btn-keycloak,
+  .for-login .social-logins .btn-login-option.btn-keycloak,
+  .for-login .social-login-buttons .btn-keycloak,
+  .for-login a.btn-keycloak {
+    transition: none !important;
+    transform: none !important;
+  }
+}

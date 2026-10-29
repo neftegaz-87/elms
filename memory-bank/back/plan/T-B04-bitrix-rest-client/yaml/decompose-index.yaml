@@ -1,0 +1,239 @@
+schema: epic-decompose-index/v1
+plan_id: T-B04-bitrix-rest-client
+level: L3
+sNN_cap: 3
+appetite:
+  timebox_days: 2
+  cut_list:
+  - выгрузка OpenAPI rest.documentation.openapi
+  - автоповтор при QUERY_LIMIT_EXCEEDED
+  - обёртки модулей CRM и задач
+effort_probe:
+  outcomes:
+  - outcome: Webhook transport, pydantic boundary models, call.py CLI, and core test
+      suite
+    hours_mid: 3.5
+    hours_range: 2-5
+    confidence: high
+    notes: WebhookEndpoint, CallArgs, RestEnvelope, post_json, main(argv, env, opener),
+      unittests
+  - outcome: Bitrix scope inspection CLI and full rights flag
+    hours_mid: 1.5
+    hours_range: 1-2
+    confidence: high
+    notes: 'scope.py CLI calling scope method with {} or {"full": true}, unittests'
+  - outcome: Operator incoming webhook documentation and env template
+    hours_mid: 1.0
+    hours_range: 1-2
+    confidence: high
+    notes: docs/bitrix-incoming-webhook.md instruction, .env.example update, instruction
+      unittest
+  total_hours: 6.0
+  effort_hours_total: 6.0
+  effort_class: M
+  independent_outcomes: 3
+  split_seams: 0
+  sNN_cap: 3
+  sNN_target: 3
+steps:
+- id: s01
+  file: s01-rest-client-core-and-call-cli.yaml
+  title: Webhook transport, pydantic boundary, and call.py CLI
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-scope-cli-and-rights-inspection.yaml
+  title: Bitrix scope inspection CLI and full rights flag
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-webhook-operator-documentation-and-env.yaml
+  title: Operator incoming webhook documentation and env template
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: scripts/bitrix/call.py reads BITRIX_REST_WEBHOOK_URL, performs POST
+    {url}{method}.json and prints raw JSON on success
+- id: FR-002
+  step: s01
+  description: If response has error field, script prints error and error_description
+    to stderr and exits with code 1
+- id: FR-003
+  step: s01
+  description: Missing env var, empty value, non-https, or path not /rest/<digits>/<code>/
+    exits with code 2 without HTTP call; BITRIX_WEBHOOK_URL is not read
+- id: FR-004
+  step: s02
+  description: 'scripts/bitrix/scope.py calls scope method with {} by default or {"full":
+    true} with --full'
+- id: FR-005
+  step: s03
+  description: docs/bitrix-incoming-webhook.md in Russian explains webhook creation,
+    scopes, and env configuration
+- id: FR-006
+  step: s01
+  description: Method name validated as lowercase segments separated by dots (e.g.
+    user.current); invalid name gives exit code 2 before HTTP
+- id: FR-007
+  step: s01
+  description: --params must be a JSON object; array, string, empty or invalid JSON
+    gives exit code 2 before HTTP
+- id: FR-008
+  step: s01
+  description: Local guard on batch method rejects batches > 50 or nested batch commands
+    with code 2 and limit error code
+- id: FR-009
+  step: s03
+  description: .env.example includes empty placeholder BITRIX_REST_WEBHOOK_URL and
+    notes it is not the board webhook
+- id: US-001
+  step: s01
+  description: Operator calls portal REST method and sees JSON response on stdout
+    with exit 0, or error on stderr with exit 1
+- id: US-002
+  step: s02
+  description: Operator inspects webhook permissions and portal scope list via scope.py
+    and scope.py --full
+- id: US-003
+  step: s03
+  description: Operator follows instructions to create incoming webhook and configure
+    URL in environment without touching board key
+- id: SC-001
+  step: s01
+  description: Successful call prints portal JSON body and exits with code 0
+- id: SC-002
+  step: s01
+  description: Portal error and misconfiguration do not masquerade as success (exit
+    codes 1 and 2)
+- id: SC-003
+  step: s03
+  description: Operator can create webhook following documentation file without opening
+    plan
+- id: AC-1
+  step: s01
+  description: call.py user.current with valid URL prints portal JSON and exits with
+    code 0
+- id: AC-2
+  step: s01
+  description: Response body with error yields code 1, stderr contains error code,
+    stdout is empty
+- id: AC-3
+  step: s01
+  description: Missing BITRIX_REST_WEBHOOK_URL gives code 2 even if BITRIX_WEBHOOK_URL
+    is set, and no HTTP call is made
+- id: AC-4
+  step: s02
+  description: 'scope.py --full sends {"full": true}'
+- id: AC-5
+  step: s03
+  description: Documentation and .env.example name BITRIX_REST_WEBHOOK_URL and forbid
+    board key reuse
+- id: AC-6
+  step: s01
+  description: batch longer than 50 or with nested batch is rejected locally without
+    network request
+- id: AC--1
+  step: s01
+  description: No second REST integration entrypoint created
+- id: AC--2
+  step: s01
+  description: No fallback to BITRIX_WEBHOOK_URL if new variable is empty
+- id: AC--3
+  step: s01
+  description: Invalid URL and malformed JSON fail before request without mock fallback
+- id: AC--4
+  step: s01
+  description: Board remains on its own key; epic does not modify or wrap board code
+- id: AC--5
+  step: s01
+  description: No HTML or regex parsing of error messages; structured JSON envelopes
+    only
+- id: BN-001
+  step: s01
+  description: Missing BITRIX_REST_WEBHOOK_URL exits with code 2 and variable name
+    message without HTTP request
+- id: BN-002
+  step: s01
+  description: Only BITRIX_WEBHOOK_URL set exits with code 2 without reading or logging
+    board URL
+- id: BN-003
+  step: s01
+  description: URL without https or path not /rest/<id>/<code>/ exits with code 2
+    before HTTP
+- id: BN-004
+  step: s01
+  description: Malformed --params JSON or invalid method name exits with code 2 before
+    HTTP
+- id: BN-005
+  step: s01
+  description: batch with 51 commands or nested batch command exits with code 2 and
+    restriction code
+- id: BN-006
+  step: s01
+  description: Response body with insufficient_scope error exits with code 1 with
+    error on stderr and empty stdout
+- id: BN-007
+  step: s01
+  description: Non-JSON HTTP response or non-200 exits with code 1 with status on
+    stderr and secret hidden
+- id: TM-001
+  step: s01
+  description: CallSuccessTest asserts successful user.current POSTs to user.current.json,
+    outputs JSON body and exits 0
+- id: TM-002
+  step: s01
+  description: CallBitrixErrorTest asserts insufficient_scope exits 1 with stderr
+    error and empty stdout
+- id: TM-003
+  step: s01
+  description: MissingWebhookTest asserts exit 2 when only board key or no key is
+    set, without calling opener
+- id: TM-004
+  step: s01
+  description: BadWebhookUrlTest asserts exit 2 on http:// URL or URL with method
+    already appended
+- id: TM-005
+  step: s01
+  description: BadArgsTest asserts exit 2 on uppercase method or non-object params
+- id: TM-006
+  step: s01
+  description: BatchGuardTest asserts exit 2 on batch > 50 or nested batch
+- id: TM-007
+  step: s01
+  description: TransportFailureTest asserts exit 1 on HTTP 500 or non-JSON body without
+    secret in stderr
+- id: TM-008
+  step: s02
+  description: 'ScopeFullTest asserts scope.py --full sends {"full": true}'
+- id: TM-009
+  step: s03
+  description: InstructionTest asserts documentation contains webhook steps, env key,
+    and .env.example contains matching variable
+stages_coverage:
+- stage: Stage s01 Webhook transport, pydantic boundary, and call.py CLI
+  step: s01
+- stage: Stage s02 Bitrix scope inspection CLI and full rights flag
+  step: s02
+- stage: Stage s03 Operator incoming webhook documentation and env template
+  step: s03
+outcome_map:
+- outcome: Вызов любого метода REST и печать JSON
+  step: s01
+- outcome: Просмотр прав вебхука
+  step: s02
+- outcome: Инструкция входящего вебхука
+  step: s03
+replacement_cleanup:
+  s01:
+    replaces: none (greenfield Bitrix REST client transport and call CLI)
+    target: scripts/bitrix/rest_client.py and scripts/bitrix/call.py
+  s02:
+    replaces: none (greenfield scope inspection CLI)
+    target: scripts/bitrix/scope.py
+  s03:
+    replaces: none (greenfield webhook setup documentation and env example)
+    target: docs/bitrix-incoming-webhook.md and .env.example
+  items: []
+  sunset: []

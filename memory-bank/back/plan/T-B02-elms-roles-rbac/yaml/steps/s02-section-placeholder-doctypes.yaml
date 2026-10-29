@@ -1,0 +1,141 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B02-elms-roles-rbac
+title: Module Def alignment in modules.txt and section placeholder Single DocTypes in Core, Operations, and LMS modules
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Скорректировать elms/elms/modules.txt для выравнивания модулей (Core, Operations, LMS — канон T-B01)
+  и создать три placeholder Single DocType (ELMS Operations Section в модуле Operations, ELMS LMS Section в модуле LMS,
+  ELMS Settings Section в модуле Core) с минимальной схемой (read-only поле title) для использования в качестве якорей прав доступа.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+    - AC-2
+    - AC--4
+  nouns:
+    - modules.txt
+    - ELMS Operations Section
+    - ELMS LMS Section
+    - ELMS Settings Section
+    - Single DocType
+    - Operations
+    - LMS
+    - Core
+  layout_paths:
+    - elms/elms/modules.txt
+    - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json
+    - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.py
+    - elms/elms/operations/doctype/elms_operations_section/__init__.py
+    - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json
+    - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.py
+    - elms/elms/lms/doctype/elms_lms_section/__init__.py
+    - elms/elms/core/doctype/elms_settings_section/elms_settings_section.json
+    - elms/elms/core/doctype/elms_settings_section/elms_settings_section.py
+    - elms/elms/core/doctype/elms_settings_section/__init__.py
+  ac_quotes:
+    - "FR-002: Создать Module Def alignment: DocTypes в modules Operations / LMS / Core соответственно"
+    - "FR-003: Placeholder DocTypes Single DocTypes для якоря прав: ELMS Operations Section (Operations), ELMS LMS Section (LMS), ELMS Settings Section (Core)"
+    - "AC--4: Нет доменных полей «курс/склад» в placeholder DocTypes."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:100-120"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:155-170"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:182-195"
+
+context:
+  consumes:
+    - "plan §Functional Requirements FR-002, FR-003"
+    - "plan §Acceptance Criteria AC-2, AC--4"
+    - "elms/elms/modules.txt"
+  produces:
+    - elms/elms/modules.txt
+    - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json
+    - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.py
+    - elms/elms/operations/doctype/elms_operations_section/__init__.py
+    - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json
+    - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.py
+    - elms/elms/lms/doctype/elms_lms_section/__init__.py
+    - elms/elms/core/doctype/elms_settings_section/elms_settings_section.json
+    - elms/elms/core/doctype/elms_settings_section/elms_settings_section.py
+    - elms/elms/core/doctype/elms_settings_section/__init__.py
+  plan_refs:
+    - "plan.md#functional-requirements"
+    - "plan.md#ac"
+    - "plan.md#paths"
+  files:
+    - elms/elms/modules.txt
+    - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json
+    - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.py
+    - elms/elms/operations/doctype/elms_operations_section/__init__.py
+    - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json
+    - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.py
+    - elms/elms/lms/doctype/elms_lms_section/__init__.py
+    - elms/elms/core/doctype/elms_settings_section/elms_settings_section.json
+    - elms/elms/core/doctype/elms_settings_section/elms_settings_section.py
+    - elms/elms/core/doctype/elms_settings_section/__init__.py
+
+as_built:
+  - "elms/elms/modules.txt currently defines Core, Operations, LMS modules"
+  - "no section anchor DocTypes exist under elms/elms/"
+
+delta:
+  - "update elms/elms/modules.txt to Core, Operations, LMS (canon T-B01; ERP naming forbidden)"
+  - "create ELMS Operations Section Single DocType in elms/elms/operations/doctype/elms_operations_section/ (json, py, __init__.py) with title field and module Operations"
+  - "create ELMS LMS Section Single DocType in elms/elms/lms/doctype/elms_lms_section/ (json, py, __init__.py) with title field and module LMS"
+  - "create ELMS Settings Section Single DocType in elms/elms/core/doctype/elms_settings_section/ (json, py, __init__.py) with title field and module Core"
+
+deletes: []
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: "Operations module placeholder in modules.txt and arbitrary UI-only section gating"
+  target: "Operations module in modules.txt and Frappe Single DocType anchors (ELMS Operations/LMS/Settings Section)"
+  items:
+    - symbol: ERP module entry in modules.txt (naming drift)
+      kind: A
+      replacement: Operations module entry in modules.txt
+      policy: delete in-epic
+    - symbol: arbitrary UI-only section gating
+      kind: B
+      replacement: Frappe Single DocType anchors (ELMS Operations/LMS/Settings Section)
+      policy: delete in-epic
+
+out_of_scope:
+  - "Role constants and ensure_roles seeding (s01)"
+  - "DocPerm matrix configuration and permission tests (s03)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "modules.txt aligns module naming and defines Core, Operations, LMS"
+    verify: "python3 -c 'lines = [l.strip() for l in open(\"elms/elms/modules.txt\") if l.strip()]; assert lines == [\"Core\", \"Operations\", \"LMS\"]'"
+  - id: cp2
+    criterion: "ELMS Operations Section DocType exists and is Single in module Operations"
+    verify: "python3 -c 'import json; d=json.load(open(\"elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json\")); assert d[\"issingle\"] == 1 and d[\"module\"] == \"Operations\"'"
+  - id: cp3
+    criterion: "ELMS LMS Section DocType exists and is Single in module LMS"
+    verify: "python3 -c 'import json; d=json.load(open(\"elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json\")); assert d[\"issingle\"] == 1 and d[\"module\"] == \"LMS\"'"
+  - id: cp4
+    criterion: "ELMS Settings Section DocType exists and is Single in module Core"
+    verify: "python3 -c 'import json; d=json.load(open(\"elms/elms/core/doctype/elms_settings_section/elms_settings_section.json\")); assert d[\"issingle\"] == 1 and d[\"module\"] == \"Core\"'"
+
+verify:
+  - "python3 -c 'import json; [json.load(open(f)) for f in [\"elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json\", \"elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json\", \"elms/elms/core/doctype/elms_settings_section/elms_settings_section.json\"]]'"
+tdd:
+  - "test_modules_txt_contains_operations"
+  - "test_operations_section_doctype_is_single"
+  - "test_lms_section_doctype_is_single"
+  - "test_settings_section_doctype_is_single"

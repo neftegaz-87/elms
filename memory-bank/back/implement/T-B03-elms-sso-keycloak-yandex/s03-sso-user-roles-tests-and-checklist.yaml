@@ -1,0 +1,140 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B03-elms-sso-keycloak-yandex
+task_id: T-B03-elms-sso-keycloak-yandex
+title: s03 — Brokered JIT user provisioning, local Keycloak fallback, roles, tests, and checklist IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/yaml/steps/s03-sso-user-roles-tests-and-checklist.yaml
+date: 2026-10-29
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/secrets-scan/SKILL.md
+
+done:
+  - 'Implemented maybe_assign_sso_roles in elms/elms/sso/roles.py with fail-closed validation of verified email and default roles (Desk User, ELMS LMS User)'
+  - 'Wired doc_events User after_insert hook in elms/elms/hooks.py to trigger maybe_assign_sso_roles on user insertion'
+  - 'Created comprehensive unit and contract test suite in elms/elms/tests/test_sso.py covering role assignment, missing role fail-closed, missing email fail-closed, JIT identity contract, and fallback credential policy'
+  - 'Documented brokered IdP onboarding, JIT provisioning, local Keycloak fallback runbook, outage branches, and manual verification checklist in docs/sso.md and docker/README.md'
+
+files:
+  - elms/elms/sso/roles.py
+  - elms/elms/hooks.py
+  - elms/elms/tests/test_sso.py
+  - docs/sso.md
+  - docker/README.md
+
+deletes: []
+
+tests:
+  - '`PYTHONPATH=elms python3 -m unittest elms.tests.test_sso`'
+  - '`test -f docs/sso.md && grep -q "Yandex" docs/sso.md && grep -q "fallback" docs/sso.md`'
+  - '`test -f elms/elms/tests/test_sso.py && grep -q "yandex" elms/elms/tests/test_sso.py`'
+  - '`test "$(rg -n "custom/yandex|yandex_login" elms/elms docs docker/README.md || true)" = ""`'
+
+integration_check:
+  - 'User.after_insert invokes maybe_assign_sso_roles only for the Keycloak social signup path and fails closed when ELMS LMS User or another configured default role is missing.'
+  - 'First broker login is documented and tested as JIT creation/linking of the Keycloak realm user and federated Yandex identity, followed by creation of the Frappe User; no SCIM or bulk directory import is added.'
+  - 'A selected realm user may receive an explicit local Keycloak password; the Yandex password/token is never copied, and no password is auto-generated for every broker-created user.'
+  - 'With Yandex unavailable, a user without a local Keycloak credential fails closed; a user with an explicit credential authenticates through the same elms-frappe client and reaches the existing Frappe User.'
+  - 'docs/sso.md and docker/README.md contain the broker callback, host-networking, first-login, local fallback, and outage verification steps.'
+
+checkpoints:
+  - id: cp1
+    criterion: 'maybe_assign_sso_roles exists, detects Keycloak social signup, and verifies default roles before assignment'
+    status: done
+    verify: 'python3 -c "import inspect, elms.sso.roles; assert hasattr(elms.sso.roles, \"maybe_assign_sso_roles\"); assert \"frappe.throw\" in inspect.getsource(elms.sso.roles.maybe_assign_sso_roles)"'
+  - id: cp2
+    criterion: 'hooks.py registers User after_insert for SSO role assignment'
+    status: done
+    verify: 'grep -q "doc_events" elms/elms/hooks.py && grep -q "maybe_assign_sso_roles" elms/elms/hooks.py'
+  - id: cp3
+    criterion: 'SSO test module exists with unit and static contract coverage'
+    status: done
+    verify: 'test -f elms/elms/tests/test_sso.py && grep -q "class TestSSO" elms/elms/tests/test_sso.py'
+  - id: cp4
+    criterion: 'docs/sso.md and docker/README.md document broker onboarding, local Keycloak fallback, outage branches, and networking details'
+    status: done
+    verify: 'test -f docs/sso.md && grep -q "Keycloak" docs/sso.md && grep -q "Yandex" docs/sso.md && grep -q "fallback" docs/sso.md'
+  - id: cp5
+    criterion: 'SSO tests assert no direct Yandex Social Login Key and cover just-in-time broker identity behavior'
+    status: done
+    verify: 'test -f elms/elms/tests/test_sso.py && grep -q "TestSSO" elms/elms/tests/test_sso.py && grep -q "yandex" elms/elms/tests/test_sso.py'
+
+plan_parity_scan:
+  fr_coverage:
+    - id: FR-001
+      step: s01
+      status: completed
+    - id: FR-002
+      step: s01
+      status: completed
+    - id: FR-003
+      step: s02
+      status: completed
+    - id: FR-004
+      step: s01
+      status: completed
+    - id: FR-005
+      step: s03
+      status: completed
+    - id: FR-005a
+      step: s03
+      status: completed
+    - id: FR-006
+      step: s02
+      status: completed
+    - id: FR-007
+      step: s03
+      status: completed
+    - id: FR-008
+      step: s03
+      status: completed
+    - id: FR-009
+      step: s03
+      status: completed
+    - id: FR-010
+      step: s03
+      status: completed
+    - id: FR-011
+      step: s03
+      status: completed
+  layout_check:
+    - path: docker/keycloak/realm-elms.json
+      status: completed
+    - path: .env.example
+      status: completed
+    - path: docker/.env.dev.example
+      status: completed
+    - path: docker/compose.dev.yaml
+      status: completed
+    - path: elms/elms/sso/__init__.py
+      status: completed
+    - path: elms/elms/sso/constants.py
+      status: completed
+    - path: elms/elms/sso/conf.py
+      status: completed
+    - path: elms/elms/sso/ensure.py
+      status: completed
+    - path: elms/elms/sso/roles.py
+      status: completed
+    - path: elms/elms/hooks.py
+      status: completed
+    - path: elms/elms/install.py
+      status: completed
+    - path: elms/elms/tests/test_sso_config.py
+      status: completed
+    - path: elms/elms/tests/test_sso_ensure.py
+      status: completed
+    - path: elms/elms/tests/test_sso.py
+      status: completed
+    - path: docs/sso.md
+      status: completed
+    - path: docker/README.md
+      status: completed

@@ -1,0 +1,250 @@
+schema: epic-decompose-index/v1
+plan_id: T-A01-elms-keycloak-login-ui
+level: L1
+sNN_cap: 1
+appetite:
+  timebox_days: 1
+  cut_list:
+  - Vue/React custom login SPA or Frappe login template fork
+  - Direct Frappe to Yandex Social Login Key or callback
+  - SCIM or bulk Yandex directory import
+  - Workspaces and Desk section navigation (owned by T-F01)
+  - Global Frappe theme rewrite or dark mode
+  - Neftegaz portal logo or branding imitation
+effort_probe:
+  outcomes:
+  - outcome: Unified Keycloak login vertical slice (scoped CSS, typed settings, Docker
+      env, tests, and wire journey)
+    hours_mid: 4.0
+    hours_range: 3-5
+    confidence: high
+    notes: Scoped login.css, pydantic-settings adapter, entrypoint.sh env injection,
+      negative tests, live smoke, and manual AC checklist
+  total_hours: 4.0
+  effort_hours_total: 4.0
+  effort_class: S
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 1
+  sNN_target: 1
+steps:
+- id: s01
+  file: s01-keycloak-login-vertical-slice.yaml
+  title: Unified Keycloak login vertical slice (scoped CSS, typed settings, Docker
+    env, tests, and wire journey)
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: 'Standard Frappe login control: single enabled Keycloak Social Login
+    Key, no template fork'
+- id: FR-002
+  step: s01
+  description: 'Visual contract from Neftegaz: scoped CSS asset in hooks, 44px height,
+    cobalt primary, 3px radius'
+- id: FR-003
+  step: s01
+  description: 'Public Keycloak redirect and URLs: KEYCLOAK_PUBLIC_URL only, container
+    hostname keycloak:8080 forbidden in browser'
+- id: FR-004
+  step: s01
+  description: 'FR-004 — Environment and typed Python settings: .env-only operator
+    input; pydantic-settings and SecretStr cover KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET,
+    KEYCLOAK_PUBLIC_URL, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET, ELMS_SSO_DEFAULT_ROLES,
+    and ELMS_SSO_REQUIRE; typed validation preserves unconfigured Yandex, removes
+    legacy yandex_login, and keeps Yandex credentials out of Frappe site_config.json'
+- id: FR-005
+  step: s01
+  description: 'FR-005 — Keycloak realm and Yandex broker: env-backed elms realm and
+    confidential elms-frappe client, public issuer and bounded redirect URI, exact
+    yandex OIDC broker, safe empty/partial/present credential branches in entrypoint.sh,
+    normalized claims, and no direct Frappe Yandex route'
+- id: FR-006
+  step: s01
+  description: 'Existing Frappe backend behavior remains the only SoT: sub identity
+    linking, default roles fail-closed'
+- id: FR-007
+  step: s01
+  description: 'Documentation and operator path: reproducible Docker runbook in README
+    without printing secrets'
+- id: FR-008
+  step: s01
+  description: Independent verification across Frappe tests, HTML checks, live smoke,
+    and manual AC
+- id: US-001
+  step: s01
+  description: Guest sees one visually distinct Keycloak button on standard Frappe
+    login page
+- id: US-002
+  step: s01
+  description: Guest does not see Yandex as a direct Frappe provider
+- id: US-003
+  step: s01
+  description: Employee logs in via Keycloak flow and lands in Frappe Desk (/app)
+- id: US-004
+  step: s01
+  description: Employee can choose Yandex 360 on Keycloak login page
+- id: US-005
+  step: s01
+  description: Operator configures login entirely through ignored .env without editing
+    JSON secrets
+- id: US-006
+  step: s01
+  description: Production operator gets fail-closed non-zero exit when SSO config
+    is incomplete
+- id: US-007
+  step: s01
+  description: Admin uses explicit local Keycloak credentials as fallback when Yandex
+    is unavailable
+- id: US-008
+  step: s01
+  description: System preserves Frappe RBAC and default role assignment invariants
+- id: AC-001
+  step: s01
+  description: Configured login button with public Keycloak URL and loaded CSS
+- id: AC-002
+  step: s01
+  description: Styled visual states following Neftegaz contract and reduced-motion
+    support
+- id: AC-003
+  step: s01
+  description: Local Keycloak end-to-end fallback flow to Desk session
+- id: AC-004
+  step: s01
+  description: Yandex broker end-to-end flow through Keycloak broker without direct
+    Frappe call
+- id: AC-005
+  step: s01
+  description: Fail closed on missing configuration or invalid OAuth
+- id: AC-006
+  step: s01
+  description: No secret leakage in tracked files or Frappe site_config
+- id: AC-007
+  step: s01
+  description: Existing Frappe RBAC and default roles remain authoritative
+- id: BN-001
+  step: s01
+  description: KEYCLOAK_CLIENT_SECRET empty in dev disables social login button without
+    500
+- id: BN-002
+  step: s01
+  description: ELMS_SSO_REQUIRE=1 with missing Keycloak credential exits non-zero
+    in create-site
+- id: BN-003
+  step: s01
+  description: YANDEX_CLIENT_ID or secret empty keeps broker disabled; local Keycloak
+    path remains honest
+- id: BN-004
+  step: s01
+  description: Direct Frappe yandex provider row/config appears triggers ensure/test
+    failure and is forbidden
+- id: BN-005
+  step: s01
+  description: Public URL set to container hostname keycloak:8080 fails validation
+    and is never served to browser
+- id: BN-006
+  step: s01
+  description: OAuth state mismatch or user denial creates no session and routes to
+    Frappe error path
+- id: BN-007
+  step: s01
+  description: Token without email or missing required default role fails closed without
+    partial user
+- id: BN-008
+  step: s01
+  description: Repeated migrate or realm import is idempotent with single provider
+    and client
+- id: BN-009
+  step: s01
+  description: Yandex unavailable without explicit local credential rejects login
+    without phantom password
+- id: BN-010
+  step: s01
+  description: CSS asset absent or cache stale fails build/live smoke and requires
+    clear-cache
+- id: TM-001
+  step: s01
+  description: test_sso_config with missing Keycloak secret leaves provider disabled
+    without direct Yandex config
+- id: TM-002
+  step: s01
+  description: Prod-like ELMS_SSO_REQUIRE=1 with missing secret exits non-zero during
+    create-site
+- id: TM-003
+  step: s01
+  description: Keycloak entrypoint handles both/none/partial Yandex env branches safely
+    without leaking to Frappe
+- id: TM-004
+  step: s01
+  description: Backend ensure and negative provider tests assert single Keycloak row
+    and zero direct Yandex provider
+- id: TM-005
+  step: s01
+  description: Wire journey and live smoke assert browser-visible URL never contains
+    container hostname
+- id: TM-006
+  step: s01
+  description: Backend callback state/token failure contract verifies fail-closed
+    session rejection
+- id: TM-007
+  step: s01
+  description: Backend User creation/default role failure branch verifies fail-closed
+    role assignment
+- id: TM-008
+  step: s01
+  description: Backend idempotent ensure/migrate/import asserts single provider/client/broker
+    config
+- id: TM-009
+  step: s01
+  description: Wire journey verifies local Keycloak browser flow lands in /app with
+    authenticated session
+- id: TM-010
+  step: s01
+  description: Frontend build and live smoke verify CSS emission and inclusion on
+    /login
+- id: TM-011
+  step: s01
+  description: Browser/manual visual state checklist covers palette, geometry, states
+    and reduced motion
+- id: TM-012
+  step: s01
+  description: Leftover SoT bounded rg scans assert no direct Frappe Yandex route,
+    secret or custom auth stack
+- id: TM-013
+  step: s01
+  description: Wire journey/manual verifies configured Yandex broker flow links Keycloak
+    sub without direct Yandex call
+stages_coverage:
+- stage: Stage s01 keycloak-login-vertical-slice
+  step: s01
+outcome_map:
+- outcome: Unified Keycloak login vertical slice (scoped CSS, typed settings, Docker
+    env, tests, and wire journey)
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Stock Frappe login button appearance, plain untyped env loading, and
+      T-F01 login-related scope
+    target: Scoped Neftegaz-derived login.css, typed pydantic-settings SSO adapter,
+      unified APP login slice
+  items:
+  - symbol: Stock Frappe Social Login Key styling
+    kind: A
+    replacement: elms/elms/public/css/login.css scoped rules
+    step: s01
+    policy: replace in-epic
+  - symbol: Plain env parsing in elms/elms/sso/conf.py
+    kind: A
+    replacement: elms/elms/sso/settings.py typed settings adapter
+    step: s01
+    policy: replace in-epic
+  - symbol: T-F01 login button and CSS scope
+    kind: B
+    replacement: T-A01 s01 unified APP login vertical slice
+    step: s01
+    policy: reconcile in-epic
+  sunset:
+  - Stock unstyled Frappe Keycloak button
+  - Untyped SSO environment loading in conf.py
+  - T-F01 login UI work stream

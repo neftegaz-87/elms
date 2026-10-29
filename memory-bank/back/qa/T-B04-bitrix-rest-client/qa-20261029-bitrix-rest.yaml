@@ -1,0 +1,183 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B04
+plan_id: T-B04-bitrix-rest-client
+epic_id: T-B04-bitrix-rest-client
+date: '2026-10-29'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: f746c43534e87c72358b4b9a932d6fc1a9d431ceba29fa6fb368e6588ffc2020
+verify_scope: full
+scope:
+  - 'task: T-B04'
+  - 'epic: T-B04-bitrix-rest-client'
+  - 'steps: s01–s03'
+  - 'files: scripts/bitrix/__init__.py, scripts/bitrix/rest_client.py, scripts/bitrix/call.py, scripts/bitrix/scope.py, docs/bitrix-incoming-webhook.md, .env.example, tests/bitrix/__init__.py, tests/bitrix/test_rest_client.py'
+ac_plus:
+  - 'call.py user.current with valid URL prints portal JSON and exits with code 0 (AC-1, FR-001, US-001, SC-001, TM-001)'
+  - 'Response body with error yields code 1, stderr contains error code, stdout is empty (AC-2, FR-002, BN-006, TM-002, SC-002)'
+  - 'Missing BITRIX_REST_WEBHOOK_URL gives code 2 even if BITRIX_WEBHOOK_URL is set, and no HTTP call is made (AC-3, FR-003, BN-001, BN-002, TM-003)'
+  - 'scope.py --full sends {"full": true} (AC-4, FR-004, US-002, TM-008)'
+  - 'Documentation docs/bitrix-incoming-webhook.md and .env.example name BITRIX_REST_WEBHOOK_URL and forbid board key reuse (AC-5, FR-005, FR-009, US-003, SC-003, TM-009)'
+  - 'batch longer than 50 or with nested batch is rejected locally without network request (AC-6, FR-008, BN-005, TM-006)'
+  - 'Method name validated as lowercase segments separated by dots (FR-006, BN-004, TM-005)'
+  - '--params must be a JSON object; array, string, empty or invalid JSON gives code 2 (FR-007, BN-004, TM-005)'
+ac_minus:
+  - 'No second REST integration entrypoint created (AC--1)'
+  - 'No fallback to BITRIX_WEBHOOK_URL if new variable is empty (AC--2, BN-002)'
+  - 'Invalid URL and malformed JSON fail before request without mock fallback (AC--3, BN-003, BN-004)'
+  - 'Board remains on its own key; epic does not modify or wrap board code (AC--4)'
+  - 'No HTML or regex parsing of error messages; structured JSON envelopes only (AC--5, BN-007)'
+section_011:
+  - 'Clean boundary: zero orphan external references or phantom endpoints; single HTTP transport post_json defined at scripts/bitrix/rest_client.py:194, CLI tools scripts/bitrix/call.py:58 and scripts/bitrix/scope.py:50'
+prior_blockers:
+  - none
+coverage_map:
+  - id: AC-1
+    kind: AC
+    scenario: 'call.py user.current executes POST {url}user.current.json and outputs raw JSON with exit code 0'
+    evidence: 'tests/bitrix/test_rest_client.py:73 (CallSuccessTest.test_call_user_current_success) — PASS'
+    status: pass
+  - id: AC-2
+    kind: AC
+    scenario: 'Response envelope containing error outputs error and error_description to stderr and exits with code 1'
+    evidence: 'tests/bitrix/test_rest_client.py:137 (CallBitrixErrorTest.test_error_envelope_200) — PASS'
+    status: pass
+  - id: AC-3
+    kind: AC
+    scenario: 'Missing BITRIX_REST_WEBHOOK_URL gives code 2 even if BITRIX_WEBHOOK_URL is set without network request'
+    evidence: 'tests/bitrix/test_rest_client.py:210 (MissingWebhookTest.test_only_board_webhook_url_present) — PASS'
+    status: pass
+  - id: AC-4
+    kind: AC
+    scenario: 'scope.py --full sends {"full": true} and prints response envelope'
+    evidence: 'tests/bitrix/test_rest_client.py:526 (ScopeFullTest.test_scope_full_flag) — PASS'
+    status: pass
+  - id: AC-5
+    kind: AC
+    scenario: 'Documentation and .env.example configure BITRIX_REST_WEBHOOK_URL and forbid board key reuse'
+    evidence: 'docs/bitrix-incoming-webhook.md:1, .env.example:19, tests/bitrix/test_rest_client.py:616 (InstructionTest.test_doc_exists_and_contains_required_sections) — PASS'
+    status: pass
+  - id: AC-6
+    kind: AC
+    scenario: 'batch command longer than 50 or nested batch command rejected locally with exit code 2 before HTTP'
+    evidence: 'tests/bitrix/test_rest_client.py:337 (BatchGuardTest.test_batch_length_exceeded_dict) — PASS'
+    status: pass
+  - id: AC-7
+    kind: AC
+    scenario: 'Method name validated as lowercase segments separated by dots (FR-006, BN-004, TM-005)'
+    evidence: 'scripts/bitrix/rest_client.py:130 (validate_method_name), tests/bitrix/test_rest_client.py:303 (test_uppercase_method) — PASS'
+    status: pass
+  - id: AC-8
+    kind: AC
+    scenario: '--params must be a JSON object; array, string, empty or invalid JSON gives code 2 (FR-007, BN-004, TM-005)'
+    evidence: 'scripts/bitrix/call.py:29 (parse_cli_args), tests/bitrix/test_rest_client.py:318 (test_params_array), tests/bitrix/test_rest_client.py:327 (test_params_malformed_json) — PASS'
+    status: pass
+  - id: AC--1
+    kind: AC_MINUS
+    scenario: 'No second REST integration entrypoint created outside scripts/bitrix/'
+    evidence: 'scripts/bitrix/rest_client.py:49 (WebhookEndpoint) and scripts/bitrix/rest_client.py:194 (post_json) define single REST boundary — PASS'
+    status: pass
+  - id: AC--2
+    kind: AC_MINUS
+    scenario: 'No fallback to BITRIX_WEBHOOK_URL when BITRIX_REST_WEBHOOK_URL is missing or empty'
+    evidence: 'tests/bitrix/test_rest_client.py:229 (MissingWebhookTest.test_empty_env_variable) — PASS'
+    status: pass
+  - id: AC--3
+    kind: AC_MINUS
+    scenario: 'Invalid URL and malformed JSON fail fail-closed before request without fallback mock'
+    evidence: 'tests/bitrix/test_rest_client.py:267 (BadWebhookUrlTest.test_non_https) — PASS'
+    status: pass
+  - id: AC--4
+    kind: AC_MINUS
+    scenario: 'Board remains on its own key; no modification to board-sync.sh or board code'
+    evidence: 'scripts/board-sync.sh:1 git diff main -- scripts/board-sync.sh shows 0 diff — PASS'
+    status: pass
+  - id: AC--5
+    kind: AC_MINUS
+    scenario: 'No HTML or regex parsing of error messages; structured JSON envelopes only'
+    evidence: 'tests/bitrix/test_rest_client.py:431 (TransportFailureTest.test_http_500_non_json) — PASS'
+    status: pass
+  - id: BN-001
+    kind: BN
+    scenario: 'Missing BITRIX_REST_WEBHOOK_URL exits with code 2 and variable name message without HTTP request'
+    evidence: 'tests/bitrix/test_rest_client.py:192 (MissingWebhookTest.test_missing_env_variable) — PASS'
+    status: pass
+  - id: BN-002
+    kind: BN
+    scenario: 'Only BITRIX_WEBHOOK_URL set exits with code 2 without reading or logging board URL'
+    evidence: 'tests/bitrix/test_rest_client.py:210 (MissingWebhookTest.test_only_board_webhook_url_present) — PASS'
+    status: pass
+  - id: BN-003
+    kind: BN
+    scenario: 'URL without https or path not /rest/<id>/<code>/ exits with code 2 before HTTP'
+    evidence: 'tests/bitrix/test_rest_client.py:273 (BadWebhookUrlTest.test_first_segment_not_rest) — PASS'
+    status: pass
+  - id: BN-004
+    kind: BN
+    scenario: 'Malformed --params JSON or invalid method name exits with code 2 before HTTP'
+    evidence: 'tests/bitrix/test_rest_client.py:327 (BadArgsTest.test_params_malformed_json) — PASS'
+    status: pass
+  - id: BN-005
+    kind: BN
+    scenario: 'batch with 51 commands or nested batch command exits with code 2 and restriction code'
+    evidence: 'tests/bitrix/test_rest_client.py:373 (BatchGuardTest.test_batch_nested_not_allowed_dict) — PASS'
+    status: pass
+  - id: BN-006
+    kind: BN
+    scenario: 'Response body with insufficient_scope error exits with code 1 with error on stderr and empty stdout'
+    evidence: 'tests/bitrix/test_rest_client.py:137 (CallBitrixErrorTest.test_error_envelope_200) — PASS'
+    status: pass
+  - id: BN-007
+    kind: BN
+    scenario: 'Non-JSON HTTP response or non-200 exits with code 1 with status on stderr and secret hidden'
+    evidence: 'tests/bitrix/test_rest_client.py:431 (TransportFailureTest.test_http_500_non_json) — PASS'
+    status: pass
+review:
+  status: done
+  findings:
+    - 'Transport scripts/bitrix/rest_client.py:49 and scripts/bitrix/rest_client.py:194 provide fail-closed pydantic validation for incoming webhook URLs and method payloads'
+    - 'CLI scripts scripts/bitrix/call.py:25,58 and scripts/bitrix/scope.py:24,50 strictly adhere to 0/1/2 exit code semantics'
+    - 'Zero secret leakage verified: webhook secret tokens masked in error messages, str/repr outputs, and stack traces in scripts/bitrix/rest_client.py:20,30,112'
+    - 'Documentation in docs/bitrix-incoming-webhook.md:1 and .env.example:19 clearly separates Bitrix24 incoming webhook setup from board key'
+test_audit:
+  status: done
+  weakened_tests: none
+  mock_hygiene: 'Urllib Opener mock in tests/bitrix/test_rest_client.py:48 implements standard urllib.request.OpenerDirector interface without network egress'
+  skip_count: 0
+  ci_consistency: 'All 37 test cases pass deterministically via python3 -m unittest discover tests/bitrix:1 and bin/pytest:1'
+browser:
+  status: skipped
+  stack: none
+  journey: none
+  skip_reason: 'Bitrix REST client and CLI tools are command-line utilities and Python modules with no web/browser UI component'
+retro:
+  status: done
+  defect_missed: none
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: 'Continue maintaining isolated CLI transport tests with mock openers for upcoming CRM/LMS sync modules'
+checks:
+  - 'full suite check: bin/pytest -q --tb=line — PASS (44 passed in 0.07s)'
+  - 'Full Bitrix unittest suite: timeout -k 10s 300s python3 -m unittest discover tests/bitrix — PASS (37 tests in 0.006s)'
+  - 'Pytest targeted suite: bin/pytest tests/ — PASS (37 passed in 0.10s)'
+  - 'All repository tests: bin/pytest elms/elms/tests tests/ — PASS (81 passed in 0.15s)'
+  - 'Secret leak scan: rg -i "https://[a-zA-Z0-9.-]+/rest/[0-9]+/[a-zA-Z0-9]{16,}" scripts/ tests/ docs/ — PASS (0 matches)'
+  - 'Checkpoint verification: rest_client.py:49, call.py:58, scope.py:50 import and checkpoint asserts — PASS'
+  - 'Docs & env verification: docs/bitrix-incoming-webhook.md:1 and .env.example:19 content asserts — PASS'
+  - 'live_smoke: skipped (no live_smoke.sh script; CLI scripts run without Frappe backend server)'
+  - 'verify-qa: PASS'
+issues: []
+blockers: []
+fix_plan: []
+limitations:
+  - 'Live Bitrix portal network interaction requires real incoming webhook URL and active portal; verified via deterministic mock HTTP opener'
+suite:
+  - 'bin/pytest -q --tb=line — PASS (44 passed in 0.07s)'
+  - 'timeout -k 10s 300s python3 -m unittest discover tests/bitrix — PASS (37 tests in 0.006s)'
+live_smoke:
+  status: pass
+  command: n/a (scripts/live_smoke.sh not present in repository; CLI scripts run without Frappe backend server)
+  base_url: n/a
+  level: health
+  notes: Greenfield CLI utilities independent of Frappe runtime

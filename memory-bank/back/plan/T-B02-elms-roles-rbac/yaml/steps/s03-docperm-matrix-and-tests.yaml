@@ -1,0 +1,151 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-B02-elms-roles-rbac
+title: DocPerm matrix configuration, permission test suite, and role documentation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сконфигурировать матрицу DocPerm (Admin RWCD на все 3 секции, Operations User RW на Operations, LMS User RW на LMS, deny Guest/cross-role),
+  реализовать ensure_section_perms в install.py, развернуть комплексный набор тестов RBAC в elms/elms/tests/test_roles_rbac.py
+  и зафиксировать таксономию ролей в memory-bank/product/modules.md.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-007
+    - FR-008
+    - US-001
+    - US-002
+    - US-003
+    - US-004
+    - SC-002
+    - AC-3
+    - AC-4
+    - AC-6
+    - AC--3
+    - BN-001
+    - BN-002
+    - BN-003
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-007
+  nouns:
+    - DocPerm
+    - has_permission
+    - ELMS Admin
+    - ELMS Operations User
+    - ELMS LMS User
+    - ELMS Operations Section
+    - ELMS LMS Section
+    - ELMS Settings Section
+    - Guest
+    - test_roles_rbac.py
+    - modules.md
+  layout_paths:
+    - elms/elms/install.py
+    - elms/elms/tests/test_roles_rbac.py
+    - memory-bank/product/modules.md
+  ac_quotes:
+    - "FR-004: DocPerm matrix: ELMS Admin RWCD; ELMS Operations User RW Operations; ELMS LMS User RW LMS; Guest deny."
+    - "AC-3: DocPerm matrix соответствует таблице FR-004."
+    - "AC-6: AC- no Guest perms; no silent skip."
+    - "US-001: Как Admin, я имею read/write на все три Section DocTypes."
+    - "US-002: Как Operations User, я имею доступ только к Operations Section."
+  plan_jumps:
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:76-100"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:110-131"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:171-181"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:209-215"
+    - "memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md:246-257"
+
+context:
+  consumes:
+    - "plan §User Stories US-001, US-002, US-003, US-004"
+    - "plan §Functional Requirements FR-004, FR-007, FR-008"
+    - "plan §Boundary cases BN-001, BN-002, BN-003"
+    - "plan §Test map TM-001, TM-002, TM-003, TM-007"
+    - "elms/elms/install.py"
+    - "elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json"
+    - "elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json"
+    - "elms/elms/core/doctype/elms_settings_section/elms_settings_section.json"
+  produces:
+    - elms/elms/install.py
+    - elms/elms/tests/test_roles_rbac.py
+    - memory-bank/product/modules.md
+  plan_refs:
+    - "plan.md#user-stories"
+    - "plan.md#functional-requirements"
+    - "plan.md#boundary-negative-cases"
+    - "plan.md#test-map-tm"
+  files:
+    - elms/elms/install.py
+    - elms/elms/tests/test_roles_rbac.py
+    - memory-bank/product/modules.md
+
+as_built:
+  - "ELMS roles seeded by ensure_roles() in s01"
+  - "ELMS Operations Section, ELMS LMS Section, and ELMS Settings Section DocTypes created in s02"
+  - "no DocPerm permissions matrix configured or tested between ELMS roles and Section DocTypes"
+
+delta:
+  - "configure DocPerm matrix: ELMS Admin RWCD on Operations/LMS/Settings; ELMS Operations User RW on Operations; ELMS LMS User RW on LMS; deny Guest"
+  - "implement ensure_section_perms() in elms/elms/install.py for idempotent permission synchronization"
+  - "implement comprehensive RBAC matrix test suite in elms/elms/tests/test_roles_rbac.py covering Admin allow, Operations/LMS cross-role deny, and Guest deny"
+  - "document ELMS roles taxonomy and permissions matrix in memory-bank/product/modules.md"
+
+deletes: []
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: "bypass of Frappe DocPerm authorization and undocumented role taxonomy"
+  target: "explicit DocPerm matrix enforced via has_permission and documented modules.md"
+  items:
+    - symbol: bypass of Frappe DocPerm authorization
+      kind: C
+      replacement: explicit DocPerm matrix enforced via has_permission
+      policy: delete in-epic
+    - symbol: undocumented module roles
+      kind: I
+      replacement: updated memory-bank/product/modules.md role taxonomy
+      policy: delete in-epic
+
+out_of_scope:
+  - "Role constants and seed hook (s01)"
+  - "DocType schema definitions (s02)"
+  - "SSO default role assignment (T-B03)"
+  - "Workspace JSON layout (T-F01)"
+  - "full suite -> QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+  omit_justification:
+    async-python-patterns: "Frappe Framework is a synchronous WSGI runtime; async python patterns do not apply"
+
+checkpoints:
+  - id: cp1
+    criterion: "DocPerm matrix configured for all three section DocTypes"
+    verify: "python3 -c 'import json; erp=json.load(open(\"elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json\")); assert any(p.get(\"role\") == \"ELMS Operations User\" for p in erp.get(\"permissions\", []))'"
+  - id: cp2
+    criterion: "RBAC matrix tests verify positive, cross-role negative, and guest boundaries"
+    verify: "grep -q 'test_admin_has_read_write_all_sections' elms/elms/tests/test_roles_rbac.py && grep -q 'test_guest_denied_all_sections' elms/elms/tests/test_roles_rbac.py"
+  - id: cp3
+    criterion: "Role taxonomy and DocPerm matrix documented in modules.md"
+    verify: "grep -q 'ELMS Admin' memory-bank/product/modules.md && grep -q 'ELMS Operations User' memory-bank/product/modules.md && grep -q 'ELMS LMS User' memory-bank/product/modules.md"
+
+verify:
+  - "python3 -c 'import elms.tests.test_roles_rbac; print(\"RBAC test suite import verified\")'"
+tdd:
+  - "test_admin_has_read_write_all_sections"
+  - "test_operations_user_allowed_operations_denied_lms_and_settings"
+  - "test_lms_user_allowed_lms_denied_operations_and_settings"
+  - "test_guest_denied_all_sections"
+  - "test_administrator_platform_user_not_blocked"

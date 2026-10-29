@@ -1,0 +1,182 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-B03-elms-sso-keycloak-yandex
+title: 'Brokered JIT signup, local Keycloak fallback, roles, tests, and manual checklist'
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать fail-closed назначение ролей по умолчанию (Desk User, ELMS LMS User) при создании нового Frappe User
+  после Keycloak brokered first login через хук doc_events User after_insert в elms/elms/sso/roles.py с проверкой
+  Keycloak social link/email. Зафиксировать just-in-time создание realm user + federated Yandex link, явно описать
+  per-user local Keycloak password fallback при недоступности Yandex, разработать юнит/static/manual тесты и обновить
+  docs/sso.md и docker/README.md без обещания bulk/SCIM provisioning.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-005a
+    - FR-007
+    - FR-008
+    - FR-009
+    - FR-011
+    - US-005
+    - US-003
+    - US-007
+    - SC-003
+    - SC-005
+    - SC-006
+    - AC-5
+    - AC-6
+    - AC--3
+    - AC-8
+    - AC-9
+    - BN-004
+    - BN-005
+    - BN-007
+    - BN-008
+    - BN-009
+    - TM-002
+    - TM-004
+    - TM-005
+    - TM-009
+    - TM-010
+    - TM-011
+  nouns:
+    - elms/elms/sso/roles.py
+    - maybe_assign_sso_roles
+    - doc_events
+    - User
+    - after_insert
+    - ELMS LMS User
+    - Desk User
+    - keycloak
+    - federated Yandex link
+    - local Keycloak credential
+    - just-in-time provisioning
+    - test_sso.py
+    - docs/sso.md
+    - docker/README.md
+  layout_paths:
+    - elms/elms/sso/roles.py
+    - elms/elms/hooks.py
+    - elms/elms/tests/test_sso.py
+    - docs/sso.md
+    - docker/README.md
+  ac_quotes:
+    - 'FR-005: doc_events User after_insert + check if created via social -> add_roles(*default_roles); if role missing frappe.throw'
+    - 'FR-005a: explicit local Keycloak credential is a per-user fallback when Yandex is unavailable; no password copying'
+    - 'AC-5: Signup default roles fail-closed.'
+    - 'AC-6: Manual checklist documented.'
+    - 'AC--3: Нет signup success with zero ELMS roles when default configured.'
+    - 'AC-8: Explicit local Keycloak credential authenticates through the same Frappe client when Yandex is unavailable.'
+    - 'AC-9: First broker login provisions/link Keycloak identity and Frappe User just-in-time without bulk import.'
+    - 'BN-005: ELMS LMS User deleted -> throw on signup assign'
+  plan_jumps:
+    - 'memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/md/plan.md:162-228'
+    - 'memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/md/plan.md:230-257'
+    - 'memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/md/plan.md:292-357'
+
+context:
+  consumes:
+    - 'plan §Functional Requirements FR-005, FR-005a, FR-007, FR-008, FR-009, FR-011'
+    - 'plan §Acceptance Criteria AC-5, AC-6, AC-8, AC-9, AC--3'
+    - 'plan §Boundary cases BN-004, BN-005, BN-007, BN-008, BN-009'
+    - 'elms/elms/sso/constants.py'
+    - 'elms/elms/sso/ensure.py'
+    - 'elms/elms/install.py'
+    - 'elms/elms/hooks.py'
+  produces:
+    - elms/elms/sso/roles.py
+    - elms/elms/hooks.py
+    - elms/elms/tests/test_sso.py
+    - docs/sso.md
+    - docker/README.md
+  plan_refs:
+    - 'plan.md#functional-requirements'
+    - 'plan.md#ac'
+    - 'plan.md#boundary-negative-cases'
+    - 'plan.md#manual-e2e-checklist'
+    - 'plan.md#test-map-tm'
+  files:
+    - elms/elms/sso/roles.py
+    - elms/elms/hooks.py
+    - elms/elms/tests/test_sso.py
+    - docs/sso.md
+    - docker/README.md
+
+as_built:
+  - 'hooks.py contains on_login hook for on_login_sync_identity but no doc_events User after_insert hook'
+  - 'roles ELMS Admin, ELMS Operations User, ELMS LMS User are seeded by install.py'
+  - 'no unit tests exist for SSO logic in elms/elms/tests/'
+  - 'docker/README.md exists without complete brokered IdP, JIT provisioning, and local fallback checklist'
+
+delta:
+  - 'implement maybe_assign_sso_roles(doc, method=None) in elms/elms/sso/roles.py asserting Keycloak social signup context'
+  - 'enforce fail-closed role assignment: verify default roles exist in database, throw frappe.throw if missing, and append ELMS LMS User and Desk User'
+  - 'validate Keycloak-derived verified email in social user creation and throw fail-closed exception if missing (BN-004, TM-004)'
+  - 'test/document first broker login as just-in-time creation of Keycloak realm user, federated Yandex link, and Frappe User'
+  - 'document explicit local Keycloak password provisioning for selected users and test successful/failed Yandex outage branches'
+  - 'wire doc_events User after_insert hook in elms/elms/hooks.py'
+  - 'create comprehensive unit and static test suite in elms/elms/tests/test_sso.py covering one-provider boundary, conf gating, broker/JIT contract, fail-closed role assignment, fallback behavior, and secret hygiene'
+  - 'document manual broker onboarding, Keycloak fallback credentials, Yandex outage behavior, and host networking in docs/sso.md and docker/README.md'
+
+deletes: []
+wire_complete_required: false
+
+replacement_cleanup:
+  replaces: 'password-only user onboarding, direct Yandex callback, and unverified SSO role attachment'
+  target: 'fail-closed brokered signup role assignment, explicit local Keycloak fallback, and comprehensive test_sso.py suite'
+  items:
+    - symbol: 'unmanaged social user signup without roles'
+      kind: B
+      replacement: 'elms/elms/sso/roles.py User after_insert hook'
+      policy: 'delete in-epic'
+
+out_of_scope:
+  - 'Keycloak realm client JSON and site_config credentials injection (s01)'
+  - 'Social Login Key idempotent creation (s02)'
+  - 'SCIM/bulk Yandex directory import and background synchronization'
+  - 'automatic local password generation for every broker-created user'
+  - 'full suite -> QA'
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/secrets-scan/SKILL.md
+  omit_justification:
+    async-python-patterns: 'Frappe Framework is a synchronous WSGI runtime; async python patterns do not apply'
+
+checkpoints:
+  - id: cp1
+    criterion: 'maybe_assign_sso_roles exists, detects Keycloak social signup, and verifies default roles before assignment'
+    verify: 'python3 -c "import inspect, elms.sso.roles; assert hasattr(elms.sso.roles, \"maybe_assign_sso_roles\"); assert \"frappe.throw\" in inspect.getsource(elms.sso.roles.maybe_assign_sso_roles)"'
+  - id: cp2
+    criterion: 'hooks.py registers doc_events User after_insert for SSO role assignment'
+    verify: 'grep -q "doc_events" elms/elms/hooks.py && grep -q "maybe_assign_sso_roles" elms/elms/hooks.py'
+  - id: cp3
+    criterion: 'SSO test module elms/elms/tests/test_sso.py exists with unit tests'
+    verify: 'test -f elms/elms/tests/test_sso.py && grep -q "class TestSSO" elms/elms/tests/test_sso.py'
+  - id: cp4
+    criterion: 'docs/sso.md and docker/README.md document broker onboarding, local Keycloak fallback, outage branches, and networking details'
+    verify: 'test -f docs/sso.md && grep -q "Keycloak" docs/sso.md && grep -q "Yandex" docs/sso.md && grep -q "fallback" docs/sso.md'
+  - id: cp5
+    criterion: 'SSO test suite asserts no direct Yandex Social Login Key and covers just-in-time broker identity behavior'
+    verify: 'test -f elms/elms/tests/test_sso.py && grep -q "TestSSO" elms/elms/tests/test_sso.py && grep -q "yandex" elms/elms/tests/test_sso.py'
+
+verify:
+  - 'python3 -c "import elms.sso.roles; print(\"roles module ready\")"'
+  - 'test "$(rg -n "custom/yandex|yandex_login" elms/elms docs docker/README.md || true)" = ""'
+tdd:
+  - 'test_assign_sso_roles_success'
+  - 'test_assign_sso_roles_fails_closed_when_role_missing'
+  - 'test_assign_sso_roles_ignores_non_social_user'
+  - 'test_social_signup_missing_email_throws_fail_closed'
+  - 'test_first_broker_login_provisions_keycloak_and_frappe_identity_contract'
+  - 'test_local_keycloak_fallback_is_documented_and_not_auto_provisioned'

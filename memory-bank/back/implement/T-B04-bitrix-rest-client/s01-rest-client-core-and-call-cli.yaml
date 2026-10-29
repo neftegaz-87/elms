@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B04-bitrix-rest-client
+task_id: T-B04-bitrix-rest-client
+title: s01 — Webhook transport, pydantic boundary, and call.py CLI IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B04-bitrix-rest-client/yaml/steps/s01-rest-client-core-and-call-cli.yaml
+date: 2026-10-29
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/secrets-scan/SKILL.md
+
+done:
+  - 'Implemented WebhookEndpoint, CallArgs, RestEnvelope, post_json, and BitrixRestError in scripts/bitrix/rest_client.py'
+  - 'Implemented call.py CLI entrypoint with exit codes 0/1/2 and secret token masking'
+  - 'Created comprehensive unit test suite in tests/bitrix/test_rest_client.py with mock HTTP opener'
+  - 'Verified all 4 checkpoints: structure, CLI entrypoint, zero secret leaks, and full 30 unit tests pass'
+
+files:
+  - scripts/bitrix/__init__.py
+  - scripts/bitrix/rest_client.py
+  - scripts/bitrix/call.py
+  - tests/bitrix/__init__.py
+  - tests/bitrix/test_rest_client.py
+
+deletes: []
+
+tests:
+  - '`timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.CallSuccessTest`'
+  - '`timeout -k 10s 300s python3 -m unittest tests.bitrix.test_rest_client.CallSuccessTest tests.bitrix.test_rest_client.CallBitrixErrorTest tests.bitrix.test_rest_client.MissingWebhookTest tests.bitrix.test_rest_client.BadWebhookUrlTest tests.bitrix.test_rest_client.BadArgsTest tests.bitrix.test_rest_client.BatchGuardTest tests.bitrix.test_rest_client.TransportFailureTest`'
+
+integration_check:
+  - 'python3 -c "import scripts.bitrix.rest_client, scripts.bitrix.call; print(\"OK\")"'
+
+checkpoints:
+  - id: cp1
+    criterion: 'rest_client.py defines WebhookEndpoint, CallArgs, RestEnvelope, and post_json'
+    status: done
+  - id: cp2
+    criterion: 'call.py provides main entrypoint with exit codes 0, 1, 2'
+    status: done
+  - id: cp3
+    criterion: 'Zero secrets committed or exposed in error messages'
+    status: done
+  - id: cp4
+    criterion: 'Core unit test suite passes via python3 -m unittest'
+    status: done
+
+resume_from: cp4

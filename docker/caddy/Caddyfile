@@ -1,0 +1,25 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_NAME} {
+	encode zstd gzip
+	reverse_proxy frontend:{$NGINX_LISTEN_PORT} {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+}
+
+{$AUTH_HOSTNAME} {
+	encode zstd gzip
+	reverse_proxy keycloak:8080 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+}

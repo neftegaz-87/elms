@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-B02-elms-roles-rbac
+task_id: T-B02-elms-roles-rbac
+title: s02 — Module Def alignment in modules.txt and section placeholder Single DocTypes in Core, Operations, and LMS modules IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B02-elms-roles-rbac/yaml/steps/s02-section-placeholder-doctypes.yaml
+date: 2026-10-28
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+
+done:
+  - "Updated elms/elms/modules.txt aligning modules to Core, Operations, LMS (replacing placeholder Operations)"
+  - "Created ELMS Operations Section Single DocType in elms/elms/operations/doctype/elms_operations_section/ (json, py, __init__.py) with title field and module Operations"
+  - "Created ELMS LMS Section Single DocType in elms/elms/lms/doctype/elms_lms_section/ (json, py, __init__.py) with title field and module LMS"
+  - "Created ELMS Settings Section Single DocType in elms/elms/core/doctype/elms_settings_section/ (json, py, __init__.py) with title field and module Core"
+
+files:
+  - elms/elms/modules.txt
+  - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json
+  - elms/elms/operations/doctype/elms_operations_section/elms_operations_section.py
+  - elms/elms/operations/doctype/elms_operations_section/__init__.py
+  - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json
+  - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.py
+  - elms/elms/lms/doctype/elms_lms_section/__init__.py
+  - elms/elms/core/doctype/elms_settings_section/elms_settings_section.json
+  - elms/elms/core/doctype/elms_settings_section/elms_settings_section.py
+  - elms/elms/core/doctype/elms_settings_section/__init__.py
+
+deletes: []
+
+tests:
+  - "`python3 -c 'lines = [l.strip() for l in open(\"elms/elms/modules.txt\") if l.strip()]; assert lines == [\"Core\", \"Operations\", \"LMS\"]'` — PASS"
+  - "`python3 -c 'import json; d=json.load(open(\"elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json\")); assert d[\"issingle\"] == 1 and d[\"module\"] == \"Operations\"'` — PASS"
+  - "`python3 -c 'import json; d=json.load(open(\"elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json\")); assert d[\"issingle\"] == 1 and d[\"module\"] == \"LMS\"'` — PASS"
+  - "`python3 -c 'import json; d=json.load(open(\"elms/elms/core/doctype/elms_settings_section/elms_settings_section.json\")); assert d[\"issingle\"] == 1 and d[\"module\"] == \"Core\"'` — PASS"
+  - "`python3 -c 'import json; [json.load(open(f)) for f in [\"elms/elms/operations/doctype/elms_operations_section/elms_operations_section.json\", \"elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json\", \"elms/elms/core/doctype/elms_settings_section/elms_settings_section.json\"]]'` — PASS"
+
+integration_check:
+  - "modules.txt aligns module definitions: Core, Operations, LMS"
+  - "ELMS Operations Section DocType JSON and Python controller exist in module Operations as Single DocType"
+  - "ELMS LMS Section DocType JSON and Python controller exist in module LMS as Single DocType"
+  - "ELMS Settings Section DocType JSON and Python controller exist in module Core as Single DocType"
+
+checkpoints:
+  - id: cp1
+    criterion: "modules.txt aligns module naming and defines Core, Operations, LMS"
+    status: done
+  - id: cp2
+    criterion: "ELMS Operations Section DocType exists and is Single in module Operations"
+    status: done
+  - id: cp3
+    criterion: "ELMS LMS Section DocType exists and is Single in module LMS"
+    status: done
+  - id: cp4
+    criterion: "ELMS Settings Section DocType exists and is Single in module Core"
+    status: done
+
+resume_from: cp1

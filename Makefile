@@ -3,7 +3,7 @@ DEV_HUB ?= $(abspath $(CURDIR)/../dev-hub)
 
 SHELL := /bin/bash
 
-.PHONY: local.up local.down local.ps local.logs dev prod
+.PHONY: local.up local.down local.ps local.logs dev prod prod.up prod.down prod.ps prod.logs
 
 local.up:
 	bash scripts/docker-up.sh dev up -d --build
@@ -19,5 +19,16 @@ local.logs:
 
 dev: local.up
 
-prod:
+prod.up:
 	bash scripts/docker-up.sh prod up -d --build
+
+prod.down:
+	bash scripts/docker-up.sh prod down
+
+prod.ps:
+	bash scripts/docker-up.sh prod ps
+
+prod.logs:
+	bash scripts/docker-up.sh prod logs --tail=100
+
+prod: prod.up
