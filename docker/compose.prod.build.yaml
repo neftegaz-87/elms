@@ -1,0 +1,29 @@
+# Local/CI-only build overlay. Production hosts consume the image-only
+# docker/compose.prod.yaml and never build from a checkout.
+x-elms-build: &elms_build
+  context: ..
+  dockerfile: docker/Dockerfile
+
+x-keycloak-build: &keycloak_build
+  context: keycloak
+  dockerfile: Dockerfile
+
+services:
+  configurator:
+    build: *elms_build
+  create-site:
+    build: *elms_build
+  backend:
+    build: *elms_build
+  websocket:
+    build: *elms_build
+  queue-short:
+    build: *elms_build
+  queue-long:
+    build: *elms_build
+  scheduler:
+    build: *elms_build
+  frontend:
+    build: *elms_build
+  keycloak:
+    build: *keycloak_build

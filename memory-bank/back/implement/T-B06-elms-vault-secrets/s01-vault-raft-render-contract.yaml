@@ -1,0 +1,108 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B06-elms-vault-secrets
+task_id: T-B06-elms-vault-secrets
+title: s01 — Pinned Vault Raft service and protected render contract IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-B06-elms-vault-secrets/yaml/steps/s01-vault-raft-render-contract.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - Vault and Vault Agent use the required pinned image supplied by the non-secret production env contract.
+  - Production Compose exposes Vault only on the private network, persists integrated Raft data, and mounts protected render volumes.
+  - KV v2 templates use error_on_missing_key and the elms-agent policy is read-only for elms/data/runtime.
+files:
+  - docker/compose.prod.yaml
+  - docker/vault/config.hcl
+  - docker/vault/agent.hcl
+  - docker/vault/runtime.env.tpl
+  - docker/vault/keycloak.env.tpl
+  - docker/vault/db-password.tpl
+  - docker/vault/keycloak-db-password.tpl
+  - docker/vault/policies/elms-agent.hcl
+deletes:
+  - docker/compose.prod.yaml::VAULT_DEV_ROOT_TOKEN_ID
+  - docker/compose.prod.yaml::8200:8200
+  - any Vault dev-mode or root-token startup path in the production service
+tests:
+  - '`docker compose --env-file docker/.env.prod.example -f docker/compose.prod.yaml config --quiet`'
+  - '`python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault`'
+  - '`rg -n "error_on_missing_key|render|vault-render|elms-agent" docker/vault docker/compose.prod.yaml`'
+integration_check:
+  - '`docker compose --env-file docker/.env.prod.example -f docker/compose.prod.yaml config --quiet` — exit 0'
+  - '`python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault` — PASS'
+  - '`rg -n "VAULT_DEV_ROOT_TOKEN_ID|8200:8200" docker/compose.prod.yaml docker/vault || true` — no output'
+  - '`rg -n "VAULT_DEV_ROOT_TOKEN_ID|8200:8200|vault dev" docker/compose.prod.yaml docker/vault || true` — no output'
+
+verification_results:
+  - sunset-inventory: loop-sunset-inventory/v1, boundary elms-production-static-secrets, ok=true; no root-token literal was present in the bounded scope.
+  - docker compose production contract with docker/.env.prod.example: exit 0.
+  - Vault-only production secret contract: PASS.
+  - Four Vault Agent templates have error_on_missing_key=true; protected render and elms-agent policy references are present.
+  - Legacy dev/root/public-port scan: no output for VAULT_DEV_ROOT_TOKEN_ID or 8200:8200.
+
+sunset_inventory:
+  - kind: A
+    symbol: KEYCLOAK_FALLBACK_PASSWORD
+    path: docker/vault/keycloak.env.tpl
+    mark: REPLACE
+  - kind: A
+    symbol: YANDEX_CLIENT_ID
+    path: docker/compose.prod.yaml
+    mark: REPLACE
+  - kind: B
+    symbol: ELMS_PROD_STAGE
+    path: docker/compose.prod.yaml
+    mark: REPLACE
+  - kind: B
+    symbol: STAGED_SITE_NAME
+    path: docker/.env.prod.example
+    mark: REPLACE
+  - kind: C
+    symbol: HTTP_PUBLISH_PORT
+    path: docker/.env.prod.example
+    mark: REPLACE
+  - kind: I
+    symbol: KEYCLOAK_ADMIN
+    path: docker/compose.prod.yaml
+    mark: REPLACE
+  - kind: I
+    symbol: KEYCLOAK_ADMIN
+    path: docker/.env.prod.example
+    mark: REPLACE
+
+wire_complete:
+  call_sites:
+    - docker/compose.prod.yaml::vault-agent depends_on vault and consumers depend_on vault-agent health
+    - docker/compose.prod.yaml::backend/create-site/db/keycloak-db/keycloak consume protected render volumes
+  enforce_path: docker/compose.prod.yaml vault-agent healthcheck requires all four rendered files before dependent services become healthy
+  dual_path_rg: rg -n 'VAULT_DEV_ROOT_TOKEN_ID|8200:8200' docker/compose.prod.yaml docker/vault || true; expect no output
+  instruction_rg: rg -n 'VAULT_DEV_ROOT_TOKEN_ID|8200:8200|vault dev' docker/compose.prod.yaml docker/vault || true; expect no output
+  deny_old_proven: true
+
+checkpoints:
+  - id: cp1
+    criterion: Production Compose contains one pinned Vault service with an internal listener, Raft volume, and no host port or dev mode.
+    status: done
+    verify: docker compose -f docker/compose.prod.yaml config --quiet && rg -n 'pinned|vault' docker/compose.prod.yaml
+  - id: cp2
+    criterion: KV v2 templates and the elms-agent policy are present and do not grant broad or write access.
+    status: done
+    verify: python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault && rg -n 'secret/data|elms-agent' docker/vault/policies/elms-agent.hcl
+  - id: cp3
+    criterion: Protected render volume is wired to only the declared service consumers and all missing keys fail rendering.
+    status: done
+    verify: rg -n 'error_on_missing_key|render|vault-render|elms-agent' docker/vault docker/compose.prod.yaml && rg -n 'error_on_missing_key' docker/vault/agent.hcl
+
+resume_from: cp1

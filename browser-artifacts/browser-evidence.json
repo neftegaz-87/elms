@@ -13,12 +13,99 @@
       "observed": "Login"
     },
     {
+      "name": "login_heading_uses_elms_sdo_brand",
+      "status": "pass",
+      "observed": "Вход на сайт ELMS СДО"
+    },
+    {
       "name": "login_css_asset_linked",
       "status": "pass",
       "observed": [
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.5C6KSYFB.css",
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.WTDPWULB.css",
         "http://elms.localhost:8082/assets/elms/css/login.css",
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.JW5PI7JI.css"
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.QEGSWK6N.css"
+      ]
+    },
+    {
+      "name": "linked_stylesheets_are_available",
+      "status": "pass",
+      "observed": {
+        "http://elms.localhost:8082/assets/elms/css/login.css": {
+          "status": 200,
+          "content_type": "text/css"
+        },
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.QEGSWK6N.css": {
+          "status": 200,
+          "content_type": "text/css"
+        },
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.WTDPWULB.css": {
+          "status": 200,
+          "content_type": "text/css"
+        }
+      }
+    },
+    {
+      "name": "login_surface_neftegaz_contract",
+      "status": "pass",
+      "observed": {
+        "body": {
+          "height": "800px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgb(245, 247, 250)",
+          "borderColor": "rgb(11, 31, 51)",
+          "color": "rgb(11, 31, 51)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "card": {
+          "height": "421px",
+          "borderRadius": "3px",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "borderColor": "rgb(213, 220, 227)",
+          "color": "rgb(11, 31, 51)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "input": {
+          "height": "44px",
+          "borderRadius": "3px",
+          "backgroundColor": "rgb(234, 242, 255)",
+          "borderColor": "rgb(13, 76, 211)",
+          "color": "rgb(11, 31, 51)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "primary_button": {
+          "height": "44px",
+          "borderRadius": "3px",
+          "backgroundColor": "rgb(13, 76, 211)",
+          "borderColor": "rgb(10, 63, 176)",
+          "color": "rgb(255, 255, 255)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "email_link": {
+          "height": "44px",
+          "borderRadius": "3px",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "borderColor": "rgb(213, 220, 227)",
+          "color": "rgb(11, 31, 51)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        }
+      }
+    },
+    {
+      "name": "standard_login_form_present",
+      "status": "pass",
+      "observed": {
+        "forms": 1,
+        "buttons": 1
+      }
+    },
+    {
+      "name": "keycloak_login_js_asset_linked",
+      "status": "pass",
+      "observed": [
+        "http://elms.localhost:8082/assets/frappe/dist/js/file_uploader.bundle.R2SJHSNK.js",
+        "http://elms.localhost:8082/assets/frappe/dist/js/frappe-web.bundle.BNEBYLYP.js",
+        "http://elms.localhost:8082/website_script.js",
+        "http://elms.localhost:8082/assets/elms/js/login-keycloak.js"
       ]
     },
     {
@@ -32,7 +119,7 @@
     {
       "name": "btn_keycloak_href_public_url",
       "status": "pass",
-      "href": "http://127.0.0.1:8480/realms/elms/protocol/openid-connect/auth?redirect_uri=http%3A%2F%2Felms.localhost%3A8082%2Fapi%2Fmethod%2Ffrappe.integrations.oauth2_logins.login_via_keycloak&state=52028c188ee74f99b59938c79e6f5ca8&response_type=code&scope=openid+email+profile&client_id=elms-frappe"
+      "href": "http://127.0.0.1:8480/realms/elms/protocol/openid-connect/auth?redirect_uri=http%3A%2F%2Felms.localhost%3A8082%2Fapi%2Fmethod%2Ffrappe.integrations.oauth2_logins.login_via_keycloak&state=c348096156e7babcf574f8b2499249bf&response_type=code&scope=openid+email+profile&client_id=elms-frappe"
     },
     {
       "name": "btn_geometry_44px_3px",
@@ -49,10 +136,79 @@
         "backgroundColor": "rgb(13, 76, 211)",
         "color": "rgb(255, 255, 255)"
       }
+    },
+    {
+      "name": "invalid_credentials_stay_on_login",
+      "status": "pass",
+      "observed": {
+        "url": "http://elms.localhost:8082/login#login",
+        "invalid_state": true
+      }
+    },
+    {
+      "name": "valid_keycloak_credentials_reach_app",
+      "status": "pass",
+      "observed": "http://elms.localhost:8082/app"
     }
   ],
   "passed": true,
   "errors": [],
+  "stylesheet_statuses": {
+    "http://elms.localhost:8082/assets/elms/css/login.css": {
+      "status": 200,
+      "content_type": "text/css"
+    },
+    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.QEGSWK6N.css": {
+      "status": 200,
+      "content_type": "text/css"
+    },
+    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.WTDPWULB.css": {
+      "status": 200,
+      "content_type": "text/css"
+    }
+  },
+  "surface_styles": {
+    "body": {
+      "height": "800px",
+      "borderRadius": "0px",
+      "backgroundColor": "rgb(245, 247, 250)",
+      "borderColor": "rgb(11, 31, 51)",
+      "color": "rgb(11, 31, 51)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "card": {
+      "height": "421px",
+      "borderRadius": "3px",
+      "backgroundColor": "rgb(255, 255, 255)",
+      "borderColor": "rgb(213, 220, 227)",
+      "color": "rgb(11, 31, 51)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "input": {
+      "height": "44px",
+      "borderRadius": "3px",
+      "backgroundColor": "rgb(234, 242, 255)",
+      "borderColor": "rgb(13, 76, 211)",
+      "color": "rgb(11, 31, 51)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "primary_button": {
+      "height": "44px",
+      "borderRadius": "3px",
+      "backgroundColor": "rgb(13, 76, 211)",
+      "borderColor": "rgb(10, 63, 176)",
+      "color": "rgb(255, 255, 255)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "email_link": {
+      "height": "44px",
+      "borderRadius": "3px",
+      "backgroundColor": "rgb(255, 255, 255)",
+      "borderColor": "rgb(213, 220, 227)",
+      "color": "rgb(11, 31, 51)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    }
+  },
   "computed_style": {
     "height": "44px",
     "borderRadius": "3px",
@@ -65,7 +221,7 @@
   "status": "pass",
   "evidence_type": "runtime_browser",
   "live_evidence": true,
-  "timestamp": "2026-10-29T20:23:56Z",
+  "timestamp": "2026-10-30T21:15:11Z",
   "command": "python3 scripts/run_browser_qa.py",
   "exit_code": 0
 }

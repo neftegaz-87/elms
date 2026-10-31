@@ -252,6 +252,11 @@ SUBEOF
 RUN chmod 755 /usr/local/bin/nginx-entrypoint.sh \
     && chmod 644 /templates/nginx/frappe.conf.template /etc/nginx/snippets/security_headers.conf
 
+COPY docker/vault/load-env.sh /usr/local/bin/load-elms-vault-env.sh
+COPY docker/vault/with-env.sh /usr/local/bin/with-env.sh
+
+RUN chmod 755 /usr/local/bin/load-elms-vault-env.sh /usr/local/bin/with-env.sh
+
 FROM base AS builder
 
 RUN apt-get update \
@@ -340,6 +345,8 @@ set -e
 
 umask 0002
 
+source /usr/local/bin/load-elms-vault-env.sh
+
 ASSETS_PATH="/home/frappe/frappe-bench/sites/assets"
 BAKED_PATH="/home/frappe/frappe-bench/assets"
 
@@ -347,6 +354,11 @@ echo "Linking fresh assets to volume..."
 rm -rf "$ASSETS_PATH"
 mkdir -p "$(dirname "$ASSETS_PATH")"
 ln -s "$BAKED_PATH" "$ASSETS_PATH"
+
+if [[ "${ELMS_BUILD_ASSETS_ON_START:-0}" == "1" ]]; then
+  echo "Building Frappe assets before starting the application..."
+  bench build --force
+fi
 
 exec "$@"
 SUBEOF

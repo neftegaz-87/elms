@@ -1,0 +1,198 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B06-elms-vault-secrets
+task_id: T-B06-elms-vault-secrets
+title: s03 — Synthetic Vault recovery evidence, redaction checks, and legacy fallback purge IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-B06-elms-vault-secrets/yaml/steps/s03-synthetic-restore-redaction-and-legacy-fallback-purge.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - Vault operator helpers use the non-secret ELMS_VAULT_OPERATOR_TOKEN contract and expose bootstrap, rotation, revoke, synthetic snapshot, and disposable restore paths without value logging.
+  - Vault preflight now covers sealed, unavailable, unauthorized, missing-render, and redacted synthetic states while the live AppRole read uses an explicit token flag.
+  - Production Keycloak render and realm no longer contain the legacy local fallback user/password; dev mode is explicit and independent from production Vault delivery.
+  - Production guidance is value-free and uses authenticated AppRole/preflight, protected snapshot, rotation, revoke, and disposable restore runbooks.
+  - Protected site bootstrap is delegated to the Vault-aware image helper instead of expanding rendered passwords in Compose.
+
+files:
+  - scripts/infra/vault_bootstrap.sh
+  - scripts/infra/vault_snapshot.sh
+  - scripts/infra/vault_preflight.sh
+  - scripts/infra/check_secret_contract.py
+  - scripts/infra/check_compose_policy.py
+  - docker/compose.prod.yaml
+  - docker/compose.dev.yaml
+  - docker/vault/keycloak.env.tpl
+  - docker/vault/load-env.sh
+  - docker/vault/with-env.sh
+  - docker/keycloak/entrypoint.sh
+  - docker/keycloak/realm-elms.json
+  - docker/README.md
+  - docker/.env.dev.example
+  - docker/compose.dev.yaml
+  - docs/operations/elms-production.md
+  - tests/infra/test_vault_recovery_contract.py
+  - tests/infra/fixtures/vault-sealed.json
+  - tests/infra/fixtures/vault-unavailable.json
+  - tests/infra/fixtures/vault-unauthorized.json
+  - tests/infra/fixtures/vault-redaction.json
+  - tests/infra/fixtures/vault-synthetic-snapshot.json
+
+deletes:
+  - docker/README.md production copy-passwords instructions
+  - scripts/infra/* secret-value echo/print paths
+  - tests/infra/* direct-secret/fallback fixtures and obsolete old-contract cases
+  - any remaining direct production credential interpolation or root-token fallback found by the inventory
+  - KEYCLOAK_FALLBACK_PASSWORD production render and realm user
+  - VAULT_TOKEN operator environment examples and runtime paths
+
+sunset_inventory:
+  boundary_id: elms-static-secrets-single-sot
+  status: completed
+  schema: loop-sunset-inventory/v1
+  new_sot: Vault KV v2 elms/data/runtime via Vault Agent AppRole render
+  items:
+    - kind: A
+      symbol: create_site_bench_new_site_credentials
+      path: docker/compose.prod.yaml
+      mark: REPLACE
+    - kind: A
+      symbol: README_inline_mariadb_password
+      path: docker/README.md
+      mark: REPLACE
+    - kind: B
+      symbol: README_dev_env_secret_storage
+      path: docker/README.md
+      mark: REPLACE
+    - kind: B
+      symbol: docker_up_default_dev_mode
+      path: scripts/docker-up.sh
+      mark: REPLACE
+    - kind: B
+      symbol: load_env_optional_vault_bypass
+      path: docker/vault/load-env.sh
+      mark: REPLACE
+    - kind: C
+      symbol: README_local_keycloak_fallback
+      path: docker/README.md
+      mark: REPLACE
+    - kind: C
+      symbol: README_direct_frappe_break_glass
+      path: docker/README.md
+      mark: REPLACE
+    - kind: I
+      symbol: test_live_smoke_dev_public_url
+      path: tests/infra/test_live_smoke_contract.py
+      mark: REPLACE
+    - kind: I
+      symbol: vault_bootstrap_token_exec_env
+      path: scripts/infra/vault_bootstrap.sh
+      mark: REPLACE
+    - kind: I
+      symbol: vault_snapshot_token_exec_env
+      path: scripts/infra/vault_snapshot.sh
+      mark: REPLACE
+    - kind: I
+      symbol: operations_inline_vault_token_examples
+      path: docs/operations/elms-production.md
+      mark: REPLACE
+
+wire_complete:
+  call_sites:
+    - scripts/infra/vault_bootstrap.sh provides bootstrap, rotate, and revoke status-only operator paths
+    - scripts/infra/vault_snapshot.sh provides synthetic snapshot and disposable restore evidence
+    - scripts/infra/vault_preflight.sh gates sealed, unavailable, unauthorized, and incomplete render states
+    - docker/compose.prod.yaml consumes only Vault Agent renders and password files
+  enforce_path: authenticated Vault Agent render plus fail-closed preflight is the only production static-secret delivery path
+  dual_path_rg: "rg -n 'KEYCLOAK_FALLBACK_PASSWORD|VAULT_DEV_ROOT_TOKEN_ID|VAULT_ROOT_TOKEN|VAULT_TOKEN' docker/compose.prod.yaml docker/vault scripts/infra scripts/docker-up.sh docs/operations || true"
+  instruction_rg: "rg -n -i 'copy.*(password|secret)|print.*(password|secret)|paste.*(token|secret)|fallback.user|direct.*(frappe|secret)' docker/README.md docs/operations || true"
+  deny_old_proven: true
+
+tests:
+  - '`python3 -m pytest -q tests/infra -k "vault or secret or redaction or restore"`'
+  - '`bash -n scripts/infra/vault_bootstrap.sh scripts/infra/vault_snapshot.sh scripts/infra/vault_preflight.sh`'
+  - '`bash scripts/infra/vault_bootstrap.sh --help`'
+  - '`bash scripts/infra/vault_snapshot.sh --help`'
+  - '`python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault`'
+  - '`docker compose --env-file docker/.env.prod.example -f docker/compose.prod.yaml config --quiet`'
+
+integration_check:
+  - '`python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault` — PASS'
+  - '`bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example --dry-run` — PASS'
+  - '`bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example --dry-run --fixture tests/infra/fixtures/vault-missing-path.json` — expected non-zero'
+  - '`python3 -m pytest -q tests/infra -k "vault or secret or redaction or restore"` — PASS'
+
+verification_results:
+  - '`python3 -m pytest -q tests/infra` — 27 passed.'
+  - '`bash -n scripts/infra/vault_bootstrap.sh scripts/infra/vault_snapshot.sh scripts/infra/vault_preflight.sh docker/vault/with-env.sh docker/keycloak/entrypoint.sh` — PASS.'
+  - '`python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault` — PASS.'
+  - '`python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml` — PASS.'
+  - '`docker compose --env-file docker/.env.prod.example -f docker/compose.prod.yaml config --quiet` — PASS.'
+  - '`docker compose --env-file docker/.env.dev.example -f docker/compose.dev.yaml config --quiet` — PASS; dev Vault mode is explicit and independent.'
+  - '`bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example --dry-run` — PASS.'
+  - 'Synthetic sealed, unavailable, unauthorized, and missing-path fixtures return non-zero; positive fixture and all recovery operations redact values.'
+  - 'Bounded production purge scan has no direct credential interpolation, public Vault port, root-token/operator-token legacy name, fallback password/user, or secret-copy instruction.'
+
+sunset_inventory_evidence:
+  schema: loop-sunset-inventory/v1
+  boundary_id: elms-static-secrets-single-sot
+  status: completed
+  forbidden_for_parent: []
+  diagnostic_codes:
+    - LEGACY_DIRECT_PROD_CREDENTIAL
+    - LEGACY_DEV_SECRET_STORAGE
+    - LEGACY_FALLBACK_AUTH_PATH
+    - LEGACY_SECRET_ARGV_SURFACE
+    - LEGACY_OAUTH_SMOKE_TEST
+  controls:
+    - direct production credential environment scan: no output
+    - Vault dev/root/public-port scan: no output
+    - secret-copy and value-print instruction scan: no output
+    - fallback password/user scan in production, infra, and operations surfaces: no output
+    - dev compose explicitly sets ELMS_VAULT_REQUIRED=0; production services explicitly require rendered Vault files
+
+plan_parity_scan:
+  fr_ids:
+    FR-005: dev-only synthetic configuration remains explicit and is not read by production Compose or preflight.
+    FR-006: bootstrap, rotate, revoke, snapshot, restore, and preflight paths emit status-only redacted diagnostics.
+  target_layout:
+    - scripts/infra/vault_bootstrap.sh
+    - scripts/infra/vault_snapshot.sh
+    - scripts/infra/vault_preflight.sh
+    - tests/infra/
+    - docs/operations/
+    - docker/README.md
+
+checkpoints:
+  - id: cp1
+    criterion: Every Kind A row has zero production callers and no live test asserts the removed direct-secret contract.
+    status: done
+  - id: cp2
+    criterion: Entrypoint inventory has no public Vault port or legacy secret-copy command.
+    status: done
+  - id: cp3
+    criterion: Sealed, unavailable, unauthorized, and missing-key states fail without synthetic or root-token fallback.
+    status: done
+  - id: cp4
+    criterion: Operator instructions describe only the non-secret Vault/AppRole/preflight path.
+    status: done
+  - id: cp5
+    criterion: Disposable synthetic Raft snapshot restores the fixture and preserves redacted output.
+    status: done
+  - id: cp6
+    criterion: Targeted infra and contract tests remain green without restoring the legacy production secret path.
+    status: done
+
+resume_from: cp1

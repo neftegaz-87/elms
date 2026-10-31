@@ -1,0 +1,64 @@
+{
+ "charts": [],
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>ELMS \u0421\u0414\u041e</b></span>\", \"col\": 12}}, {\"type\": \"paragraph\", \"data\": {\"text\": \"\u041e\u043f\u0435\u0440\u0430\u0446\u0438\u043e\u043d\u043d\u044b\u0439 \u043a\u043e\u043d\u0442\u0443\u0440 ELMS: \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u044b \u0438 \u0440\u0430\u0431\u043e\u0447\u0438\u0435 \u0437\u0430\u0434\u0430\u0447\u0438.\", \"col\": 12}}, {\"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041e\u043f\u0435\u0440\u0430\u0446\u0438\u043e\u043d\u043d\u044b\u0439 \u043a\u043e\u043d\u0442\u0443\u0440\", \"col\": 4}}]",
+ "creation": "2026-10-30 02:49:57.063935",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 1,
+ "icon": "organization",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Operations",
+ "links": [
+  {
+   "hidden": 0,
+   "icon": "organization",
+   "is_query_report": 0,
+   "label": "\u041e\u043f\u0435\u0440\u0430\u0446\u0438\u043e\u043d\u043d\u044b\u0439 \u043a\u043e\u043d\u0442\u0443\u0440",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 Operations",
+   "link_count": 0,
+   "link_to": "ELMS Operations Section",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-30 02:51:15.985606",
+ "modified_by": "Administrator",
+ "module": "Operations",
+ "name": "Operations",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "ELMS Admin"
+  },
+  {
+   "role": "ELMS Operations User"
+  }
+ ],
+ "sequence_id": 2.0,
+ "shortcuts": [
+  {
+   "icon": "check-circle",
+   "label": "Сверка заявки",
+   "type": "URL",
+   "url": "/app/elms-review"
+  }
+ ],
+ "title": "Operations"
+}

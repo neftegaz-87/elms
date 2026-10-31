@@ -2,6 +2,11 @@
 	email {$ACME_EMAIL}
 }
 
+http://{$SITE_NAME} {
+	@health path /healthz
+	respond @health 200
+}
+
 {$SITE_NAME} {
 	encode zstd gzip
 	reverse_proxy frontend:{$NGINX_LISTEN_PORT} {
@@ -11,6 +16,11 @@
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
 	}
+}
+
+http://{$AUTH_HOSTNAME} {
+	@health path /healthz
+	respond @health 200
 }
 
 {$AUTH_HOSTNAME} {

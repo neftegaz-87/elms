@@ -49,6 +49,15 @@ APPROVED_ROLE_MAPPINGS: dict[str, list[str]] = {
     "/Students": ["Student"],
 }
 
+
+def update_website_context(context: dict[str, Any]) -> dict[str, Any]:
+    if context.get("for_test") == "login.html":
+        return {
+            "app_name": "ELMS СДО",
+        }
+    return {}
+
+
 if not hasattr(frappe, "ValidationError"):
     class ValidationError(Exception):
         pass
@@ -155,11 +164,11 @@ def reconcile_keycloak_user(user_doc, keycloak_data: dict[str, Any]) -> None:
                     roles_to_add.add(role_name)
 
     existing_roles = {r.role for r in getattr(user_doc, "roles", [])}
+    user_doc.flags.ignore_permissions = True
     for role in roles_to_add:
         if role not in existing_roles:
             user_doc.add_roles(role)
 
-    user_doc.flags.ignore_permissions = True
     user_doc.save()
 
 
@@ -239,6 +248,8 @@ def after_migrate() -> None:
     """
     ensure_roles()
     ensure_section_perms()
+    from elms.desk.workspaces import ensure_workspaces
+    ensure_workspaces()
     from elms.sso.ensure import ensure_social_login_keys
     ensure_social_login_keys()
 
@@ -251,6 +262,8 @@ def after_install() -> None:
     """
     ensure_roles()
     ensure_section_perms()
+    from elms.desk.workspaces import ensure_workspaces
+    ensure_workspaces()
 
     try:
         from elms.sso.ensure import ensure_social_login_keys

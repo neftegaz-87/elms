@@ -1,14 +1,1 @@
----
-description: Подход ELMS — Frappe как framework, своё приложение
-alwaysApply: true
----
-
-# ELMS
-
-- Продукт: свой ERP + LMS в custom app `elms`.
-- Frappe Framework — runtime и образец организации кода.
-- Эталон паттернов: `/home/aero/PyProject/PersonalProject/frappe-erp-crm` (read-only).
-- Не ставить ERPNext / Frappe LMS / Education / CRM / HRMS как apps продукта.
-- Перед новым модулем — запись в `memory-bank/product/modules.md`.
-- Отвечать по-русски. Не писать комментарии в код без просьбы. Не чинить linter без просьбы.
-- Ошибки исправлять по причине; без silent fallback.
+../../rules/elms-approach.mdc

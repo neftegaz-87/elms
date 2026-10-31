@@ -1,0 +1,306 @@
+schema: epic-decompose-index/v1
+plan_id: T-B06-elms-vault-secrets
+level: L3
+sNN_cap: 3
+dependencies:
+- T-B05-elms-production-container-stack
+blocks:
+- T-B07-elms-backup-operations
+- T-B08-elms-cicd-release-rollback
+steps:
+- id: s01
+  file: s01-vault-raft-render-contract.yaml
+  title: Pinned Vault Raft service and protected render contract
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-approle-startup-gate-and-password-files.yaml
+  title: AppRole render gate and fail-closed database/application delivery
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-synthetic-restore-redaction-and-legacy-fallback-purge.yaml
+  title: Synthetic Vault recovery evidence, redaction checks, and legacy fallback
+    purge
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Pinned single-node Vault with integrated Raft storage, persistent volume,
+    no host port, and no dev mode.
+- id: FR-002
+  step: s01
+  description: KV v2 paths and least-privilege policies expose only the contracts
+    required by ELMS backend and Keycloak.
+- id: FR-003
+  step: s02
+  description: Vault Agent renders protected runtime files and MariaDB/PostgreSQL
+    consume password files where supported.
+- id: FR-004
+  step: s02
+  description: Sealed, unavailable, unauthorized, or incomplete Vault render produces
+    non-zero preflight and blocks promotion.
+- id: FR-005
+  step: s03
+  description: Local/dev synthetic secrets remain separate from production Vault material
+    and are covered by negative fixtures.
+- id: FR-006
+  step: s03
+  description: Init, unseal, rotation, snapshot, restore, revoke, and redaction runbooks
+    never print secret values.
+stages_coverage:
+- stage: Stage s01 — add the pinned Vault service, Raft volume, protected render volume,
+    KV v2 templates, and policy
+  step: s01
+- stage: Stage s02 — wire AppRole/Vault Agent readiness into database, Frappe, Keycloak,
+    and promotion entrypoints
+  step: s02
+- stage: Stage s03 — prove sealed/missing/unauthorized/redaction/restore behavior
+    and remove legacy secret paths
+  step: s03
+outcome_map:
+- outcome: Production ELMS has a private, persistent Vault boundary with no public
+    Vault listener or dev-mode bootstrap.
+  step: s01
+- outcome: Services start only after authenticated render of their exact secret contract;
+    missing or invalid Vault state halts promotion.
+  step: s02
+- outcome: Operators have safe synthetic recovery evidence and runbooks, while no
+    secret-copy or permissive fallback path remains.
+  step: s03
+prompt_outcome_coverage:
+- id: done-production-no-env-fallback
+  source: prompt.md#done-when
+  outcome: Production does not read secrets from an .env fallback.
+  coverage: s02 preflight and s03 local/dev fallback purge
+  replacement: authenticated Vault Agent render with no local-secret or dev fallback
+- id: done-authenticated-startup-fail-closed
+  source: prompt.md#done-when
+  outcome: Vault Agent render and backend/Keycloak startup fail closed.
+  coverage: s02 exact production env preflight and startup gate
+  replacement: non-zero preflight before application promotion
+- id: done-disposable-snapshot-restore
+  source: prompt.md#done-when
+  outcome: Disposable snapshot restore is confirmed with a synthetic fixture.
+  coverage: s03 final purge evidence and restore fixture
+  replacement: synthetic redacted snapshot/restore evidence
+- id: forbidden-vault-dev-mode
+  source: prompt.md#forbidden-after
+  outcome: Vault dev mode is absent.
+  coverage: s01 and s03 sunset/grep controls
+  replacement: pinned integrated-Raft Vault
+- id: forbidden-root-token-runtime
+  source: prompt.md#forbidden-after
+  outcome: Root token is absent from runtime.
+  coverage: s02 and s03 sunset/grep controls
+  replacement: least-privilege authenticated AppRole render
+- id: forbidden-public-vault-port
+  source: prompt.md#forbidden-after
+  outcome: Public Vault port 8200 is absent.
+  coverage: s01 and s03 sunset/grep controls
+  replacement: private Compose-only listener
+- id: forbidden-secrets-in-images-logs-manifests
+  source: prompt.md#forbidden-after
+  outcome: Secrets are absent from images, logs, and release manifests.
+  coverage: s01 release-manifest/image-redaction boundary and s03 purge evidence
+  replacement: redacted image, log, and manifest evidence
+- id: forbidden-read-only-oauth-session-state
+  source: prompt.md#forbidden-after
+  outcome: A read-only Vault path does not replace writable application-owned OAuth/session
+    state.
+  coverage: s01 boundary and s03 purge evidence
+  replacement: writable application-owned OAuth/session state
+replacement_cleanup:
+  s01:
+    replaces: Unauthenticated or dev-mode Vault configuration and any public Vault
+      listener in the production stack.
+    target: docker/compose.prod.yaml and docker/vault/
+    items:
+    - symbol: docker/compose.prod.yaml::VAULT_DEV_ROOT_TOKEN_ID
+      kind: C
+      replacement: pinned Raft Vault service with authenticated AppRole/Agent flow
+      step: s01
+      policy: delete in-epic
+    - symbol: docker/compose.prod.yaml::8200:8200
+      kind: B
+      replacement: private Compose-only Vault listener without host publication
+      step: s01
+      policy: delete in-epic
+  s02:
+    replaces: Direct production secret interpolation and startable services without
+      a complete Vault render.
+    target: docker/compose.prod.yaml, docker/vault/agent.hcl, scripts/infra/vault_preflight.sh
+    items:
+    - symbol: docker/compose.prod.yaml direct DB_PASSWORD/KEYCLOAK_DB_PASSWORD/KEYCLOAK_CLIENT_SECRET
+      kind: A
+      replacement: rendered files and *_PASSWORD_FILE delivery
+      step: s02
+      policy: delete in-epic
+    - symbol: production startup without authenticated Vault Agent render
+      kind: C
+      replacement: non-zero preflight and explicit service dependency gate
+      step: s02
+      policy: delete in-epic
+    - symbol: root-token runtime injection into application services
+      kind: C
+      replacement: read-only elms-agent AppRole policy and short-lived render token
+      step: s02
+      policy: delete in-epic
+  s03:
+    replaces: Secret-copy instructions, value-printing helpers, and legacy tests that
+      permit a permissive production fallback.
+    target: docker/README.md, docs/operations/, scripts/infra/, tests/infra/
+    items:
+    - symbol: docker/README.md production copy-passwords instructions
+      kind: I
+      replacement: non-secret env plus Vault preflight/bootstrap/runbook instructions
+      step: s03
+      policy: rewrite in-epic
+    - symbol: scripts/infra/* secret-value echo/print paths
+      kind: A
+      replacement: redacted diagnostics and exit-status evidence
+      step: s03
+      policy: delete in-epic
+    - symbol: secrets in images, logs, or release manifests
+      kind: A
+      replacement: redacted image/log/manifest evidence
+      step: s03
+      policy: delete in-epic
+    - symbol: local/dev synthetic or local-secret production fallback
+      kind: C
+      replacement: fail-closed authenticated Vault render
+      step: s03
+      policy: delete in-epic
+    - symbol: read-only Vault path for OAuth/session state
+      kind: C
+      replacement: writable application-owned OAuth/session state
+      step: s03
+      policy: delete in-epic
+    - symbol: tests/infra/* legacy direct-secret/fallback fixtures
+      kind: A
+      replacement: synthetic Vault contract and restore fixtures
+      step: s03
+      policy: delete in-epic
+  items:
+  - symbol: docker/compose.prod.yaml::VAULT_DEV_ROOT_TOKEN_ID
+    kind: C
+    replacement: authenticated Raft/AppRole flow
+    step: s01
+    policy: delete in-epic
+  - symbol: docker/compose.prod.yaml::8200:8200
+    kind: B
+    replacement: internal-only Vault listener
+    step: s01
+    policy: delete in-epic
+  - symbol: docker/compose.prod.yaml direct production credential environment keys
+    kind: A
+    replacement: Vault Agent rendered files and password-file variables
+    step: s02
+    policy: delete in-epic
+  - symbol: application promotion when Vault is sealed/unavailable/unauthorized
+    kind: C
+    replacement: fail-closed preflight and dependency gate
+    step: s02
+    policy: delete in-epic
+  - symbol: root-token runtime path
+    kind: C
+    replacement: least-privilege AppRole render token
+    step: s02
+    policy: delete in-epic
+  - symbol: docker/README.md production copy-passwords instructions
+    kind: I
+    replacement: Vault operator runbooks without values
+    step: s03
+    policy: rewrite in-epic
+  - symbol: scripts/infra/* secret-value logging
+    kind: A
+    replacement: redacted status-only diagnostics
+    step: s03
+    policy: delete in-epic
+  - symbol: tests/infra/* direct-secret/fallback fixtures
+    kind: A
+    replacement: synthetic fail-closed Vault fixtures
+    step: s03
+    policy: delete in-epic
+  - symbol: secrets in images
+    kind: A
+    replacement: redacted image evidence
+    step: s03
+    policy: delete in-epic
+  - symbol: secrets in logs
+    kind: A
+    replacement: redacted status-only diagnostics
+    step: s03
+    policy: delete in-epic
+  - symbol: secrets in release manifests
+    kind: A
+    replacement: redacted release-manifest evidence
+    step: s03
+    policy: delete in-epic
+  - symbol: local/dev or local-secret production fallback
+    kind: C
+    replacement: authenticated Vault render with fail-closed startup
+    step: s03
+    policy: delete in-epic
+  - symbol: read-only Vault path replacing OAuth/session state
+    kind: C
+    replacement: writable application-owned OAuth/session state
+    step: s03
+    policy: delete in-epic
+  sunset:
+  - docker/compose.prod.yaml::VAULT_DEV_ROOT_TOKEN_ID
+  - docker/compose.prod.yaml::8200:8200
+  - direct production credential environment keys
+  - startable application promotion without complete Vault render
+  - root-token runtime path
+  - docker/README.md production copy-passwords instructions
+  - secret-value logging in infra helpers
+  - direct-secret/fallback fixtures in tests/infra
+  - secrets in images, logs, and release manifests
+  - local/dev or local-secret production fallback
+  - read-only Vault path replacing writable OAuth/session state
+final_prompt_outcome_evidence:
+- prompt_outcome: Production does not read secrets from an .env fallback.
+  evidence: s02 preflight and s03 local/dev fallback grep controls
+- prompt_outcome: Vault Agent render and backend/Keycloak startup fail closed.
+  evidence: s02 exact production env preflight and startup-gate contract
+- prompt_outcome: Disposable snapshot restore is confirmed with a synthetic fixture.
+  evidence: s03 synthetic snapshot/restore checkpoint
+- prompt_outcome: Vault dev mode is absent.
+  evidence: s01/s03 dev-mode sunset inventory and grep control
+- prompt_outcome: Root token is absent from runtime.
+  evidence: s02/s03 root-token sunset inventory and grep control
+- prompt_outcome: Public Vault port 8200 is absent.
+  evidence: s01/s03 host-port sunset inventory and grep control
+- prompt_outcome: Secrets are absent from images, logs, and release manifests.
+  evidence: s01 image/manifest redaction boundary and s03 purge grep controls
+- prompt_outcome: Writable application-owned OAuth/session state remains outside the
+    read-only Vault path.
+  evidence: s01 boundary noun and s03 final purge grep control
+deletes:
+- docker/compose.prod.yaml::VAULT_DEV_ROOT_TOKEN_ID
+- docker/compose.prod.yaml::8200:8200
+- direct production credential environment interpolation
+- application startup without authenticated Vault render
+- root-token runtime injection
+- secret-value logging in infra helpers
+- obsolete direct-secret/fallback fixtures
+- production copy-passwords instructions
+out_of_scope:
+- T-B05-owned production service/network/volume boundary outside the Vault contract
+- T-B07-owned external backup repository, freshness evidence, and restore scheduling
+- T-B08-owned registry credentials, protected deployment approval, and release execution
+- cloud secret managers, HA/auto-unseal, public Vault exposure, and automatic production
+  bootstrap
+follow_up:
+- epic_id: T-B07-elms-backup-operations
+  scope: consume Vault Raft snapshots and provide external backup freshness/capacity/restore
+    evidence
+- epic_id: T-B08-elms-cicd-release-rollback
+  scope: consume Vault preflight in protected deployment and rollback execution
+boundary_notes:
+- Real production secret values, unseal/recovery custody, and role/secret-id files
+  remain an explicit operator gate; no value is generated or committed by this epic.
+- User OAuth/session state remains application-owned and is not placed on a read-only
+  Vault path.

@@ -29,7 +29,32 @@
         "name": "student",
         "description": "Student role"
       }
-    ]
+    ],
+    "client": {
+      "neftegaz-review": [
+        {
+          "name": "review_admin",
+          "description": "Full access to the application review queue",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "neftegaz-review"
+        },
+        {
+          "name": "review_dispatcher",
+          "description": "Access to assigned review applications",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "neftegaz-review"
+        },
+        {
+          "name": "review_queue_supervisor",
+          "description": "Queue-wide access and assignment management",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "neftegaz-review"
+        }
+      ]
+    }
   },
   "groups": [
     {
@@ -174,6 +199,88 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "neftegaz-review",
+      "name": "Neftegaz application review",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "secret": "${env.NEFTEGAZ_REVIEW_CLIENT_SECRET:}",
+      "rootUrl": "__NEFTEGAZ_REVIEW_PUBLIC_URL__",
+      "baseUrl": "__NEFTEGAZ_REVIEW_PUBLIC_URL__",
+      "redirectUris": [
+        "__NEFTEGAZ_REVIEW_PUBLIC_URL__/auth/callback"
+      ],
+      "webOrigins": [
+        "__NEFTEGAZ_REVIEW_PUBLIC_URL__"
+      ],
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "review-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "neftegaz-review",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "review_roles",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        },
+        {
+          "name": "bitrix-user-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "bitrix_user_id",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "bitrix_user_id",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "bitrix-member-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "bitrix_member_id",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "bitrix_member_id",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "bitrix-department-ids",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "bitrix_department_ids",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "bitrix_department_ids",
+            "jsonType.label": "String"
+          }
+        }
+      ]
     }
   ],
   "users": [
@@ -194,29 +301,91 @@
       "realmRoles": [
         "admin"
       ],
+      "clientRoles": {
+        "neftegaz-review": [
+          "review_admin"
+        ]
+      },
       "groups": [
         "/Administrators"
       ]
     },
     {
-      "username": "fallback.user",
-      "email": "fallback.user@elms.local",
+      "username": "elms.test.one@elms.local",
+      "email": "elms.test.one@elms.local",
       "enabled": true,
       "emailVerified": true,
-      "firstName": "Fallback",
-      "lastName": "User",
+      "firstName": "ELMS Test",
+      "lastName": "One",
       "credentials": [
         {
           "type": "password",
-          "value": "${env.KEYCLOAK_FALLBACK_PASSWORD}",
+          "value": "${env.KEYCLOAK_TEST_ONE_PASSWORD}",
           "temporary": false
         }
       ],
       "realmRoles": [
         "employee"
       ],
+      "clientRoles": {
+        "neftegaz-review": [
+          "review_dispatcher"
+        ]
+      },
       "groups": [
         "/Employees"
+      ]
+    },
+    {
+      "username": "elms.test.two@elms.local",
+      "email": "elms.test.two@elms.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "ELMS Test",
+      "lastName": "Two",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${env.KEYCLOAK_TEST_TWO_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "employee"
+      ],
+      "clientRoles": {
+        "neftegaz-review": [
+          "review_queue_supervisor"
+        ]
+      },
+      "groups": [
+        "/Employees"
+      ]
+    },
+    {
+      "username": "elms.test.admin@elms.local",
+      "email": "elms.test.admin@elms.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "ELMS Test",
+      "lastName": "Administrator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${env.KEYCLOAK_TEST_ADMIN_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ],
+      "clientRoles": {
+        "neftegaz-review": [
+          "review_admin"
+        ]
+      },
+      "groups": [
+        "/Administrators"
       ]
     }
   ]

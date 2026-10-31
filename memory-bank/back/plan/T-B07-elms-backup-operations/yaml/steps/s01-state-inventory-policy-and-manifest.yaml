@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-B07-elms-backup-operations
+title: Complete ELMS state inventory and non-secret backup policy manifest
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать полный non-secret контракт состояния ELMS для RPO 24h/RTO 4h: sites/logs,
+  MariaDB, Keycloak PostgreSQL, Redis queue, Vault Raft и Caddy data/config, включая
+  restore method, retention/capacity policy и redaction boundary.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-005
+  nouns:
+    - sites
+    - logs
+    - MariaDB db-data
+    - Keycloak PostgreSQL keycloak-db-data
+    - Redis queue data
+    - Vault Raft data/snapshot
+    - Caddy caddy-data/caddy-config
+    - encrypted client-side off-host repository
+    - state manifest
+    - retention
+    - redaction
+    - review service handoff/config contract
+  layout_paths:
+    - scripts/infra/backup_runner.py
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  ac_quotes:
+    - 'FR-001: encrypted client-side off-host repository (restic/S3-compatible) with state manifest.'
+    - 'FR-005: logs/manifests redact PII, OAuth and Vault recovery material.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:9-19
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:25-29
+
+context:
+  consumes:
+    - T-B05 named production volumes and service inventory
+    - T-B06 Vault Raft snapshot boundary and recovery-material exclusion
+  produces:
+    - complete elms-backup-manifest/v1 inventory
+    - explicit RPO/RTO, retention, capacity, encryption, and restore-method policy
+    - non-secret output/redaction contract for operators and tests
+  plan_refs:
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:9-19
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/prompt.md:6-9
+  files:
+    - scripts/infra/backup_runner.py
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+
+as_built:
+  - scripts/infra/backup_runner.py already declares the eight ELMS state items and a non-secret manifest command.
+  - The current manifest has RPO/RTO, retention, capacity, restore-method, and exclusion fields but validation/redaction coverage is minimal.
+  - The production runbook names the backup command and excludes review-service state, while external custody remains operator-owned.
+
+delta:
+  - Make the manifest schema and every state class/policy field machine-validated, including application, RPO/RTO, retention, encryption, and minimum capacity.
+  - Preserve exact restore methods for each state class and explicitly exclude review-service state, OAuth sessions, Vault tokens/AppRole IDs, and recovery/unseal material.
+  - Add targeted redaction/manifest contract tests and non-secret operator guidance without inventing production secret values.
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - Live volume/database export and real external repository bootstrap.
+  - Review-service application-state backup, which remains owned by its repository.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+  omit_justification:
+    python-observability: No metrics or structured telemetry is introduced in the static manifest contract.
+    python-resilience: Retry/circuit behavior belongs to the verified runner, not the inventory schema.
+
+checkpoints:
+  - id: cp1
+    criterion: Manifest covers every declared ELMS state class exactly once and records encryption, off-host, RPO/RTO, retention, and capacity policy.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'backup_manifest'
+  - id: cp2
+    criterion: State restore methods map to sites/logs, MariaDB, Keycloak PostgreSQL, Redis queue, Vault Raft, and Caddy data/config without duplicating review-service state.
+    verify: python3 scripts/infra/backup_runner.py manifest --output /tmp/elms-backup-manifest.json && rg -n 'frappe-sites|frappe-logs|mariadb|keycloak-postgres|redis-queue|vault-raft|caddy-data|caddy-config|review-service' /tmp/elms-backup-manifest.json
+  - id: cp3
+    criterion: Generated manifest and status-facing guidance contain no OAuth, Vault recovery, or handoff secret values.
+    verify: '! rg -n -i "(client_secret|handoff_secret|secret_id|unseal|recovery_key|oauth.*cookie)" /tmp/elms-backup-manifest.json docs/operations/elms-production.md'
+
+verify:
+  - python3 -m pytest -q tests/infra/test_production_contracts.py -k 'backup_manifest'
+  - python3 scripts/infra/backup_runner.py manifest --output /tmp/elms-backup-manifest.json
+  - rg -n 'rpo_hours|rto_hours|retention_days|minimum_free_bytes|encrypted_off_host_repository' /tmp/elms-backup-manifest.json
+  - rg -n -i 'review service|Vault|OAuth|recovery|redact|non-secret' docs/operations/elms-production.md
+
+tdd:
+  - test_backup_manifest_and_disposable_restore
+  - test_backup_manifest_has_complete_policy_and_redaction_boundary

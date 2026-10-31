@@ -1,0 +1,148 @@
+html:has(body[data-route="elms-review"]),
+body[data-route="elms-review"] {
+	overflow: hidden;
+}
+
+body[data-route="elms-review"] #body {
+	position: fixed;
+	top: var(--navbar-height);
+	right: 0;
+	bottom: 0;
+	left: var(--ds-desk-rail-width, 0px);
+	display: block !important;
+	width: auto !important;
+	height: auto;
+	margin-left: 0 !important;
+	min-height: 0;
+	overflow: hidden;
+	overscroll-behavior: none;
+}
+
+.elms-review-page {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100% !important;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.elms-review-shell {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100% !important;
+	height: 100% !important;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+	background: var(--ds-surface-raised, var(--bg-color, #f5f7fa));
+}
+
+.elms-review-page .page-head {
+	display: none !important;
+}
+
+.elms-review-page .page-head > .container,
+.elms-review-page .page-body,
+.elms-review-page .page-wrapper,
+.elms-review-page .page-content {
+	width: 100%;
+	max-width: none;
+	min-width: 0;
+	margin-left: 0;
+	margin-right: 0;
+}
+
+.elms-review-page .page-head > .container {
+	height: 100%;
+}
+
+.elms-review-page .page-body {
+	display: none !important;
+	width: 100% !important;
+	height: 0;
+	min-height: 0;
+	max-width: none !important;
+}
+
+.elms-review-page .page-wrapper,
+.elms-review-page .page-content {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	width: 100% !important;
+	height: auto;
+	min-height: 0;
+}
+
+.elms-review-page .layout-main {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex: 1 1 auto;
+	width: 100% !important;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
+.elms-review-page .layout-main-section-wrapper {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	width: 100% !important;
+	height: auto;
+	min-width: 0;
+	min-height: 0;
+	max-width: none;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+.elms-review-page .layout-main-section,
+.elms-review-page-main {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	width: 100% !important;
+	height: auto;
+	min-width: 0;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	overflow: hidden;
+	background: var(--ds-surface-raised, var(--bg-color, #f5f7fa));
+}
+
+.elms-review-page .layout-footer {
+	display: none;
+}
+
+.elms-review-page .elms-review-frame {
+	position: absolute;
+	inset: 0;
+	display: block !important;
+	width: 100% !important;
+	height: 100% !important;
+	min-height: 0;
+	border: 0;
+	overflow: hidden;
+	background: var(--ds-surface, #ffffff);
+}
+
+@media (max-width: 991px) {
+	body[data-route="elms-review"] #body {
+		left: 0;
+	}
+}

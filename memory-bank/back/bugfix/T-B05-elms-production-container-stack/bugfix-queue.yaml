@@ -1,0 +1,39 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-B05-elms-production-container-stack
+role: back
+source_qa: memory-bank/back/qa/T-B05-elms-production-container-stack/qa-20261031-production-container-stack.yaml
+checklist_sha256: d4cf3a6edc46bdb21654f575df37c41f0a5c595a89d83082bbb0f58bfdb6d1cf
+created_at: '2026-10-31T13:59:44Z'
+updated_at: '2026-10-31T14:56:33Z'
+current_id: BF-001
+verification:
+  status: pass
+  command: python3 -m pytest -q tests/infra/test_live_smoke_contract.py && LIVE_SMOKE_COMMAND='timeout
+    -k 10s 300s bash scripts/live_smoke.sh' EVIDENCE_FILE=docs/reports/elms-production-qa-default-live-smoke.json
+    timeout -k 10s 300s bash scripts/live_smoke.sh
+  last_run_at: '2026-10-31T14:56:33Z'
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  evidence: pytest passed; canonical live smoke exited 0; artifact timestamp 2026-10-31T14:56:33Z
+items:
+- id: BF-001
+  status: done
+  done_at: '2026-10-31T14:56:33Z'
+  class: behavior_smoke
+  title: 'behavior_smoke: canonical default Keycloak host disagrees with the dev runtime'
+  blocker_ref: 'behavior_smoke: scripts/live_smoke.sh defaults to http://127.0.0.1:8480,
+    but docker/.env.dev and the live Frappe contract use http://elms-keycloak.localhost:8480;
+    canonical no-override smoke fails at authorization endpoint validation'
+  fix_plan_ref: Set the smoke default to the dev public Keycloak URL and add a regression
+    test for the default, then rerun canonical live smoke without environment overrides
+  targets:
+  - scripts/live_smoke.sh
+  - tests/infra/test_live_smoke_contract.py
+  - docs/reports/elms-production-qa-default-live-smoke.json
+  verify: python3 -m pytest -q tests/infra/test_live_smoke_contract.py && LIVE_SMOKE_COMMAND='timeout
+    -k 10s 300s bash scripts/live_smoke.sh' EVIDENCE_FILE=docs/reports/elms-production-qa-default-live-smoke.json
+    timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  evidence: VERIFY passed (pytest 1 passed; canonical live smoke exit 0); artifact
+    timestamp 2026-10-31T14:56:33Z
+  notes: The explicit KEYCLOAK_PUBLIC_URL/KEYCLOAK_BASE_URL override already passes;
+    the bug is the no-override default.

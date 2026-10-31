@@ -1,0 +1,38 @@
+---
+description: HARD — визуальный канон ELMS: neftegaz-ai-layer + родной LMS
+alwaysApply: true
+---
+
+# ELMS Design (HARD)
+
+## Зачем этот файл (инструкция для агента)
+
+Папка `rules/` — настройки **этого** проекта для агентов (см. `rules/README.md`).  
+Cursor: `.cursor/rules.d/elms-design.mdc` → симлинк на этот файл.
+
+Workspace = **elms** → UI из neftegaz-ai-layer + родной LMS, **не** из CRM Desk и не из чужого `rules/`.
+
+## Источники (смешивать)
+
+1. **Базовый visual language:** `/home/aero/PyProject/neftegaz-ai-layer`
+   - `DESIGN.md` — направление, палитра, типографика, плотность
+   - `frontend/src/index.css` — токены (paper / surface / graphite / muted / line / action)
+   - `frontend/src/ui.jsx` — геометрия контролов
+2. **LMS surface:** родной UI учебного контура в app `elms` — курсы, прогресс, IA обучения; **не** CRM desk.
+3. Продуктовый SoT: `memory-bank/product/design.md`.
+
+## Направление
+
+- Светлый служебный UI, компактная плотность, кобальтовый action, тонкие контуры.
+- Смешивать: токены/контролы neftegaz + учебные паттерны LMS.
+
+## FORBIDDEN
+
+- CRM / ERPNext Desk chrome как brand ELMS.
+- Фиолетовые AI-градиенты, cream+terracotta клише, dark-first без решения продукта.
+- Global import чужого design-system без scoped CSS / эпика.
+- Декоративные dashboard-сетки на login / первом экране входа.
+
+## Login / web_include CSS
+
+Scoped стили на штатных поверхностях Frappe — через app `elms`; токены как у neftegaz; без template-fork ядра без эпика.

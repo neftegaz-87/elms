@@ -13,6 +13,7 @@ schema: loop-board-projection/v1
 provider: none
 
 role_allowlist:
+  - app
   - back
   - front
 

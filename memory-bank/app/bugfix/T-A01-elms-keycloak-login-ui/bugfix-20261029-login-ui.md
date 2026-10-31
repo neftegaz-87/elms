@@ -88,3 +88,26 @@ During APP QA verification of epic `T-A01-elms-keycloak-login-ui`, defect `BF-00
   - `bash scripts/live_smoke.sh`: exit 0, status pass.
   - `bin/pytest`: 65 passed in 0.28s.
   - `python3 scripts/run_browser_qa.py`: pass (login button styled with cobalt action `#0d4cd3`, height 44px, border-radius 3px).
+
+---
+
+## 8. Resolution of BF-003: Single .btn-keycloak Public Affordance (AC+1)
+- **Defect:** `ac_gap: AC+1 Exactly one .btn-keycloak control whose href starts with public KEYCLOAK_PUBLIC_URL/realms/elms`
+- **Root Cause:** Frappe login page provider buttons were previously disabled in `update_website_context`, preventing the standard Social Login Key from rendering `.btn-keycloak`. In addition, `scripts/run_browser_qa.py` was mistakenly asserting that no `.btn-keycloak` button exists.
+- **Fix:**
+  - Removed suppression of `provider_logins` in `elms/elms/install.py` to allow the configured Keycloak Social Login Key to render the single `.btn-keycloak` affordance.
+  - Updated `elms/elms/tests/test_login_ui.py` to assert exactly one `.btn-keycloak` button is rendered pointing to public Keycloak URL `http://127.0.0.1:8480/realms/elms/...`.
+  - Updated `scripts/run_browser_qa.py` to assert exactly one `.btn-keycloak` button with valid public href, absence of internal container host `keycloak:8080`, and verified Neftegaz geometry/color (44px height, 3px radius, cobalt #0d4cd3).
+- **Verification:**
+  - `python3 scripts/run_browser_qa.py`: pass (exit 0).
+  - `browser-artifacts/browser-evidence.json` updated with timestamp `2026-10-30T03:09:52Z`.
+
+---
+
+## 9. Resolution of BF-004: Observable Zero-Match Secret Scan Output (AC+6, AC−3)
+- **Defect:** `ac_gap: AC+6/AC−3 Secret scan command reference without observable zero-match output`
+- **Root Cause:** QA report referenced the scan command without embedding the observable zero-match output in the evidence fields.
+- **Fix:**
+  - Updated `memory-bank/app/qa/T-A01-elms-keycloak-login-ui/qa-20261029-login-ui.yaml` across `coverage_map`, `suite`, and `ac_minus` to embed observable zero-match scan output (`! rg -i '(client_secret|password)\s*[:=]\s*["0-9a-zA-Z]{16,}' docker/ elms/ .env.example -> 0 matches, exit 0`).
+- **Verification:**
+  - `! rg -i '(client_secret|password)\s*[:=]\s*["0-9a-zA-Z]{16,}' docker/ elms/ .env.example`: exit 0.

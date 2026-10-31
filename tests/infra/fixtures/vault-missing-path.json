@@ -1,0 +1,14 @@
+{
+  "schema": "elms-vault-preflight-fixture/v1",
+  "vault": {
+    "available": true,
+    "initialized": true,
+    "sealed": false
+  },
+  "approle": {
+    "authorized": true
+  },
+  "render": {
+    "missing_paths": ["elms/data/runtime/KEYCLOAK_CLIENT_SECRET"]
+  }
+}

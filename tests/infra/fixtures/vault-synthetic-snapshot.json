@@ -1,0 +1,12 @@
+{
+  "schema": "elms-vault-synthetic-snapshot/v1",
+  "snapshot_id": "synthetic-raft-fixture-20261031",
+  "vault": {
+    "initialized": true,
+    "sealed": false
+  },
+  "secrets": {
+    "DB_PASSWORD": "synthetic-db-value-must-not-be-logged",
+    "KEYCLOAK_CLIENT_SECRET": "synthetic-client-value-must-not-be-logged"
+  }
+}

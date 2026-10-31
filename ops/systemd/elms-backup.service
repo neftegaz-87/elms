@@ -1,0 +1,18 @@
+[Unit]
+Description=ELMS encrypted off-host backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/elms
+EnvironmentFile=/etc/elms/backup.env
+ExecStart=/usr/bin/flock -n /run/lock/elms-backup.lock /usr/bin/python3 /opt/elms/scripts/infra/backup_runner.py backup --source-root /var/lib/elms-backup/staging --manifest /var/lib/elms-backup/elms-backup-manifest.json --status-output /var/lib/elms-backup/last-success.json
+ExecStartPost=/usr/bin/python3 /opt/elms/scripts/infra/backup_runner.py verify
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

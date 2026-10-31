@@ -1,0 +1,151 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-B05-elms-production-container-stack
+title: Image-only production Compose graph and isolated build/staged/edge overlays
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Разделить production Compose на канонический image-only граф и явные локальные/CI build,
+  staged и edge overlays. Канонический файл должен содержать полный ELMS runtime graph:
+  Frappe backend/frontend/websocket/workers/scheduler, configurator/create-site, MariaDB,
+  Redis cache/queue, Keycloak, Keycloak PostgreSQL, Vault/Vault Agent и Caddy. Внутренние
+  сервисы остаются только во внутренних сетях без host ports; staged Caddy публикует только
+  localhost/high port, а внешний edge overlay подключается отдельным owner-approved шагом.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - AC-NEG-002
+  nouns:
+    - docker/compose.prod.yaml
+    - docker/compose.prod.build.yaml
+    - docker/compose.prod.staged.yaml
+    - docker/compose.prod.edge.yaml
+    - docker/caddy/Caddyfile.staged
+    - Frappe web
+    - frontend nginx
+    - websocket
+    - queue-short
+    - queue-long
+    - scheduler
+    - MariaDB
+    - Redis cache/queue
+    - Keycloak
+    - Keycloak PostgreSQL
+    - Vault
+    - Caddy
+    - private network
+    - edge network
+  layout_paths:
+    - docker/compose.prod.yaml
+    - docker/compose.prod.build.yaml
+    - docker/compose.prod.staged.yaml
+    - docker/compose.prod.edge.yaml
+    - docker/caddy/Caddyfile.staged
+  ac_quotes:
+    - 'FR-001: canonical docker/compose.prod.yaml не содержит build context и source-code mounts; локальная сборка живёт в отдельном docker/compose.prod.build.yaml.'
+    - 'FR-002: production service graph включает Frappe web, frontend nginx, websocket, workers, scheduler, MariaDB, Redis cache/queue, Keycloak и Keycloak PostgreSQL.'
+    - 'FR-003: только staged Caddy публикует localhost/high ports; DB, Redis, backend, frontend, Keycloak и Vault не публикуют host ports.'
+    - 'Acceptance: latest, source mount, build: в canonical prod или host DB/Redis/Keycloak port → policy failure.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#context
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#runtime-service-graph
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#image-overlay-and-exposure-contract
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#functional-requirements
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#implementation-slices
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#verification
+
+context:
+  consumes:
+    - plan §Context and boundary for ELMS-specific runtime and external review boundary
+    - plan §Functional requirements FR-001, FR-002, FR-003
+    - plan §Acceptance / negative cases for forbidden build/source mounts and internal host ports
+  produces:
+    - docker/compose.prod.yaml
+    - docker/compose.prod.build.yaml
+    - docker/compose.prod.staged.yaml
+    - docker/compose.prod.edge.yaml
+    - docker/caddy/Caddyfile.staged
+  plan_refs:
+    - plan.md#context
+    - plan.md#functional-requirements
+    - plan.md#implementation-slices
+    - plan.md#verification
+  files:
+    - docker/compose.prod.yaml
+    - docker/compose.prod.build.yaml
+    - docker/compose.prod.staged.yaml
+    - docker/compose.prod.edge.yaml
+    - docker/caddy/Caddyfile.staged
+
+as_built:
+  - The working tree already contains an unclosed split Compose implementation in the five target files; it needs workflow evidence and any contract fixes before it can be promoted.
+  - HEAD docker/compose.prod.yaml combines a checkout build context with the production image anchor and defaults to mutable latest.
+  - HEAD production Compose exposes Caddy ports from the canonical file and lacks a separate high-port staged boundary.
+  - HEAD has the Frappe, MariaDB, Redis, Keycloak, and Caddy foundations but does not enforce the complete Vault-gated production graph.
+
+delta:
+  - audit and complete the existing split implementation, replacing the canonical x-image definition with immutable image-reference interpolation and no build key
+  - add Vault and Vault Agent services, private/edge networks, named runtime/secret volumes, and health-gated dependencies
+  - keep all mandatory ELMS services in the canonical graph while removing host ports from internal services
+  - create compose.prod.build.yaml for local/CI app and Keycloak builds only
+  - create compose.prod.staged.yaml and Caddyfile.staged for localhost/high-port rehearsal
+  - create compose.prod.edge.yaml as the explicit public-port overlay without making it the default stack
+
+deletes:
+  - HEAD-only canonical x-image build context and mutable production default
+  - HEAD-only canonical Caddy host port bindings
+
+wire_complete_required: true
+replacement_cleanup:
+  replaces: mixed checkout-build production Compose and implicit public-port ownership
+  target: docker/compose.prod.yaml
+  items:
+    - canonical build key
+    - canonical mutable latest default
+    - canonical Caddy host ports
+
+out_of_scope:
+  - actual image build/push and registry credentials
+  - public DNS/firewall/80-443 cutover
+  - live Vault initialization or application secret values
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+  omit_justification:
+    application-backend: Compose graph and overlays contain no application business logic
+    frontend-ui: no browser/UI surface is changed
+
+checkpoints:
+  - id: cp1
+    criterion: Canonical production Compose contains the complete expected ELMS service graph and no build key.
+    verify: python3 -c "import yaml; d=yaml.safe_load(open('docker/compose.prod.yaml')); expected={'vault','vault-agent','db','redis-cache','redis-queue','configurator','create-site','backend','websocket','queue-short','queue-long','scheduler','frontend','keycloak-db','keycloak','caddy'}; assert set(d['services']) == expected; assert all('build' not in s for s in d['services'].values())"
+  - id: cp2
+    criterion: Canonical production Compose has no internal host ports or checkout source mounts; only explicit overlays add ports.
+    verify: python3 -c "import yaml; d=yaml.safe_load(open('docker/compose.prod.yaml')); assert all('ports' not in s for s in d['services'].values()); assert all('build' not in s for s in d['services'].values())"
+  - id: cp3
+    criterion: Merged staged model parses, while build keys exist only in the local/CI build overlay.
+    verify: docker compose --env-file docker/.env.prod.example -f docker/compose.prod.yaml -f docker/compose.prod.build.yaml -f docker/compose.prod.staged.yaml config --quiet
+  - id: cp4
+    criterion: Staged Caddy publishes only the configured localhost high port and routes ELMS/auth hosts internally.
+    verify: rg -n '127\.0\.0\.1:.*:80|reverse_proxy (frontend|keycloak):' docker/compose.prod.staged.yaml docker/caddy/Caddyfile.staged
+
+verify:
+  - python3 -c "import yaml; d=yaml.safe_load(open('docker/compose.prod.yaml')); assert len(d['services']) == 16; assert all('build' not in s for s in d['services'].values())"
+  - docker compose --env-file docker/.env.prod.example -f docker/compose.prod.yaml -f docker/compose.prod.build.yaml -f docker/compose.prod.staged.yaml config --quiet
+tdd: []

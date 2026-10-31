@@ -29,11 +29,13 @@ frappe.ui.apply_desk_display_labels = function ($root) {
 
 frappe.ui.sync_desk_workspace_surface = function () {
 	const route = frappe.get_route?.() || [];
-	const is_crm_workspace = route[0] === "Workspaces" && route[1] === "Frappe CRM";
-	$('.page-container[data-page-route="Workspaces"]').toggleClass(
-		"ds-crm-workspace",
-		is_crm_workspace
-	);
+	const is_workspace_route = route[0] === "Workspaces";
+	const $workspace = $(".page-container").filter(function () {
+		return $(this).find(".editor-js-container, #editorjs").length > 0;
+	});
+
+	$(".page-container").removeClass("ds-workspace");
+	$workspace.toggleClass("ds-workspace", is_workspace_route);
 };
 
 frappe.ui.ensure_desk_sidebar_chrome = function (opts) {
@@ -239,6 +241,12 @@ frappe.ui.sync_desk_rail_selected = function () {
 	});
 };
 
+frappe.ui.get_desk_app_title = function () {
+	const apps = frappe.boot?.apps_data?.apps || [];
+	const elms_app = apps.find((app) => app.name === "elms");
+	return elms_app?.title || apps[0]?.title || __("Frappe");
+};
+
 frappe.ui.bind_desk_rail_nav = function ($body) {
 	if ($body.data("ds-rail-nav-bound")) return;
 	$body.data("ds-rail-nav-bound", 1);
@@ -289,7 +297,7 @@ frappe.ui.bind_desk_rail_nav = function ($body) {
 
 frappe.ui.build_desk_sidebar_user = function () {
 	const logo = frappe.boot.app_logo_url || "/assets/frappe/images/platform-logo.svg";
-	const app_name = __("ERP CRM");
+	const app_name = frappe.ui.get_desk_app_title();
 	const full_name =
 		(frappe.boot.user && frappe.boot.user.full_name) || frappe.session.user || "";
 
@@ -313,7 +321,7 @@ frappe.ui.build_desk_sidebar_user = function () {
 
 frappe.ui.refresh_desk_sidebar_user = function ($user) {
 	const logo = frappe.boot.app_logo_url || "/assets/frappe/images/platform-logo.svg";
-	const app_name = __("ERP CRM");
+	const app_name = frappe.ui.get_desk_app_title();
 	const full_name =
 		(frappe.boot.user && frappe.boot.user.full_name) || frappe.session.user || "";
 	$user.find(".ds-sidebar-user-logo").attr("src", logo);

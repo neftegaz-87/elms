@@ -1,6 +1,33 @@
 version: roadmap-queue/v2
 role: back
-queue: []
+queue:
+- id: T-B07
+  epic_id: T-B07-elms-backup-operations
+  kind: feature
+  plan: plan/T-B07-elms-backup-operations/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
+  - T-B06
+- id: T-B08
+  epic_id: T-B08-elms-cicd-release-rollback
+  kind: feature
+  plan: plan/T-B08-elms-cicd-release-rollback/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
+  - T-B06
+  - T-B07
+- id: T-B09
+  epic_id: T-B09-elms-caddy-edge-cutover
+  kind: feature
+  plan: plan/T-B09-elms-caddy-edge-cutover/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
+  - T-B06
+  - T-B07
+  - T-B08
 done:
 - id: T-B01
   epic_id: T-B01-elms-docker-bootstrap
@@ -29,6 +56,21 @@ done:
   plan: plan/T-B04-bitrix-rest-client/md/plan.md
   batch: bitrix-rest
   deps: []
+- id: T-B05
+  epic_id: T-B05-elms-production-container-stack
+  kind: feature
+  plan: plan/T-B05-elms-production-container-stack/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B01
+  - T-B03
+- id: T-B06
+  epic_id: T-B06-elms-vault-secrets
+  kind: feature
+  plan: plan/T-B06-elms-vault-secrets/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
 batches:
   elms-foundation:
     title: ELMS foundation (Docker + RBAC + SSO Keycloak/Yandex)
@@ -40,3 +82,8 @@ batches:
     title: Вызов REST Bitrix24 отдельными скриптами
     note: Входящий вебхук в BITRIX_REST_WEBHOOK_URL. Не секрет доски. План plan/T-B04-bitrix-rest-client/md/plan.md.
       Constitution — md/prompt.md.
+  elms-production:
+    title: ELMS production (контейнеры, Vault, backup, delivery и edge)
+    note: Инфраструктура адаптирована под Frappe + MariaDB + Redis + Keycloak. Сервис
+      сверки заявок остаётся отдельным first-party runtime и подключается через ELMS_REVIEW_URL/handoff
+      contract; его FastAPI-стек в ELMS не копируется.

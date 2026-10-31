@@ -1,0 +1,74 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B05-elms-production-container-stack
+task_id: T-B05-elms-production-container-stack
+title: s01 — Image-only production Compose graph and isolated build/staged/edge overlays IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B05-elms-production-container-stack/yaml/steps/s01-production-compose-graph-and-overlays.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - "Canonical production Compose now contains the complete 16-service ELMS graph as an image-only source of truth; checkout builds are isolated in compose.prod.build.yaml."
+  - "Removed canonical host-port exposure and kept staged localhost/high-port and owner-approved edge publication in explicit overlays."
+  - "Added staged Caddy routing for the ELMS and Keycloak hostnames to internal frontend and Keycloak services."
+
+files:
+  - docker/compose.prod.yaml
+  - docker/compose.prod.build.yaml
+  - docker/compose.prod.staged.yaml
+  - docker/compose.prod.edge.yaml
+  - docker/caddy/Caddyfile.staged
+
+deletes:
+  - HEAD-only canonical x-image build context and mutable production default
+  - HEAD-only canonical Caddy host port bindings
+
+wire_complete:
+  call_sites:
+    - docker/compose.prod.yaml
+    - docker/compose.prod.build.yaml
+    - docker/compose.prod.staged.yaml
+    - docker/compose.prod.edge.yaml
+    - docker/caddy/Caddyfile.staged
+  enforce_path: docker/compose.prod.yaml is the image-only production SoT; build/staged/edge overlays are explicit entrypoints
+  dual_path_rg: rg -n 'build:|ports:' docker/compose.prod.yaml docker/compose.prod.build.yaml docker/compose.prod.staged.yaml docker/compose.prod.edge.yaml
+  instruction_rg: rg -n 'compose\.prod\.(build|staged|edge)|image-only|localhost' docker/README.md docs/operations/elms-production.md Makefile scripts/docker-up.sh
+  deny_old_proven: true
+
+tests:
+  - "`python3 -c \"import yaml; d=yaml.safe_load(open('docker/compose.prod.yaml')); assert len(d['services']) == 16; assert all('build' not in s for s in d['services'].values())\"`"
+  - "`docker compose --env-file docker/.env.prod.example -f docker/compose.prod.yaml -f docker/compose.prod.build.yaml -f docker/compose.prod.staged.yaml config --quiet`"
+
+integration_check:
+  - Canonical production Compose contains the complete 16-service ELMS graph without build keys, source mounts, or host ports.
+  - The build overlay is the only checkout-build surface; staged Caddy is the only localhost high-port publisher.
+  - Staged Caddy routes the ELMS and Keycloak hostnames to internal frontend and Keycloak services.
+
+checkpoints:
+  - id: cp1
+    criterion: Canonical production Compose contains the complete expected ELMS service graph and no build key.
+    status: done
+  - id: cp2
+    criterion: Canonical production Compose has no internal host ports or checkout source mounts; only explicit overlays add ports.
+    status: done
+  - id: cp3
+    criterion: Merged staged model parses, while build keys exist only in the local/CI build overlay.
+    status: done
+  - id: cp4
+    criterion: Staged Caddy publishes only the configured localhost high port and routes ELMS/auth hosts internally.
+    status: done
+
+resume_from: cp4

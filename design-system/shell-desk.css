@@ -35,7 +35,6 @@ html[data-ds-layout] #body {
   width: calc(100% - var(--ds-desk-rail-width)) !important;
   max-width: none !important;
   box-sizing: border-box;
-  transition: margin-left 150ms ease, width 150ms ease;
 }
 
 html[data-ds-layout] .sticky-top .navbar,
@@ -60,13 +59,12 @@ html[data-ds-layout] #ds-app-rail {
   width: var(--ds-desk-rail-width);
   padding: 14px 10px;
   overflow: hidden;
-  box-sizing: border-box;
-  font-family: var(--ds-font-family);
-  font-size: var(--ds-font-size-sm);
+	box-sizing: border-box;
+	font-family: var(--ds-font-family);
+	font-size: var(--ds-font-size-sm);
   color: var(--ds-ink-muted);
   background-color: var(--ds-surface-muted) !important;
   border-right: 1px solid var(--ds-outline) !important;
-  transition: width 150ms ease, padding 150ms ease;
 }
 
 html[data-ds-layout] #ds-app-rail .ds-desk-sidebar-shell {
@@ -410,59 +408,41 @@ html[data-ds-layout] .layout-main .layout-main-section {
 	background-color: var(--ds-surface-raised) !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .layout-main-section-wrapper,
-html[data-ds-layout] .ds-crm-workspace .layout-main-section,
-html[data-ds-layout] .ds-crm-workspace #editorjs {
+html[data-ds-layout] .ds-workspace .layout-main-section-wrapper,
+html[data-ds-layout] .ds-workspace .layout-main-section,
+html[data-ds-layout] .ds-workspace #editorjs {
 	background-color: var(--ds-surface) !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .layout-main-section {
+html[data-ds-layout] .ds-workspace .layout-main-section {
 	padding: 0 !important;
 	border-radius: 0 !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .editor-js-container {
-	padding: 28px clamp(20px, 3vw, 48px) 0;
+html[data-ds-layout] .ds-workspace .editor-js-container {
+	padding: 24px clamp(16px, 3vw, 40px) 0;
 }
 
-html[data-ds-layout] .ds-crm-workspace .desk-page {
-	max-width: 1320px;
+html[data-ds-layout] .ds-workspace .desk-page {
+	max-width: 1280px;
 	min-height: 0;
 	margin: 0 auto;
 }
 
-html[data-ds-layout] .ds-crm-workspace #editorjs::before {
-	content: "Рабочая область CRM";
-	display: block;
-	padding: 24px 26px 4px;
-	color: var(--ds-ink);
-	font-size: 25px;
-	font-weight: var(--ds-font-weight-semibold);
-	letter-spacing: -0.02em;
-}
-
-html[data-ds-layout] .ds-crm-workspace #editorjs::after {
-	content: "Лиды, сделки и справочники в одном рабочем контуре";
-	display: block;
-	padding: 0 26px 18px;
-	color: var(--ds-ink-muted);
-	font-size: var(--ds-font-size-sm);
-}
-
-html[data-ds-layout] .ds-crm-workspace .codex-editor {
+html[data-ds-layout] .ds-workspace .codex-editor {
 	min-height: 0;
 }
 
-html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor {
+html[data-ds-layout] .ds-workspace .codex-editor__redactor {
 	display: grid !important;
 	grid-template-columns: repeat(12, minmax(0, 1fr));
 	gap: 12px;
 	margin: 0 !important;
-	padding: 6px 26px 28px !important;
+	padding: 0 0 24px !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block {
-	grid-column: span 3;
+html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block {
+	grid-column: span 4;
 	flex: none !important;
 	width: auto !important;
 	max-width: none !important;
@@ -470,152 +450,167 @@ html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block {
 	padding: 0 !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has(.ce-header) {
+html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block:has(.ce-header),
+html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block:has(.ce-paragraph) {
 	grid-column: 1 / -1;
-	margin-top: 12px;
 }
 
-html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:first-child {
-	margin-top: 0;
+html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block:has(.spacer) {
+	display: none;
 }
 
-html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Portal Page"]),
-html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Dashboard"]) {
-	grid-column: span 6;
-}
-
-html[data-ds-layout] .ds-crm-workspace .ce-header {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	min-height: 28px;
-	padding: 0 2px !important;
+html[data-ds-layout] .ds-workspace .ce-header {
 	margin: 0 !important;
-	color: var(--ds-ink-muted);
-	font-size: var(--ds-font-size-sm);
+	color: var(--ds-ink);
+	font-size: var(--ds-font-size-2xl);
 	font-weight: var(--ds-font-weight-semibold);
-	letter-spacing: 0.01em;
+	line-height: 1.25;
 }
 
-html[data-ds-layout] .ds-crm-workspace .ce-header::after {
-	content: "";
-	flex: 1;
-	height: 1px;
-	background: var(--ds-outline);
-}
-
-html[data-ds-layout] .ds-crm-workspace .ce-header b {
+html[data-ds-layout] .ds-workspace .ce-header .h3 {
+	font-size: inherit !important;
 	font-weight: inherit !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box {
-	display: flex;
-	align-items: center;
+html[data-ds-layout] .ds-workspace .ce-header b {
+	font-weight: inherit !important;
+}
+
+html[data-ds-layout] .ds-workspace .ce-paragraph {
+	margin: -4px 0 4px !important;
+	padding: 0 !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	color: var(--ds-ink-muted);
+	font-size: var(--ds-font-size-base);
+	line-height: 1.45;
+}
+
+html[data-ds-layout] .ds-workspace .widget-group {
 	height: 100%;
-	min-height: 78px;
-	padding: 16px 18px !important;
+	min-width: 0;
+	margin: 0 !important;
+}
+
+html[data-ds-layout] .ds-workspace .widget-group-head {
+	margin: 0 0 8px;
+}
+
+html[data-ds-layout] .ds-workspace .widget-group-title {
+	margin: 0 !important;
+	color: var(--ds-ink);
+	font-size: var(--ds-font-size-base);
+	font-weight: var(--ds-font-weight-semibold);
+	line-height: 1.35;
+}
+
+html[data-ds-layout] .ds-workspace .widget-group-body {
+	height: calc(100% - 28px);
+}
+
+html[data-ds-layout] .ds-workspace .links-widget-box,
+html[data-ds-layout] .ds-workspace .shortcut-widget-box {
+	height: 100%;
+	min-height: 108px;
+	padding: 14px 16px !important;
 	border: 1px solid var(--ds-outline) !important;
 	border-radius: var(--ds-radius-lg) !important;
 	background: var(--ds-surface-raised) !important;
-	box-shadow: 0 8px 18px color-mix(in srgb, var(--ds-ink) 7%, transparent) !important;
-	transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease,
-		box-shadow 150ms ease;
+	box-shadow: none !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-head {
-	width: 100%;
-	align-items: center;
+html[data-ds-layout] .ds-workspace .links-widget-box .widget-head,
+html[data-ds-layout] .ds-workspace .shortcut-widget-box .widget-head {
+	margin-bottom: 8px;
 }
 
-html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-title {
+html[data-ds-layout] .ds-workspace .links-widget-box .widget-title,
+html[data-ds-layout] .ds-workspace .shortcut-widget-box .widget-title {
 	color: var(--ds-ink) !important;
 	font-size: var(--ds-font-size-base);
 	font-weight: var(--ds-font-weight-semibold);
 }
 
-html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-control {
-	color: var(--ds-ink-subtle);
+html[data-ds-layout] .ds-workspace .links-widget-box .link-item {
+	min-height: 32px;
+	margin: 0 !important;
+	padding: 6px 8px !important;
+	border-radius: var(--ds-radius-sm);
+	color: var(--ds-accent) !important;
+	font-size: var(--ds-font-size-base);
 }
 
-html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .widget-control > svg {
+html[data-ds-layout] .ds-workspace .links-widget-box .link-content,
+html[data-ds-layout] .ds-workspace .links-widget-box .link-text {
+	color: inherit !important;
+}
+
+html[data-ds-layout] .ds-workspace .links-widget-box .link-item:hover,
+html[data-ds-layout] .ds-workspace .links-widget-box .link-item:focus-visible {
+	background: var(--ds-accent-soft);
+	color: var(--ds-accent) !important;
+}
+
+html[data-ds-layout] .ds-workspace .shortcut-widget-box .widget-control > svg,
+html[data-ds-layout] .ds-workspace .shortcut-widget-box .widget-control .es-icon {
 	color: var(--ds-accent);
 }
 
-html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box .indicator-pill {
-	padding: 3px 8px;
-	border: 1px solid color-mix(in srgb, var(--ds-accent) 30%, var(--ds-outline));
-	border-radius: var(--ds-radius-full);
-	background: color-mix(in srgb, var(--ds-accent) 12%, var(--ds-surface-muted));
-	color: var(--ds-ink) !important;
-	font-variant-numeric: tabular-nums;
-}
-
-html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Dashboard"]) .shortcut-widget-box {
-	border-color: color-mix(in srgb, var(--ds-accent) 62%, var(--ds-outline)) !important;
-	background: color-mix(in srgb, var(--ds-accent) 10%, var(--ds-surface-raised)) !important;
-}
-
-@media (hover: hover) and (pointer: fine) {
-	html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box:hover {
-		transform: translateY(-2px);
-		border-color: color-mix(in srgb, var(--ds-accent) 68%, var(--ds-outline)) !important;
-		background: color-mix(in srgb, var(--ds-accent) 7%, var(--ds-surface-raised)) !important;
-		box-shadow: 0 12px 24px color-mix(in srgb, var(--ds-ink) 14%, transparent) !important;
-	}
-}
-
-html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box:focus-visible {
+html[data-ds-layout] .ds-workspace .shortcut-widget-box:focus-visible,
+html[data-ds-layout] .ds-workspace .links-widget-box:focus-within {
 	outline: 2px solid var(--ds-focus);
 	outline-offset: 2px;
 }
 
-html[data-ds-layout] .ds-crm-workspace .workspace-footer {
-	height: auto;
+html[data-ds-layout] .ds-workspace .workspace-footer {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	height: auto !important;
 	gap: 8px;
-	padding: 0 26px 24px;
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 0 0 24px;
 }
 
-html[data-ds-layout] .ds-crm-workspace .workspace-footer .btn {
+html[data-ds-layout] .ds-workspace .workspace-footer .btn {
 	border: 1px solid var(--ds-outline-strong) !important;
-	border-radius: var(--ds-radius-md) !important;
+	border-radius: var(--ds-radius-sm) !important;
 	background: transparent !important;
 	color: var(--ds-ink-muted) !important;
 }
 
-html[data-ds-layout] .ds-crm-workspace .workspace-footer .btn:hover {
+html[data-ds-layout] .ds-workspace .workspace-footer .btn:hover {
 	border-color: var(--ds-accent) !important;
-	color: var(--ds-ink) !important;
+	color: var(--ds-accent) !important;
 }
 
 @media (max-width: 1100px) {
-	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block {
-		grid-column: span 4;
-	}
-}
-
-@media (max-width: 720px) {
-	html[data-ds-layout] .ds-crm-workspace .editor-js-container {
-		padding: 20px 14px 0;
+	html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block {
+		grid-column: span 6;
 	}
 
-	html[data-ds-layout] .ds-crm-workspace #editorjs::before,
-	html[data-ds-layout] .ds-crm-workspace #editorjs::after,
-	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor,
-	html[data-ds-layout] .ds-crm-workspace .workspace-footer {
-		padding-left: 0;
-		padding-right: 0;
-	}
-
-	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block,
-	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Portal Page"]),
-	html[data-ds-layout] .ds-crm-workspace .codex-editor__redactor > .ce-block:has([shortcut_name="CRM Dashboard"]) {
+	html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block:has(.ce-header),
+	html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block:has(.ce-paragraph) {
 		grid-column: 1 / -1;
 	}
 }
 
-@media (prefers-reduced-motion: reduce) {
-	html[data-ds-layout] .ds-crm-workspace .shortcut-widget-box {
-		transition: none;
+@media (max-width: 720px) {
+	html[data-ds-layout] .ds-workspace .editor-js-container {
+		padding: 20px 16px 0;
+	}
+
+	html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block,
+	html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block:has(.ce-header),
+	html[data-ds-layout] .ds-workspace .codex-editor__redactor > .ce-block:has(.ce-paragraph) {
+		grid-column: 1 / -1;
+	}
+
+	html[data-ds-layout] .ds-workspace .workspace-footer {
+		padding-bottom: 20px;
 	}
 }
 
@@ -697,5 +692,9 @@ html[data-ds-layout] .dropdown-menu .dropdown-item.active {
 
   html[data-ds-layout] .layout-main .layout-side-section.ds-side-hosted {
     display: block !important;
+  }
+
+  html[data-ds-layout] .ds-workspace .layout-main .layout-side-section.ds-side-hosted {
+    display: none !important;
   }
 }

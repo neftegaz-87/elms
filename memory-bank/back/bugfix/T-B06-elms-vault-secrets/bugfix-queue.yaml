@@ -1,0 +1,38 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-B06-elms-vault-secrets
+role: back
+source_qa: memory-bank/back/qa/T-B06-elms-vault-secrets/qa-20261031-vault-secrets.yaml
+checklist_sha256: 268cad48f22c941f2aa94828ccc5a31bc56fd2c276704110b6cdab1fe284c69d
+created_at: '2026-10-31T17:55:43Z'
+updated_at: '2026-10-31T18:00:13Z'
+current_id: BF-002
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-10-31T18:00:13Z'
+  evidence: 'Both BUGFIX verifies completed: full suite 87 passed, 2 skipped; docs/sso.md bounded fallback scan returned no matches.'
+items:
+  - id: BF-001
+    status: done
+    done_at: '2026-10-31T18:00:07Z'
+    class: suite_red
+    title: 'suite_red: stale SSO tests assert the removed local Keycloak fallback'
+    blocker_ref: 'suite_red: bin/pytest -q --tb=line fails four tests because the production fallback.user realm fixture was correctly removed'
+    fix_plan_ref: 'Remove or rewrite the four fallback assertions without restoring a production fallback user.'
+    targets:
+      - elms/elms/tests/test_login_ui.py
+      - elms/elms/tests/test_sso.py
+      - elms/elms/tests/test_sso_config.py
+    verify: bin/pytest -q --tb=line
+    evidence: 'VERIFY passed: bin/pytest -q --tb=line exited 0 with 87 passed, 2 skipped. The four stale fallback assertions now cover the purged realm contract.'
+  - id: BF-002
+    status: done
+    done_at: '2026-10-31T18:00:13Z'
+    class: leftover
+    title: 'leftover: docs/sso.md still documents the removed local fallback'
+    blocker_ref: 'leftover: docs/sso.md:64-76 and 149-157 describe fallback.user/local Keycloak outage login after the production fallback path was purged'
+    fix_plan_ref: 'Rewrite the guide for the current Keycloak/Vault boundary and fail-closed Yandex outage behavior.'
+    targets:
+      - docs/sso.md
+    verify: "bin/pytest -q --tb=line && if rg -n -i 'fallback\\.user|local.*fallback|fallback.*local' docs/sso.md; then exit 1; fi"
+    evidence: 'VERIFY passed: bin/pytest -q --tb=line exited 0 with 87 passed, 2 skipped and the bounded fallback scan of docs/sso.md returned no matches.'

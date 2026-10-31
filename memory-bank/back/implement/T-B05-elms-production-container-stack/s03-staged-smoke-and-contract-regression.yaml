@@ -1,0 +1,172 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B05-elms-production-container-stack
+task_id: T-B05-elms-production-container-stack
+title: s03 — Isolated staged smoke, contract regression, and legacy-fallback purge IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B05-elms-production-container-stack/yaml/steps/s03-staged-smoke-and-contract-regression.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - "compose_smoke.sh now validates merged staged Compose and Vault preflight in dry-run mode, falls back only to the non-secret production example when no local .env.prod exists, enforces a distinct staged project/high port, waits for create-site success, checks Frappe /login and Keycloak discovery, and removes only staged volumes on cleanup."
+  - "Production base images for MariaDB, Redis, and Keycloak PostgreSQL are pinned to multi-platform manifest digests; staged and edge entrypoints remain explicit and owner-gated."
+  - "Infrastructure regression tests cover policy, digest pinning, create-site promotion boundaries, Vault/review fail-closed behavior, release negatives, edge approval, and dev synthetic-environment independence."
+  - "Operator instructions now distinguish image-only production, local/CI/staged build overlays, localhost staged rehearsal, owner-approved 80/443 edge cutover, Vault-only production secrets, and dev-only synthetic values."
+
+files:
+  - docker/compose.prod.yaml
+  - docker/README.md
+  - docs/operations/elms-production.md
+  - Makefile
+  - scripts/docker-up.sh
+  - scripts/infra/compose_smoke.sh
+  - tests/infra/test_production_contracts.py
+  - tests/infra/fixtures/release-manifest.json
+  - tests/infra/fixtures/edge-evidence.json
+
+deletes:
+  - docker/compose.prod.yaml::x-image.build
+  - docker/compose.prod.yaml direct DB_PASSWORD, KEYCLOAK_DB_PASSWORD, KEYCLOAK_CLIENT_SECRET
+  - CUSTOM_TAG=latest and KEYCLOAK_TAG=prod-local as accepted production identity
+  - canonical docker/compose.prod.yaml build-from-checkout invocation
+  - canonical Caddy ports 80/443 in docker/compose.prod.yaml
+  - direct Compose secret values with missing Vault render treated as startable
+  - missing/HTTP production review URL or missing handoff secret treated as usable
+  - docker/README.md copy-production-passwords-and-run-mixed-prod instructions
+  - Makefile/scripts instructions that imply public ports or checkout build is the default production path
+  - production smoke path that can reuse public ports or live data
+
+sunset_inventory:
+  schema: loop-sunset-inventory/v1
+  status: completed
+  boundary_id: elms-production-container-boundary
+  new_sot: docker/compose.prod.yaml
+  report: /home/aero/PyProject/dev-hub/runtime/elms-98b37874bd/epic/inventory/sunset-inventory-session-33f30f7bca23-s03.json
+  items: 18
+  diagnostic_codes: []
+  overlay_disposition: "build/staged/edge overlays are retained as explicit replacements; only legacy/default callers and unsafe instructions are removed"
+
+wire_complete:
+  call_sites:
+    - docker/compose.prod.yaml
+    - docker/compose.prod.build.yaml
+    - docker/compose.prod.staged.yaml
+    - docker/compose.prod.edge.yaml
+    - scripts/docker-up.sh
+    - scripts/infra/compose_smoke.sh
+    - scripts/infra/check_compose_policy.py
+    - scripts/infra/check_release_manifest.py
+    - scripts/infra/vault_preflight.sh
+    - docker/README.md
+    - docs/operations/elms-production.md
+    - Makefile
+    - tests/infra/test_production_contracts.py
+  enforce_path: "docker/compose.prod.yaml is image-only production SoT; build/staged/edge overlays are explicit, Vault preflight gates promotion, and staged smoke owns only a separate high-port project"
+  dual_path_rg: |
+    rg -n 'build:|ports:|CUSTOM_TAG:-latest|KEYCLOAK_TAG:-prod-local|DB_PASSWORD:\s*\$\{|KEYCLOAK_(DB_PASSWORD|CLIENT_SECRET):\s*\$\{|ELMS_REVIEW_ALLOW_HTTP' docker/compose.prod.yaml docker/compose.prod.build.yaml docker/compose.prod.staged.yaml docker/compose.prod.edge.yaml scripts/docker-up.sh scripts/infra tests/infra
+  instruction_rg: |
+    rg -n 'image-only|compose\.prod\.build|compose\.prod\.staged|compose\.prod\.edge|staged|Vault|ELMS_EDGE_APPROVED|synthetic' docker/README.md docs/operations/elms-production.md Makefile scripts/docker-up.sh
+  deny_old_proven: true
+
+tests:
+  - "`bash scripts/infra/compose_smoke.sh --profile staged --dry-run`"
+  - "`python3 -m pytest -q tests/infra/test_production_contracts.py -k 'compose_policy or vault_secret_contract or release_manifest'`"
+  - "`python3 -m pytest -q tests/infra/test_production_contracts.py`"
+  - "`bash -n scripts/infra/compose_smoke.sh && bash -n scripts/docker-up.sh`"
+  - "`python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml`"
+  - "`python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json`"
+  - "`python3 scripts/infra/check_secret_contract.py`"
+
+integration_check:
+  - "Merged staged Compose resolves from the non-secret production example without starting containers, and its dry-run includes Vault preflight."
+  - "Live staged smoke is isolated by project name and high localhost port, blocks backend promotion on failed create-site, checks both required routes, and scopes cleanup to the staged project."
+  - "Canonical Compose has no build, source checkout mount, public port, mutable base tag, or direct production secret; image/build/staged/edge boundaries remain explicit."
+  - "Review URL, mandatory SSO, handoff-secret delivery, release identity, edge approval, and dev synthetic environment contracts fail closed or remain in their declared environment."
+
+checkpoints:
+  - id: cp-smoke-dry-run
+    criterion: "Staged dry-run performs merged Compose and Vault preflight checks without starting containers or requiring real AppRole files."
+    status: done
+    verify: "bash scripts/infra/compose_smoke.sh --profile staged --dry-run"
+  - id: cp-smoke-routes
+    criterion: "Staged smoke uses localhost/high-port publishing, waits for successful create-site completion, and checks Frappe /login and Keycloak discovery."
+    status: done
+    verify: "rg -n 'STAGED_HTTP_PUBLISH_PORT|create-site|/login|well-known/openid-configuration|127\\.0\\.0\\.1' scripts/infra/compose_smoke.sh"
+  - id: cp-negative-and-suite-regression
+    criterion: "Negative mutable/secret-like release and unapproved-edge cases fail closed while targeted infrastructure regressions stay green."
+    status: done
+    verify: "python3 -m pytest -q tests/infra/test_production_contracts.py -k 'rejects_latest_and_secrets or edge_switch_requires_approval or compose_policy or vault_secret_contract or release_manifest'"
+  - id: cp-final-purge
+    criterion: "All A/B/C/I sunset targets are replaced by the image-only/Vault/staged/owner-approved contract; canonical Compose owns no build or public ports, and instructions no longer prescribe direct production secrets."
+    status: done
+    verify: "python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml && rg -n 'image-only|staged|Vault|compose\\.prod\\.build' docker/README.md docs/operations/elms-production.md"
+
+plan_parity_scan:
+  parity_status: converged
+  fr_coverage:
+    - id: FR-001
+      step: s01
+      status: completed
+      evidence: "Canonical production Compose has no build context or source-code mount; checkout build is isolated in compose.prod.build.yaml."
+    - id: FR-002
+      step: s01
+      status: completed
+      evidence: "Canonical production graph contains the 16 required ELMS services."
+    - id: FR-003
+      step: s01
+      status: completed
+      evidence: "Only explicit staged/edge Caddy overlays publish ports; canonical services remain internal."
+    - id: FR-004
+      step: s02
+      status: completed
+      evidence: "Mandatory services have health/readiness, restart policies, security defaults, and bounded resource limits."
+    - id: FR-005
+      step: s02
+      status: completed
+      evidence: "Release validator rejects mutable identities and requires image digests; canonical base images are digest pinned."
+    - id: FR-006
+      step: s02
+      status: completed
+      evidence: "Vault secret contract and production preflight enforce mandatory SSO, HTTPS review URL, and Vault-only secrets without changing dev synthetic env."
+    - id: AC-NEG-003
+      step: s03
+      status: completed
+      evidence: "Backend depends on healthy Vault Agent and successful configurator/create-site; smoke waits for create-site exit status."
+    - id: AC-NEG-004
+      step: s03
+      status: completed
+      evidence: "Production preflight rejects HTTP review URLs/disabled SSO, and Compose cannot receive the handoff secret directly."
+  layout_verified:
+    - path: scripts/infra/compose_smoke.sh
+      status: completed
+    - path: tests/infra/test_production_contracts.py
+      status: completed
+    - path: tests/infra/fixtures/release-manifest.json
+      status: completed
+    - path: tests/infra/fixtures/edge-evidence.json
+      status: completed
+    - path: docker/compose.prod.yaml
+      status: completed
+    - path: docker/README.md
+      status: completed
+    - path: docs/operations/elms-production.md
+      status: completed
+    - path: Makefile
+      status: completed
+    - path: scripts/docker-up.sh
+      status: completed
+
+resume_from: cp-final-purge

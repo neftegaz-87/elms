@@ -1,0 +1,145 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B07-elms-backup-operations
+title: Verified encrypted backup runner with capacity and freshness promotion gate
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обеспечить fail-closed backup lifecycle: restic upload выполняется только при наличии
+  защищённого пароля и capacity budget, а promotion evidence становится успешным лишь
+  после repository check; stale/failed/unverifiable evidence блокирует deploy и edge gates.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-004
+  nouns:
+    - restic backup
+    - restic checksum/repository check
+    - RESTIC_REPOSITORY
+    - RESTIC_PASSWORD_FILE
+    - capacity hard block
+    - last-success age <=24h
+    - retention policy
+    - verified freshness evidence
+    - systemd service/timer
+    - production promotion gate
+  layout_paths:
+    - scripts/infra/backup_runner.py
+    - scripts/infra/deploy_wrapper.py
+    - ops/systemd/elms-backup.service
+    - ops/systemd/elms-backup.timer
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  ac_quotes:
+    - 'FR-002: last-success age <=24h, upload/checksum verification and retention.'
+    - 'FR-004: capacity hard block at configured threshold; no prune/delete/volume removal.'
+    - 'Done when: Failed/stale/unverifiable backup blocks production promotion.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:13-23
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:25-29
+
+context:
+  consumes:
+    - s01 non-secret manifest and state inventory
+    - T-B05/T-B06 production volume and Vault boundaries
+  produces:
+    - encrypted restic upload and verification commands
+    - capacity/read-only checks that never prune or remove state
+    - atomic verified freshness evidence consumed by promotion
+    - daily systemd service/timer contract
+  plan_refs:
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:13-23
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:31-36
+  files:
+    - scripts/infra/backup_runner.py
+    - scripts/infra/deploy_wrapper.py
+    - ops/systemd/elms-backup.service
+    - ops/systemd/elms-backup.timer
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+
+as_built:
+  - scripts/infra/backup_runner.py invokes restic backup/check and has a capacity threshold, freshness report, and protected password-file check.
+  - The current backup command writes verified-upload evidence before the systemd post-check completes.
+  - scripts/infra/deploy_wrapper.py currently requires a backup evidence path but must consume semantic freshness/verification, not file presence alone.
+  - ops/systemd/elms-backup.service and .timer provide a daily root-owned operator template with no prune/delete command.
+
+delta:
+  - Write running/failed state atomically and publish verified success only after restic repository verification; stale/invalid/future/unverified evidence must fail closed.
+  - Enforce configured capacity at the staging/target boundary, keep retention declarative, and reject unsafe password-file permissions without exposing values.
+  - Wire the deployment handoff to the freshness report and keep systemd ordering explicit: backup, verify, then success evidence.
+  - Add targeted positive/negative tests for missing credentials, capacity, restic failure, stale evidence, and no-prune/no-volume-removal behavior.
+
+deletes:
+  - scripts/infra/backup_runner.py::backup writes verified-upload status before repository verification
+  - scripts/infra/deploy_wrapper.py::required_evidence accepts backup evidence by file existence alone
+
+wire_complete_required: true
+
+sunset_scope:
+  required: true
+  boundary_id: elms-backup-freshness-promotion
+  new_sot: scripts/infra/backup_runner.py
+  allow_read:
+    - scripts/infra/backup_runner.py
+    - scripts/infra/deploy_wrapper.py
+    - ops/systemd/elms-backup.service
+    - ops/systemd/elms-backup.timer
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  kind_hint:
+    - A
+    - C
+    - I
+
+out_of_scope:
+  - Real restic/S3 credentials and production repository bootstrap/custody.
+  - Automatic retention deletion, Docker prune, volume removal, or destructive cleanup.
+  - Registry image build/push and public edge switching.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+  omit_justification:
+    python-error-handling: Fail-closed command errors are covered by the core anti-pattern/test contract; no new public API envelope is introduced.
+
+checkpoints:
+  - id: cp1
+    criterion: Missing/weak RESTIC_PASSWORD_FILE, invalid repository configuration, or insufficient capacity returns non-zero before upload.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'backup_credentials or backup_capacity'
+  - id: cp2
+    criterion: Verified freshness evidence is written only after backup and repository check both pass; a failed check cannot leave fresh evidence.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'backup_verification or backup_failure'
+  - id: cp3
+    criterion: Deploy/promotion rejects stale, invalid, or unverified evidence and no command invokes prune, delete, or volume removal.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'backup_evidence or no_prune' && rg -n 'prune|volume rm|down -v|forget' scripts/infra/backup_runner.py ops/systemd/elms-backup.service
+  - id: cp4
+    criterion: Daily systemd execution is ordered as encrypted backup then verification with a persistent timer and no secret values in the unit.
+    verify: rg -n 'ExecStart|ExecStartPost|RESTIC|OnCalendar|Persistent|flock' ops/systemd/elms-backup.service ops/systemd/elms-backup.timer
+
+verify:
+  - python3 -m pytest -q tests/infra/test_production_contracts.py -k 'backup_'
+  - rg -n 'RESTIC_REPOSITORY|RESTIC_PASSWORD_FILE|BACKUP_MIN_FREE_BYTES|verified|fresh|retention' scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py
+  - rg -n 'ExecStart|ExecStartPost|OnCalendar|Persistent' ops/systemd/elms-backup.service ops/systemd/elms-backup.timer
+  - '! rg -n -i "(restic (forget|prune)|docker (volume )?rm|down -v|volume removal)" scripts/infra/backup_runner.py ops/systemd/elms-backup.service ops/systemd/elms-backup.timer'
+
+tdd:
+  - test_backup_requires_strong_password_file
+  - test_backup_capacity_gate_is_hard
+  - test_backup_success_evidence_requires_verification
+  - test_backup_report_rejects_stale_or_unverified_evidence
+  - test_deploy_wrapper_rejects_stale_backup_evidence

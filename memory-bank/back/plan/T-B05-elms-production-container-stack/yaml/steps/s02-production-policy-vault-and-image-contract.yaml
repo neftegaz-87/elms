@@ -1,0 +1,189 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B05-elms-production-container-stack
+title: Production policy, Vault render gate, resources/security, and immutable image contract
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрепить production boundary исполняемыми проверками: mandatory services обязаны иметь
+  health/readiness, restart policy, bounded resources, private networking и no-new-privileges;
+  production secrets приходят только из Vault Agent rendered files; release images используют
+  commit/release tag вместе с digest и не допускают latest/dev/prod-local. Проверки должны
+  завершаться ненулевым кодом при missing production env, неполном Vault render, прямой передаче
+  секрета или mutable image identity. ELMS_REVIEW_URL и handoff secret остаются fail-closed
+  контрактом внешнего review service; dev synthetic env не становится production fallback.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - FR-006
+    - AC-NEG-001
+    - AC-NEG-002
+    - AC-NEG-004
+  nouns:
+    - scripts/infra/check_compose_policy.py
+    - scripts/infra/check_secret_contract.py
+    - scripts/infra/check_release_manifest.py
+    - scripts/infra/vault_preflight.sh
+    - docker/vault/agent.hcl
+    - docker/vault/config.hcl
+    - docker/vault/runtime.env.tpl
+    - docker/vault/keycloak.env.tpl
+    - docker/vault/db-password.tpl
+    - docker/vault/keycloak-db-password.tpl
+    - docker/vault/policies/elms-agent.hcl
+    - elms/elms/sso/review.py
+    - elms/elms/tests/test_sso.py
+    - ELMS_SSO_REQUIRE
+    - ELMS_REVIEW_URL
+    - ELMS_REVIEW_HANDOFF_SECRET
+    - CUSTOM_TAG
+    - KEYCLOAK_TAG
+    - digest
+    - docker/compose.prod.yaml
+  layout_paths:
+    - scripts/infra/check_compose_policy.py
+    - scripts/infra/check_secret_contract.py
+    - scripts/infra/check_release_manifest.py
+    - scripts/infra/vault_preflight.sh
+    - docker/.env.prod.example
+    - docker/compose.prod.yaml
+    - docker/vault/agent.hcl
+    - docker/vault/config.hcl
+    - docker/vault/runtime.env.tpl
+    - docker/vault/keycloak.env.tpl
+    - docker/vault/db-password.tpl
+    - docker/vault/keycloak-db-password.tpl
+    - docker/vault/policies/elms-agent.hcl
+    - elms/elms/sso/review.py
+    - elms/elms/tests/test_sso.py
+  ac_quotes:
+    - 'FR-004: mandatory services имеют healthcheck/readiness, restart policy и bounded resources.'
+    - 'FR-005: production image identity — commit/release tag plus digest; latest запрещён policy-check.'
+    - 'FR-006: ELMS_SSO_REQUIRE, ELMS_REVIEW_HANDOFF_SECRET и review URL проходят fail-closed validation; dev synthetic env не меняется.'
+    - 'AC-NEG-001: Missing required prod env → non-zero before Compose changes.'
+    - 'AC-NEG-002: latest, source mount, build: в canonical prod или host DB/Redis/Keycloak port → policy failure.'
+    - 'AC-NEG-003: Unhealthy MariaDB/Redis/Keycloak or failed create-site → no backend promotion.'
+    - 'AC-NEG-004: Review URL missing/HTTP in prod or handoff secret missing → integration path refuses access, no fake success.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#functional-requirements
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#readiness-resource-and-security-contract
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#secret-and-review-boundary
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#acceptance--negative-cases
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#implementation-slices
+    - memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md#verification
+
+context:
+  consumes:
+    - plan §Functional requirements FR-004, FR-005, FR-006
+    - plan §Acceptance / negative cases for missing env, unhealthy dependencies, mutable image, and review fail-closed behavior
+    - s01 canonical Compose service graph and named Vault render volumes
+    - existing ELMS review URL and signed one-time handoff boundary
+  produces:
+    - production Compose policy and secret/image contract validators
+    - docker/compose.prod.yaml production resources, security, health, and secret-delivery contract
+    - Vault Agent render templates, least-privilege policy, and non-secret preflight gate
+    - production environment example with no secret values
+    - fail-closed ELMS review URL and signed one-time handoff boundary
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#acceptance--negative-cases
+    - plan.md#implementation-slices
+    - plan.md#verification
+  files:
+    - scripts/infra/check_compose_policy.py
+    - scripts/infra/check_secret_contract.py
+    - scripts/infra/check_release_manifest.py
+    - scripts/infra/vault_preflight.sh
+    - docker/.env.prod.example
+    - docker/compose.prod.yaml
+    - docker/vault/agent.hcl
+    - docker/vault/config.hcl
+    - docker/vault/runtime.env.tpl
+    - docker/vault/keycloak.env.tpl
+    - docker/vault/db-password.tpl
+    - docker/vault/keycloak-db-password.tpl
+    - docker/vault/policies/elms-agent.hcl
+    - elms/elms/sso/review.py
+    - elms/elms/tests/test_sso.py
+
+as_built:
+  - The working tree already contains the validators, Vault templates, and review handoff implementation from an earlier unclosed production integration pass.
+  - HEAD production Compose passes DB, Keycloak, and application credentials through direct environment interpolation and has no Vault Agent render gate.
+  - HEAD has mutable latest/prod-local defaults and no release manifest validator requiring tag plus digest.
+  - HEAD lacks a single policy/secret boundary check for health, resources, security options, internal ports, direct secrets, and placeholder settings.
+
+delta:
+  - enforce expected service set, internal private network, no host ports/build/source mounts, restart/security/resource limits, and healthchecks
+  - render runtime and database credentials through Vault Agent templates with error_on_missing_key and read-only AppRole policy
+  - validate non-secret production env and AppRole file paths without sourcing or printing secret values
+  - validate release manifest commit, image refs/tags, digests, compose hash, smoke metadata, and reject latest/secret-like fields
+  - keep ELMS_REVIEW_HANDOFF_SECRET out of Compose and repository env files while requiring ELMS_REVIEW_URL in production
+  - verify the existing ELMS review boundary rejects invalid URL/secret configuration and consumes signed tickets only once
+
+deletes:
+  - direct production secret environment interpolation from the legacy Compose contract
+  - mutable latest/dev/prod-local release identity as an accepted production path
+
+wire_complete_required: true
+replacement_cleanup:
+  replaces: direct secret injection and mutable image defaults
+  target: scripts/infra validators, docker/vault templates, and docker/.env.prod.example
+  items:
+    - direct password/client-secret environment keys
+    - mutable image tag acceptance
+    - missing Vault render readiness
+
+out_of_scope:
+  - generating or committing any real secret, role ID, secret ID, or recovery material
+  - live Vault bootstrap/unseal/rotation
+  - backup freshness evidence and deployment approval
+  - public edge cutover
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+  omit_justification:
+    application-backend: only runtime boundary and validators are changed
+    frontend-ui: no UI behavior is changed
+
+checkpoints:
+  - id: cp1
+    criterion: Canonical Compose policy rejects forbidden build/ports/source mounts and requires service health/resources/security defaults.
+    verify: python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml
+  - id: cp2
+    criterion: Vault secret contract passes with all templates, read-only policy, and fail-closed render markers.
+    verify: python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault
+  - id: cp3
+    criterion: Non-secret production env preflight passes in dry-run mode, does not require real AppRole files, and rejects missing required metadata.
+    verify: |
+      bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example --dry-run
+      missing_env="$(mktemp)"; sed '/^ELMS_REVIEW_URL=/d' docker/.env.prod.example > "$missing_env"; ! bash scripts/infra/vault_preflight.sh --env-file "$missing_env" --dry-run; rm -f "$missing_env"
+  - id: cp4
+    criterion: Release identity and ELMS review handoff both fail closed at their boundaries.
+    verify: |
+      python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json
+      python3 -m pytest -q elms/elms/tests/test_sso.py -k 'ReviewHandoff'
+
+verify:
+  - python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml
+  - python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault
+  - bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example --dry-run
+  - python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json
+  - python3 -m pytest -q elms/elms/tests/test_sso.py -k 'ReviewHandoff'
+tdd:
+  - TestReviewHandoff

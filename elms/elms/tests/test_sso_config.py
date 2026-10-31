@@ -53,6 +53,24 @@ class TestSSOConfiguration(unittest.TestCase):
         callback_uri = "http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak"
         self.assertIn(callback_uri, redirect_uris, "redirectUris must contain login_via_keycloak callback")
 
+        review_clients = [c for c in clients if c.get("clientId") == "neftegaz-review"]
+        self.assertEqual(len(review_clients), 1, "neftegaz-review client must exist in realm-elms.json")
+        review = review_clients[0]
+        self.assertFalse(review.get("publicClient"))
+        self.assertTrue(review.get("standardFlowEnabled"))
+        self.assertEqual(review.get("secret"), "${env.NEFTEGAZ_REVIEW_CLIENT_SECRET:}")
+        self.assertEqual(review.get("redirectUris"), ["__NEFTEGAZ_REVIEW_PUBLIC_URL__/auth/callback"])
+        self.assertEqual(
+            {mapper.get("name") for mapper in review.get("protocolMappers", [])},
+            {"review-roles", "bitrix-user-id", "bitrix-member-id", "bitrix-department-ids"},
+        )
+
+        review_roles = data.get("roles", {}).get("client", {}).get("neftegaz-review", [])
+        self.assertEqual(
+            {role.get("name") for role in review_roles},
+            {"review_admin", "review_dispatcher", "review_queue_supervisor"},
+        )
+
     def test_keycloak_client_urls_are_valid_import_values(self):
         """Keycloak must be able to import every client URL without shell placeholders or invalid wildcards."""
         with open("docker/keycloak/realm-elms.json", "r", encoding="utf-8") as f:
@@ -86,12 +104,33 @@ class TestSSOConfiguration(unittest.TestCase):
         self.assertTrue(yandex.get("trustEmail"))
         self.assertTrue(yandex.get("enabled"))
 
-        # Verify fallback password credential user exists
-        users = data.get("users", [])
-        fallback_users = [u for u in users if u.get("username") == "fallback.user"]
-        self.assertEqual(len(fallback_users), 1)
-        fallback = fallback_users[0]
-        self.assertTrue(any(c.get("type") == "password" for c in fallback.get("credentials", [])))
+    def test_dev_test_users_use_environment_backed_passwords(self):
+        """The local verification accounts must be Keycloak-only and never carry passwords in git."""
+        with open("docker/keycloak/realm-elms.json", "r", encoding="utf-8") as f:
+            users = json.load(f).get("users", [])
+
+        expected = {
+            "elms.test.one@elms.local": ("KEYCLOAK_TEST_ONE_PASSWORD", "employee", "/Employees"),
+            "elms.test.two@elms.local": ("KEYCLOAK_TEST_TWO_PASSWORD", "employee", "/Employees"),
+            "elms.test.admin@elms.local": ("KEYCLOAK_TEST_ADMIN_PASSWORD", "admin", "/Administrators"),
+        }
+        users_by_username = {user.get("username"): user for user in users}
+        for username, (env_name, role, group) in expected.items():
+            self.assertIn(username, users_by_username)
+            user = users_by_username[username]
+            self.assertEqual(user.get("email"), username)
+            self.assertTrue(user.get("emailVerified"))
+            self.assertIn(role, user.get("realmRoles", []))
+            self.assertIn(group, user.get("groups", []))
+            credentials = user.get("credentials", [])
+            self.assertEqual(len(credentials), 1)
+            self.assertEqual(credentials[0].get("type"), "password")
+            self.assertEqual(credentials[0].get("value"), f"${{env.{env_name}}}")
+
+        with open("docker/compose.dev.yaml", encoding="utf-8") as f:
+            compose = f.read()
+        for env_name, _, _ in expected.values():
+            self.assertIn(f"{env_name}: ${{{env_name}:-}}", compose)
 
     def test_site_config_injection_structure(self):
         """Test site_config generation and injection from environment variables without direct IdP login."""
@@ -250,3 +289,16 @@ class TestSsoSettingsContract(unittest.TestCase):
             text=True,
         )
         self.assertEqual(res4.returncode, 0, f"Both present should succeed: {res4.stderr}")
+
+        partial_test_users = subprocess.run(
+            ["sh", "docker/keycloak/entrypoint.sh", "--dry-run"],
+            env={
+                **os.environ,
+                "KEYCLOAK_TEST_ONE_PASSWORD": "one-password",
+                "KEYCLOAK_TEST_TWO_PASSWORD": "",
+                "KEYCLOAK_TEST_ADMIN_PASSWORD": "",
+            },
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(partial_test_users.returncode, 1)

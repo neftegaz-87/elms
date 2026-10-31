@@ -1,7 +1,7 @@
 # Архитектурные паттерны системы (systemPatterns)
 
-**Дата:** 2026-10-29  
-**Статус:** Базовые системные паттерны подтверждены по результатам T-B04 QA PASS и T-B03 re-QA PASS
+**Дата:** 2026-10-31
+**Статус:** Базовые системные паттерны подтверждены по результатам T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS
 
 ## 1. Slim Single-App Frappe Architecture
 
@@ -60,3 +60,20 @@
   - `1`: Ошибка API Bitrix24 (`error`, `error_description`) или сбой HTTP-транспорта; детали ошибки выводятся в stderr, stdout остаётся пустым (AC-2, BN-006, BN-007).
   - `2`: Ошибка конфигурации окружения, аргументов CLI или нарушение защитных ограничений; ошибка выводится в stderr, stdout пуст, HTTP-запрос не отправляется (AC-3, BN-001..BN-005).
 - **Fail-Closed Secret Masking:** Гарантированное маскирование секретной части токена вебхука во всех сообщениях исключений, логах stderr, строковых представлениях (`str`/`repr`) моделей и объектов конфигурации (`***`).
+
+## 7. Stock Frappe Login Surface & Computed-Style Gate
+
+- **Surface ownership:** Login остаётся на штатном Frappe `/login`; вертикальный срез подключает scoped `login.css` через `web_include_css` и `login-keycloak.js` через `web_include_js`, не создавая custom SPA или template fork. Рендерится стандартная форма и ровно одна кнопка `.btn-keycloak` с публичным Keycloak URL (`KEYCLOAK_PUBLIC_URL/realms/elms`). Прямые Yandex-кнопки исключены.
+- **Cascade boundary:** `login.bundle.css` подключается через `head_include` после `head.html` и переопределяет equal-specificity selectors из `web_include_css`. Для гарантии применения дизайна Neftegaz (`#0d4cd3`, `44px`, `3px`) в `login.css` используются селекторы повышенной специфичности и правило `!important` для состояний кнопки action (устранён дефект BF-001).
+- **Runtime acceptance:** Статические CSS-токены не заменяют browser evidence: acceptance проверяет live computed style и asset delivery в реальном браузере через Playwright. T-A01 подтвердил `44px` control height, `3px` radius, cobalt action `rgb(13, 76, 211)` (`#0d4cd3`), single `.btn-keycloak` button и отсутствие direct Yandex control.
+- **Identity boundary:** Browser login и live HTTP trace проходят через Keycloak authorization/broker route; Frappe не вызывает Yandex напрямую, а interactive Yandex остаётся `not_run` без реальных credentials и callback.
+
+## 8. Immutable Production Compose & Vault Gate Pattern
+
+- **Canonical ownership:** `docker/compose.prod.yaml` — единственный production Compose SoT: он image-only, не содержит checkout `build`, source-code mounts или host-публикаций внутренних DB/Redis/Frappe/Keycloak/Vault сервисов. Local/CI build, staged localhost/high-port rehearsal и public edge switch принадлежат отдельным явным overlays.
+- **Dependency promotion gate:** Mandatory services имеют health/readiness, restart policy, `security_opt: no-new-privileges:true` и bounded resources. `configurator` и `create-site` — one-shot boundaries; backend не promoted при неуспешном one-shot или unhealthy dependency.
+- **Secret and release gate:** Vault Agent рендерит runtime/database credentials в защищённые files с `error_on_missing_key`; production env и Compose не принимают прямые секретные значения. Release manifest связывает image tag+digest с commit/Compose hash и отклоняет `latest`, `dev`, `prod-local` и secret-like values.
+- **Rehearsal and external boundary:** Staged smoke работает в изолированном Compose project на localhost/high port, сохраняет typed live evidence и удаляет только staged project. Внешний review service не становится Compose-сервисом: ELMS владеет только HTTPS URL validation и signed one-time handoff.
+- **Vault source of truth:** KV v2 через authenticated AppRole/Vault Agent render — единственный production static-secret source. Pinned integrated-Raft Vault слушает только внутри Compose; dev mode, root-token runtime, public `8200`, direct `.env`/local fallback и secret-bearing diagnostics запрещены. Development synthetic secrets изолированы от production delivery.
+- **Promotion and state boundary:** `vault_preflight.sh` и service dependencies fail closed для sealed, unavailable, unauthorized и incomplete render states; MariaDB/Keycloak DB получают `*_PASSWORD_FILE`, а OAuth/session state остаётся writable application-owned state вне read-only Vault render boundary.
+- **Recovery evidence:** bootstrap, rotation, snapshot, restore, revoke и preflight runbooks возвращают status-only diagnostics; synthetic fixtures подтверждают redaction и disposable restore без публикации secret values. Root-owned AppRole files находятся вне repository и не читаются в stdout/logs.

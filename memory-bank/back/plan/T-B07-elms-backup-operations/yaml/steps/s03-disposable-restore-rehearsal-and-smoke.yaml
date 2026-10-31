@@ -1,0 +1,133 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-B07-elms-backup-operations
+title: Disposable restore preflight and safe database/Vault rehearsal contract
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть restore boundary: preflight принимает только явный disposable target, отвергает
+  active Docker volumes и elms-prod, а runbook/tests задают проверяемый handoff для
+  MariaDB, Keycloak PostgreSQL и Vault Raft smoke без запуска active production restore.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-005
+  nouns:
+    - restore-preflight
+    - disposable target
+    - active Docker volumes
+    - elms-prod project
+    - MariaDB smoke
+    - Keycloak PostgreSQL smoke
+    - Vault Raft snapshot smoke
+    - Caddy data/config
+    - RTO 4h
+  layout_paths:
+    - scripts/infra/backup_runner.py
+    - tests/infra/test_production_contracts.py
+    - tests/infra/test_vault_recovery_contract.py
+    - docs/operations/elms-production.md
+  ac_quotes:
+    - 'FR-003: restore-preflight rejects active production volumes and requires disposable target.'
+    - 'Done when: restore never writes active volumes by default.'
+    - 'Out: active production restore.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:9-19
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:21-29
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:31-36
+
+context:
+  consumes:
+    - s01 restore methods and excluded-state policy
+    - s02 verified backup evidence and capacity gate
+    - T-B06 synthetic Vault snapshot/restore contract
+  produces:
+    - disposable target marker and active-volume/project rejection
+    - safe restore rehearsal/runbook handoff for MariaDB, Keycloak, and Vault smoke
+    - negative tests proving no active-volume write path
+  plan_refs:
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:9-19
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:21-36
+    - memory-bank/back/plan/T-B07-elms-backup-operations/md/prompt.md:11-15
+  files:
+    - scripts/infra/backup_runner.py
+    - tests/infra/test_production_contracts.py
+    - tests/infra/test_vault_recovery_contract.py
+    - docs/operations/elms-production.md
+
+as_built:
+  - restore-preflight already rejects broad roots, /var/lib/docker/volumes paths, and elms-prod-looking targets, then writes a disposable marker.
+  - The Vault snapshot helper has a synthetic disposable restore contract; MariaDB and Keycloak restore smoke remains an operator rehearsal handoff.
+  - The runbook states that active production restore is forbidden but does not yet provide one machine-checked target/smoke contract for all state classes.
+
+delta:
+  - Make disposable-target validation fail closed for active paths, symlink-resolved paths, non-disposable existing targets, and unsafe capacity.
+  - Add a redacted rehearsal status/manifest contract that names MariaDB, Keycloak PostgreSQL, and Vault Raft smoke checks without copying secrets or touching active volumes.
+  - Extend targeted negative tests and operator runbook with RTO 4h rehearsal order, owner evidence, and explicit no-prune/no-active-restore boundary.
+
+deletes:
+  - restore-preflight acceptance of active Docker volume paths or the active elms-prod project
+  - restore instructions that imply an active production volume target
+
+wire_complete_required: true
+
+sunset_scope:
+  required: true
+  boundary_id: elms-disposable-restore-target
+  new_sot: scripts/infra/backup_runner.py
+  allow_read:
+    - scripts/infra/backup_runner.py
+    - tests/infra/test_production_contracts.py
+    - tests/infra/test_vault_recovery_contract.py
+    - scripts/infra/vault_snapshot.sh
+    - docs/operations/elms-production.md
+  kind_hint:
+    - C
+    - I
+
+out_of_scope:
+  - Active production restore, destructive cleanup, and live credentials.
+  - Measured production RTO and database export consistency remain owner-approved operational evidence.
+  - Caddy/firewall/edge changes and review-service application state.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+  omit_justification:
+    python-observability: Rehearsal evidence is redacted status/contract output; no metrics or telemetry subsystem is added.
+
+checkpoints:
+  - id: cp1
+    criterion: Disposable target is created only after path resolution/capacity checks and receives a marker; active Docker volume/project targets fail.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'disposable_restore or active_restore'
+  - id: cp2
+    criterion: Restore rehearsal contract names MariaDB, Keycloak PostgreSQL, Vault Raft, and Caddy state while excluding secrets and review-service application state.
+    verify: rg -n 'MariaDB|Keycloak|PostgreSQL|Vault Raft|Caddy|review-service|redact|disposable' docs/operations/elms-production.md scripts/infra/backup_runner.py tests/infra
+  - id: cp3
+    criterion: Vault synthetic restore remains disposable and redacted, and no active-volume or destructive restore command is introduced.
+    verify: python3 -m pytest -q tests/infra/test_vault_recovery_contract.py -k 'restore or redaction' && '! rg -n -i "docker (volume )?rm|down -v|restic restore.*(/var/lib/docker/volumes|elms-prod)" scripts/infra docs/operations'
+
+verify:
+  - python3 -m pytest -q tests/infra/test_production_contracts.py -k 'disposable_restore or active_restore'
+  - python3 -m pytest -q tests/infra/test_vault_recovery_contract.py -k 'restore or redaction'
+  - python3 scripts/infra/backup_runner.py restore-preflight --target /tmp/elms-disposable-restore
+  - rg -n 'disposable|active production|MariaDB|Keycloak|Vault|RTO|redact' docs/operations/elms-production.md
+  - '! rg -n -i "(/var/lib/docker/volumes|elms-prod.*restore|docker (volume )?rm|down -v)" scripts/infra/backup_runner.py docs/operations/elms-production.md'
+
+tdd:
+  - test_restore_preflight_rejects_active_volume_and_project
+  - test_restore_preflight_requires_disposable_target
+  - test_restore_rehearsal_contract_is_redacted
+  - test_vault_snapshot_restore_is_disposable

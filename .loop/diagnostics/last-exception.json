@@ -1,0 +1,18 @@
+{
+  "context": {
+    "command": "finish",
+    "epic_id": null,
+    "phase": null
+  },
+  "diagnostic_path": "/home/aero/PyProject/elms/.loop/diagnostics/last-exception.json",
+  "error_id": "be77ffbe4da9",
+  "exception": {
+    "message": "cannot finish QA: verify-qa PASS is required before finish",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/cli.py\", line 1669, in main\n    transition = engine.finish(step_id=args.step)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 1357, in finish\n    result = self.store.transact(planner)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/store.py\", line 354, in transact\n    plan = planner(current, context)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 1348, in planner\n    return self._finish_plan(\n           ^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 891, in _finish_plan\n    self._require_gate_pass(cursor, transaction, gate_pass=gate_pass)\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 845, in _require_gate_pass\n    raise TransitionError(\nloop.kernel.engine.TransitionError: cannot finish QA: verify-qa PASS is required before finish\n",
+    "type": "TransitionError"
+  },
+  "journal_path": "/home/aero/PyProject/elms/.loop/diagnostics/exceptions.jsonl",
+  "operation": "cli.finish",
+  "schema": "loop-exception/v1",
+  "timestamp": "2026-10-31T14:49:44.563658+00:00"
+}

@@ -5,6 +5,8 @@ import unittest
 from html.parser import HTMLParser
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
 
 class LoginButtonParser(HTMLParser):
     def __init__(self):
@@ -28,8 +30,8 @@ class LoginButtonParser(HTMLParser):
 
 class TestLoginUI(unittest.TestCase):
     def setUp(self):
-        self.css_path = Path("elms/elms/public/css/login.css")
-        self.hooks_path = Path("elms/elms/hooks.py")
+        self.css_path = REPO_ROOT / "elms/elms/public/css/login.css"
+        self.hooks_path = REPO_ROOT / "elms/elms/hooks.py"
 
     def test_login_css_asset_exists_and_registered_in_hooks(self):
         """CSS asset exists and is registered via web_include_css in hooks.py."""
@@ -39,6 +41,55 @@ class TestLoginUI(unittest.TestCase):
         hooks_content = self.hooks_path.read_text(encoding="utf-8")
         self.assertIn("web_include_css", hooks_content)
         self.assertIn("/assets/elms/css/login.css", hooks_content)
+        self.assertIn("web_include_js", hooks_content)
+        self.assertIn("/assets/elms/js/login-keycloak.js", hooks_content)
+
+    def test_login_branding_uses_elms_sdo_name(self):
+        """The standard Frappe login template receives the ELMS SDO brand name."""
+        hooks_content = self.hooks_path.read_text(encoding="utf-8")
+        install_content = (REPO_ROOT / "elms/elms/install.py").read_text(encoding="utf-8")
+
+        self.assertIn('app_title = "ELMS СДО"', hooks_content)
+        self.assertIn("update_website_context", hooks_content)
+        self.assertIn('"elms.install.update_website_context"', hooks_content)
+        self.assertIn('context.get("for_test") == "login.html"', install_content)
+        self.assertIn('"app_name": "ELMS СДО"', install_content)
+
+    def test_update_website_context_allows_single_keycloak_login_control(self):
+        """update_website_context must not suppress provider_logins or hide .btn-keycloak."""
+        from elms.install import update_website_context
+
+        context = {
+            "for_test": "login.html",
+            "provider_logins": [
+                {
+                    "name": "keycloak",
+                    "provider_name": "Keycloak",
+                    "auth_url": "http://127.0.0.1:8480/realms/elms/protocol/openid-connect/auth",
+                }
+            ],
+        }
+        res = update_website_context(context)
+        self.assertEqual(res.get("app_name"), "ELMS СДО")
+        self.assertNotIn("provider_logins", res)
+        self.assertEqual(len(context["provider_logins"]), 1)
+
+    def test_elms_desk_route_is_available_for_system_users(self):
+        hooks_content = self.hooks_path.read_text(encoding="utf-8")
+
+        self.assertIn("add_to_apps_screen", hooks_content)
+        self.assertIn('"name": "elms"', hooks_content)
+        self.assertIn('"route": "/app"', hooks_content)
+
+    def test_login_js_replaces_only_the_standard_password_submit(self):
+        """The added browser behavior delegates the standard form to the server endpoint."""
+        js = (REPO_ROOT / "elms/elms/public/js/login-keycloak.js").read_text(encoding="utf-8")
+
+        self.assertIn('$(document).on("login_rendered"', js)
+        self.assertIn('"elms.sso.login.login_with_keycloak"', js)
+        self.assertIn("frappe.www.login.login_via_token", js)
+        self.assertIn('forms.off("submit")', js)
+        self.assertNotIn("btn-keycloak", js)
 
     def test_login_css_neftegaz_design_tokens(self):
         """login.css must contain scoped Neftegaz tokens (44px control, 3px radius, cobalt action, reduced-motion)."""
@@ -71,13 +122,37 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn("background: var(--elms-login-action-hover, #0a3fb0) !important;", css)
         self.assertIn("background-color: var(--elms-login-action-hover, #0a3fb0) !important;", css)
 
+    def test_login_css_styles_the_full_frappe_login_surface(self):
+        """The Neftegaz visual language applies to the complete login surface, not only SSO."""
+        css = self.css_path.read_text(encoding="utf-8")
+
+        for selector in (
+            'body[data-path="login"]',
+            'body[data-path="login"] .navbar',
+            'body[data-path="login"] .page-content-wrapper',
+            'body[data-path="login"] .page-card-head',
+            'body[data-path="login"] .login-content.page-card',
+            'body[data-path="login"] .login-content.page-card .form-control',
+            'body[data-path="login"] .login-content.page-card .page-card-actions .btn',
+            'body[data-path="login"] .login-content.page-card .login-divider',
+            'body[data-path="login"] .login-content.page-card .btn-login-with-email-link',
+        ):
+            self.assertIn(selector, css, f"Missing login surface selector: {selector}")
+
+        for token in (
+            "--elms-login-font",
+            "#eaf2ff",
+            "#c5ced8",
+            "#8a9aab",
+        ):
+            self.assertIn(token, css, f"Missing Neftegaz login token: {token}")
+
     def test_rendered_login_mock_html_keycloak_button_structure(self):
         """Rendered login page HTML contract: single .btn-keycloak, valid public href, no direct yandex."""
-        # Simulated standard Frappe login markup with Keycloak provider enabled
         sample_html = """
         <div class="for-login">
             <div class="page-card">
-                <div class="page-card-head"><h4>Login</h4></div>
+                <div class="page-card-head"><h4>Вход на сайт ELMS СДО</h4></div>
                 <div class="social-logins text-center">
                     <p class="text-muted login-divider"><span>or</span></p>
                     <div class="social-login-buttons">
@@ -118,7 +193,7 @@ class TestLoginUI(unittest.TestCase):
     def test_no_legacy_yandex_in_templates_or_app(self):
         """Verify no direct Frappe Yandex routes or references in non-test app code."""
         forbidden_terms = ["custom" + "/yandex", "yandex" + "_login"]
-        for root, dirs, files in os.walk("elms/elms"):
+        for root, dirs, files in os.walk(REPO_ROOT / "elms/elms"):
             if "tests" in root:
                 continue
             for f in files:
@@ -135,20 +210,21 @@ if __name__ == "__main__":
 
 
 class TestAcceptanceCriteriaEvidence(unittest.TestCase):
-    def test_ac_003_local_keycloak_fallback_flow(self):
-        """AC-003: Local Keycloak fallback flow contract and realm definition."""
+    def test_ac_003_local_keycloak_fallback_user_is_purged(self):
+        """AC-003: The production realm does not ship a local fallback user."""
         import json
-        with open("docker/keycloak/realm-elms.json", "r", encoding="utf-8") as f:
+        with (REPO_ROOT / "docker/keycloak/realm-elms.json").open("r", encoding="utf-8") as f:
             realm = json.load(f)
         users = realm.get("users", [])
-        fallback_users = [u for u in users if u.get("username") == "fallback.user"]
-        self.assertEqual(len(fallback_users), 1, "Fallback local user must exist in Keycloak realm")
-        self.assertTrue(any(c.get("type") == "password" for c in fallback_users[0].get("credentials", [])))
+        self.assertFalse(
+            any(u.get("username") == "fallback.user" for u in users),
+            "The purged fallback user must not be present in the production realm",
+        )
 
     def test_ac_004_yandex_broker_flow(self):
         """AC-004: Yandex broker flow through Keycloak broker without direct Frappe call."""
         import json
-        with open("docker/keycloak/realm-elms.json", "r", encoding="utf-8") as f:
+        with (REPO_ROOT / "docker/keycloak/realm-elms.json").open("r", encoding="utf-8") as f:
             realm = json.load(f)
         idps = realm.get("identityProviders", [])
         yandex_idps = [i for i in idps if i.get("alias") == "yandex"]

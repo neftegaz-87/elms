@@ -1,0 +1,407 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B05
+plan_id: T-B05-elms-production-container-stack
+epic_id: T-B05-elms-production-container-stack
+date: '2026-10-31'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: d4cf3a6edc46bdb21654f575df37c41f0a5c595a89d83082bbb0f58bfdb6d1cf
+verify_scope: full
+suite_scope: full
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source:
+  - implement_shards
+  - plan_contract
+  - diff
+  - prior_blockers
+  mode: full
+  scope_signals:
+  - backend
+  - api
+  - wire
+  - external_integration
+  - security
+  - reliability
+  - brownfield
+  - compatibility
+  selected:
+  - id: contract_acceptance
+    name: Contract and acceptance criteria tests
+    status: pass
+    evidence: timeout -k 10s 300s python3 -m pytest -q tests/infra — 15 passed; canonical
+      live smoke typed artifact — PASS
+  - id: regression
+    name: Changed behavior and prior-defect regression tests
+    status: pass
+    evidence: bin/pytest -q --tb=line — 87 passed, 2 skipped; timeout -k 10s 300s
+      python3 -m pytest -q tests/infra — 15 passed; BF-001 canonical live smoke —
+      PASS
+  - id: backend_unit_component
+    name: Backend unit and component tests
+    status: pass
+    evidence: bin/pytest -q --tb=line — 87 passed, 2 skipped
+  - id: backend_integration_state
+    name: Backend integration and state tests
+    status: pass
+    evidence: timeout -k 10s 300s python3 -m pytest -q tests/infra — 15 passed
+  - id: api_contract
+    name: API contract, schema, status, and error tests
+    status: pass
+    evidence: docs/reports/elms-production-qa-default-live-smoke.json typed runtime
+      HTTP capture; infrastructure contract tests — 15 passed
+  - id: live_http_smoke
+    name: Live HTTP smoke tests
+    status: pass
+    evidence: docs/reports/elms-production-qa-default-live-smoke.json, timestamp 2026-10-31T14:29:20Z,
+      command timeout -k 10s 300s bash scripts/live_smoke.sh
+  - id: negative_error_paths
+    name: Negative, validation, denial, timeout, and recovery tests
+    status: pass
+    evidence: tests/infra/test_production_contracts.py negative fixtures and policy
+      checks
+  - id: auth_session_rbac
+    name: Authentication, session, authorization, and role tests
+    status: pass
+    evidence: docs/reports/elms-production-qa-default-live-smoke.json Frappe/Keycloak
+      journeys
+  - id: external_integration
+    name: Real external integration and provider tests
+    status: pass
+    evidence: docs/reports/elms-production-qa-default-live-smoke.json live discovery,
+      authorization, and broker boundary
+  - id: async_jobs_workers_webhooks
+    name: Async job, worker, queue, retry, and webhook tests
+    status: pass
+    evidence: production Compose graph and infrastructure contract suite
+  - id: security_owasp
+    name: Security and OWASP spot-check tests
+    status: pass
+    evidence: Vault-only secret contract, image policy, no host exposure, and fail-closed
+      checks
+  - id: performance_resilience
+    name: Performance, timeout, retry, load, and resilience tests
+    status: pass
+    evidence: bounded resources/restart policy checks and live smoke timeout contract
+  - id: cleanup_sot
+    name: Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests
+    status: pass
+    evidence: prior sunset inventory and canonical Compose policy scan; no sunset
+      paths changed by BF-001
+  not_applicable:
+  - id: data_persistence_migration
+    reason: T-B05 changes container/service contracts; no schema or migration is introduced
+  - id: frontend_build_assets
+    reason: no frontend source or asset contract is changed by this epic
+  - id: browser_functional
+    reason: no browser interaction is claimed; live smoke uses direct HTTP
+  - id: wire_journey
+    reason: no user UI-to-API journey is part of the production container contract
+  - id: accessibility
+    reason: no user-visible UI change is in scope
+  - id: responsive_compatibility
+    reason: no viewport/client layout change is in scope
+  - id: visual_states
+    reason: no visual or styling change is in scope
+  - id: console_network
+    reason: no browser client runtime is in scope
+  - id: observability
+    reason: no logging, metrics, or tracing behavior is changed
+  - id: content_i18n
+    reason: no user-facing content or locale behavior is changed
+  - id: exploratory
+    reason: deterministic contract and live HTTP checks cover this infrastructure
+      epic
+  not_run: []
+scope:
+- 'task: T-B05'
+- 'epic: T-B05-elms-production-container-stack'
+- 'iteration: s01-s03 implementation contract, diff, deletes, and BF-001 regression'
+- 'files: docker/compose.prod.yaml, docker/compose.prod.build.yaml, docker/compose.prod.staged.yaml,
+  docker/compose.prod.edge.yaml, docker/vault/, scripts/infra/, scripts/live_smoke.sh,
+  tests/infra/, docs/operations/elms-production.md, Makefile, scripts/docker-up.sh'
+ac_plus:
+- 'FR-001: canonical docker/compose.prod.yaml is image-only and has no source-code
+  mounts'
+- 'FR-002: production service graph contains the required ELMS services'
+- 'FR-003: only staged Caddy publishes localhost/high ports; internal services have
+  no host ports'
+- 'FR-004: mandatory services have health/readiness, restart, security, and bounded
+  resources'
+- 'FR-005: production image identity is release tag plus digest and latest is rejected'
+- 'FR-006: SSO, Vault secrets, and review URL are validated fail-closed'
+ac_minus:
+- 'AC-NEG-001: missing required production env exits non-zero before Compose changes'
+- 'AC-NEG-002: latest, source mount, build in canonical prod, and internal host ports
+  are rejected'
+- 'AC-NEG-003: unhealthy dependencies or failed create-site prevent backend promotion'
+- 'AC-NEG-004: invalid production review URL or missing handoff secret refuses access'
+section_011:
+- External review service remains separate and ELMS owns only the signed review handoff
+  boundary
+prior_blockers:
+- 'BF-001 behavior_smoke: closed; canonical no-override live smoke and regression
+  test pass; evidence timestamp 2026-10-31T14:29:20Z'
+coverage_map:
+- id: FR-001
+  kind: AC
+  scenario: canonical production Compose is rendered and checked without build or
+    source mounts
+  evidence: python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml
+    — PASS; timeout -k 10s 300s python3 -m pytest -q tests/infra — 15 passed
+  status: pass
+- id: FR-002
+  kind: AC
+  scenario: merged production graph contains Frappe, data, queue, Keycloak, Vault,
+    and Caddy services
+  evidence: docker/compose.prod.yaml and merged staged Compose config — PASS; timeout
+    -k 10s 300s python3 -m pytest -q tests/infra — 15 passed
+  status: pass
+- id: FR-003
+  kind: AC
+  scenario: canonical graph has no host exposure while staged Caddy uses an isolated
+    high localhost port
+  evidence: bash scripts/infra/compose_smoke.sh --profile staged --dry-run — PASS;
+    timeout -k 10s 300s python3 -m pytest -q tests/infra — 15 passed
+  status: pass
+- id: FR-004
+  kind: AC
+  scenario: health, restart, security, and bounded resource assertions are enforced
+    for mandatory services
+  evidence: timeout -k 10s 300s python3 -m pytest -q tests/infra — 15 passed
+  status: pass
+- id: FR-005
+  kind: AC
+  scenario: release manifest accepts tag plus digest and rejects latest/secret-like
+    values
+  evidence: python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json
+    — PASS; timeout -k 10s 300s python3 -m pytest -q tests/infra — 15 passed
+  status: pass
+- id: FR-006
+  kind: AC
+  scenario: Vault, SSO, review URL, and Keycloak HTTP boundary are fail-closed and
+    observable
+  evidence: python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml
+    --vault-dir docker/vault — PASS; live evidence file — PASS
+  status: pass
+- id: AC-NEG-001
+  kind: BN
+  scenario: missing production metadata fails preflight before Compose changes
+  evidence: Vault preflight negative cases in tests/infra/test_production_contracts.py
+    — PASS
+  status: pass
+- id: AC-NEG-002
+  kind: BN
+  scenario: mutable images, source mounts, canonical build, and internal host ports
+    fail policy
+  evidence: Compose policy and release negative fixture tests — PASS
+  status: pass
+- id: AC-NEG-003
+  kind: BN
+  scenario: failed create-site or unhealthy dependency blocks backend promotion
+  evidence: backend depends_on conditions and compose_smoke.sh promotion gate — PASS
+  status: pass
+- id: AC-NEG-004
+  kind: BN
+  scenario: invalid review URL or missing handoff secret is refused without fake success
+  evidence: Vault/review contract tests — PASS
+  status: pass
+- id: SECTION-011
+  kind: section_011
+  scenario: external review remains an explicit separate boundary with no phantom
+    Compose service
+  evidence: docker/compose.prod.yaml and docs/operations/elms-production.md — PASS
+  status: pass
+- id: LIVE-SMOKE-DEFAULT
+  kind: prior_blocker
+  scenario: canonical live smoke runs without environment overrides against the running
+    dev stack
+  evidence: docs/reports/elms-production-qa-default-live-smoke.json; status pass;
+    live_evidence true; timestamp 2026-10-31T14:56:33Z; exit_code 0; journeys JRN-SSO-001/JRN-SSO-001A/JRN-SSO-001B
+    pass
+  status: pass
+- id: DELETE-S01-CANONICAL-BUILD-AND-MUTABLE-DEFAULT
+  kind: delete
+  scenario: removed the HEAD-only canonical x-image build context and mutable production
+    default
+  evidence: python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml;
+    python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json;
+    infrastructure suite — PASS
+  status: pass
+- id: DELETE-S01-CANONICAL-PORTS
+  kind: delete
+  scenario: removed HEAD-only canonical Caddy host-port bindings
+  evidence: bash scripts/infra/compose_smoke.sh --profile staged --dry-run; canonical
+    Compose policy — PASS
+  status: pass
+- id: DELETE-S02-DIRECT-SECRETS
+  kind: delete
+  scenario: removed direct production secret environment interpolation from the legacy
+    Compose contract
+  evidence: python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml
+    --vault-dir docker/vault; infrastructure suite — PASS
+  status: pass
+- id: DELETE-S02-MUTABLE-IDENTITY
+  kind: delete
+  scenario: removed mutable latest/dev/prod-local release identity as an accepted
+    production path
+  evidence: python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json;
+    infrastructure suite — PASS
+  status: pass
+- id: DELETE-S03-X-IMAGE-BUILD
+  kind: delete
+  scenario: removed docker/compose.prod.yaml::x-image.build
+  evidence: python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml
+    — PASS
+  status: pass
+- id: DELETE-S03-DIRECT-PASSWORDS
+  kind: delete
+  scenario: removed direct DB_PASSWORD, KEYCLOAK_DB_PASSWORD, and KEYCLOAK_CLIENT_SECRET
+    from canonical production Compose
+  evidence: python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml
+    --vault-dir docker/vault — PASS
+  status: pass
+- id: DELETE-S03-MUTABLE-TAGS
+  kind: delete
+  scenario: removed CUSTOM_TAG=latest and KEYCLOAK_TAG=prod-local as accepted production
+    identity
+  evidence: python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json
+    — PASS
+  status: pass
+- id: DELETE-S03-CHECKOUT-BUILD
+  kind: delete
+  scenario: removed the canonical production build-from-checkout invocation
+  evidence: python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml;
+    staged dry-run — PASS
+  status: pass
+- id: DELETE-S03-PUBLIC-PORTS
+  kind: delete
+  scenario: removed canonical Caddy ports 80/443 from production Compose
+  evidence: canonical Compose policy and staged dry-run — PASS
+  status: pass
+- id: DELETE-S03-MISSING-VAULT-START
+  kind: delete
+  scenario: removed treatment of missing Vault renders as a startable direct-secret
+    Compose path
+  evidence: python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml
+    --vault-dir docker/vault; bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example
+    --dry-run — PASS
+  status: pass
+- id: DELETE-S03-INVALID-REVIEW-HANDOFF
+  kind: delete
+  scenario: removed treatment of missing/HTTP review URL or missing handoff secret
+    as usable
+  evidence: bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example
+    --dry-run; ReviewHandoff regression and live typed evidence — PASS
+  status: pass
+- id: DELETE-S03-LEGACY-README
+  kind: delete
+  scenario: removed docker/README.md copy-production-passwords-and-run-mixed-prod
+    instructions
+  evidence: s03 instruction scan for Vault/image-only/staged contract; infrastructure
+    suite — PASS
+  status: pass
+- id: DELETE-S03-LEGACY-DEFAULT-INSTRUCTIONS
+  kind: delete
+  scenario: removed Makefile/scripts instructions implying public ports or checkout
+    build as default production path
+  evidence: s03 instruction scan for compose.prod.build/staged/edge and owner approval;
+    infrastructure suite — PASS
+  status: pass
+- id: DELETE-S03-UNISOLATED-SMOKE
+  kind: delete
+  scenario: removed production smoke paths that reuse public ports or live data
+  evidence: bash scripts/infra/compose_smoke.sh --profile staged --dry-run; docs/reports/elms-production-qa-default-live-smoke.json
+    typed runtime capture — PASS
+  status: pass
+review:
+  status: pass
+  scope: s01-s03 implementation contract/diff/delete closure, BF-001 regression, and
+    runtime evidence
+  findings: []
+test_audit:
+  status: pass
+  checks:
+  - assertions exercise the default value and live HTTP outcomes, not only process
+    status
+  - canonical live smoke is a real curl process against the running stack; no ASGI
+    or global API mocks
+  - no skips or xfails were added; the two full-suite skips remain pre-existing and
+    unrelated
+  - the regression test is included in tests/infra and the canonical smoke command
+    writes typed evidence
+  findings: []
+browser:
+  status: skipped
+  stack_profile: backend/Frappe HTTP API and Keycloak boundary; no browser UI lane
+    in T-B05
+  evidence_file: ''
+  last_run_at: ''
+  journeys: []
+  artifacts: []
+retro:
+  status: done
+  defect_missed: none after BF-001 closure; the no-override default regression is
+    covered
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: keep the no-override live smoke and default-host regression assertion
+    as the production-stack gate
+sunset_inventory_scan:
+  status: pass
+  scanned_at: '2026-10-31T13:55:11Z'
+  rows:
+  - Prior QA checked all 18 sunset rows; BF-001 touched only the live-smoke default
+    and regression test
+  legacy_surfaces_remaining: []
+  fallback_remaining: []
+  instruction_remaining: []
+sot_enforce_scan:
+  status: pass
+  rows:
+  - Canonical production Compose remains image-only, Vault-backed, bounded, and free
+    of internal host exposure
+  - BF-001 adds no alternate OAuth or production Compose owner
+checks:
+- 'full suite: bin/pytest -q --tb=line — PASS (87 passed, 2 skipped in 0.33s)'
+- 'infrastructure suite: timeout -k 10s 300s python3 -m pytest -q tests/infra — PASS
+  (15 passed in 0.84s)'
+- 'live-smoke regression: python3 -m pytest -q tests/infra/test_live_smoke_contract.py
+  — PASS (1 passed)'
+- 'staged dry-run: bash scripts/infra/compose_smoke.sh --profile staged --dry-run
+  — PASS'
+- 'Compose policy: python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml
+  — PASS'
+- 'release manifest: python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json
+  — PASS'
+- 'Vault secret contract: python3 scripts/infra/check_secret_contract.py — PASS'
+- 'Bash syntax: scripts/live_smoke.sh, scripts/infra/compose_smoke.sh, scripts/docker-up.sh,
+  docker/keycloak/entrypoint.sh — PASS'
+- 'canonical live smoke: LIVE_SMOKE_COMMAND=… EVIDENCE_FILE=… timeout -k 10s 300s
+  bash scripts/live_smoke.sh — PASS; evidence timestamp 2026-10-31T14:56:33Z'
+- 'reviewer gate: verify-qa required before QA finish'
+issues: []
+blockers: []
+fix_plan: []
+limitations:
+- real production Vault initialization/unseal and secret population remain T-B06 scope
+- live staged smoke with real AppRole files remains an operator gate
+- public edge cutover, DNS, backup/restore, registry push, deploy, and rollback remain
+  follow-up epics
+- interactive Yandex consent is not run; the live broker boundary is checked without
+  fabricated credentials
+suite:
+- 'BACK/hub: bin/pytest -q --tb=line — PASS (87 passed, 2 skipped)'
+- 'BACK/infra: timeout -k 10s 300s python3 -m pytest -q tests/infra — PASS (15 passed)'
+live_smoke:
+  status: pass
+  command: LIVE_SMOKE_COMMAND='timeout -k 10s 300s bash scripts/live_smoke.sh' EVIDENCE_FILE=docs/reports/elms-production-qa-default-live-smoke.json
+    timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  last_run_at: '2026-10-31T14:56:33Z'
+  base_url: http://elms.localhost:8082; Keycloak http://elms-keycloak.localhost:8480
+  level: journey
+  notes: No environment override was supplied for the Keycloak public host; Frappe
+    login, Keycloak authorization, and Yandex broker boundaries passed with real HTTP
+    evidence.

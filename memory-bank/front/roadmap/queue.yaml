@@ -1,6 +1,7 @@
 version: roadmap-queue/v2
 role: front
-queue:
+queue: []
+done:
 - id: T-F01
   epic_id: T-F01-elms-desk-sections-roles
   kind: feature
@@ -10,8 +11,6 @@ queue:
   - T-B02
   - T-B03
   - T-A01
-  status: planned
-done: []
 batches:
   elms-desk-shell:
     title: ELMS Desk sections + role visibility

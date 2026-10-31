@@ -1,14 +1,15 @@
 # Технический контекст
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-10-29 (T-B04 QA PASS; T-B03 re-QA PASS & context sync)
+**Обновлено:** 2026-10-31 (T-B06 QA PASS & context sync; T-B05 QA PASS & context sync; T-A01 APP QA PASS; T-B04 QA PASS; T-B03 re-QA PASS & context sync)
 
 ## Стек
 
 - **Frappe Framework v15** (vendor/framework tree в `frappe/`)
 - Custom app **`elms`** (`elms/elms/`)
 - MariaDB 11 + Redis (cache/queue)
-- Docker Compose SoT для local: `docker/compose.dev.yaml` (compose.prod.yaml для prod)
+- **Docker Compose SoT:** local — `docker/compose.dev.yaml`; production canonical — image-only `docker/compose.prod.yaml`, а local/CI build и staged/edge публикации вынесены в явные overlays.
+- **Production boundary:** Vault/Vault Agent render gate, внутренние сети без host-портов, health/readiness, restart/security/resource policy и release image tag+digest проверяются до promotion. Production static secrets имеют единственный источник — KV v2 через authenticated Vault Agent render; local/env/dev fallback запрещён.
 - Keycloak 24 (+ Postgres `keycloak-db`) в compose topology
 - Desk UI (stock); SSO через единый Social Login Key + Keycloak broker (Yandex 360 OIDC IdP)
 
@@ -36,7 +37,7 @@
 
 Физически symlink → `PersonalProject/frappe-erp-crm/docs/vendor/framework` (скачанный mirror). Обновление: `python3 docs/vendor/mirror-docs.py --spaces framework`. Справочник вендора ≠ продуктовый SoT ELMS (`memory-bank/` + `elms/`).
 
-## Фактическое дерево (as-built T-B04 + T-B03 re-QA)
+## Фактическое дерево (as-built T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
 
 ```text
 elms/                    # repo root
@@ -72,12 +73,19 @@ elms/                    # repo root
   docker/
     Dockerfile           # slim multi-stage build (vendor apps denied)
     compose.dev.yaml     # dev topology (backend, websocket, queues, scheduler, configurator, create-site, db, redis, keycloak, keycloak-db)
-    compose.prod.yaml    # prod compose topology
+    compose.prod.yaml    # image-only production SoT
+    compose.prod.build.yaml # explicit local/CI build overlay
+    compose.prod.staged.yaml # isolated localhost/high-port rehearsal
+    compose.prod.edge.yaml # explicit owner-approved edge overlay
     .env.dev.example
+    .env.prod.example # non-secret production metadata and AppRole paths
+    vault/              # pinned Raft config, Agent templates, policy and operator helpers
+    caddy/Caddyfile.staged
     keycloak/realm-elms.json  # Realm elms, confidential client elms-frappe, yandex broker IdP
     README.md            # Docker compose & SSO setup manual
   scripts/docker-up.sh
   scripts/live_smoke.sh  # Black-box Frappe/Keycloak HTTP smoke
+    scripts/infra/        # Compose, Vault, secret, recovery and release contract checks
   scripts/bitrix/
     __init__.py
     rest_client.py       # Bitrix24 REST webhook transport (post_json, WebhookEndpoint, CallArgs, RestEnvelope, token masking)
@@ -86,9 +94,14 @@ elms/                    # repo root
   tests/bitrix/
     __init__.py
     test_rest_client.py  # 37 unit tests for Bitrix REST client, CLI, guards, masking, docs
+  tests/infra/           # production Compose/Vault/release/smoke contract tests
   .env.example           # BITRIX_REST_WEBHOOK_URL configuration template
   Makefile               # чистый (без legacy neftegaz)
   memory-bank/
+    back/qa/T-B05-elms-production-container-stack/ # accepted typed QA evidence
+    back/qa/T-B06-elms-vault-secrets/ # accepted typed QA evidence
+    back/context-sync/T-B05-elms-production-container-stack/ # canonical sync report
+    back/context-sync/T-B06-elms-vault-secrets/ # canonical sync report
 ```
 
 ## Эталон паттернов (read-only)
@@ -118,6 +131,9 @@ elms/                    # repo root
 15. Контракт кодов завершения Bitrix CLI (`call.py`, `scope.py`): 0 — успешный ответ Bitrix (JSON в stdout), 1 — ошибка Bitrix API (`error`, `error_description`) или сбой HTTP-транспорта (stderr, stdout пуст), 2 — ошибки валидации окружения, аргументов, неверный URL, некорректный JSON параметров или нарушение batch-ограничений (stderr, без сетевого вызова).
 16. Защитные ограничения и маскирование секретов REST-клиента: маскирование секретного токена вебхука во всех сообщениях об ошибках, исключениях и строковых представлениях (`***`); валидация синтаксиса имени метода (`[a-z0-9_]+(\.[a-z0-9_]+)+`), обязательность JSON-объекта (dict) для `--params`; локальный batch guard (не более 50 команд, запрет вложенных batch).
 17. Runtime SSO evidence gate: перед принятием live HTTP evidence `create-site` должен завершиться с кодом 0, а `scripts/live_smoke.sh` — записать `docs/reports/sso-browser-api-trace.json` со `status=pass`, `live_evidence=true` и `exit_code=0`; интерактивный Yandex остаётся `not_run` без реальных credentials и зарегистрированного callback.
+18. Login UI surface (`T-A01`): штатная страница Frappe `/login` остаётся единственным UI-владельцем входа; стандартная форма связывается с Keycloak через `login-keycloak.js`, рендерится ровно одна кнопка `.btn-keycloak` с публичным URL Keycloak (`KEYCLOAK_PUBLIC_URL/realms/elms`), прямой Yandex-контрол и template fork отсутствуют. `login.css` подключается через `web_include_css` и гарантирует стиль Neftegaz (специфичность и `!important` исключают переопределение со стороны `login.bundle.css`). Runtime browser evidence подтвердил `44px` высоту, `3px` radius и cobalt action `rgb(13, 76, 211)` (`#0d4cd3`). Все выявленные дефекты (BF-001..BF-004) закрыты.
+19. Production boundary (`T-B05`): canonical `docker/compose.prod.yaml` — image-only SoT без `build`, source mounts и host-публикации внутренних сервисов; local/CI build, staged high-port rehearsal и owner-approved edge switch живут в отдельных overlays. Mandatory services проходят health/readiness, restart, `no-new-privileges` и bounded-resource checks; runtime/database secrets приходят через Vault Agent rendered files с fail-closed missing-key behavior; release manifest требует release tag плюс digest и отклоняет mutable/secret-like identity. Staged smoke использует изолированный project/high port и typed live evidence, а внешний review service остаётся отдельной signed-handoff boundary. Vault contract закрыт T-B06; backup/restore, registry deploy/rollback и public edge cutover остаются follow-up epics T-B07–T-B09, а реальный Vault bootstrap/unseal и custody остаются operator gates.
+20. Vault static-secret boundary (`T-B06`): production использует pinned integrated-Raft Vault на private Compose-only listener и authenticated AppRole/Vault Agent render. KV v2 policy `elms-agent` read-only и ограничена заявленными backend/Keycloak paths; MariaDB и Keycloak DB получают password files, Frappe/Keycloak/review/Yandex runtime получают rendered files. Sealed, unavailable, unauthorized или incomplete render блокирует promotion non-zero; root-token runtime, direct credential interpolation, public `8200`, local fallback и secret-value diagnostics запрещены. OAuth/session state остаётся writable application-owned state вне read-only Vault boundary.
 
 ## Board actors (Bitrix)
 
@@ -135,12 +151,15 @@ elms/                    # repo root
 | Docker bootstrap | `memory-bank/back/plan/T-B01-elms-docker-bootstrap/md/plan.md` | done (as-built T-B01) |
 | Roles RBAC | `memory-bank/back/plan/T-B02-elms-roles-rbac/md/plan.md` | done (as-built T-B02, QA PASS) |
 | SSO Keycloak+Yandex | `memory-bank/back/plan/T-B03-elms-sso-keycloak-yandex/md/plan.md` | done (as-built T-B03, QA PASS) |
-| Desk sections UI | `memory-bank/front/plan/T-F01-elms-desk-sections-roles/md/plan.md` | planned |
+| Desk sections UI | `memory-bank/front/plan/T-F01-elms-desk-sections-roles/md/plan.md` | done (as-built T-F01, workspaces + role filter) |
 | Bitrix REST client | `memory-bank/back/plan/T-B04-bitrix-rest-client/md/plan.md` | done (as-built T-B04, QA PASS) |
+| Keycloak Login UI | `memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md` | done (as-built T-A01, QA PASS) |
+| Production container stack | `memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md` | done (as-built T-B05, QA PASS) |
+| Vault secrets | `memory-bank/back/plan/T-B06-elms-vault-secrets/md/plan.md` | done (as-built T-B06, QA PASS) |
 
-## Тестовое покрытие (as-built T-B04 + T-B03 re-QA)
+## Тестовое покрытие (as-built T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
 
-По текущему составу репозитория — 88 автоматических тестов: 51 в ELMS/Frappe suite и 37 в Bitrix suite; T-B03 re-QA подтвердил 51 passed.
+Исторический foundation-срез содержит 88 автоматических тестов: 51 в ELMS/Frappe suite и 37 в Bitrix suite; T-B06 QA дополнительно подтвердил полный прогон `87 passed, 2 skipped` и инфраструктурный прогон `27 passed`.
 - **Frappe / ELMS app suite:**
   - `bin/pytest -q --tb=line` — 51 passed in 0.11s
   - targeted SSO/RBAC regression: `bin/pytest -q --tb=line elms/elms/tests/test_sso.py elms/elms/tests/test_roles_rbac.py` — 39 passed
@@ -153,6 +172,10 @@ elms/                    # repo root
   - `bin/pytest tests/` — 37 passed in 0.10s
     - `test_rest_client.py` — 37 tests (валидация вебхука, изоляция от ключа доски, CLI call.py и scope.py, коды выхода 0/1/2, batch guard, маскирование секретов, документация docs/bitrix-incoming-webhook.md и .env.example)
 - T-B03 runtime verification: `create-site` — `Exited (0)`; `bench --site elms.localhost list-apps` — `frappe 15.123.1`, `elms 0.0.1`; `scripts/live_smoke.sh` — exit 0 with typed HTTP evidence.
+- T-A01 APP QA: `bin/pytest -q --tb=line` — 65 passed in 0.21s; `docker exec elms-dev-backend-1 bench build --app elms` — assets linked, done in 0.79s; `python3 scripts/run_browser_qa.py` и `bash scripts/live_smoke.sh` завершились с exit code 0.
+- T-A01 runtime evidence: `browser-artifacts/browser-evidence.json` подтверждает live login page, один Keycloak control, отсутствие прямого Yandex-контрола и computed style; `docs/reports/sso-browser-api-trace.json` подтверждает journeys `JRN-SSO-001`, `JRN-SSO-001A`, `JRN-SSO-001B` и отсутствие прямого Frappe-вызова Yandex. Интерактивный Yandex остаётся `not_run`, broker endpoint без state вернул ожидаемый fail-closed `502`.
+- T-B05 BACK QA: `bin/pytest -q --tb=line` — 87 passed, 2 skipped; `python3 -m pytest -q tests/infra` — 15 passed; staged dry-run, Compose/Vault/release policy checks и Bash syntax checks — PASS. Canonical live smoke без environment override записал `docs/reports/elms-production-qa-default-live-smoke.json` с `live_evidence=true`, `exit_code=0`, timestamp `2026-10-31T14:56:33Z`; BF-001 (T-B05 `behavior_smoke`) закрыт со статусом `done`, no-override regression подтверждён.
+- T-B06 BACK QA: `bin/pytest -q --tb=line` — 87 passed, 2 skipped; `python3 -m pytest -q tests/infra` — 27 passed; Compose dev/prod config, Vault secret/policy contracts, preflight negative fixtures, recovery/redaction fixtures, Bash syntax и bounded legacy scans — PASS. Canonical live smoke записал `docs/reports/elms-production-qa-default-live-smoke.json` с `live_evidence=true`, `exit_code=0`, timestamp `2026-10-31T18:08:24Z`; BF-001/BF-002 закрыты, stale fallback tests/docs reconciled to fail-closed behavior.
 
 ## Открыто (после foundation)
 

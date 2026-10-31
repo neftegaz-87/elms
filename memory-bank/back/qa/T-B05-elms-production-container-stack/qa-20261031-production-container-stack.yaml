@@ -1,0 +1,286 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B05
+plan_id: T-B05-elms-production-container-stack
+epic_id: T-B05-elms-production-container-stack
+date: '2026-10-31'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: d4cf3a6edc46bdb21654f575df37c41f0a5c595a89d83082bbb0f58bfdb6d1cf
+verify_scope: full
+suite_scope: full
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: full
+  scope_signals: [backend, api, wire, external_integration, security, reliability, brownfield, compatibility]
+  selected:
+    - id: contract_acceptance
+      name: Contract and acceptance criteria tests
+      status: pass
+      evidence: tests/infra/test_production_contracts.py; implement shard s01-s03
+    - id: regression
+      name: Changed behavior and prior-defect regression tests
+      status: pass
+      evidence: bin/pytest -q --tb=line; python3 -m pytest -q tests/infra
+    - id: backend_unit_component
+      name: Backend unit and component tests
+      status: pass
+      evidence: bin/pytest -q --tb=line — 87 passed, 2 skipped
+    - id: backend_integration_state
+      name: Backend integration and state tests
+      status: pass
+      evidence: tests/infra/test_production_contracts.py — 14 passed
+    - id: api_contract
+      name: API contract, schema, status, and error tests
+      status: pass
+      evidence: scripts/live_smoke.sh contract assertions and infrastructure regression tests
+    - id: live_http_smoke
+      name: Live HTTP smoke tests
+      status: fail
+      evidence: docs/reports/elms-production-qa-default-live-smoke.json; canonical command exits 1
+    - id: negative_error_paths
+      name: Negative, validation, denial, timeout, and recovery tests
+      status: pass
+      evidence: tests/infra/test_production_contracts.py negative fixtures; Vault/release policy commands
+    - id: auth_session_rbac
+      name: Authentication, session, authorization, and role tests
+      status: pass
+      evidence: live Keycloak/Frappe boundary artifact docs/reports/elms-production-qa-live-smoke.json
+    - id: external_integration
+      name: Real external integration and provider tests
+      status: pass
+      evidence: live Keycloak discovery, Frappe login, authorization, and broker-route journeys
+    - id: async_jobs_workers_webhooks
+      name: Async job, worker, queue, retry, and webhook tests
+      status: pass
+      evidence: merged Compose graph and dependency/resource assertions
+    - id: security_owasp
+      name: Security and OWASP spot-check tests
+      status: pass
+      evidence: Vault-only secret contract, image policy, no host exposure, and fail-closed checks
+    - id: performance_resilience
+      name: Performance, timeout, retry, load, and resilience tests
+      status: pass
+      evidence: bounded resources/restart policy checks and live smoke timeout contract
+    - id: cleanup_sot
+      name: Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests
+      status: pass
+      evidence: sunset inventory and canonical Compose policy scan
+  not_applicable:
+    - id: data_persistence_migration
+      reason: T-B05 changes container/service contracts; no schema or migration is introduced
+    - id: frontend_build_assets
+      reason: no frontend source or asset contract is changed by this epic
+    - id: browser_functional
+      reason: no browser interaction is claimed; live smoke uses direct HTTP
+    - id: wire_journey
+      reason: no user UI-to-API journey is part of the production container contract
+    - id: accessibility
+      reason: no user-visible UI change is in scope
+    - id: responsive_compatibility
+      reason: no viewport/client layout change is in scope
+    - id: visual_states
+      reason: no visual or styling change is in scope
+    - id: console_network
+      reason: no browser client runtime is in scope
+    - id: observability
+      reason: no logging, metrics, or tracing behavior is changed
+    - id: content_i18n
+      reason: no user-facing content or locale behavior is changed
+    - id: exploratory
+      reason: deterministic contract and live HTTP checks cover this infrastructure epic
+  not_run: []
+
+scope:
+  - 'task: T-B05'
+  - 'epic: T-B05-elms-production-container-stack'
+  - 'steps: s01-s03'
+  - 'files: docker/compose.prod.yaml, docker/compose.prod.build.yaml, docker/compose.prod.staged.yaml, docker/compose.prod.edge.yaml, scripts/infra/compose_smoke.sh, scripts/live_smoke.sh, tests/infra/test_production_contracts.py, docs/operations/elms-production.md, Makefile, scripts/docker-up.sh'
+
+ac_plus:
+  - 'FR-001: canonical docker/compose.prod.yaml is image-only and has no source-code mounts'
+  - 'FR-002: production service graph contains the required ELMS services'
+  - 'FR-003: only staged Caddy publishes localhost/high ports; internal services have no host ports'
+  - 'FR-004: mandatory services have health/readiness, restart, security, and bounded resources'
+  - 'FR-005: production image identity is release tag plus digest and latest is rejected'
+  - 'FR-006: SSO, Vault secrets, and review URL are validated fail-closed'
+
+ac_minus:
+  - 'AC-NEG-001: missing required production env exits non-zero before Compose changes'
+  - 'AC-NEG-002: latest, source mount, build in canonical prod, and internal host ports are rejected'
+  - 'AC-NEG-003: unhealthy dependencies or failed create-site prevent backend promotion'
+  - 'AC-NEG-004: invalid production review URL or missing handoff secret refuses access'
+
+section_011:
+  - 'External review service remains separate and ELMS owns only the signed review handoff boundary'
+
+prior_blockers:
+  - none
+
+coverage_map:
+  - id: FR-001
+    kind: AC
+    scenario: canonical production Compose is rendered and checked without build or source mounts
+    evidence: scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml — PASS; tests/infra/test_production_contracts.py — PASS
+    status: pass
+  - id: FR-002
+    kind: AC
+    scenario: merged production graph contains Frappe, data, queue, Keycloak, Vault, and Caddy services
+    evidence: docker/compose.prod.yaml and merged staged Compose config — PASS
+    status: pass
+  - id: FR-003
+    kind: AC
+    scenario: canonical graph has no host exposure while staged Caddy uses an isolated high localhost port
+    evidence: compose policy and compose_smoke.sh --profile staged --dry-run — PASS
+    status: pass
+  - id: FR-004
+    kind: AC
+    scenario: health, restart, security, and bounded resource assertions are enforced for mandatory services
+    evidence: tests/infra/test_production_contracts.py — 14 passed
+    status: pass
+  - id: FR-005
+    kind: AC
+    scenario: release manifest accepts tag plus digest and rejects latest/secret-like values
+    evidence: check_release_manifest.py fixture — PASS; negative regression test — PASS
+    status: pass
+  - id: FR-006
+    kind: AC
+    scenario: Vault, SSO, review URL, and Keycloak HTTP boundary are fail-closed and observable
+    evidence: check_secret_contract.py — PASS; explicit live evidence docs/reports/elms-production-qa-live-smoke.json — PASS
+    status: pass
+  - id: AC-NEG-001
+    kind: BN
+    scenario: missing production metadata fails preflight before Compose changes
+    evidence: Vault preflight negative cases in tests/infra/test_production_contracts.py — PASS
+    status: pass
+  - id: AC-NEG-002
+    kind: BN
+    scenario: mutable images, source mounts, canonical build, and internal host ports fail policy
+    evidence: compose policy and release negative fixture tests — PASS
+    status: pass
+  - id: AC-NEG-003
+    kind: BN
+    scenario: failed create-site or unhealthy dependency blocks backend promotion
+    evidence: backend depends_on conditions and compose_smoke.sh promotion gate — PASS
+    status: pass
+  - id: AC-NEG-004
+    kind: BN
+    scenario: invalid review URL or missing handoff secret is refused without fake success
+    evidence: Vault/review contract tests — PASS
+    status: pass
+  - id: SECTION-011
+    kind: section_011
+    scenario: external review remains an explicit separate boundary with no phantom Compose service
+    evidence: plan boundary notes, docker/compose.prod.yaml, and docs/operations/elms-production.md — PASS
+    status: pass
+  - id: LIVE-SMOKE-DEFAULT
+    kind: live_smoke
+    scenario: canonical live smoke runs without environment overrides against the running dev stack
+    evidence: docs/reports/elms-production-qa-default-live-smoke.json — blocked at Frappe authorization endpoint host assertion; exit 1
+    status: fail
+
+review:
+  status: pass
+  scope: production Compose graph, staged smoke, release/Vault policy, and live-smoke host contract
+  findings:
+    - 'B1 is a runtime behavior-smoke blocker: scripts/live_smoke.sh defaults KEYCLOAK_PUBLIC_URL to 127.0.0.1:8480 while docker/.env.dev and the live Frappe Social Login Key advertise elms-keycloak.localhost:8480'
+
+test_audit:
+  status: pass
+  checks:
+    - assertions exercise policy outcomes, dependency conditions, negative contracts, and HTTP response content
+    - no global API mocking or route.fulfill is used in the live smoke
+    - two skipped application tests are pre-existing and not used to hide T-B05 coverage
+    - infrastructure tests are run separately and include negative fixtures
+    - canonical live-smoke evidence is a real curl process against the running stack; the failing default artifact is not used as a pass claim
+  findings: []
+
+browser:
+  status: skipped
+  stack_profile: backend/Frappe HTTP API and Keycloak boundary; no browser UI lane in T-B05
+  evidence_file: ''
+  last_run_at: ''
+  journeys: []
+  artifacts: []
+
+retro:
+  status: done
+  defect_missed: live_smoke.sh encoded a loopback default that disagreed with the dev Compose public hostname and was only exposed by canonical no-override execution
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: add a regression assertion that the live-smoke default matches the dev public Keycloak URL and always run the no-override command
+
+sunset_inventory_scan:
+  status: pass
+  scanned_at: '2026-10-31T13:55:11Z'
+  rows:
+    - '18 sunset rows checked from s03 inventory; canonical production SoT and explicit build/staged/edge replacements retained'
+    - 'A/B/C/I legacy callers and unsafe instructions have no unresolved leftovers in the scoped files'
+  legacy_surfaces_remaining: []
+  fallback_remaining: []
+  instruction_remaining: []
+
+sot_enforce_scan:
+  status: pass
+  rows:
+    - 'canonical docker/compose.prod.yaml has no build, source mount, host port, mutable latest, or direct production secret interpolation'
+    - 'production instructions name image-only, Vault, staged, and owner-approved edge paths'
+
+checks:
+  - 'full suite: bin/pytest -q --tb=line — PASS (87 passed, 2 skipped in 0.73s)'
+  - 'infrastructure suite: python3 -m pytest -q tests/infra — PASS (14 passed in 1.36s)'
+  - 'staged dry-run: bash scripts/infra/compose_smoke.sh --profile staged --dry-run — PASS'
+  - 'Compose policy: python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml — PASS'
+  - 'release manifest: python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json — PASS'
+  - 'Vault secret contract: python3 scripts/infra/check_secret_contract.py — PASS'
+  - 'Compose merge config — PASS'
+  - 'Bash syntax: scripts/live_smoke.sh, scripts/infra/compose_smoke.sh, scripts/docker-up.sh, docker/keycloak/entrypoint.sh — PASS'
+  - 'canonical live smoke: timeout -k 10s 300s bash scripts/live_smoke.sh — FAIL (unexpected authorization endpoint host)'
+  - 'explicit-host live smoke: KEYCLOAK_PUBLIC_URL=http://elms-keycloak.localhost:8480 KEYCLOAK_BASE_URL=http://elms-keycloak.localhost:8480 ... scripts/live_smoke.sh — PASS; docs/reports/elms-production-qa-live-smoke.json'
+  - 'reviewer gate: verify-qa required before QA finish'
+
+issues: []
+
+blockers:
+  - id: BF-001
+    status: open
+    class: behavior_smoke
+    title: 'behavior_smoke: canonical default Keycloak host disagrees with the dev runtime'
+    blocker_ref: 'behavior_smoke: scripts/live_smoke.sh defaults to http://127.0.0.1:8480, but the dev Compose/Frappe contract uses http://elms-keycloak.localhost:8480; canonical no-override smoke fails at authorization endpoint validation'
+    fix_plan_ref: 'Set the smoke default to the dev public Keycloak URL and add a regression test for the default, then rerun the canonical live smoke without environment overrides'
+    targets:
+      - scripts/live_smoke.sh
+      - tests/infra/test_live_smoke_contract.py
+      - docs/reports/elms-production-qa-default-live-smoke.json
+    verify: 'python3 -m pytest -q tests/infra/test_live_smoke_contract.py && timeout -k 10s 300s bash scripts/live_smoke.sh'
+    evidence: docs/reports/elms-production-qa-default-live-smoke.json
+
+fix_plan:
+  - id: BF-001
+    class: behavior_smoke
+    blocker_ref: 'behavior_smoke: canonical default Keycloak host disagrees with the dev runtime'
+    fix: 'Use http://elms-keycloak.localhost:8480 as the no-override dev default and lock it with a regression test'
+    targets:
+      - scripts/live_smoke.sh
+      - tests/infra/test_live_smoke_contract.py
+    verify: 'python3 -m pytest -q tests/infra/test_live_smoke_contract.py && timeout -k 10s 300s bash scripts/live_smoke.sh'
+
+limitations:
+  - real production Vault initialization/unseal and secret population remain T-B06 scope
+  - live staged smoke with real AppRole files remains an operator gate
+  - public edge cutover, DNS, backup/restore, registry push, deploy, and rollback remain follow-up epics
+  - interactive Yandex consent is not run; the live broker boundary is checked without fabricated credentials
+
+suite:
+  - 'bin/pytest -q --tb=line — PASS (87 passed, 2 skipped in 0.73s)'
+
+live_smoke:
+  status: fail
+  command: 'timeout -k 10s 300s bash scripts/live_smoke.sh'
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  last_run_at: '2026-10-31T13:59:44Z'
+  base_url: 'http://elms.localhost:8082; Keycloak default http://127.0.0.1:8480'
+  level: journey
+  notes: 'Real HTTP discovery and Frappe login succeeded; the canonical command then failed because the Frappe authorization link used elms-keycloak.localhost:8480 while the script expected 127.0.0.1:8480. Explicit host override passed separately.'

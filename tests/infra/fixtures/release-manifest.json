@@ -1,0 +1,23 @@
+{
+  "schema": "elms-release-manifest/v1",
+  "application": "elms",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "compose_sha256": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "images": [
+    {
+      "name": "elms",
+      "ref": "ghcr.io/example/elms:prod-0123456",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "name": "elms-keycloak",
+      "ref": "ghcr.io/example/elms-keycloak:prod-0123456",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ],
+  "smoke": {
+    "status": "passed",
+    "profile": "staged"
+  },
+  "rollback_verified": true
+}

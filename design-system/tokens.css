@@ -1,37 +1,117 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/elms/fonts/source-sans-3-cyrillic-400-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/elms/fonts/source-sans-3-latin-400-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/elms/fonts/source-sans-3-cyrillic-600-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/elms/fonts/source-sans-3-latin-600-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/elms/fonts/source-sans-3-cyrillic-700-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/elms/fonts/source-sans-3-latin-700-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/elms/fonts/ibm-plex-mono-cyrillic-400-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/elms/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root,
 [data-theme="light"] {
-  --ds-surface: #f5f8fb;
-  --ds-surface-muted: #e8eef3;
+  --ds-surface: #f5f7fa;
+  --ds-surface-muted: #eef2f6;
   --ds-surface-raised: #ffffff;
-  --ds-surface-inverse: #1b2430;
-  --ds-ink: #1b2430;
-  --ds-ink-muted: #5a6a7a;
-  --ds-ink-subtle: #7d8c9c;
-  --ds-ink-inverse: #f3fffc;
-  --ds-outline: #d9e2ea;
-  --ds-outline-strong: #c5d0db;
-  --ds-accent: #14b8a6;
-  --ds-accent-ink: #102a28;
-  --ds-focus: #0e7490;
-  --ds-danger: #b91c1c;
-  --ds-success: #047857;
-  --ds-warning: #b45309;
-  --ds-info: #0e7490;
-  --ds-radius-sm: 6px;
-  --ds-radius-md: 8px;
-  --ds-radius-lg: 10px;
-  --ds-radius-xl: 12px;
+  --ds-surface-inverse: #0b1f33;
+  --ds-ink: #0b1f33;
+  --ds-ink-muted: #66727f;
+  --ds-ink-subtle: #8793a0;
+  --ds-ink-inverse: #ffffff;
+  --ds-outline: #d5dce3;
+  --ds-outline-strong: #c5ced8;
+  --ds-accent: #0d4cd3;
+  --ds-accent-soft: #eaf2ff;
+  --ds-accent-ink: #ffffff;
+  --ds-focus: #0d4cd3;
+  --ds-danger: #b42318;
+  --ds-success: #167a4a;
+  --ds-warning: #b54708;
+  --ds-info: #087ea4;
+  --ds-radius-sm: 3px;
+  --ds-radius-md: 3px;
+  --ds-radius-lg: 5px;
+  --ds-radius-xl: 5px;
   --ds-radius-full: 999px;
-  --ds-space-1: 5px;
-  --ds-space-2: 6px;
-  --ds-space-3: 10px;
-  --ds-space-4: 15px;
-  --ds-space-5: 20px;
-  --ds-space-6: 30px;
-  --ds-space-7: 40px;
-  --ds-font-family: "IBM Plex Sans", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+  --ds-space-2xs: 2px;
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 24px;
+  --ds-space-6: 32px;
+  --ds-space-7: 48px;
+  --ds-font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
   --ds-font-size-xs: 12px;
   --ds-font-size-sm: 13px;
   --ds-font-size-base: 14px;
@@ -46,36 +126,38 @@
 }
 
 [data-theme="dark"] {
-  --ds-surface: #0e1419;
-  --ds-surface-muted: #121920;
+  --ds-surface: #101923;
+  --ds-surface-muted: #172330;
   --ds-surface-raised: #171e26;
   --ds-surface-inverse: #e8edf2;
   --ds-ink: #e8edf2;
-  --ds-ink-muted: #9aa7b5;
-  --ds-ink-subtle: #6f7d8c;
-  --ds-ink-inverse: #0e1419;
-  --ds-outline: #243040;
-  --ds-outline-strong: #2c3a4c;
-  --ds-accent: #7d93a8;
-  --ds-accent-ink: #0e1419;
-  --ds-focus: #38bdf8;
-  --ds-danger: #f9a8a8;
-  --ds-success: #6ee7b7;
-  --ds-warning: #fbbf24;
-  --ds-info: #7dd3fc;
-  --ds-radius-sm: 6px;
-  --ds-radius-md: 8px;
-  --ds-radius-lg: 10px;
-  --ds-radius-xl: 12px;
+  --ds-ink-muted: #aab6c3;
+  --ds-ink-subtle: #7f8d9c;
+  --ds-ink-inverse: #101923;
+  --ds-outline: #2a3949;
+  --ds-outline-strong: #3a4b5d;
+  --ds-accent: #7ea7ff;
+  --ds-accent-soft: #1b3156;
+  --ds-accent-ink: #101923;
+  --ds-focus: #7ea7ff;
+  --ds-danger: #f2a6a1;
+  --ds-success: #77d3a3;
+  --ds-warning: #f2bd77;
+  --ds-info: #79cce2;
+  --ds-radius-sm: 3px;
+  --ds-radius-md: 3px;
+  --ds-radius-lg: 5px;
+  --ds-radius-xl: 5px;
   --ds-radius-full: 999px;
-  --ds-space-1: 5px;
-  --ds-space-2: 6px;
-  --ds-space-3: 10px;
-  --ds-space-4: 15px;
-  --ds-space-5: 20px;
-  --ds-space-6: 30px;
-  --ds-space-7: 40px;
-  --ds-font-family: "IBM Plex Sans", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+  --ds-space-2xs: 2px;
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 24px;
+  --ds-space-6: 32px;
+  --ds-space-7: 48px;
+  --ds-font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
   --ds-font-size-xs: 12px;
   --ds-font-size-sm: 13px;
   --ds-font-size-base: 14px;

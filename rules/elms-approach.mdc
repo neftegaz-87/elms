@@ -1,0 +1,50 @@
+---
+description: HARD — канон продукта ELMS: LMS/Operations, не CRM/ERP
+alwaysApply: true
+---
+
+# ELMS — продуктовый канон (HARD, always)
+
+## Зачем этот файл (инструкция для агента)
+
+В **каждом** продуктовом репо своя папка `rules/` — настройки проекта для агентов.
+
+- **Cursor:** `.cursor/rules.d/elms-approach.mdc` → symlink сюда (`alwaysApply`).
+- **Codex:** корневой `AGENTS.override.md` → Read `rules/` (вместо hub `AGENTS.md`).
+
+Сейчас workspace **`/home/aero/PyProject/elms`** → **берём `rules/` этого репо**.  
+Hub CRM-секции **не канон**. Схема: `rules/README.md`.
+
+## Продукт
+
+- Runtime: **Frappe Framework** + custom app **`elms`**.
+- Модули: **ELMS Core** / **Operations** / **LMS** — не `ERP`, не CRM-app.
+- Пишем своё в `elms/`. Готовые apps (ERPNext, Frappe CRM, HRMS, Education, vendor LMS) **не ставим и не форкаем как продукт**.
+
+## Куда смотреть (lookup policy)
+
+| Нужно | Смотри | Не смотри |
+|-------|--------|-----------|
+| API Frappe, hooks, DocType, whitelist, Desk, OAuth, bench | `docs/vendor/framework/` → `frappe/` в этом репо | выдумывать из памяти |
+| **Роли, DocPerm, атрибуты, учебный домен, LMS** | `elms/elms/lms/`, `elms/elms/` (SSO/roles), `memory-bank/product/modules.md` | `crm/`, ERPNext RBAC, CRM DocTypes |
+| Паттерны **фреймворка** Frappe | `frappe/` + при необходимости read-only `frappe-erp-crm` **только каркас** | бизнес-логику / роли CRM как продукт |
+| UI | `rules/elms-design.mdc` · neftegaz-ai-layer + родной LMS | CRM / ERPNext Desk brand |
+
+## FORBIDDEN
+
+1. Копаться в ERP / CRM / ERPNext / `crm/` за ролями, правами, доменными атрибутами, UX ELMS.
+2. Тащить CRM API / CRM architecture / `crm/AGENTS.md` / CRM Playwright как канон этого проекта.
+3. Ставить или форкать ERPNext / CRM / HRMS / Education / vendor LMS как apps продукта.
+4. Имя модуля или роли `ERP`.
+5. Silent fallback; комментарии в код и правки linter — только по просьбе.
+
+## Hub AGENTS
+
+Блоки «Frappe / ERPNext / CRM» в symlink `AGENTS.md` для ELMS **не канон**.  
+Стиль кода/тестов — соседний код в **`elms/`**; детали: `rules/agents-overlay.md`.
+
+## Поведение агента
+
+- Отвечать по-русски; модель в конце ответа.
+- Ошибки чинить по причине, без fallback.
+- Новый модуль / роль / DocType-группа — сначала `memory-bank/product/modules.md`.

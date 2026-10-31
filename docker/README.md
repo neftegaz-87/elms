@@ -1,6 +1,6 @@
 # ELMS Docker Environment & Identity Architecture
 
-Руководство по запуску локального окружения ELMS, настройке SSO через Keycloak, процедурам аварийного входа (break-glass) и резервной аутентификации при сбоях внешних провайдеров.
+Руководство по запуску локального окружения ELMS, настройке SSO через Keycloak и безопасному production-доставлению статических секретов через Vault.
 
 ---
 
@@ -18,19 +18,19 @@
 
 ### Пошаговый маршрут оператора (FR-007 Operator Runbook)
 
-1. **Копирование окружения**: Скопируйте `docker/.env.dev.example` в игнорируемый файл `docker/.env.dev`:
+1. **Локальный конфигурационный файл**: Скопируйте `docker/.env.dev.example` в игнорируемый файл `docker/.env.dev`:
    ```bash
    cp docker/.env.dev.example docker/.env.dev
    ```
-2. **Конфигурация секретов**: Задайте `KEYCLOAK_CLIENT_SECRET` (секрет клиента Keycloak `elms-frappe`) и при необходимости `YANDEX_CLIENT_ID` / `YANDEX_CLIENT_SECRET` (OAuth-приложение Yandex 360). Секреты хранятся только в `.env.dev` и не передаются в git.
+2. **Dev-only значения**: Используйте только synthetic значения из dev-контракта. Они не являются production credentials, не переносятся в `.env.prod` и не должны попадать в git.
 3. **Регистрация Redirect URI в Yandex**: Укажите redirect URI брокера Keycloak: `http://localhost:8480/realms/elms/broker/yandex/endpoint` (в dev) или `https://<auth-host>/realms/elms/broker/yandex/endpoint` (в prod).
 4. **Запуск Compose**: Запустите сервисы и дождитесь выполнения `create-site` и импорта realm через `docker/keycloak/entrypoint.sh`:
    ```bash
    docker compose -f docker/compose.dev.yaml --env-file docker/.env.dev up -d
    ```
-5. **Вход через Keycloak**: Откройте `http://elms.localhost:8082/login`. На странице отображается единственная кнопка входа через Keycloak со стилями Neftegaz (`login.css`). Нажмите кнопку, перейдите в Keycloak, выберите Yandex 360 (или локального пользователя) и завершите first-broker-login.
+5. **Вход через Keycloak**: Откройте `http://elms.localhost:8082/login`. Используется стандартная форма Frappe: отдельная кнопка Keycloak не показывается, её submit связан с Keycloak через `login-keycloak.js`. Для локальной проверки введите учетные данные Keycloak; для brokered-входа Keycloak предложит Yandex 360.
 6. **Проверка идентичности и ролей**: После callback убедитесь, что пользователь авторизован в Frappe Desk (`/app`), идентичность связана по `sub`, а роли по умолчанию (`Desk User`, `ELMS LMS User`) назначены автоматически.
-7. **Проверка локального резервного пользователя**: Проверьте резервный вход с локальными учетными данными `fallback.user` в Keycloak при недоступности Yandex.
+7. **Проверка отказа**: При недоступности Yandex brokered-вход должен завершаться явной ошибкой Keycloak; локальный обход SSO не является production-путём.
 8. **Обновление кэша при изменениях**: При изменении параметров Social Login Key или CSS-ассета выполните очистку кэша:
    ```bash
    docker compose -f docker/compose.dev.yaml exec backend bench --site elms.localhost clear-cache
@@ -116,7 +116,7 @@
 - **Frappe Desk Login Page (хост -> nginx:8082 -> backend:8000)**:
   ```bash
   curl -s -o /dev/null -w "%{http_code}\n" http://elms.localhost:8082/login
-  # Ожидаемый результат: 200 (страница входа Frappe с кнопкой Keycloak)
+  # Ожидаемый результат: 200 (страница входа ELMS со стандартной формой)
   ```
 - **Frappe OAuth Redirect Initiator**:
   ```bash
@@ -162,19 +162,17 @@ ELMS не использует тяжелые механизмы синхрон�
 
 ---
 
-## 4. Резервный вход и аварийные процедуры при сбое Yandex 360
+## 4. Отказоустойчивость SSO при сбое Yandex 360
 
 ### Поведение при недоступности внешнего IdP Yandex (FR-005a, FR-015, AC-8, BN-007, BN-008)
 
 1. **Brokered-only пользователи**:
    - Пользователи, у которых нет локальных учетных данных в Keycloak и авторизующиеся исключительно через федерацию Yandex 360, при сбое Yandex получают явную ошибку аутентификации от Keycloak.
    - Ложный успех или offline-вход без подтверждения личности **запрещены (Fail-Closed, BN-007, TM-009)**.
-2. **Пользователи с локальными Keycloak credentials (Local Fallback Path, AC-8, BN-008)**:
-   - Автоматическая генерация паролей для всех brokered-пользователей запрещена.
-   - Для критических ролей и администраторов в Keycloak realm вручную задаются локальные учетные записи/пароли:
-     - `admin@elms.local` (роль `admin`, группа `/Administrators`)
-     - `fallback.user@elms.local` (роль `employee`, группа `/Employees`)
-   - При сбое Yandex такие пользователи могут авторизоваться на странице входа Keycloak, используя форму ввода имени пользователя и пароля Keycloak в обход кнопки Yandex IdP, через тот же клиент `elms-frappe`.
+2. **Fail-closed для всех brokered-пользователей**:
+   - Автоматическая генерация локальных паролей и локальный обход внешнего IdP запрещены.
+   - При сбое Yandex Keycloak возвращает явную ошибку, редирект в Frappe не выполняется, сессия не создаётся.
+   - Административное восстановление выполняется только оператором через Vault/AppRole и проверку preflight; пользовательского login bypass нет.
 
 ### Чек-лист проверки веток отказа и конкретные исходы (Outage Branch Checklist Outcomes)
 
@@ -182,19 +180,15 @@ ELMS не использует тяжелые механизмы синхрон�
 |---|---|---|---|---|
 | **Штатный JIT-вход (Happy Path)** | Yandex 360 активен | Вход через Keycloak -> выбор Yandex -> авторизация | **Keycloak:** создана учетная запись с привязкой identityProvider=yandex.<br>**Frappe:** создан User, назначены роли `Desk User` и `ELMS LMS User`. Открыта сессия Desk (`sid`, HTTP 200). | PASS |
 | **Сбой Yandex без локального пароля (Fail-Closed)** | Yandex 360 недоступен (5xx/timeout), нет пароля в Keycloak | Клик по кнопке Yandex на форме входа Keycloak | **Fail-Closed (BN-007):** Keycloak отображает ошибку внешнего провайдера. Редирект в Frappe не выполняется. Сессия в Frappe не создается. Доступ закрыт. | PASS |
-| **Сбой Yandex с локальным паролем (Local Fallback)** | Yandex 360 недоступен, задан пароль для `fallback.user@elms.local` | Ввод логина и пароля напрямую в форму Keycloak | **Local Fallback (BN-008):** Keycloak валидирует пароль локально, выпускает токен OIDC для `elms-frappe`. Редирект на `login_via_keycloak` успешен, Frappe открывает сессию для существующего пользователя. | PASS |
+| **Сбой Yandex** | Yandex 360 недоступен | Попытка brokered-входа | **Fail-Closed:** Keycloak показывает ошибку внешнего провайдера; токен OIDC и сессия Frappe не создаются. | PASS |
 | **Отсутствие роли по умолчанию** | Роль `ELMS LMS User` отсутствует в БД Frappe | Прохождение OAuth-аутентификации | **Fail-Closed (BN-005):** Хук `maybe_assign_sso_roles` выбрасывает исключение `frappe.throw`. Создание пользователя отменяется, пользователь без роли не сохраняется. | PASS |
 
-### Процедура Break-Glass для системного администратора
+### Операторское восстановление
 
-В случае полной недоступности внешних каналов аутентификации предусмотрено два уровня аварийного доступа:
-
-1. **Уровень 1: Локальный вход через Keycloak**:
-   - Перейдите на страницу авторизации Keycloak `http://localhost:8480`.
-   - Введите имя пользователя `admin` и пароль, заданный переменной `KEYCLOAK_ADMIN_PASSWORD`.
-2. **Уровень 2: Прямой Desk Break-Glass (обход SSO)**:
-   - Перейдите на URL прямого входа Frappe: `http://elms.localhost:8082/login`.
-   - Выполните вход под локальным пользователем `Administrator` с системным паролем из `ADMIN_PASSWORD` (по умолчанию `admin`).
+Прямой Desk login и пользовательский break-glass не входят в production-контур.
+При проблеме с Vault остановите promotion, проверьте sealed/unavailable/
+unauthorized/missing-render состояние и восстановите AppRole только через
+защищённую операторскую сессию и runbook `docs/operations/elms-production.md`.
 
 ---
 
@@ -218,33 +212,60 @@ ELMS не использует тяжелые механизмы синхрон�
 - `make local.ps` — вывод статуса работающих контейнеров.
 - `make local.logs` — просмотр последних логов сервисов.
 - `make dev` — алиас для `local.up`.
-- `make prod` / `make prod.up` — сборка и запуск prod (Caddy :80/:443).
-- `make prod.down` / `make prod.ps` / `make prod.logs` — остановка / статус / логи prod.
+- `make prod` / `make prod.up` — staged production-контур на localhost/high-port (build + Caddy `127.0.0.1:18080`).
+- `make prod.down` / `make prod.ps` / `make prod.logs` — остановка / статус / логи staged-контура.
+- `make prod.smoke` — безопасная проверка merged Compose и Vault contract без запуска контейнеров.
+- `make prod.edge.up` — публичный edge на `80/443`; требует явного `ELMS_EDGE_APPROVED=1`.
+- `make prod.edge.down` / `make prod.edge.ps` / `make prod.edge.logs` — операции с публичным edge.
 
 ### Конфигурация Production (`docker/compose.prod.yaml` + Caddy)
 
-Prod = immutable image + named volumes + **Caddy как единственный edge**.
-На хост публикуются только **80** и **443**. MariaDB, Redis, Gunicorn, Nginx (frontend), Keycloak — только во внутренней Docker-сети.
+Канонический production-файл — image-only граф: Frappe, MariaDB, Redis, Keycloak,
+Vault Agent и Caddy. В нём нет `build`, исходников и host-портов. Сборка разрешена
+только в явном `docker/compose.prod.build.yaml` для local/CI или staged rehearsal;
+production deploy потребляет готовые release images через `docker/compose.prod.yaml`.
+`docker/compose.prod.staged.yaml` публикует только localhost/high-port, а
+`docker/compose.prod.edge.yaml` используется только через owner-approved cutover.
+MariaDB, Redis, Gunicorn, Nginx (frontend), Keycloak и Vault остаются внутри Docker-сетей.
+
+Значения `docker/.env.dev` — synthetic dev-only contract (`ELMS_SSO_REQUIRE=0`,
+локальный review URL и HTTP разрешён). Их нельзя переносить в `docker/.env.prod`:
+production metadata остаётся non-secret, а пароли, client secrets и review handoff
+рендерятся только Vault Agent.
 
 | Снаружи (firewall) | Сервис | Куда проксирует Caddy |
 |---|---|---|
-| `80` / `443` | `caddy` | `SITE_NAME` → `frontend:8080`, `AUTH_HOSTNAME` → `keycloak:8080` |
+| staged: `127.0.0.1:18080` | `caddy` | локальная rehearsal-проверка маршрутов |
+| edge: `80` / `443` | `caddy` | `SITE_NAME` → `frontend:8080`, `AUTH_HOSTNAME` → `keycloak:8080` |
 | — | `frontend` / `backend` / `db` / `keycloak` | без publish |
 
-1. DNS: `A`/`AAAA` для `SITE_NAME` и `AUTH_HOSTNAME` на IP сервера.
-2. Скопируйте и заполните секреты (пустые и placeholder `*.example.com` — fail-closed):
+1. Подготовьте DNS: `A`/`AAAA` для `SITE_NAME` и `AUTH_HOSTNAME` на IP сервера.
+2. Скопируйте только deployment metadata (секреты в этот файл не добавляются):
    ```bash
    cp docker/.env.prod.example docker/.env.prod
-   # SITE_NAME, AUTH_HOSTNAME, SITE_HOST_NAME, KEYCLOAK_PUBLIC_URL, FRAPPE_PUBLIC_URL,
-   # ACME_EMAIL, DB_PASSWORD, ADMIN_PASSWORD, KEYCLOAK_*_PASSWORD, KEYCLOAK_CLIENT_SECRET
+   # SITE_NAME, AUTH_HOSTNAME, SITE_HOST_NAME, KEYCLOAK_PUBLIC_URL,
+   # FRAPPE_PUBLIC_URL, ACME_EMAIL и immutable image ref/tag
    ```
-3. Откройте на хосте/firewall порты **80** и **443** (нужны и для Let's Encrypt HTTP-01).
-4. Запуск:
+   AppRole `role-id`/`secret-id` создаются оператором и хранятся root-owned вне git.
+   Заполните Vault path `elms/data/runtime`, затем проверьте его без вывода значений:
+   ```bash
+   bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod --dry-run
+   bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod
+   ```
+3. Сначала выполните staged rehearsal:
    ```bash
    make prod
-   # или: bash scripts/docker-up.sh prod up -d --build
+   # или: bash scripts/infra/compose_smoke.sh --env-file docker/.env.prod --dry-run
    ```
-5. Проверка:
+   Staged smoke использует отдельный Compose project и не должен делить volumes с live.
+4. После backup/restore evidence, owner approval и проверки rollback откройте firewall **80/443**
+   и отдельно выполните публичный cutover:
+   ```bash
+   ELMS_EDGE_APPROVED=1 \
+   ELMS_EDGE_EVIDENCE=/var/lib/elms/evidence/edge-predecessor.json \
+     make prod.edge.up
+   ```
+5. Проверка публичного маршрута:
    ```bash
    curl -fsS -o /dev/null -w "%{http_code}\n" "https://$SITE_NAME/login"
    curl -fsS -o /dev/null -w "%{http_code}\n" "https://$AUTH_HOSTNAME/realms/elms/.well-known/openid-configuration"
@@ -254,7 +275,9 @@ Prod = immutable image + named volumes + **Caddy как единственный
 Caddyfile: `docker/caddy/Caddyfile` (авто-TLS Let's Encrypt по `ACME_EMAIL`).  
 Keycloak в prod: `start` (не `start-dev`) + `KC_PROXY_HEADERS=xforwarded` + `KC_HOSTNAME=<AUTH_HOSTNAME>`.
 
-Команды: `make prod` / `make prod.down` / `make prod.ps` / `make prod.logs`.
+Проверки контрактов: `python scripts/infra/check_compose_policy.py`,
+`python scripts/infra/check_secret_contract.py`,
+`python scripts/infra/check_release_manifest.py`.
 
 ---
 
@@ -275,7 +298,7 @@ Keycloak в prod: `start` (не `start-dev`) + `KC_PROXY_HEADERS=xforwarded` + `
    make local.down
    make local.up
    ```
-4. **Проверка подключения к MariaDB**:
+4. **Проверка подключения к MariaDB в dev**:
    ```bash
-   docker compose -f docker/compose.dev.yaml exec db mariadb -u root -p123 -e "SHOW DATABASES;"
+   docker compose -f docker/compose.dev.yaml exec -it db mariadb -u root -p -e "SHOW DATABASES;"
    ```

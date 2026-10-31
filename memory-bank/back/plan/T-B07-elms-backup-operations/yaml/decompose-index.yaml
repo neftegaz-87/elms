@@ -1,0 +1,134 @@
+schema: epic-decompose-index/v1
+plan_id: T-B07-elms-backup-operations
+level: L3
+sNN_cap: 3
+dependencies:
+  - T-B05-elms-production-container-stack
+  - T-B06-elms-vault-secrets
+blocks:
+  - T-B08-elms-cicd-release-rollback
+  - T-B09-elms-caddy-edge-cutover
+steps:
+  - id: s01
+    file: s01-state-inventory-policy-and-manifest.yaml
+    title: Complete ELMS state inventory and non-secret backup policy manifest
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-verified-encrypted-backup-freshness-gate.yaml
+    title: Verified encrypted backup runner with capacity and freshness promotion gate
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-disposable-restore-rehearsal-and-smoke.yaml
+    title: Disposable restore preflight and safe database/Vault rehearsal contract
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+requirements_coverage:
+  - id: FR-001
+    step: s01
+    description: Encrypted client-side off-host restic/S3-compatible repository is required and the complete ELMS state manifest is non-secret.
+  - id: FR-002
+    step: s02
+    description: Backup upload, repository verification, retention policy, and last-success age no greater than 24 hours are represented by a fail-closed evidence gate.
+  - id: FR-003
+    step: s03
+    description: Restore preflight rejects active production volumes/projects and permits only a disposable target.
+  - id: FR-004
+    step: s02
+    description: Configured capacity threshold is a hard block and the runner never prunes, deletes, or removes Docker volumes.
+  - id: FR-005
+    step: s01
+    description: Backup manifests, status evidence, and operator output exclude PII, OAuth material, and Vault recovery material.
+
+stages_coverage:
+  - stage: Stage s01 — inventory sites/logs, databases, Redis queue, Vault Raft, and Caddy state; define policy and redaction boundary
+    step: s01
+  - stage: Stage s02 — run encrypted restic backup/check, enforce capacity, publish verified freshness evidence, and block promotion on failure
+    step: s02
+  - stage: Stage s03 — protect disposable restore targets and document/test MariaDB, Keycloak, and Vault smoke handoff without active-volume writes
+    step: s03
+
+outcome_map:
+  - outcome: ELMS has one complete non-secret inventory and explicit RPO 24h/RTO 4h encrypted off-host backup contract.
+    step: s01
+  - outcome: A stale, failed, capacity-blocked, or unverifiable backup cannot supply successful promotion evidence.
+    step: s02
+  - outcome: Restore rehearsal has a disposable-only target boundary and a measurable database/identity/Vault smoke handoff.
+    step: s03
+
+replacement_cleanup:
+  s01:
+    replaces: Ad-hoc or incomplete backup state lists that can omit a production state class or expose secret/recovery material.
+    target: scripts/infra/backup_runner.py, docs/operations/elms-production.md, tests/infra/
+  s02:
+    replaces: Backup success evidence written before repository verification and promotion checks that accept mere evidence-file presence.
+    target: scripts/infra/backup_runner.py, scripts/infra/deploy_wrapper.py, ops/systemd/, tests/infra/
+  s03:
+    replaces: Restore procedures that do not prove disposable targeting or could address active Docker volumes/projects.
+    target: scripts/infra/backup_runner.py, docs/operations/elms-production.md, tests/infra/
+  items:
+    - symbol: incomplete or secret-bearing ELMS backup inventory
+      kind: A
+      replacement: complete non-secret elms-backup-manifest/v1 inventory
+      step: s01
+      policy: delete in-epic
+    - symbol: verified-upload status written before restic check
+      kind: C
+      replacement: verified-only atomic freshness evidence after upload/checksum verification
+      step: s02
+      policy: delete in-epic
+    - symbol: promotion accepts backup evidence by file existence alone
+      kind: C
+      replacement: status, timestamp, and verification freshness gate
+      step: s02
+      policy: delete in-epic
+    - symbol: restore target under active Docker volume or elms-prod project
+      kind: C
+      replacement: explicit disposable-target preflight and marker
+      step: s03
+      policy: delete in-epic
+    - symbol: operator output containing PII/OAuth/Vault recovery values
+      kind: I
+      replacement: status-only redacted diagnostics and non-secret runbook
+      step: s01
+      policy: delete in-epic
+  sunset:
+    - incomplete or secret-bearing ELMS backup inventory
+    - verified-upload status written before restic check
+    - promotion accepts backup evidence by file existence alone
+    - restore target under active Docker volume or elms-prod project
+    - operator output containing PII/OAuth/Vault recovery values
+
+deletes:
+  - backup success evidence produced before restic repository verification
+  - promotion acceptance based only on backup evidence-file presence
+  - restore targeting active Docker volumes or the active elms-prod project
+  - secret-bearing or recovery-material backup manifest/output
+
+out_of_scope:
+  - Real external restic/S3 repository credentials, operations-owner approval, and production target capacity remain operator gates.
+  - Consistent live volume/database export wiring and active production restore are not executed by this repository check.
+  - Automatic restic prune, Docker prune, volume removal, destructive cleanup, firewall, and Caddy changes are forbidden.
+  - T-B08 owns registry/deployment execution and consumes the verified backup evidence contract.
+  - T-B09 owns public edge cutover and consumes the backup freshness/restore gate.
+
+follow_up:
+  - epic_id: T-B08-elms-cicd-release-rollback
+    scope: consume verified backup freshness evidence before protected deploy or rollback execution
+  - epic_id: T-B09-elms-caddy-edge-cutover
+    scope: consume fresh backup and disposable-restore evidence before public edge switch
+
+boundary_notes:
+  - No command in this epic writes an active production volume or performs automatic cleanup.
+  - The review service owns its own state backup; ELMS keeps only the review handoff/config contract.
+  - Production activation remains blocked until repository credentials, owner, target capacity, and measured restore rehearsal evidence exist.
+
+final_prompt_outcome_evidence:
+  - prompt_outcome: ELMS production state has encrypted off-host backup and a disposable restore path with RPO 24h/RTO 4h.
+    evidence: s01 complete manifest, s02 verified freshness gate, and s03 disposable restore contract
+  - prompt_outcome: Failed/stale/unverifiable backup blocks production promotion.
+    evidence: s02 status/evidence validator and deployment promotion check
+  - prompt_outcome: Restore never writes active volumes by default.
+    evidence: s03 target rejection tests and disposable marker

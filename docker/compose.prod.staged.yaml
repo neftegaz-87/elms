@@ -1,0 +1,34 @@
+# Isolated pre-cutover surface. It is intentionally localhost-only and HTTP-only.
+services:
+  create-site:
+    environment:
+      ELMS_PROD_STAGE: "1"
+      SITE_NAME: ${STAGED_SITE_NAME:-elms.localhost}
+      SITE_HOST_NAME: ${STAGED_SITE_HOST_NAME:-http://elms.localhost:18080}
+      KEYCLOAK_PUBLIC_URL: ${STAGED_KEYCLOAK_PUBLIC_URL:-http://auth.localhost:18080}
+
+  backend:
+    environment:
+      SITE_NAME: ${STAGED_SITE_NAME:-elms.localhost}
+      KEYCLOAK_PUBLIC_URL: ${STAGED_KEYCLOAK_PUBLIC_URL:-http://auth.localhost:18080}
+      ELMS_REVIEW_ALLOW_HTTP: "1"
+
+  frontend:
+    environment:
+      FRAPPE_SITE_NAME_HEADER: ${STAGED_SITE_NAME:-elms.localhost}
+
+  keycloak:
+    environment:
+      KC_HOSTNAME: ${STAGED_AUTH_HOSTNAME:-auth.localhost}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      FRAPPE_PUBLIC_URL: ${STAGED_SITE_HOST_NAME:-http://elms.localhost:18080}
+
+  caddy:
+    environment:
+      SITE_NAME: ${STAGED_SITE_NAME:-elms.localhost}
+      AUTH_HOSTNAME: ${STAGED_AUTH_HOSTNAME:-auth.localhost}
+    ports:
+      - "127.0.0.1:${STAGED_HTTP_PUBLISH_PORT:-18080}:80"
+    volumes:
+      - ./caddy/Caddyfile.staged:/etc/caddy/Caddyfile:ro

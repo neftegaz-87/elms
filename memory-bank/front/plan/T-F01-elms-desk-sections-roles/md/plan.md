@@ -3,7 +3,7 @@
 **Дата:** 2026-10-28  
 **Режим:** FRONT PLAN  
 **Уровень:** L3  
-**Статус:** active  
+**Статус:** done  
 **Clarify:** Phase 0 skipped — Desk workspaces + single Keycloak SSO affordance locked chat 2026-10-29  
 **Prompt:** [md/prompt.md](prompt.md)  
 **Queue:** `memory-bank/front/roadmap/queue.yaml` → `T-F01` / `T-F01-elms-desk-sections-roles`  

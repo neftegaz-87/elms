@@ -1,7 +1,7 @@
 # Модули ELMS
 
 **Дата:** 2026-10-28  
-**Обновлено:** 2026-10-29 (возврат канона T-B01: Operations вместо ERP)
+**Обновлено:** 2026-10-30 (lookup: роли/атрибуты из LMS/`elms`; ERP/CRM только framework)
 
 ## Runtime
 
@@ -16,7 +16,7 @@
 |--------|------------|--------|
 | Core | Settings-секция, SSO ensure, общие install hooks | planned (T-B01+) |
 | Operations | Бизнес-операции: BPM/workflows, документы, согласования, AI-автоматизация, задачи, интеграции (placeholder DocType секции) | planned (T-B02) |
-| LMS | Учебный контур: курсы, программы, зачисления (placeholder DocType секции) | planned (T-B02) |
+| LMS | Учебный контур: курсы, программы, зачисления | foundation: RBAC-якорь; доменные сущности planned |
 
 Классический ERP-контур (финансы, склад, закупки) **не** заявляется именем модуля или роли.
 
@@ -53,6 +53,24 @@
 | `ELMS Operations Section` | Operations |
 | `ELMS LMS Section` | LMS |
 
+## LMS audit (as-built на 2026-10-30)
+
+Источник истины для LMS — `elms/elms/lms/`. Сейчас в нём есть только:
+
+- `ELMS LMS Section` — Single DocType в модуле `LMS`, технический RBAC-якорь;
+- единственное поле `title` (`Data`, read-only, default `ELMS LMS Section`);
+- `ELMS Admin`: полный доступ RWCD;
+- `ELMS LMS User`: Read + Write, без Create/Delete.
+
+Полноценных DocType `Course`, `Program`, `Enrollment`, `Learning Progress`, `Lesson`
+и `Certificate` пока нет. Также нет LMS-specific Settings, API или UI для учебного
+процесса. Поэтому пользователь с ролью `ELMS LMS User` получает базовый Desk-доступ
+и права на якорь секции, но ещё не учебный кабинет с курсами.
+
+`/app/setup-wizard/0` не является настройкой LMS: это системный мастер Frappe.
+В `elms` нет `setup_wizard_stages`; язык, часовой пояс и прочие пункты этого экрана
+не создают и не настраивают учебные сущности.
+
 ## SSO
 
 | Провайдер | Механизм | Эпик |
@@ -70,16 +88,33 @@ Default роль при SSO signup (dev): `ELMS LMS User` + `Desk User`.
 | LMS | ELMS Admin, ELMS LMS User |
 | Settings | ELMS Admin |
 
+## Lookup при реализации
+
+| Вопрос | Ответ в |
+|--------|---------|
+| Какие роли / DocPerm / секции | эта таблица + код `elms/elms/` (install, SSO roles, LMS) |
+| Как устроен учебный домен | модуль **LMS** в `elms` (product SoT; сейчас только RBAC-якорь) |
+| Как писать whitelist / DocType / hooks | `frappe/` + `docs/vendor/framework/`; ERP/CRM — только образец каркаса |
+| Как выглядит UI | `memory-bank/product/design.md` (neftegaz + LMS) |
+
 ## DENY
 
 | Что | Почему |
 |-----|--------|
 | ERPNext / Frappe LMS / Education / CRM / HRMS как apps | Пишем своё |
+| Брать из ERP/CRM продуктовые роли, доменные поля или бренд | Канон — LMS/`elms`; ERP/CRM только framework-паттерны |
 | Параллельный FastAPI/Django | Один runtime — Frappe |
-| Копипаст DocType vendor wholesale | Только паттерны |
+| Копипаст DocType vendor wholesale | Только паттерны framework |
 | Secrets SSO в git | Только env/site_config |
 | Имя модуля/роли `ERP` | Канон T-B01: Operations заменяет ERP |
+| Hub AGENTS секции CRM как SoT этого репо | Оверлей `rules/agents-overlay.md` |
 
 ## Правило
 
 Новый модуль / DocType-группа / роль = запись сюда **до** кода.
+
+**Стратегия выбора:** LMS-first для предметной области, ролей и настроек; ERP/CRM
+система — вторичный read-only источник для зрелых паттернов Frappe (DocType,
+permissions, workflow, list/form UI, hooks и API). В ELMS оставляем только то, что
+лучше соответствует учебному сценарию; ERP/CRM-брендинг и чужая доменная модель в
+пользовательский интерфейс не переносятся.

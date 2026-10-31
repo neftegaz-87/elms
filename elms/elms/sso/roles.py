@@ -99,8 +99,14 @@ def maybe_assign_sso_roles(doc, method: str | None = None) -> None:
             if role_name:
                 existing_roles.add(role_name)
 
+    if "Desk User" in existing_roles or "Desk User" in default_roles:
+        if hasattr(doc, "user_type"):
+            doc.user_type = "System User"
+
     roles_to_add = [r for r in default_roles if r not in existing_roles]
     if not roles_to_add:
+        if getattr(doc, "user_type", None) == "System User" and hasattr(doc, "save"):
+            doc.save()
         return
 
     if flags:

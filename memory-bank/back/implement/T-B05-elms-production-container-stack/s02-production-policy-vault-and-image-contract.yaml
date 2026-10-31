@@ -1,0 +1,99 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-B05-elms-production-container-stack
+task_id: T-B05-elms-production-container-stack
+title: s02 — Production policy, Vault render gate, resources/security, and immutable image contract IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B05-elms-production-container-stack/yaml/steps/s02-production-policy-vault-and-image-contract.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - "Added fail-closed Compose, Vault secret-delivery, Vault preflight, and release-manifest policy checks for the production boundary."
+  - "Connected Frappe, Keycloak, and live Vault preflight consumers to the exact Vault Agent render paths; no direct production secret interpolation is used by Compose."
+  - "Enforced HTTPS review URLs in production, mandatory SSO, immutable release tags, digest-bearing release manifests, and the one-time signed ELMS review handoff tests."
+  - "Added a unit-test Frappe surface shim so ReviewHandoff tests exercise the public handoff functions without requiring a live site bootstrap."
+
+files:
+  - scripts/infra/check_compose_policy.py
+  - scripts/infra/check_secret_contract.py
+  - scripts/infra/check_release_manifest.py
+  - scripts/infra/vault_preflight.sh
+  - docker/.env.prod.example
+  - docker/compose.prod.yaml
+  - docker/vault/agent.hcl
+  - docker/vault/config.hcl
+  - docker/vault/runtime.env.tpl
+  - docker/vault/keycloak.env.tpl
+  - docker/vault/db-password.tpl
+  - docker/vault/keycloak-db-password.tpl
+  - docker/vault/policies/elms-agent.hcl
+  - elms/elms/sso/review.py
+  - elms/elms/tests/test_sso.py
+
+deletes:
+  - direct production secret environment interpolation from the legacy Compose contract
+  - mutable latest/dev/prod-local release identity as an accepted production path
+
+wire_complete:
+  call_sites:
+    - docker/compose.prod.yaml
+    - docker/.env.prod.example
+    - docker/vault/agent.hcl
+    - docker/vault/runtime.env.tpl
+    - docker/vault/keycloak.env.tpl
+    - docker/vault/db-password.tpl
+    - docker/vault/keycloak-db-password.tpl
+    - docker/vault/policies/elms-agent.hcl
+    - scripts/infra/check_compose_policy.py
+    - scripts/infra/check_secret_contract.py
+    - scripts/infra/check_release_manifest.py
+    - scripts/infra/vault_preflight.sh
+    - elms/elms/sso/review.py
+    - elms/elms/tests/test_sso.py
+  enforce_path: Vault Agent rendered files are the only production secret delivery path; policy/preflight validators gate Compose and release identity before promotion
+  dual_path_rg: rg -n 'ELMS_VAULT_ENV_FILE|ELMS_REVIEW_HANDOFF_SECRET|CUSTOM_TAG|KEYCLOAK_TAG|latest|prod-local|build:|ports:' docker/compose.prod.yaml docker/.env.prod.example docker/vault scripts/infra elms/elms/sso/review.py
+  instruction_rg: rg -n 'ELMS_REVIEW_URL|ELMS_SSO_REQUIRE|vault_preflight|check_compose_policy|check_secret_contract|check_release_manifest' docker/.env.prod.example scripts/infra docker/compose.prod.yaml
+  deny_old_proven: true
+
+tests:
+  - "`python3 scripts/infra/check_compose_policy.py --file docker/compose.prod.yaml`"
+  - "`python3 scripts/infra/check_secret_contract.py --compose docker/compose.prod.yaml --vault-dir docker/vault`"
+  - "`bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example --dry-run`"
+  - "`python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json`"
+  - "`python3 -m pytest -q elms/elms/tests/test_sso.py -k 'ReviewHandoff'`"
+
+integration_check:
+  - "Canonical Compose services consume the Vault Agent's frappe/keycloak/db render paths and policy checks reject direct secret delivery, source mounts, build keys, and host ports."
+  - "Vault preflight validates non-secret production metadata and refuses HTTP review URLs or disabled mandatory SSO before a live Compose operation."
+  - "Release manifests require commit identity, digest-bearing images, a passed staged smoke result, rollback evidence, and no mutable or secret-like fields."
+  - "ELMS review handoff remains role-gated, secret-protected, short-lived, and one-time consumable."
+
+checkpoints:
+  - id: cp1
+    criterion: Canonical Compose policy rejects forbidden build/ports/source mounts and requires service health/resources/security defaults.
+    status: done
+  - id: cp2
+    criterion: Vault secret contract passes with all templates, read-only policy, and fail-closed render markers.
+    status: done
+  - id: cp3
+    criterion: Non-secret production env preflight passes in dry-run mode, does not require real AppRole files, and rejects missing required metadata.
+    status: done
+  - id: cp4
+    criterion: Release identity and ELMS review handoff both fail closed at their boundaries.
+    status: done
+
+resume_from: cp4

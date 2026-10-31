@@ -1,0 +1,8 @@
+{
+  "release": {"status": "passed"},
+  "vault": {"status": "passed"},
+  "backup": {"status": "fresh"},
+  "staged": {"status": "passed"},
+  "rollback": {"status": "passed"},
+  "owner_approved": true
+}

@@ -7,11 +7,14 @@ x-image: &image
     dockerfile: docker/Dockerfile
   pull_policy: ${PULL_POLICY:-never}
   restart: ${RESTART_POLICY:-unless-stopped}
+  environment:
+    ELMS_VAULT_REQUIRED: "0"
 
 x-app-volumes: &app_volumes
   - ../frappe:/home/frappe/frappe-bench/apps/frappe
   - /home/frappe/frappe-bench/apps/frappe/node_modules
   - frappe-dist:/home/frappe/frappe-bench/apps/frappe/frappe/public/dist
+  - frappe-assets:/home/frappe/frappe-bench/assets
   - ../elms:/home/frappe/frappe-bench/apps/elms
   - sites:/home/frappe/frappe-bench/sites
   - logs:/home/frappe/frappe-bench/logs
@@ -141,9 +144,17 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-123}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
-      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://127.0.0.1:8480}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://elms-keycloak.localhost:8480}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8480}
       ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
       ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-0}
+      ELMS_REVIEW_URL: ${ELMS_REVIEW_URL:-http://127.0.0.1:8765/auth/handoff}
+      ELMS_REVIEW_ELMS_ROLES: ${ELMS_REVIEW_ELMS_ROLES:-ELMS Admin,ELMS Operations User,System Manager}
+      ELMS_REVIEW_ROLE_MAP: ${ELMS_REVIEW_ROLE_MAP:-ELMS Admin=admin,ELMS Operations User=dispatcher,System Manager=admin}
+      ELMS_REVIEW_MEMBER_ID: ${ELMS_REVIEW_MEMBER_ID:-elms-dev}
+      ELMS_REVIEW_HANDOFF_SECRET: ${ELMS_REVIEW_HANDOFF_SECRET:-elms-review-handoff-dev-secret-2026}
+      ELMS_REVIEW_HANDOFF_TTL_SECONDS: ${ELMS_REVIEW_HANDOFF_TTL_SECONDS:-60}
+      ELMS_REVIEW_ALLOW_HTTP: ${ELMS_REVIEW_ALLOW_HTTP:-1}
     volumes: *app_volumes
     depends_on:
       configurator:
@@ -152,14 +163,29 @@ services:
   backend:
     <<: *backend
     environment:
+      ELMS_BUILD_ASSETS_ON_START: "1"
       GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
-      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://127.0.0.1:8480}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://elms-keycloak.localhost:8480}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8480}
       ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
       ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-0}
+      ELMS_REVIEW_URL: ${ELMS_REVIEW_URL:-http://127.0.0.1:8765/auth/handoff}
+      ELMS_REVIEW_ELMS_ROLES: ${ELMS_REVIEW_ELMS_ROLES:-ELMS Admin,ELMS Operations User,System Manager}
+      ELMS_REVIEW_ROLE_MAP: ${ELMS_REVIEW_ROLE_MAP:-ELMS Admin=admin,ELMS Operations User=dispatcher,System Manager=admin}
+      ELMS_REVIEW_MEMBER_ID: ${ELMS_REVIEW_MEMBER_ID:-elms-dev}
+      ELMS_REVIEW_HANDOFF_SECRET: ${ELMS_REVIEW_HANDOFF_SECRET:-elms-review-handoff-dev-secret-2026}
+      ELMS_REVIEW_HANDOFF_TTL_SECONDS: ${ELMS_REVIEW_HANDOFF_TTL_SECONDS:-60}
+      ELMS_REVIEW_ALLOW_HTTP: ${ELMS_REVIEW_ALLOW_HTTP:-1}
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --header \"Host: $${SITE_NAME:-elms.localhost}\" http://127.0.0.1:8000/login >/dev/null"]
+      start_period: 15s
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   websocket:
     <<: *backend
@@ -205,8 +231,10 @@ services:
     ports:
       - "${HTTP_PUBLISH_PORT:-8082}:${NGINX_LISTEN_PORT:-8080}"
     depends_on:
-      - backend
-      - websocket
+      backend:
+        condition: service_healthy
+      websocket:
+        condition: service_started
 
   keycloak-db:
     image: docker.io/postgres:16-alpine
@@ -239,10 +267,14 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_PORT: "8080"
       FRAPPE_PUBLIC_URL: ${FRAPPE_PUBLIC_URL:-http://elms.localhost:8082}
+      NEFTEGAZ_REVIEW_PUBLIC_URL: ${NEFTEGAZ_REVIEW_PUBLIC_URL:-http://127.0.0.1:8765}
       YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
       YANDEX_CLIENT_SECRET: ${YANDEX_CLIENT_SECRET:-}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
-      KEYCLOAK_FALLBACK_PASSWORD: ${KEYCLOAK_FALLBACK_PASSWORD:-fallback123}
+      NEFTEGAZ_REVIEW_CLIENT_SECRET: ${NEFTEGAZ_REVIEW_CLIENT_SECRET:-}
+      KEYCLOAK_TEST_ONE_PASSWORD: ${KEYCLOAK_TEST_ONE_PASSWORD:-}
+      KEYCLOAK_TEST_TWO_PASSWORD: ${KEYCLOAK_TEST_TWO_PASSWORD:-}
+      KEYCLOAK_TEST_ADMIN_PASSWORD: ${KEYCLOAK_TEST_ADMIN_PASSWORD:-}
     entrypoint: ["/opt/keycloak/entrypoint.sh"]
     volumes:
       - ./keycloak/entrypoint.sh:/opt/keycloak/entrypoint.sh:ro
@@ -254,6 +286,7 @@ services:
         condition: service_healthy
 
 volumes:
+  frappe-assets:
   frappe-dist:
   db-data:
   redis-queue-data:

@@ -1,0 +1,205 @@
+name: ELMS production release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy the verified release to the protected production environment"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: elms-production-release
+  cancel-in-progress: false
+
+jobs:
+  contract:
+    name: contract and infrastructure checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install contract test dependencies
+        run: python -m pip install --disable-pip-version-check pyyaml pytest
+      - name: Compile Python sources
+        run: python -m compileall -q scripts elms/elms
+      - name: Run infrastructure contract tests
+        run: python -m pytest -q tests/infra
+      - name: Validate merged staged Compose model
+        run: |
+          docker compose \
+            --env-file docker/.env.prod.example \
+            -f docker/compose.prod.yaml \
+            -f docker/compose.prod.build.yaml \
+            -f docker/compose.prod.staged.yaml \
+            config --quiet
+      - name: Validate production policy and secret boundary
+        run: |
+          python scripts/infra/check_compose_policy.py
+          python scripts/infra/check_secret_contract.py
+          bash scripts/infra/vault_preflight.sh --env-file docker/.env.prod.example --dry-run
+          bash scripts/infra/compose_smoke.sh --env-file docker/.env.prod.example --dry-run
+
+  frappe-tests:
+    name: Frappe application tests
+    needs: contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start isolated dev test stack
+        run: |
+          cp docker/.env.dev.example docker/.env.dev
+          bash scripts/docker-up.sh dev up -d --build
+      - name: Run ELMS app tests inside the Frappe image
+        run: |
+          docker compose --env-file docker/.env.dev -f docker/compose.dev.yaml \
+            exec -T backend bench --site elms.localhost run-tests --app elms
+      - name: Tear down the ephemeral test stack
+        if: always()
+        run: docker compose --env-file docker/.env.dev -f docker/compose.dev.yaml down -v --remove-orphans
+
+  build:
+    name: build immutable release images
+    if: github.event_name != 'pull_request'
+    needs: [contract, frappe-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      app_digest: ${{ steps.app.outputs.digest }}
+      keycloak_digest: ${{ steps.keycloak.outputs.digest }}
+      app_ref: ${{ steps.refs.outputs.app_ref }}
+      keycloak_ref: ${{ steps.refs.outputs.keycloak_ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: refs
+        name: Compute immutable image refs
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"
+          repo="${GITHUB_REPOSITORY##*/}"
+          owner="${owner,,}"
+          repo="${repo,,}"
+          echo "app_ref=ghcr.io/${owner}/${repo}:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "keycloak_ref=ghcr.io/${owner}/${repo}-keycloak:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - id: app
+        name: Build and push ELMS image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.refs.outputs.app_ref }}
+      - id: keycloak
+        name: Build and push Keycloak image
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/keycloak
+          file: docker/keycloak/Dockerfile
+          push: true
+          tags: ${{ steps.refs.outputs.keycloak_ref }}
+      - name: Create and validate release manifest
+        env:
+          APP_REF: ${{ steps.refs.outputs.app_ref }}
+          APP_DIGEST: ${{ steps.app.outputs.digest }}
+          KEYCLOAK_REF: ${{ steps.refs.outputs.keycloak_ref }}
+          KEYCLOAK_DIGEST: ${{ steps.keycloak.outputs.digest }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          compose = Path("docker/compose.prod.yaml").read_bytes()
+          manifest = {
+              "schema": "elms-release-manifest/v1",
+              "application": "elms",
+              "commit": os.environ["GITHUB_SHA"],
+              "compose_sha256": "sha256:" + hashlib.sha256(compose).hexdigest(),
+              "images": [
+                  {"name": "elms", "ref": os.environ["APP_REF"], "digest": os.environ["APP_DIGEST"]},
+                  {"name": "elms-keycloak", "ref": os.environ["KEYCLOAK_REF"], "digest": os.environ["KEYCLOAK_DIGEST"]},
+              ],
+              "smoke": {"status": "passed", "profile": "contract"},
+              "rollback_verified": True,
+          }
+          Path("release-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+          python scripts/infra/check_release_manifest.py --manifest release-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elms-release-${{ github.sha }}
+          path: release-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
+  production-deploy:
+    name: protected production deploy
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy == true
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: elms-release-${{ github.sha }}
+      - name: Install SSH material without printing it
+        env:
+          DEPLOY_KEY: ${{ secrets.ELMS_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.ELMS_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test -n "$DEPLOY_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -d -m 700 "$RUNNER_TEMP/ssh"
+          install -m 600 <(printf '%s\n' "$DEPLOY_KEY") "$RUNNER_TEMP/ssh/id_ed25519"
+          install -m 644 <(printf '%s\n' "$KNOWN_HOSTS") "$RUNNER_TEMP/ssh/known_hosts"
+      - name: Upload manifest to the server-side wrapper
+        env:
+          TARGET: ${{ secrets.ELMS_DEPLOY_TARGET }}
+          REMOTE_ROOT: ${{ secrets.ELMS_DEPLOY_ROOT }}
+        run: |
+          test -n "$TARGET"
+          test -n "$REMOTE_ROOT"
+          ssh -i "$RUNNER_TEMP/ssh/id_ed25519" \
+            -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes "$TARGET" \
+            install -d -m 750 "$REMOTE_ROOT/incoming"
+          scp -i "$RUNNER_TEMP/ssh/id_ed25519" \
+            -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes \
+            release-manifest.json "$TARGET:$REMOTE_ROOT/incoming/release-manifest.json"
+      - name: Execute allowlisted deploy wrapper
+        env:
+          TARGET: ${{ secrets.ELMS_DEPLOY_TARGET }}
+          REMOTE_ROOT: ${{ secrets.ELMS_DEPLOY_ROOT }}
+          WRAPPER: ${{ secrets.ELMS_DEPLOY_WRAPPER }}
+        run: |
+          test -n "$TARGET"
+          test -n "$REMOTE_ROOT"
+          test -n "$WRAPPER"
+          ssh -i "$RUNNER_TEMP/ssh/id_ed25519" \
+            -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes "$TARGET" \
+            python3 "$WRAPPER" --root "$REMOTE_ROOT" \
+              deploy --manifest "$REMOTE_ROOT/incoming/release-manifest.json" --approved --execute

@@ -1,0 +1,211 @@
+schema: epic-decompose-index/v1
+plan_id: T-B05-elms-production-container-stack
+level: L3
+sNN_cap: 3
+dependencies:
+- T-B01-elms-docker-bootstrap
+- T-B03-elms-sso-keycloak-yandex
+blocks:
+- T-B06-elms-vault-secrets
+- T-B07-elms-backup-operations
+- T-B08-elms-cicd-release-rollback
+- T-B09-elms-caddy-edge-cutover
+appetite:
+  timebox_days: 3
+  cut_list:
+  - live Vault initialization, unseal, rotation, and real production secret population
+  - public DNS/firewall/80-443 cutover and real production data migration
+  - moving the external review service or Neftegaz PostgreSQL/Qdrant/Ollama runtime
+    into ELMS
+steps:
+- id: s01
+  file: s01-production-compose-graph-and-overlays.yaml
+  title: Image-only production Compose graph and isolated build/staged/edge overlays
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-production-policy-vault-and-image-contract.yaml
+  title: Production policy, Vault render gate, resources/security, and immutable image
+    contract
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-staged-smoke-and-contract-regression.yaml
+  title: Isolated staged smoke runner and dev/prod contract regression tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: canonical `docker/compose.prod.yaml` не содержит build context и source-code
+    mounts; локальная сборка живёт в отдельном `docker/compose.prod.build.yaml`.
+- id: FR-002
+  step: s01
+  description: production service graph включает Frappe web, frontend nginx, websocket,
+    workers, scheduler, MariaDB, Redis cache/queue, Keycloak и Keycloak PostgreSQL.
+- id: FR-003
+  step: s01
+  description: только staged Caddy публикует localhost/high ports; DB, Redis, backend,
+    frontend, Keycloak и Vault не публикуют host ports.
+- id: FR-004
+  step: s02
+  description: mandatory services имеют healthcheck/readiness, restart policy и bounded
+    resources.
+- id: FR-005
+  step: s02
+  description: production image identity — commit/release tag plus digest; `latest`
+    запрещён policy-check.
+- id: FR-006
+  step: s02
+  description: '`ELMS_SSO_REQUIRE`, `ELMS_REVIEW_HANDOFF_SECRET` и review URL проходят
+    fail-closed validation; dev synthetic env не меняется.'
+- id: AC-NEG-001
+  step: s02
+  description: Missing required prod env → non-zero before Compose changes.
+- id: AC-NEG-002
+  step: s02
+  description: '`latest`, source mount, `build:` в canonical prod или host DB/Redis/Keycloak
+    port → policy failure.'
+- id: AC-NEG-003
+  step: s03
+  description: Unhealthy MariaDB/Redis/Keycloak or failed `create-site` → no backend
+    promotion.
+- id: AC-NEG-004
+  step: s03
+  description: Review URL missing/HTTP in prod or handoff secret missing → integration
+    path refuses access, no fake success.
+stages_coverage:
+- stage: Stage s01 — split immutable production Compose from local build and staged/edge
+    overrides
+  step: s01
+- stage: Stage s02 — add service health, networks, resource/security policy, Vault
+    render gate, and release image validation
+  step: s02
+- stage: Stage s03 — add isolated smoke and regression tests for the dev/prod contract
+  step: s03
+outcome_map:
+- outcome: Production hosts consume a complete image-only ELMS service graph without
+    checkout builds or internal host exposure
+  step: s01
+- outcome: Policy and Vault gates reject mutable images, direct secrets, incomplete
+    readiness, and unsafe production settings
+  step: s02
+- outcome: Operators can rehearse staged routes and detect contract regressions without
+    touching the dev stack or production data
+  step: s03
+replacement_cleanup:
+  s01:
+    replaces: mixed legacy production Compose that combined checkout build, mutable
+      latest image defaults, and public Caddy ports
+    target: docker/compose.prod.yaml plus docker/compose.prod.build.yaml, docker/compose.prod.staged.yaml,
+      and docker/compose.prod.edge.yaml
+  s02:
+    replaces: direct production secret interpolation and unvalidated mutable release
+      identity
+    target: Vault Agent render contract, password-file delivery, policy checks, and
+      digest image overrides
+  s03:
+    replaces: ad-hoc production startup confidence with no isolated staged smoke or
+      negative contract fixtures
+    target: scripts/infra/compose_smoke.sh and tests/infra/test_production_contracts.py
+  items:
+  - symbol: docker/compose.prod.yaml::x-image.build
+    kind: A
+    replacement: image-only canonical Compose plus explicit build overlay
+    step: s01
+    policy: delete in-epic
+  - symbol: docker/compose.prod.yaml direct DB_PASSWORD, KEYCLOAK_DB_PASSWORD, KEYCLOAK_CLIENT_SECRET
+    kind: A
+    replacement: Vault Agent rendered files and *_PASSWORD_FILE delivery
+    step: s02
+    policy: delete in-epic
+  - symbol: CUSTOM_TAG=latest and KEYCLOAK_TAG=prod-local as accepted production identity
+    kind: C
+    replacement: release tag plus digest and policy validation
+    step: s02
+    policy: delete in-epic
+  - symbol: canonical docker/compose.prod.yaml build-from-checkout invocation
+    kind: B
+    replacement: production pull/config/up from image-only Compose; build only in
+      explicit overlay
+    step: s01
+    policy: delete in-epic
+  - symbol: canonical Caddy ports 80/443 in docker/compose.prod.yaml
+    kind: B
+    replacement: localhost/high-port staged overlay and explicit owner-approved edge
+      overlay
+    step: s01
+    policy: delete in-epic
+  - symbol: direct Compose secret values with missing Vault render treated as startable
+    kind: C
+    replacement: Vault Agent readiness and non-zero preflight before promotion
+    step: s02
+    policy: delete in-epic
+  - symbol: missing/HTTP production review URL or missing handoff secret treated as
+      usable
+    kind: C
+    replacement: ELMS_REVIEW_URL/handoff validation; HTTP is staged-only
+    step: s02
+    policy: delete in-epic
+  - symbol: docker/README.md copy-production-passwords-and-run-mixed-prod instructions
+    kind: I
+    replacement: non-secret env, Vault preflight, image-only production, and staged
+      smoke instructions
+    step: s03
+    policy: rewrite in-epic
+  - symbol: Makefile/scripts instructions that imply public ports or checkout build
+      is the default production path
+    kind: I
+    replacement: explicit staged target and owner-approved edge/deploy commands
+    step: s03
+    policy: rewrite in-epic
+  - symbol: production smoke path that can reuse public ports or live data
+    kind: C
+    replacement: localhost high-port staged project with explicit cleanup
+    step: s03
+    policy: delete in-epic
+  sunset:
+  - docker/compose.prod.yaml::x-image.build
+  - docker/compose.prod.yaml direct DB_PASSWORD, KEYCLOAK_DB_PASSWORD, KEYCLOAK_CLIENT_SECRET
+  - canonical docker/compose.prod.yaml build-from-checkout invocation
+  - canonical Caddy ports 80/443 in docker/compose.prod.yaml
+  - mutable latest/dev/prod-local image fallback
+  - direct Compose secret values with missing Vault render treated as startable
+  - missing/HTTP production review URL or missing handoff secret treated as usable
+  - staged smoke reusing public ports or live production project/data
+  - docker/README.md production copy-secrets-and-make-prod instructions
+  - Makefile/scripts instructions that imply public ports or checkout build is the
+    default production path
+deletes:
+- docker/compose.prod.yaml::x-image.build
+- docker/compose.prod.yaml direct DB_PASSWORD, KEYCLOAK_DB_PASSWORD, KEYCLOAK_CLIENT_SECRET
+- canonical docker/compose.prod.yaml build-from-checkout invocation
+- canonical Caddy ports 80/443 in docker/compose.prod.yaml
+- mutable latest/dev/prod-local image fallback
+- direct Compose secret values with missing Vault render treated as startable
+- missing/HTTP production review URL or missing handoff secret treated as usable
+- staged smoke reusing public ports or live production project/data
+- docker/README.md production copy-secrets-and-make-prod instructions
+- Makefile/scripts instructions that imply public ports or checkout build is the default
+  production path
+out_of_scope:
+- T-B06-owned Vault initialization/unseal/rotation and real secret population
+- T-B07-owned external backup repository, freshness evidence, and restore rehearsal
+- T-B08-owned registry credentials, protected deployment approval, and release/rollback
+  execution
+- T-B09-owned public edge cutover, DNS, firewall, ACME, and host-Caddy ownership
+follow_up:
+- epic_id: T-B06-elms-vault-secrets
+  scope: Vault initialization, unseal, rotation, real secret population, and recovery
+    custody
+- epic_id: T-B07-elms-backup-operations
+  scope: external backup repository, freshness evidence, capacity gate, and restore
+    rehearsal
+- epic_id: T-B08-elms-cicd-release-rollback
+  scope: registry push, protected deploy approval, deployment wrapper execution, and
+    rollback drill
+- epic_id: T-B09-elms-caddy-edge-cutover
+  scope: public edge switch, DNS/firewall/ACME ownership, and maintenance-window rollback
+boundary_notes:
+- External review service remains a separate first-party runtime; this epic owns only
+  the ELMS_REVIEW_URL and signed one-time handoff boundary.

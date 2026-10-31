@@ -1,0 +1,31 @@
+services:
+  frontend:
+    ports: !override
+      - "127.0.0.1:${ELMS_HTTP_PUBLISH_PORT:-8082}:${NGINX_LISTEN_PORT:-8080}"
+
+  keycloak:
+    environment:
+      KC_HTTP_PORT: "8480"
+    ports: !override
+      - "127.0.0.1:${KEYCLOAK_PUBLISH_PORT:-8480}:8480"
+    networks:
+      default: {}
+      integration:
+        aliases:
+          - elms-keycloak.localhost
+
+  backend:
+    networks:
+      default: {}
+      integration:
+        aliases:
+          - elms-backend
+
+  caddy:
+    profiles:
+      - edge
+
+networks:
+  integration:
+    name: ${INTEGRATION_NETWORK:-elms-integration}
+    external: true

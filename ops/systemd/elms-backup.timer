@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily ELMS encrypted backup
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+Unit=elms-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,34 @@
+# BEGIN elms-neftegaz-review-devhub
+elms.77-91-70-115.sslip.io {
+    tls {
+        issuer acme {
+            disable_http_challenge
+        }
+    }
+    header X-Robots-Tag "noindex, nofollow"
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8082
+}
+
+auth.elms.77-91-70-115.sslip.io {
+    tls {
+        issuer acme {
+            disable_http_challenge
+        }
+    }
+    header X-Robots-Tag "noindex, nofollow"
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8480
+}
+
+review.elms.77-91-70-115.sslip.io {
+    tls {
+        issuer acme {
+            disable_http_challenge
+        }
+    }
+    header X-Robots-Tag "noindex, nofollow"
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8766
+}
+# END elms-neftegaz-review-devhub

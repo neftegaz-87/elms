@@ -79,3 +79,12 @@
 ### Forbidden after
 
 Optional/dual auth SoT; прямой Yandex provider; «готово» по одному CSS-файлу или JSON realm; второй login epic в T-F01.
+
+## Board
+
+title: Единый вход ELMS через Keycloak
+summary: На стандартной странице ELMS появляется одна понятная кнопка входа через Keycloak. Пользователь проходит локальный или Yandex 360 вход и возвращается в Frappe Desk с действующими ролями.
+
+Зачем это бизнесу: сотрудники получают единый и предсказуемый вход без дублирования провайдеров, а оператор может включать или отключать SSO через окружение без хранения секретов в коде.
+
+Технически: реализованы scoped-стили login surface, типизированные настройки, Docker/Keycloak wiring, broker Yandex 360, fail-closed проверки, backend/frontend/browser QA и live HTTP smoke. Результат для наблюдателя — на /login видна одна styled Keycloak action, а после успешной авторизации открывается /app.

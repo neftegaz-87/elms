@@ -1,0 +1,19 @@
+{
+  "schema": "elms-vault-preflight-fixture/v1",
+  "vault": {
+    "available": true,
+    "initialized": true,
+    "sealed": false
+  },
+  "approle": {
+    "authorized": true
+  },
+  "render": {
+    "required_paths": {
+      "runtime": true,
+      "keycloak": true,
+      "db": true
+    },
+    "synthetic_secret_value": "synthetic-fixture-value-must-not-be-logged"
+  }
+}

@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 ELMS_BASE_URL="${ELMS_BASE_URL:-http://elms.localhost:8082}"
-KEYCLOAK_PUBLIC_URL="${KEYCLOAK_PUBLIC_URL:-http://127.0.0.1:8480}"
+KEYCLOAK_PUBLIC_URL="${KEYCLOAK_PUBLIC_URL:-http://elms-keycloak.localhost:8480}"
 KEYCLOAK_BASE_URL="${KEYCLOAK_BASE_URL:-$KEYCLOAK_PUBLIC_URL}"
 REALM="${KEYCLOAK_REALM:-elms}"
 CLIENT_ID="${KEYCLOAK_CLIENT_ID:-elms-frappe}"

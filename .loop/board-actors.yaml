@@ -11,8 +11,14 @@ actors:
 default_actor: erokhin
 
 epics:
+  T-A01-elms-keycloak-login-ui: erokhin
   T-B01-elms-docker-bootstrap: sokolov
   T-B02-elms-roles-rbac: erokhin
   T-B03-elms-sso-keycloak-yandex: erokhin
   T-F01-elms-desk-sections-roles: sokolov
   T-B04-bitrix-rest-client: erokhin
+  T-B05-elms-production-container-stack: erokhin
+  T-B06-elms-vault-secrets: erokhin
+  T-B07-elms-backup-operations: erokhin
+  T-B08-elms-cicd-release-rollback: sokolov
+  T-B09-elms-caddy-edge-cutover: sokolov

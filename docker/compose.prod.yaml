@@ -1,12 +1,14 @@
 name: ${COMPOSE_PROJECT_NAME:-elms-prod}
 
+# Canonical production graph. It is image-only by design. Local/CI builds use
+# compose.prod.build.yaml; public 80/443 ownership is a separate edge overlay.
 x-image: &image
-  image: ${CUSTOM_IMAGE:-elms}:${CUSTOM_TAG:-latest}
-  build:
-    context: ..
-    dockerfile: docker/Dockerfile
-  pull_policy: ${PULL_POLICY:-missing}
+  image: ${CUSTOM_IMAGE_REF:-${CUSTOM_IMAGE:?CUSTOM_IMAGE is required}:${CUSTOM_TAG:?CUSTOM_TAG is required}}
+  pull_policy: ${PULL_POLICY:-always}
   restart: ${RESTART_POLICY:-unless-stopped}
+  init: true
+  security_opt:
+    - no-new-privileges:true
 
 x-app-volumes: &app_volumes
   - sites:/home/frappe/frappe-bench/sites
@@ -14,44 +16,166 @@ x-app-volumes: &app_volumes
 
 x-backend: &backend
   <<: *image
-  volumes: *app_volumes
-  extra_hosts:
-    - "${SITE_NAME:-elms.example.com}:host-gateway"
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - logs:/home/frappe/frappe-bench/logs
+    - vault-runtime-frappe:/run/elms-secrets:ro
+  environment:
+    ELMS_VAULT_REQUIRED: "1"
+    ELMS_VAULT_ENV_FILE: /run/elms-secrets/frappe/runtime.env
   depends_on:
     configurator:
       condition: service_completed_successfully
     create-site:
       condition: service_completed_successfully
+    vault-agent:
+      condition: service_healthy
+  networks:
+    - private
+  tmpfs:
+    - /tmp:rw,noexec,nosuid
+  deploy:
+    resources:
+      limits:
+        cpus: "2.0"
+        memory: 2G
 
 services:
-  db:
-    image: docker.io/mariadb:11.8
+  vault:
+    image: ${VAULT_IMAGE:?VAULT_IMAGE is required}
+    command: ["server", "-config=/vault/config/config.hcl"]
+    cap_add:
+      - IPC_LOCK
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
+    volumes:
+      - vault-data:/vault/data
+      - ./vault/config.hcl:/vault/config/config.hcl:ro
+      - ./vault/policies:/vault/policies:ro
+    expose:
+      - "8200"
+    healthcheck:
+      test: ["CMD-SHELL", "vault status -format=json >/dev/null 2>&1; test $$? -ne 127"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    networks:
+      - private
+
+  vault-agent:
+    image: ${VAULT_IMAGE:?VAULT_IMAGE is required}
+    command: ["agent", "-config=/vault/config/agent.hcl"]
+    # Rendered files are 0440 root:root.  ELMS application images run with
+    # supplementary group 0, so the agent owns the shared secret volume while
+    # application containers can only read it.
+    user: "0:0"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./vault/agent.hcl:/vault/config/agent.hcl:ro
+      - ./vault/runtime.env.tpl:/vault/templates/runtime.env.tpl:ro
+      - ./vault/keycloak.env.tpl:/vault/templates/keycloak.env.tpl:ro
+      - ./vault/db-password.tpl:/vault/templates/db-password.tpl:ro
+      - ./vault/keycloak-db-password.tpl:/vault/templates/keycloak-db-password.tpl:ro
+      - ${VAULT_ROLE_ID_FILE:?VAULT_ROLE_ID_FILE is required}:/vault/bootstrap/role-id:ro
+      - ${VAULT_SECRET_ID_FILE:?VAULT_SECRET_ID_FILE is required}:/vault/bootstrap/secret-id:ro
+      - vault-runtime-frappe:/run/elms-secrets/frappe
+      - vault-runtime-keycloak:/run/elms-secrets/keycloak
+      - vault-runtime-db:/run/elms-secrets/db
+    depends_on:
+      vault:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /run/elms-secrets/frappe/runtime.env && test -s /run/elms-secrets/keycloak/runtime.env && test -s /run/elms-secrets/db/db-password && test -s /run/elms-secrets/db/keycloak-db-password && grep -q '^DB_PASSWORD=' /run/elms-secrets/frappe/runtime.env && grep -q '^ADMIN_PASSWORD=' /run/elms-secrets/frappe/runtime.env && grep -q '^KEYCLOAK_CLIENT_SECRET=' /run/elms-secrets/frappe/runtime.env && grep -q '^KEYCLOAK_ADMIN_PASSWORD=' /run/elms-secrets/keycloak/runtime.env && grep -q '^YANDEX_CLIENT_ID=' /run/elms-secrets/keycloak/runtime.env && grep -q '^YANDEX_CLIENT_SECRET=' /run/elms-secrets/keycloak/runtime.env"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    networks:
+      - private
+
+  db:
+    image: docker.io/mariadb:11.8@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --skip-character-set-client-handshake
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      MARIADB_ROOT_PASSWORD_FILE: /run/elms-secrets/db-password
       MARIADB_AUTO_UPGRADE: "1"
     volumes:
       - db-data:/var/lib/mysql
+      - vault-runtime-db:/run/elms-secrets:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       start_period: 10s
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+    networks:
+      - private
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
 
   redis-cache:
-    image: docker.io/redis:7-alpine
+    image: docker.io/redis:7.4-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    networks:
+      - private
 
   redis-queue:
-    image: docker.io/redis:7-alpine
+    image: docker.io/redis:7.4-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-queue-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - private
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
 
   configurator:
     <<: *image
@@ -60,14 +184,15 @@ services:
     working_dir: /home/frappe/frappe-bench
     command:
       - >
+        set -euo pipefail;
         mkdir -p config/pids sites logs;
         printf "frappe\nelms\n" > sites/apps.txt;
-        bench set-config -g db_host $$DB_HOST;
-        bench set-config -gp db_port $$DB_PORT;
-        bench set-config -g redis_cache "redis://$$REDIS_CACHE";
-        bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
-        bench set-config -g redis_socketio "redis://$$REDIS_QUEUE";
-        bench set-config -gp socketio_port $$SOCKETIO_PORT;
+        bench set-config -g db_host "$${DB_HOST}";
+        bench set-config -gp db_port "$${DB_PORT}";
+        bench set-config -g redis_cache "redis://$${REDIS_CACHE}";
+        bench set-config -g redis_queue "redis://$${REDIS_QUEUE}";
+        bench set-config -g redis_socketio "redis://$${REDIS_QUEUE}";
+        bench set-config -gp socketio_port "$${SOCKETIO_PORT}";
     environment:
       DB_HOST: db
       DB_PORT: "3306"
@@ -79,47 +204,56 @@ services:
       db:
         condition: service_healthy
       redis-cache:
-        condition: service_started
+        condition: service_healthy
       redis-queue:
-        condition: service_started
+        condition: service_healthy
+    networks:
+      - private
 
   create-site:
     <<: *image
     restart: "no"
+    entrypoint: ["/usr/local/bin/with-env.sh", "bash", "-c"]
     working_dir: /home/frappe/frappe-bench
-    entrypoint: ["bash", "-c"]
+    environment:
+      ELMS_VAULT_REQUIRED: "1"
+      ELMS_VAULT_ENV_FILE: /run/elms-secrets/frappe/runtime.env
+      SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
+      SITE_HOST_NAME: ${SITE_HOST_NAME:?SITE_HOST_NAME is required}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}
+      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
+      ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-1}
+      ELMS_PROD_STAGE: ${ELMS_PROD_STAGE:-0}
     command:
       - >
         set -euo pipefail;
-        if [ -z "$${ADMIN_PASSWORD}" ]; then
-          echo "ERROR: ADMIN_PASSWORD is empty" >&2;
+        if [ -z "$${ADMIN_PASSWORD:-}" ] || [ -z "$${DB_PASSWORD:-}" ]; then
+          echo "ERROR: Vault render must provide ADMIN_PASSWORD and DB_PASSWORD" >&2;
           exit 1;
         fi;
-        if [ -z "$${DB_PASSWORD}" ]; then
-          echo "ERROR: DB_PASSWORD is empty" >&2;
-          exit 1;
-        fi;
-        if [ -z "$${SITE_NAME}" ] || [ "$${SITE_NAME}" = "elms.localhost" ] || [ "$${SITE_NAME}" = "elms.example.com" ]; then
-          echo "ERROR: SITE_NAME must be your real public hostname (not example/localhost placeholder)" >&2;
-          exit 1;
-        fi;
+        case "$${SITE_NAME}" in
+          *.example.com|elms.localhost|localhost)
+            if [ "$${ELMS_PROD_STAGE:-0}" != "1" ]; then
+              echo "ERROR: SITE_NAME is a placeholder; set a real production hostname" >&2;
+              exit 1;
+            fi
+            ;;
+        esac;
         case "$${SITE_HOST_NAME}" in
           https://*) ;;
-          *)
-            echo "ERROR: SITE_HOST_NAME must be https://… (got: $${SITE_HOST_NAME})" >&2;
-            exit 1;
+          http://* )
+            if [ "$${ELMS_PROD_STAGE:-0}" != "1" ]; then
+              echo "ERROR: SITE_HOST_NAME must use HTTPS outside staged smoke" >&2;
+              exit 1;
+            fi
             ;;
-        esac;
-        case "$${KEYCLOAK_PUBLIC_URL}" in
-          https://*) ;;
-          *)
-            echo "ERROR: KEYCLOAK_PUBLIC_URL must be https://… (got: $${KEYCLOAK_PUBLIC_URL})" >&2;
-            exit 1;
-            ;;
+          *) echo "ERROR: SITE_HOST_NAME must be an absolute HTTP(S) URL" >&2; exit 1 ;;
         esac;
         if [ "$${ELMS_SSO_REQUIRE}" = "1" ] || [ "$${ELMS_SSO_REQUIRE}" = "true" ]; then
-          if [ -z "$${KEYCLOAK_CLIENT_ID}" ] || [ -z "$${KEYCLOAK_CLIENT_SECRET}" ]; then
-            echo "ERROR: ELMS_SSO_REQUIRE=1 needs KEYCLOAK_CLIENT_ID and KEYCLOAK_CLIENT_SECRET" >&2;
+          if [ -z "$${KEYCLOAK_CLIENT_ID:-}" ] || [ -z "$${KEYCLOAK_CLIENT_SECRET:-}" ]; then
+            echo "ERROR: required Keycloak client secret is missing from Vault render" >&2;
             exit 1;
           fi;
         fi;
@@ -127,14 +261,14 @@ services:
         wait-for-it -t 120 db:3306;
         wait-for-it -t 120 redis-cache:6379;
         wait-for-it -t 120 redis-queue:6379;
-        export start=`date +%s`;
-        until [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".db_host // empty"` ]] &&
-          [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".redis_cache // empty"` ]] &&
-          [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".redis_queue // empty"` ]];
+        export start=$$(date +%s);
+        until [[ -n $$(grep -hs ^ sites/common_site_config.json | jq -r ".db_host // empty") ]] &&
+          [[ -n $$(grep -hs ^ sites/common_site_config.json | jq -r ".redis_cache // empty") ]] &&
+          [[ -n $$(grep -hs ^ sites/common_site_config.json | jq -r ".redis_queue // empty") ]];
         do
           echo "Waiting for sites/common_site_config.json";
           sleep 5;
-          if (( `date +%s`-start > 180 )); then
+          if (( $$(date +%s)-start > 180 )); then
             echo "common_site_config.json missing required keys" >&2;
             exit 1;
           fi;
@@ -143,67 +277,81 @@ services:
           echo "Site $${SITE_NAME} already exists";
           bench --site "$${SITE_NAME}" migrate;
         else
-          bench new-site --mariadb-user-host-login-scope=% --admin-password="$${ADMIN_PASSWORD}" --db-root-username=root --db-root-password="$${DB_PASSWORD}" --no-mariadb-socket --set-default "$${SITE_NAME}";
+          /usr/local/bin/with-env.sh --new-site "$${SITE_NAME}";
           bench --site "$${SITE_NAME}" install-app elms;
           bench --site "$${SITE_NAME}" set-config developer_mode 0;
         fi;
         bench --site "$${SITE_NAME}" set-config host_name "$${SITE_HOST_NAME}";
         bench --site "$${SITE_NAME}" execute elms.sso.conf.inject_sso_site_config;
+        bench --site "$${SITE_NAME}" execute elms.sso.ensure.ensure_social_login_keys;
         bench --site "$${SITE_NAME}" clear-cache;
         echo "create-site completed successfully";
-    environment:
-      SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
-      SITE_HOST_NAME: ${SITE_HOST_NAME:?SITE_HOST_NAME is required}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
-      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required}
-      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}
-      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
-      ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-1}
-    volumes: *app_volumes
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - logs:/home/frappe/frappe-bench/logs
+      - vault-runtime-frappe:/run/elms-secrets:ro
     depends_on:
       configurator:
         condition: service_completed_successfully
+      vault-agent:
+        condition: service_healthy
+    networks:
+      - private
 
   backend:
     <<: *backend
     environment:
+      ELMS_VAULT_REQUIRED: "1"
+      ELMS_VAULT_ENV_FILE: /run/elms-secrets/frappe/runtime.env
+      ELMS_BUILD_ASSETS_ON_START: "0"
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+      SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required}
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}
       ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
       ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-1}
+      ELMS_REVIEW_URL: ${ELMS_REVIEW_URL:?ELMS_REVIEW_URL is required}
+      ELMS_REVIEW_ELMS_ROLES: ${ELMS_REVIEW_ELMS_ROLES:-ELMS Admin,ELMS Operations User,System Manager}
+      ELMS_REVIEW_ROLE_MAP: ${ELMS_REVIEW_ROLE_MAP:-ELMS Admin=admin,ELMS Operations User=dispatcher,System Manager=admin}
+      ELMS_REVIEW_MEMBER_ID: ${ELMS_REVIEW_MEMBER_ID:-elms-prod}
+      ELMS_REVIEW_HANDOFF_TTL_SECONDS: ${ELMS_REVIEW_HANDOFF_TTL_SECONDS:-60}
+      ELMS_REVIEW_ALLOW_HTTP: ${ELMS_REVIEW_ALLOW_HTTP:-0}
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --header \"Host: $${SITE_NAME}\" http://127.0.0.1:8000/login >/dev/null"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
 
   websocket:
     <<: *backend
-    command:
-      - node
-      - /home/frappe/frappe-bench/apps/frappe/socketio.js
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
 
   queue-short:
     <<: *backend
     working_dir: /home/frappe/frappe-bench
-    entrypoint: ["bash", "-c"]
-    command:
-      - mkdir -p config/pids && exec bench worker --queue short,default
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    command: ["bash", "-c", "mkdir -p config/pids && exec bench worker --queue short,default"]
 
   queue-long:
     <<: *backend
     working_dir: /home/frappe/frappe-bench
-    entrypoint: ["bash", "-c"]
-    command:
-      - mkdir -p config/pids && exec bench worker --queue long,default,short
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    command: ["bash", "-c", "mkdir -p config/pids && exec bench worker --queue long,default,short"]
 
   scheduler:
     <<: *backend
     working_dir: /home/frappe/frappe-bench
-    entrypoint: ["bash", "-c"]
-    command:
-      - mkdir -p config/pids && exec bench schedule
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    command: ["bash", "-c", "mkdir -p config/pids && exec bench schedule"]
 
   frontend:
     <<: *image
@@ -222,77 +370,133 @@ services:
     expose:
       - "${NGINX_LISTEN_PORT:-8080}"
     depends_on:
-      - backend
-      - websocket
+      backend:
+        condition: service_healthy
+      websocket:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --header \"Host: $${FRAPPE_SITE_NAME_HEADER}\" http://127.0.0.1:$${NGINX_LISTEN_PORT}/login >/dev/null"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    networks:
+      - private
+      - edge
 
   keycloak-db:
-    image: docker.io/postgres:16-alpine
+    image: docker.io/postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak}
       POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
+      POSTGRES_PASSWORD_FILE: /run/elms-secrets/keycloak-db-password
     volumes:
       - keycloak-db-data:/var/lib/postgresql/data
+      - vault-runtime-db:/run/elms-secrets:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-keycloak} -d $${POSTGRES_DB:-keycloak}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+    networks:
+      - private
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0.5
+    image: ${KEYCLOAK_IMAGE_REF:-${KEYCLOAK_IMAGE:?KEYCLOAK_IMAGE is required}:${KEYCLOAK_TAG:?KEYCLOAK_TAG is required}}
     restart: unless-stopped
-    command:
-      - start
-      - --import-realm
+    command: ["start", "--import-realm"]
+    group_add:
+      - "0"
+    security_opt:
+      - no-new-privileges:true
     environment:
+      ELMS_VAULT_REQUIRED: "1"
+      ELMS_VAULT_ENV_FILE: /run/elms-secrets/keycloak/runtime.env
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_DB_NAME:-keycloak}
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
-      KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true"
       KC_HTTP_PORT: "8080"
+      KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME: ${AUTH_HOSTNAME:?AUTH_HOSTNAME is required}
       KC_HOSTNAME_STRICT: "true"
       KC_HOSTNAME_STRICT_HTTPS: "true"
       KC_PROXY_HEADERS: xforwarded
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       FRAPPE_PUBLIC_URL: ${FRAPPE_PUBLIC_URL:?FRAPPE_PUBLIC_URL is required}
-      YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
-      YANDEX_CLIENT_SECRET: ${YANDEX_CLIENT_SECRET:-}
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required}
-      KEYCLOAK_FALLBACK_PASSWORD: ${KEYCLOAK_FALLBACK_PASSWORD:?KEYCLOAK_FALLBACK_PASSWORD is required}
-    entrypoint: ["/opt/keycloak/entrypoint.sh"]
+      NEFTEGAZ_REVIEW_PUBLIC_URL: ${NEFTEGAZ_REVIEW_PUBLIC_URL:?NEFTEGAZ_REVIEW_PUBLIC_URL is required}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
     volumes:
-      - ./keycloak/entrypoint.sh:/opt/keycloak/entrypoint.sh:ro
-      - ./keycloak/realm-elms.json:/opt/keycloak/data/import-template/realm-elms.json:ro
+      - vault-runtime-keycloak:/run/elms-secrets:ro
     expose:
       - "8080"
     depends_on:
       keycloak-db:
         condition: service_healthy
+      vault-agent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8080/health/ready >/dev/null"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    networks:
+      - private
+      - edge
 
   caddy:
-    image: docker.io/library/caddy:2.8-alpine
+    image: docker.io/library/caddy:2.8.4-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
     restart: unless-stopped
-    ports:
-      - "${HTTP_PUBLISH_PORT:-80}:80"
-      - "${HTTPS_PUBLISH_PORT:-443}:443"
+    security_opt:
+      - no-new-privileges:true
     environment:
       SITE_NAME: ${SITE_NAME:?SITE_NAME is required}
       AUTH_HOSTNAME: ${AUTH_HOSTNAME:?AUTH_HOSTNAME is required}
       NGINX_LISTEN_PORT: ${NGINX_LISTEN_PORT:-8080}
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
-      - frontend
-      - keycloak
+      frontend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --header=Host:$${SITE_NAME} -qO- http://127.0.0.1:80/healthz >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    networks:
+      - edge
 
 volumes:
   db-data:
@@ -302,3 +506,12 @@ volumes:
   keycloak-db-data:
   caddy-data:
   caddy-config:
+  vault-data:
+  vault-runtime-frappe:
+  vault-runtime-keycloak:
+  vault-runtime-db:
+
+networks:
+  private:
+    internal: true
+  edge:

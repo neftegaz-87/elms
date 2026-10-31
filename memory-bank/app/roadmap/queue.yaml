@@ -1,6 +1,7 @@
 version: roadmap-queue/v2
 role: app
-queue:
+queue: []
+done:
 - id: T-A01
   epic_id: T-A01-elms-keycloak-login-ui
   kind: feature
@@ -9,15 +10,10 @@ queue:
   deps:
   - T-B02
   - T-B03
-  status: planned
-  classification: vertical_slice
-done: []
 batches:
   elms-auth-surface:
     title: ELMS Keycloak login surface and brokered SSO journey
-    note: >-
-      Один APP slice владеет стандартной Frappe login-кнопкой, env/Docker wiring,
-      Keycloak realm/Yandex broker, callback journey и mixed QA. T-F01 сохраняет
-      только Workspaces/Desk navigation; его login-affordance требования
-      superseded/reconciled этим эпиком. Direct Frappe→Yandex и отдельный INTEG
-      epic запрещены.
+    note: Один APP slice владеет стандартной Frappe login-кнопкой, env/Docker wiring,
+      Keycloak realm/Yandex broker, callback journey и mixed QA. T-F01 сохраняет только
+      Workspaces/Desk navigation; его login-affordance требования superseded/reconciled
+      этим эпиком. Direct Frappe→Yandex и отдельный INTEG epic запрещены.

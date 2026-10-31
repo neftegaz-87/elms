@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import pickle
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -35,6 +37,26 @@ if not hasattr(frappe, "conf"):
             self[name] = value
     frappe.conf = _Conf()
 
+if not hasattr(frappe, "whitelist"):
+    def _whitelist(*_args, **_kwargs):
+        def decorate(function):
+            return function
+        return decorate
+    frappe.whitelist = _whitelist
+
+if not hasattr(frappe, "session"):
+    frappe.session = SimpleNamespace(user="Guest")
+if not hasattr(frappe, "cache"):
+    frappe.cache = lambda: None
+if not hasattr(frappe, "local"):
+    frappe.local = SimpleNamespace()
+if not hasattr(frappe, "get_roles"):
+    frappe.get_roles = lambda _user: []
+if not hasattr(frappe, "ValidationError"):
+    frappe.ValidationError = ValueError
+if not hasattr(frappe, "PermissionError"):
+    frappe.PermissionError = PermissionError
+
 
 class FakeUserDoc:
     """Mock Frappe User document for SSO testing."""
@@ -43,6 +65,7 @@ class FakeUserDoc:
         self.doctype = "User"
         self.name = email
         self.email = email
+        self.user_type = "Website User"
         self.flags = MagicMock()
         self.flags.in_sso_role_assignment = False
         self.flags.social_login_provider = "keycloak" if is_social else None
@@ -84,6 +107,21 @@ class FakeUserDoc:
         self.saved = True
         maybe_assign_sso_roles(self)
         return self
+
+
+class FakeHandoffCache:
+    def __init__(self):
+        self.values = {}
+
+    def set_value(self, key, value, **_kwargs):
+        self.values[key] = value
+
+    def make_key(self, key):
+        return key
+
+    def getdel(self, key):
+        value = self.values.pop(key, None)
+        return None if value is None else pickle.dumps(value)
 
 
 def simulate_keycloak_broker_login(
@@ -135,13 +173,12 @@ def simulate_keycloak_auth_flow(
     userinfo: dict | None = None,
     existing_user: FakeUserDoc | None = None,
 ) -> FakeUserDoc:
-    """Simulate Keycloak authentication flow with Yandex broker and local fallback (AC-7).
+    """Simulate the Keycloak authentication flow with a Yandex broker (AC-7).
 
     - If auth_method is 'yandex_broker' and Yandex is down (yandex_online=False),
       fails closed with ConnectionError / IdP outage exception.
-    - If auth_method is 'local_credential', Keycloak validates local realm credentials
-      and completes OIDC token issuance through elms-frappe client independently
-      of Yandex IdP availability.
+    - If auth_method is 'local_credential', the removed local fallback is rejected
+      regardless of Yandex IdP availability.
     """
     if auth_method == "yandex_broker":
         if not yandex_online:
@@ -156,16 +193,7 @@ def simulate_keycloak_auth_flow(
         return simulate_keycloak_broker_login(userinfo, existing_user=existing_user)
 
     if auth_method == "local_credential":
-        if userinfo is None:
-            userinfo = {
-                "sub": "kc-local-fallback-sub-001",
-                "email": "fallback.user@elms.local",
-                "email_verified": True,
-                "preferred_username": "fallback.user",
-                "name": "Fallback User",
-                "auth_method": "local_credential",
-            }
-        return simulate_keycloak_broker_login(userinfo, existing_user=existing_user)
+        frappe.throw("Local Keycloak fallback is disabled; authentication requires the Yandex broker.")
 
     frappe.throw(f"Unknown auth method: {auth_method}")
 
@@ -241,6 +269,23 @@ class TestSSO(unittest.TestCase):
         settings = account.update.call_args.args[0]
         self.assertEqual(settings["auth_method"], "Basic")
 
+    def test_administrator_group_reconciliation_sets_permissions_before_role_save(self):
+        from elms.install import reconcile_keycloak_user
+
+        class PermissionAwareUser(FakeUserDoc):
+            def add_roles(self, *roles):
+                if not self.flags.ignore_permissions:
+                    raise PermissionError("role reconciliation requires ignored permissions")
+                super().add_roles(*roles)
+
+        user = PermissionAwareUser(email="admin@example.com", is_social=False)
+        with patch.object(frappe, "db", create=True) as mock_db:
+            mock_db.exists.return_value = True
+            reconcile_keycloak_user(user, {"groups": ["Administrators"]})
+
+        self.assertIn("System Manager", user.get_roles())
+        self.assertTrue(user.saved)
+
     def setUp(self):
         self.original_conf_roles = frappe.conf.get(DEFAULT_SSO_ROLES_CONF_KEY)
 
@@ -261,6 +306,7 @@ class TestSSO(unittest.TestCase):
         assigned_roles = user.get_roles()
         self.assertIn("Desk User", assigned_roles)
         self.assertIn("ELMS LMS User", assigned_roles)
+        self.assertEqual(user.user_type, "System User")
         self.assertTrue(user.saved)
 
     def test_assign_sso_roles_fails_closed_when_role_missing(self):
@@ -329,18 +375,23 @@ class TestSSO(unittest.TestCase):
             self.assertEqual(doc_created.get("user_id_property"), "sub")
             self.assertEqual(doc_created.get("provider_name"), KEYCLOAK_PROVIDER_NAME)
 
-    def test_local_keycloak_fallback_is_documented_and_not_auto_provisioned(self):
-        """Test that local fallback user exists for outage policy, but auto password provisioning is prohibited."""
+    def test_removed_local_keycloak_fallback_is_not_configured(self):
+        """The production realm must not configure the purged local fallback user."""
         realm_path = "docker/keycloak/realm-elms.json"
         with open(realm_path, "r", encoding="utf-8") as f:
             realm = json.load(f)
 
         users = realm.get("users", [])
-        fallback_users = [u for u in users if u.get("username") == "fallback.user"]
-        self.assertEqual(len(fallback_users), 1, "Explicit fallback user must exist in Keycloak")
+        self.assertFalse(
+            any(u.get("username") == "fallback.user" for u in users),
+            "The purged fallback user must not be present in the production realm",
+        )
 
         # Verify other brokered identities are not automatically provisioned with passwords
-        brokered_candidates = [u for u in users if u.get("username") != "fallback.user" and u.get("username") != "admin"]
+        brokered_candidates = [
+            u for u in users
+            if u.get("username") != "admin" and not u.get("username", "").startswith("elms.test.")
+        ]
         for u in brokered_candidates:
             self.assertFalse(
                 any(c.get("type") == "password" for c in u.get("credentials", [])),
@@ -453,33 +504,16 @@ class TestSSO(unittest.TestCase):
 
 
 
-    def test_local_keycloak_fallback_flow_during_yandex_outage(self):
-        """Test local Keycloak fallback authenticates and provisions user when Yandex IdP is in outage (AC-7, BN-008, TM-010)."""
-        fallback_claims = {
-            "sub": "kc-local-fallback-001",
-            "email": "fallback.user@elms.local",
-            "email_verified": True,
-            "name": "Fallback Emergency User",
-            "given_name": "Fallback",
-            "family_name": "Emergency",
-            "preferred_username": "fallback.user",
-        }
-
+    def test_local_keycloak_fallback_fails_closed_during_yandex_outage(self):
+        """Test local Keycloak fallback is rejected when Yandex IdP is unavailable (AC-7, BN-008, TM-010)."""
         with patch.object(frappe, "db", create=True) as mock_db:
             mock_db.exists.return_value = True
-            # Yandex is completely offline (yandex_online=False), but local Keycloak fallback succeeds
-            user = simulate_keycloak_auth_flow(
-                auth_method="local_credential",
-                yandex_online=False,
-                userinfo=fallback_claims,
-            )
-
-        self.assertEqual(user.email, "fallback.user@elms.local")
-        self.assertEqual(user.first_name, "Fallback")
-        self.assertEqual(user.get_social_login_userid("keycloak"), "kc-local-fallback-001")
-        self.assertIn("Desk User", user.get_roles())
-        self.assertIn("ELMS LMS User", user.get_roles())
-        self.assertTrue(user.saved)
+            with self.assertRaises(Exception) as ctx:
+                simulate_keycloak_auth_flow(
+                    auth_method="local_credential",
+                    yandex_online=False,
+                )
+        self.assertIn("local keycloak fallback is disabled", str(ctx.exception).lower())
 
     def test_yandex_broker_login_fails_closed_during_outage(self):
         """Test Yandex broker login attempt fails closed when Yandex IdP is in outage (AC-7, BN-007, TM-009)."""
@@ -492,8 +526,8 @@ class TestSSO(unittest.TestCase):
                 )
             self.assertIn("yandex idp is unreachable", str(ctx.exception).lower())
 
-    def test_local_keycloak_fallback_links_existing_admin_account_during_outage(self):
-        """Test local Keycloak fallback links existing teacher/admin account during Yandex outage (AC-7)."""
+    def test_local_keycloak_fallback_does_not_link_existing_admin_during_outage(self):
+        """Test local Keycloak fallback cannot link an existing account during Yandex outage (AC-7)."""
         existing_admin = FakeUserDoc(email="admin.teacher@elms.school", is_social=False)
         existing_admin.roles = [{"role": "System Manager"}, {"role": "Instructor"}]
 
@@ -506,53 +540,30 @@ class TestSSO(unittest.TestCase):
 
         with patch.object(frappe, "db", create=True) as mock_db:
             mock_db.exists.return_value = True
-            # Yandex IdP is down, but admin logs in using Keycloak local credential
-            linked_user = simulate_keycloak_auth_flow(
-                auth_method="local_credential",
-                yandex_online=False,
-                userinfo=local_admin_claims,
-                existing_user=existing_admin,
-            )
+            with self.assertRaises(Exception) as ctx:
+                simulate_keycloak_auth_flow(
+                    auth_method="local_credential",
+                    yandex_online=False,
+                    userinfo=local_admin_claims,
+                    existing_user=existing_admin,
+                )
 
-        self.assertEqual(linked_user.email, "admin.teacher@elms.school")
-        self.assertEqual(linked_user.get_social_login_userid("keycloak"), "kc-local-admin-sub-999")
-        self.assertIn("System Manager", linked_user.get_roles())
-        self.assertIn("Instructor", linked_user.get_roles())
-        self.assertIn("Desk User", linked_user.get_roles())
-        self.assertIn("ELMS LMS User", linked_user.get_roles())
-        self.assertTrue(linked_user.saved)
+        self.assertIn("local keycloak fallback is disabled", str(ctx.exception).lower())
+        self.assertIsNone(existing_admin.get_social_login_userid("keycloak"))
+        self.assertIn("System Manager", existing_admin.get_roles())
+        self.assertIn("Instructor", existing_admin.get_roles())
+        self.assertFalse(existing_admin.saved)
 
-    def test_local_keycloak_fallback_user_matches_realm_definition(self):
-        """Test fallback user defined in realm-elms.json can authenticate via local fallback (AC-7)."""
+    def test_local_keycloak_fallback_user_is_absent_from_realm(self):
+        """The purged local fallback user is absent from the Keycloak realm definition."""
         realm_path = "docker/keycloak/realm-elms.json"
         with open(realm_path, "r", encoding="utf-8") as f:
             realm = json.load(f)
 
-        fallback_users = [u for u in realm.get("users", []) if u.get("username") == "fallback.user"]
-        self.assertEqual(len(fallback_users), 1)
-        fallback_cfg = fallback_users[0]
-
-        claims = {
-            "sub": "kc-realm-fallback-user-id",
-            "email": fallback_cfg["email"],
-            "email_verified": fallback_cfg.get("emailVerified", True),
-            "name": f"{fallback_cfg.get("firstName", "")} {fallback_cfg.get("lastName", "")}".strip(),
-            "given_name": fallback_cfg.get("firstName", ""),
-            "family_name": fallback_cfg.get("lastName", ""),
-            "preferred_username": fallback_cfg["username"],
-        }
-
-        with patch.object(frappe, "db", create=True) as mock_db:
-            mock_db.exists.return_value = True
-            user = simulate_keycloak_auth_flow(
-                auth_method="local_credential",
-                yandex_online=False,
-                userinfo=claims,
-            )
-
-        self.assertEqual(user.email, "fallback.user@elms.local")
-        self.assertIn("Desk User", user.get_roles())
-        self.assertIn("ELMS LMS User", user.get_roles())
+        self.assertFalse(
+            any(u.get("username") == "fallback.user" for u in realm.get("users", [])),
+            "The purged fallback user must not be present in the production realm",
+        )
 
     def test_desk_design_system_sources_are_present_for_container_build(self):
         """The Desk bundle must have every imported shared stylesheet at build time."""
@@ -755,6 +766,57 @@ class TestSSO(unittest.TestCase):
             any("login_via_yandex" in u for u in redirect_uris),
             "elms-frappe client must never configure direct Yandex redirect URI",
         )
+
+
+class TestReviewHandoff(unittest.TestCase):
+    def test_open_review_issues_opaque_ticket_without_keycloak_login(self):
+        from elms.sso import review
+
+        cache = FakeHandoffCache()
+        local = SimpleNamespace(response={}, request=SimpleNamespace(headers={}))
+        with patch.dict(
+            os.environ,
+            {
+                "ELMS_REVIEW_URL": "http://127.0.0.1:8765/auth/login?source=elms",
+                "ELMS_REVIEW_ALLOW_HTTP": "1",
+                "ELMS_REVIEW_HANDOFF_SECRET": "handoff-secret",
+            },
+            clear=False,
+        ), patch.object(frappe, "session", SimpleNamespace(user="elms.test.admin@elms.local")), patch.object(
+            frappe, "get_roles", return_value=["ELMS Admin", "Desk User"]
+        ), patch.object(frappe, "cache", return_value=cache), patch.object(frappe, "local", local):
+            review.open_review()
+
+        location = urlparse(local.response["location"])
+        self.assertEqual(location.path, "/auth/handoff")
+        self.assertNotIn("login", location.path)
+        self.assertNotIn("source", location.query)
+        ticket = parse_qs(location.query)["ticket"][0]
+        self.assertIn(review._handoff_key(ticket), cache.values)
+        self.assertEqual(cache.values[review._handoff_key(ticket)]["roles"], ["admin"])
+
+    def test_redeem_review_handoff_is_secret_protected_and_one_time(self):
+        from elms.sso import review
+
+        cache = FakeHandoffCache()
+        ticket = "A" * 43
+        cache.values[review._handoff_key(ticket)] = {
+            "user_id": "elms.test.admin@elms.local",
+            "member_id": "elms-dev",
+            "roles": ["admin"],
+        }
+        local = SimpleNamespace(
+            response={},
+            request=SimpleNamespace(headers={"X-ELMS-Review-Handoff-Secret": "handoff-secret"}),
+        )
+        with patch.dict(os.environ, {"ELMS_REVIEW_HANDOFF_SECRET": "handoff-secret"}, clear=False), patch.object(
+            frappe, "cache", return_value=cache
+        ), patch.object(frappe, "local", local):
+            result = review.redeem_review_handoff(ticket)
+
+        self.assertEqual(result["user_id"], "elms.test.admin@elms.local")
+        self.assertEqual(result["roles"], ["admin"])
+        self.assertNotIn(review._handoff_key(ticket), cache.values)
 
 
 if __name__ == "__main__":
