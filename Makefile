@@ -1,12 +1,27 @@
-DEV_HUB ?= $(abspath $(CURDIR)/../dev-hub)
--include $(DEV_HUB)/make/product.mk
+DEV_HUB ?= $(shell \
+  if [ -f .dev-hub ]; then sed -n '1p' .dev-hub | tr -d '[:space:]'; \
+  elif [ -x ../dev-hub/bin/loop.py ]; then printf '%s' "../dev-hub"; \
+  else printf ''; fi)
+
+ifeq ($(strip $(DEV_HUB)),)
+$(error DEV_HUB not found. Set DEV_HUB=/path/to/dev-hub, create .dev-hub, or use sibling ../dev-hub)
+endif
+
+include $(DEV_HUB)/make/product.mk
 
 SHELL := /bin/bash
 
-.PHONY: local.up local.down local.ps local.logs dev prod prod.up prod.down prod.ps prod.logs prod.smoke prod.edge prod.edge.up prod.edge.down prod.edge.ps prod.edge.logs
+.PHONY: local.up local.restart local.down local.ps local.logs docker.restart keycloak.seed dev prod prod.up prod.down prod.ps prod.logs prod.smoke prod.edge prod.edge.up prod.edge.down prod.edge.ps prod.edge.logs
 
 local.up:
 	bash scripts/docker-up.sh dev up -d --build
+
+docker.restart:
+	bash scripts/docker-up.sh dev restart backend websocket queue-short queue-long scheduler frontend
+	bash scripts/docker-up.sh dev exec -T backend bench --site elms.localhost migrate
+	bash scripts/docker-up.sh dev exec -T backend bench --site elms.localhost clear-cache
+
+local.restart: docker.restart
 
 local.down:
 	bash scripts/docker-up.sh dev down
@@ -16,6 +31,9 @@ local.ps:
 
 local.logs:
 	bash scripts/docker-up.sh dev logs --tail=100
+
+keycloak.seed:
+	bash scripts/keycloak-seed-users.sh
 
 dev: local.up
 
@@ -53,3 +71,5 @@ prod.edge.logs:
 	bash scripts/docker-up.sh prod-edge logs --tail=100
 
 prod.edge: prod.edge.up
+
+copy.ssh: ssh-copy-id -i ~/.ssh/id_rsa.pub root@

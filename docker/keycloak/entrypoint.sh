@@ -135,10 +135,33 @@ fi
 
 if [ -x "/opt/keycloak/bin/kc.sh" ]; then
   if [ "$#" -gt 0 ]; then
-    exec /opt/keycloak/bin/kc.sh "$@"
+    /opt/keycloak/bin/kc.sh "$@" &
   else
-    exec /opt/keycloak/bin/kc.sh start-dev --import-realm
+    /opt/keycloak/bin/kc.sh start-dev --import-realm &
   fi
+  KEYCLOAK_PID=$!
+
+  cleanup() {
+    kill "$KEYCLOAK_PID" 2>/dev/null || true
+  }
+  trap cleanup INT TERM
+
+  if [ "${KEYCLOAK_SEED_DEMO_USERS:-0}" = "1" ]; then
+    SEED_SCRIPT="${KEYCLOAK_SEED_SCRIPT:-/opt/keycloak/seed-demo-users.sh}"
+    if [ ! -x "$SEED_SCRIPT" ]; then
+      echo "ERROR: Keycloak demo-user seed is enabled but $SEED_SCRIPT is missing or not executable." >&2
+      cleanup
+      wait "$KEYCLOAK_PID" 2>/dev/null || true
+      exit 1
+    fi
+    if ! "$SEED_SCRIPT"; then
+      cleanup
+      wait "$KEYCLOAK_PID" 2>/dev/null || true
+      exit 1
+    fi
+  fi
+
+  wait "$KEYCLOAK_PID"
 elif [ "$#" -gt 0 ]; then
   exec "$@"
 fi

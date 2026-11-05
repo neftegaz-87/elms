@@ -1,0 +1,625 @@
+:root {
+	--elms-paper: #f5f7fa;
+	--elms-surface: #ffffff;
+	--elms-graphite: #0b1f33;
+	--elms-muted: #66727f;
+	--elms-line: #d5dce3;
+	--elms-action: #0d4cd3;
+	--elms-action-hover: #0939a3;
+	--elms-action-soft: #eaf2ff;
+	--elms-success: #167a4a;
+	--elms-success-soft: #eaf7f0;
+	--elms-warning: #b54708;
+	--elms-warning-soft: #fff4e5;
+	--elms-radius-sm: 4px;
+	--elms-radius-md: 6px;
+	--elms-radius-lg: 8px;
+}
+
+/* Page Container */
+.elms-learning-shell {
+	font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+	background: var(--elms-paper);
+	color: var(--elms-graphite);
+	padding: 24px;
+	min-height: calc(100vh - 60px);
+}
+
+.elms-learning-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 24px;
+	border-bottom: 1px solid var(--elms-line);
+	padding-bottom: 16px;
+}
+
+.elms-learning-title {
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--elms-graphite);
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.elms-learning-badge {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	background: var(--elms-action-soft);
+	color: var(--elms-action);
+	padding: 3px 8px;
+	border-radius: var(--elms-radius-sm);
+	font-weight: 600;
+}
+
+/* Tab Navigation */
+.elms-learning-tabs {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 20px;
+	border-bottom: 2px solid var(--elms-line);
+}
+
+.elms-tab-btn {
+	background: none;
+	border: none;
+	padding: 10px 18px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--elms-muted);
+	cursor: pointer;
+	position: relative;
+	bottom: -2px;
+	border-bottom: 2px solid transparent;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.elms-tab-btn:hover {
+	color: var(--elms-graphite);
+}
+
+.elms-tab-btn.active {
+	color: var(--elms-action);
+	border-bottom-color: var(--elms-action);
+	background: var(--elms-surface);
+	border-top-left-radius: var(--elms-radius-sm);
+	border-top-right-radius: var(--elms-radius-sm);
+}
+
+/* Tab Panes */
+.elms-tab-pane {
+	display: none;
+}
+
+.elms-tab-pane.active {
+	display: block;
+}
+
+/* Cards Grid */
+.elms-cards-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 20px;
+}
+
+.elms-course-card {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 20px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.elms-course-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	border-color: var(--elms-action);
+}
+
+.elms-course-header {
+	margin-bottom: 12px;
+}
+
+.elms-course-batch {
+	font-size: 12px;
+	font-family: "IBM Plex Mono", monospace;
+	color: var(--elms-muted);
+	text-transform: uppercase;
+}
+
+.elms-course-title {
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--elms-graphite);
+	margin: 6px 0 12px 0;
+	line-height: 1.35;
+}
+
+.elms-progress-bar-container {
+	background: var(--elms-paper);
+	border-radius: 999px;
+	height: 8px;
+	overflow: hidden;
+	margin: 10px 0;
+}
+
+.elms-progress-bar-fill {
+	background: var(--elms-action);
+	height: 100%;
+	transition: width 0.3s ease;
+}
+
+.elms-progress-meta {
+	display: flex;
+	justify-content: space-between;
+	font-size: 13px;
+	color: var(--elms-muted);
+	margin-bottom: 16px;
+}
+
+.elms-status-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.elms-status-pill.success {
+	background: var(--elms-success-soft);
+	color: var(--elms-success);
+}
+
+.elms-status-pill.warning {
+	background: var(--elms-warning-soft);
+	color: var(--elms-warning);
+}
+
+.elms-btn-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	background: var(--elms-action);
+	color: #ffffff !important;
+	border: none;
+	border-radius: var(--elms-radius-sm);
+	padding: 9px 16px;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: none;
+	transition: background 0.15s ease;
+	width: 100%;
+}
+
+.elms-btn-action:hover {
+	background: var(--elms-action-hover);
+}
+
+/* Lesson Player Surface */
+.elms-player-container {
+	display: grid;
+	grid-template-columns: 280px 1fr;
+	gap: 20px;
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	overflow: hidden;
+	min-height: 520px;
+}
+
+.elms-player-sidebar {
+	background: var(--elms-paper);
+	border-right: 1px solid var(--elms-line);
+	padding: 16px;
+}
+
+.elms-lessons-list {
+	list-style: none;
+	padding: 0;
+	margin: 12px 0 0 0;
+}
+
+.elms-lesson-item {
+	padding: 10px 12px;
+	border-radius: var(--elms-radius-sm);
+	margin-bottom: 6px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border: 1px solid transparent;
+}
+
+.elms-lesson-item:hover {
+	background: #e2e8f0;
+}
+
+.elms-lesson-item.active {
+	background: var(--elms-action-soft);
+	color: var(--elms-action);
+	font-weight: 600;
+	border-color: #bfdbfe;
+}
+
+.elms-lesson-item.completed {
+	color: var(--elms-success);
+}
+
+.elms-player-main {
+	padding: 24px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.elms-player-telemetry-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: var(--elms-paper);
+	padding: 12px 18px;
+	border-radius: var(--elms-radius-sm);
+	border: 1px solid var(--elms-line);
+	margin-bottom: 20px;
+}
+
+.elms-telemetry-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.elms-pulse-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--elms-success);
+	box-shadow: 0 0 0 0 rgba(22, 122, 74, 0.7);
+	animation: elms-pulse 1.8s infinite;
+}
+
+.elms-pulse-dot.paused {
+	background: var(--elms-warning);
+	animation: none;
+}
+
+@keyframes elms-pulse {
+	0% {
+		transform: scale(0.95);
+		box-shadow: 0 0 0 0 rgba(22, 122, 74, 0.7);
+	}
+	70% {
+		transform: scale(1);
+		box-shadow: 0 0 0 6px rgba(22, 122, 74, 0);
+	}
+	100% {
+		transform: scale(0.95);
+		box-shadow: 0 0 0 0 rgba(22, 122, 74, 0);
+	}
+}
+
+.elms-timer-value {
+	font-family: "IBM Plex Mono", monospace;
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--elms-graphite);
+}
+
+.elms-player-content {
+	flex-grow: 1;
+	background: #fafbfc;
+	border: 1px dashed var(--elms-line);
+	border-radius: var(--elms-radius-sm);
+	padding: 24px;
+	line-height: 1.6;
+	margin-bottom: 20px;
+}
+
+/* Audit Table */
+.elms-table-container {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	overflow: hidden;
+}
+
+.elms-audit-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+	text-align: left;
+}
+
+.elms-audit-table th {
+	background: var(--elms-paper);
+	color: var(--elms-muted);
+	font-weight: 600;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--elms-line);
+}
+
+.elms-audit-table td {
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--elms-line);
+	color: var(--elms-graphite);
+}
+
+.elms-audit-table tr:last-child td {
+	border-bottom: none;
+}
+
+.elms-mono {
+	font-family: "IBM Plex Mono", monospace;
+	font-size: 12px;
+}
+
+.elms-learning-subtitle {
+	font-size: 13px;
+	color: var(--elms-muted);
+	margin-top: 6px;
+}
+
+.elms-btn-secondary,
+.elms-link-btn {
+	background: var(--elms-surface);
+	color: var(--elms-action);
+	border: 1px solid var(--elms-action);
+	border-radius: var(--elms-radius-sm);
+	padding: 8px 14px;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.elms-btn-secondary:hover,
+.elms-link-btn:hover {
+	background: var(--elms-action-soft);
+}
+
+.elms-section-intro {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 20px;
+	margin-bottom: 20px;
+}
+
+.elms-section-intro h2 {
+	margin: 2px 0 4px;
+	font-size: 20px;
+}
+
+.elms-section-intro p {
+	margin: 0;
+	color: var(--elms-muted);
+	font-size: 13px;
+}
+
+.elms-role-note {
+	margin-top: 10px;
+	font-size: 12px;
+	color: var(--elms-warning);
+}
+
+.elms-kicker {
+	font-size: 11px;
+	letter-spacing: .08em;
+	font-weight: 700;
+	color: var(--elms-action);
+}
+
+.elms-count-badge {
+	white-space: nowrap;
+	background: var(--elms-action-soft);
+	color: var(--elms-action);
+	padding: 6px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.elms-status-row {
+	min-height: 28px;
+	margin-bottom: 10px;
+}
+
+.elms-empty-state {
+	background: var(--elms-surface);
+	border: 1px dashed var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 56px 24px;
+	text-align: center;
+	color: var(--elms-graphite);
+}
+
+.elms-empty-state h3 {
+	margin: 8px 0;
+}
+
+.elms-empty-state p {
+	max-width: 560px;
+	margin: 0 auto 18px;
+	color: var(--elms-muted);
+	font-size: 14px;
+}
+
+.elms-empty-icon {
+	font-size: 28px;
+}
+
+.elms-sidebar-title {
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.elms-lesson-duration {
+	font-size: 11px;
+	color: var(--elms-muted);
+	white-space: nowrap;
+	margin-left: 8px;
+}
+
+.elms-lesson-body {
+	font-size: 15px;
+	color: var(--elms-graphite);
+}
+
+.elms-material-link {
+	display: inline-block;
+	margin: 16px 0;
+	color: var(--elms-action);
+	font-weight: 600;
+}
+
+.elms-player-note,
+.elms-admin-hint {
+	background: var(--elms-action-soft);
+	border-left: 3px solid var(--elms-action);
+	padding: 12px 14px;
+	margin-top: 18px;
+	font-size: 13px;
+	color: var(--elms-graphite);
+}
+
+.elms-player-footer,
+.elms-action-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.elms-player-footer .elms-btn-action {
+	width: auto;
+}
+
+.elms-admin-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.elms-admin-card {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 16px;
+}
+
+.elms-admin-card-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+}
+
+.elms-admin-card h3 {
+	margin: 0;
+	font-size: 15px;
+}
+
+.elms-admin-card p {
+	margin: 6px 0 12px;
+	font-size: 12px;
+}
+
+.elms-link-btn {
+	border: 0;
+	padding: 3px 0;
+	background: transparent;
+}
+
+.elms-admin-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.elms-admin-list-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 9px 10px;
+	border: 1px solid transparent;
+	border-radius: var(--elms-radius-sm);
+	background: var(--elms-paper);
+	text-align: left;
+	cursor: pointer;
+	color: var(--elms-graphite);
+}
+
+.elms-admin-list-row:hover {
+	border-color: var(--elms-action);
+	background: var(--elms-action-soft);
+}
+
+.elms-admin-list-row span:first-child {
+	min-width: 0;
+}
+
+.elms-admin-list-row b,
+.elms-admin-list-row small {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.elms-admin-list-row small {
+	margin-top: 2px;
+	color: var(--elms-muted);
+	font-size: 11px;
+}
+
+.elms-row-status {
+	color: var(--elms-muted);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.elms-muted,
+.elms-table-subtitle {
+	color: var(--elms-muted);
+}
+
+.elms-table-subtitle {
+	font-size: 12px;
+	margin-top: 3px;
+}
+
+@media (max-width: 900px) {
+	.elms-admin-grid,
+	.elms-player-container {
+		grid-template-columns: 1fr;
+	}
+	.elms-player-sidebar {
+		border-right: 0;
+		border-bottom: 1px solid var(--elms-line);
+	}
+	.elms-section-intro,
+	.elms-learning-header {
+		align-items: stretch;
+		flex-direction: column;
+	}
+}

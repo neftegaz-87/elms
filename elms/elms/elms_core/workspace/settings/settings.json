@@ -74,7 +74,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-30 02:51:16.009392",
+ "modified": "2026-11-05 13:17:06.438567",
  "modified_by": "Administrator",
  "module": "ELMS Core",
  "name": "Settings",
@@ -88,7 +88,7 @@
    "role": "ELMS Admin"
   }
  ],
- "sequence_id": 3.0,
+ "sequence_id": 4.0,
  "shortcuts": [],
  "title": "Settings"
 }

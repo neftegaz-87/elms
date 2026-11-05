@@ -1,24 +1,17 @@
-# Vendor docs — Frappe Framework
+# Vendor Docs Mirror — Frappe Ecosystem & Reference
 
-Офлайн-зеркало официальной документации Frappe Framework для агентов и разработчиков.
+Офлайн-зеркало документации экосистемы Frappe для агентов и разработчиков ELMS.
 
-| Каталог | Источник |
-|---------|----------|
-| `framework/` | https://docs.frappe.io/framework |
+| Каталог | Назначение | Источник |
+|---|---|---|
+| `learning/` | Документация **Frappe Learning (Frappe LMS)**: курсы, уроки, батчи, тесты, прогресс, сертификаты | https://docs.frappe.io/learning, https://frappe.io/learning |
+| `frappe-marketplace-free/` | Выжимка по **289 бесплатным приложениям** и расширениям для Frappe Framework: функционал, боли бизнеса, решаемые задачи | Frappe Cloud Marketplace |
+| `framework/` | Официальная документация **Frappe Framework v15** | https://docs.frappe.io/framework |
+| `crm/` | Документация **Frappe CRM**: лиды, сделки, коммуникации, воронки, SLA | https://docs.frappe.io/crm |
+| `erpnext/` | Справочная документация **ERPNext** (только архитектурный и функциональный референс) | https://docs.frappe.io/erpnext |
 
-Индекс: `framework/llms.txt`. Физически это symlink на зеркало, скачанное в `PersonalProject/frappe-erp-crm/docs/vendor/framework` (`mirror-docs.py`).
+## Внимание (Канон проекта ELMS)
 
-## Как пользоваться (агент)
+- **ELMS не является форком CRM или ERPNext.** Документация `crm/` и `erpnext/` размещена исключительно для справочного анализа стандартных механизмов платформы Frappe.
+- Продуктовый канон, роли и модули ELMS зафиксированы в `rules/`, `memory-bank/product/modules.md` и `memory-bank/compliance/`.
 
-1. Сначала открыть `docs/vendor/framework/llms.txt` — оглавление.
-2. Нужную страницу читать как локальный `.md` под `docs/vendor/framework/` (или через абсолютный путь зеркала).
-3. Онлайн `docs.frappe.io` — только если локальной страницы нет.
-4. Это справочник вендора, не SoT продукта ELMS: канон поведения — `memory-bank/` + код `elms/`.
-
-## Обновить зеркало
-
-```bash
-python3 docs/vendor/mirror-docs.py --spaces framework
-```
-
-Скрипт и каталог `framework/` живут в общем зеркале `frappe-erp-crm`; из elms доступны через symlink.

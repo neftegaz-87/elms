@@ -1,0 +1,58 @@
+---
+title: "Personal Data Deletion\n"
+space: "ERPNext"
+url: "https://docs.frappe.io/erpnext/personal-data-deletion"
+updated: "2026-02-26"
+---
+
+Personal data deletion tool enables a user to delete their account and anonymize all the personally identifiable data a user has generated while using ERPNext. That is, personally identifiable information will be randomized. This includes personally identifiable data from your user account like: username, full name, birth date, phone numbers, mobile numbers, location, interests, bio, email signature, Email, Contact, Address, Communication, etc. It also includes data from Leads and Opportunities, the details you have saved like phone numbers, mobile numbers, fax, website, and name.
+
+However, this excludes data that is required by law to be maintained by a business.
+
+## How to request account deletion
+
+1. To begin deleting users account and personally identifiable data, you need to visit [host-name]/request-for-account-deletion (e.g. example.erpnext.com/request-for-account-deletion) in the URL field.
+  ![](/files/image727709.png)
+2. Enter the email associated with your ERPNext account. After submitting your request, you will receive a success response.
+  ![](/files/imagea32960.png)
+3. This will send an email with a verification link to delete data to the email address associated with the user.
+  ![](/files/imagee38974.png)
+4. Once the user clicks on the verification link. A confirmation message will be displayed.
+
+## How deleting a user's personal data works
+
+The request to delete data is recorded in the doctype "Personal Data Deletion Request".
+
+![Personal Data Download Request Doctype](/files/personal-data-deletion-request-doctype.png)
+
+This doctype maintains three states of status to complete the process of removal of user data.
+
+### Pending Verification
+
+This status indicates that the user has requested data deletion via the web-form. However, verification of this request is still pending. Search for Personal Data Deletion Request from the search bar.
+
+![Pending Verification](/files/pending-verification.png)
+
+### Pending Approval
+
+This indicates that the user has verified the request via email. This enables the option of "Delete Data" for System Managers.
+
+![Pending Approval](/files/pending-approval.png)
+
+### Deleted
+
+This indicates that the System Manager has clicked on the "Delete Data" button. This means that the user's personally identifiable data has been anonymized.
+
+![Deleted User](/files/deleted-user.png)
+
+### Setting SLA for Personal Data Deletion Request.
+
+You can also set an SLA for Personal Data Deletion Request through Website Settings. This will appear on the web form description.
+
+- Go to Website Settings
+- Scroll to the section called Account Deletion Settings
+- In the **Account Deletion SLA (Days)** field set the number of days within which users request for Account Deletion will be fulfilled.
+- If you enable **Show Account Deletion link in My Account page**, the form link will be visible to users on the My Account Page of the website
+
+![Account Deletion Settings](/files/Screenshot 2021-12-01 at 8.50.39 PM.png)
+

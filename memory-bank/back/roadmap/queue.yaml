@@ -1,23 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-B07
-  epic_id: T-B07-elms-backup-operations
-  kind: feature
-  plan: plan/T-B07-elms-backup-operations/md/plan.md
-  batch: elms-production
-  deps:
-  - T-B05
-  - T-B06
-- id: T-B08
-  epic_id: T-B08-elms-cicd-release-rollback
-  kind: feature
-  plan: plan/T-B08-elms-cicd-release-rollback/md/plan.md
-  batch: elms-production
-  deps:
-  - T-B05
-  - T-B06
-  - T-B07
 - id: T-B09
   epic_id: T-B09-elms-caddy-edge-cutover
   kind: feature
@@ -71,6 +54,23 @@ done:
   batch: elms-production
   deps:
   - T-B05
+- id: T-B07
+  epic_id: T-B07-elms-backup-operations
+  kind: feature
+  plan: plan/T-B07-elms-backup-operations/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
+  - T-B06
+- id: T-B08
+  epic_id: T-B08-elms-cicd-release-rollback
+  kind: feature
+  plan: plan/T-B08-elms-cicd-release-rollback/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
+  - T-B06
+  - T-B07
 batches:
   elms-foundation:
     title: ELMS foundation (Docker + RBAC + SSO Keycloak/Yandex)

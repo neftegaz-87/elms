@@ -1,0 +1,146 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B08-elms-cicd-release-rollback
+title: Execute approved digest-pinned deploy and pair rollback through the allowlisted wrapper
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обеспечить единственную server-side release boundary: protected approval передаёт
+  non-secret manifest через known-hosts-pinned SSH, а deploy_wrapper.py под lock выполняет
+  только фиксированный digest-pinned Compose config/pull/up/health/smoke путь и rollback
+  полного проверенного image/config pair с fail-closed Vault/backup evidence.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-004
+    - FR-005
+    - FR-006
+  nouns:
+    - digest-pinned deploy
+    - previous verified image/config pair
+    - GitHub Environment approval
+    - allowlisted remote wrapper
+    - SSH known-hosts
+    - explicit remote target
+    - production target guard
+    - deployment lock
+    - Vault preflight evidence
+    - backup freshness/capacity evidence
+    - internal health/smoke
+    - state volumes
+  layout_paths:
+    - .github/workflows/production-release.yml
+    - scripts/infra/deploy_wrapper.py
+    - scripts/infra/check_release_manifest.py
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  ac_quotes:
+    - 'FR-004: production uses GitHub Environment approval and an allowlisted remote wrapper with lock/preflight.'
+    - 'FR-005: rollback restores previous verified image/config pair and never deletes state volumes.'
+    - 'FR-006: any remote target must be explicit, pinned by known-hosts, and different from production.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:15-22
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:24-28
+
+context:
+  consumes:
+    - s01 validated elms-release-manifest/v1 artifact
+    - T-B05 image-only Compose and digest override contract
+    - T-B06 Vault preflight evidence boundary
+    - T-B07 verified backup freshness/capacity evidence boundary
+  produces:
+    - explicit protected-environment workflow handoff using known_hosts and a named wrapper
+    - deploy/status/rollback CLI with allowlisted Compose operations, serialization, and atomic release recording
+    - semantic evidence gate that rejects stale, failed, future, or unverified backup/Vault state
+    - complete image-pair rollback input that cannot delete state volumes or default a dev target to production
+  plan_refs:
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:16-22
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:24-28
+  files:
+    - .github/workflows/production-release.yml
+    - scripts/infra/deploy_wrapper.py
+    - scripts/infra/check_release_manifest.py
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+
+as_built:
+  - scripts/infra/deploy_wrapper.py already exposes deploy, status, and rollback commands, validates the release manifest, serializes execution with deploy.lock, and records a current release by atomic symlink replacement.
+  - The executing sequence is already fixed to Compose config, pull, up --wait, backend/frontend login smoke, and Keycloak readiness; Compose receives ref@digest overrides.
+  - .github/workflows/production-release.yml already declares the production Environment and uses explicit SSH known_hosts, a named remote root, and the server wrapper; the wrapper consumes backup/Vault evidence before execution.
+
+delta:
+  - Enforce the explicit target contract at the workflow/wrapper boundary: require a non-empty pinned target, reject a production host as an implicit/default development target, and never accept arbitrary remote shell or Compose arguments.
+  - Keep deploy and rollback on one validated complete image/config pair, require semantic Vault/backup evidence and approval before state-changing commands, and record the new release only after health/internal smoke succeeds.
+  - Add targeted negative tests for missing approval, unsafe target, stale/unverified evidence, mutable/digest-free overrides, and any volume-removal command.
+
+deletes:
+  - arbitrary SSH command or Compose argument execution outside the allowlisted wrapper sequence
+  - implicit production target/default dev deployment path
+  - path-presence-only or unverified Vault/backup evidence accepted for promotion
+
+wire_complete_required: true
+
+sunset_scope:
+  required: true
+  boundary_id: elms-production-release-deploy
+  new_sot: scripts/infra/deploy_wrapper.py
+  allow_read:
+    - .github/workflows/production-release.yml
+    - scripts/infra/deploy_wrapper.py
+    - scripts/infra/check_release_manifest.py
+    - docker/compose.prod.yaml
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+out_of_scope:
+  - Real production SSH credentials, hostnames, known-hosts values, GitHub approval configuration, and live Vault/backup evidence.
+  - Public edge cutover, DNS, firewall, ACME, and host-Caddy ownership.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: The wrapper exposes only deploy/status/rollback and executing actions require explicit approval, validated manifest, and the serialized fixed Compose sequence.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'deploy_wrapper or release_approval or release_digest'
+  - id: cp2
+    criterion: Stale, failed, future, or unverified backup/Vault evidence blocks state-changing deploy and rollback before Compose changes.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'backup_evidence or vault_evidence or stale'
+  - id: cp3
+    criterion: The production workflow uses a protected Environment, StrictHostKeyChecking, a supplied known_hosts file, and a named explicit target/root/wrapper.
+    verify: "rg -n 'environment:|name: production|StrictHostKeyChecking=yes|known_hosts|ELMS_DEPLOY_TARGET|ELMS_DEPLOY_ROOT|ELMS_DEPLOY_WRAPPER' .github/workflows/production-release.yml"
+  - id: cp4
+    criterion: No deploy or rollback command removes state volumes or accepts arbitrary remote commands/Compose flags.
+    verify: '! rg -n -i "(docker (volume )?rm|down -v|volume removal|bash -c|sh -c|eval )" scripts/infra/deploy_wrapper.py .github/workflows/production-release.yml'
+
+verify:
+  - python3 -m pytest -q tests/infra/test_production_contracts.py -k 'deploy_wrapper or release_approval or release_digest or backup_evidence or vault_evidence'
+  - python3 scripts/infra/deploy_wrapper.py --help
+  - rg -n 'CUSTOM_IMAGE_REF|KEYCLOAK_IMAGE_REF|@\{?image\[.digest|deploy.lock|--wait|health|ELMS_BACKUP_EVIDENCE|ELMS_VAULT_EVIDENCE' scripts/infra/deploy_wrapper.py
+  - '! rg -n -i "(docker (volume )?rm|down -v|volume removal|bash -c|sh -c|eval )" scripts/infra/deploy_wrapper.py .github/workflows/production-release.yml'
+
+tdd:
+  - test_deploy_wrapper_requires_approval_for_execution
+  - test_deploy_wrapper_uses_digest_image_overrides
+  - test_deploy_wrapper_rejects_stale_backup_evidence
+  - test_deploy_wrapper_rejects_unverified_vault_evidence
+  - test_release_target_is_explicit_and_not_production_default

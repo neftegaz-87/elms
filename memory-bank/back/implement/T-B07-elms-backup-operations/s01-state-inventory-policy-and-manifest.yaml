@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B07-elms-backup-operations
+task_id: T-B07-elms-backup-operations
+title: s01 — Complete ELMS state inventory and non-secret backup policy manifest IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-B07-elms-backup-operations/yaml/steps/s01-state-inventory-policy-and-manifest.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - Manifest policy now declares client-side encryption, restic S3-compatible off-host storage, hard capacity gating, RPO/RTO, retention, and status-only redaction.
+  - Manifest validation rejects incomplete state items and secret-like fields before any restic invocation.
+  - Production runbook records the complete ELMS state inventory and keeps review-service state and recovery material outside the contract.
+
+files:
+  - scripts/infra/backup_runner.py
+  - tests/infra/test_production_contracts.py
+  - docs/operations/elms-production.md
+
+deletes: []
+
+tests:
+  - '`bin/pytest tests/infra/test_production_contracts.py -k "backup_manifest" -q`'
+  - '`python3 scripts/infra/backup_runner.py manifest --output /tmp/elms-backup-manifest.json`'
+
+integration_check:
+  - '`python3 scripts/infra/backup_runner.py manifest --output /tmp/elms-backup-manifest.json` — exit 0'
+  - '`bin/pytest tests/infra/test_production_contracts.py -k "backup_manifest" -q` — PASS'
+
+verification_results:
+  - '`bin/pytest tests/infra/test_production_contracts.py -k "backup_manifest" -q` — 3 passed.'
+  - '`python3 scripts/infra/backup_runner.py manifest --output /tmp/elms-backup-manifest.json` — PASS.'
+
+checkpoints:
+  - id: cp1
+    criterion: pending
+    status: done
+  - id: cp2
+    criterion: pending
+    status: done
+  - id: cp3
+    criterion: pending
+    status: done
+
+resume_from: cp1

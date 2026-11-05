@@ -1,0 +1,49 @@
+# Learning
+
+Append `.md` to any URL below for that page's raw markdown source.
+
+## Learning
+
+- **Setup Guide**
+  - [Your First Steps with Frappe Learning](https://docs.frappe.io/learning/setup-guide/your-first-steps-with-frappe-learning.md)
+- **Introduction**
+  - [Introduction](https://docs.frappe.io/learning/introduction.md)
+  - [Installation](https://docs.frappe.io/learning/get-started/installation.md)
+  - [Setting Up](https://docs.frappe.io/learning/setting-up.md)
+- **Getting Started**
+  - [Navigating the Learning Portal](https://docs.frappe.io/learning/basic-settings/navigating-learning-portal.md)
+  - [Branding and Customization](https://docs.frappe.io/learning/basic-settings/branding.md)
+  - [User Roles & Permissions](https://docs.frappe.io/learning/roles.md)
+  - [Configuring Custom Base Path](https://docs.frappe.io/learning/others/custom-base-path.md)
+- **Building Your Course**
+  - [Learning Hierarchy](https://docs.frappe.io/learning/core-concepts/courses.md)
+  - [Create a Course](https://docs.frappe.io/learning/create-a-course.md)
+  - [Add a Preview Video](https://docs.frappe.io/learning/course-creation/add-a-preview-video.md)
+  - [Add a Chapter](https://docs.frappe.io/learning/add-a-chapter.md)
+  - **Create A Lesson**
+    - [Add a Lesson](https://docs.frappe.io/learning/course-creation/adding-a-lesson/adding-simple-content.md)
+    - [Video Integration (Cloudflare, Vimeo, YouTube, etc.)](https://docs.frappe.io/learning/course-creation/adding-a-lesson/add-video-content.md)
+    - [Embedding Google Workspace (Docs, Sheets, Slides)](https://docs.frappe.io/learning/course-creation/adding-a-lesson/adding-google-content.md)
+    - [Interactive Content](https://docs.frappe.io/learning/course-creation/adding-a-lesson/add-interactive-content.md)
+  - [Editing or Deleting Content](https://docs.frappe.io/learning/course-creation/deleting-content.md)
+  - [Duplicating a Course](https://docs.frappe.io/learning/course-creation/duplicating-a-course.md)
+- **Batch Creation**
+  - [Create a Batch](https://docs.frappe.io/learning/create-a-batch.md)
+  - [Create a Live Class](https://docs.frappe.io/learning/create-a-live-class.md)
+- **Learning Paths**
+  - [Add a Program](https://docs.frappe.io/learning/add-a-program.md)
+- **Assessments**
+  - [Quizzes](https://docs.frappe.io/learning/quizzes.md)
+  - [Assignments](https://docs.frappe.io/learning/assignments.md)
+  - [Programming Exercises](https://docs.frappe.io/learning/assessments/programming-exercise.md)
+- **Certification**
+  - [Issue a Certificate](https://docs.frappe.io/learning/issue-a-certificate.md)
+- **Monetization**
+  - [Setting Up Payment Gateway](https://docs.frappe.io/learning/setting-up-payment-gateway.md)
+- **Job Listing**
+  - [Create a Job Listing](https://docs.frappe.io/learning/job-listing/create-a-job-listing.md)
+- **Others**
+  - [Badges](https://docs.frappe.io/learning/badges.md)
+  - [Course Progress Calculation](https://docs.frappe.io/learning/others/course-progress-calculation.md)
+  - [Falcon Self-Hosting Guide](https://docs.frappe.io/learning/falcon-self-hosting-guide.md)
+  - [Frequently Asked Questions](https://docs.frappe.io/learning/others/frequently-asked-questions.md)

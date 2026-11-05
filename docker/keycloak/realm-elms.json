@@ -197,6 +197,34 @@
             "claim.name": "groups",
             "userinfo.token.claim": "true"
           }
+        },
+        {
+          "name": "bitrix-user-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "bitrix_user_id",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "bitrix_user_id",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "bitrix-department-ids",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "bitrix_department_ids",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "bitrix_department_ids",
+            "jsonType.label": "String"
+          }
         }
       ]
     },

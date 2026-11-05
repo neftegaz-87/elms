@@ -1,1 +1,1 @@
-../dev-hub/CLAUDE.md
+../../dev-hub/CLAUDE.md

@@ -10,6 +10,8 @@ if not hasattr(frappe, "utils"):
     frappe.utils = SimpleNamespace(get_request_session=None)
 if not hasattr(frappe, "local"):
     frappe.local = SimpleNamespace(flags=SimpleNamespace())
+elif not hasattr(frappe.local, "flags") or frappe.local.flags is None:
+    frappe.local.flags = SimpleNamespace()
 if not hasattr(frappe, "ValidationError"):
     class ValidationError(Exception): pass
     frappe.ValidationError = ValidationError

@@ -28,6 +28,13 @@
    ```bash
    docker compose -f docker/compose.dev.yaml --env-file docker/.env.dev up -d
    ```
+   При каждом старте dev-контейнера Keycloak выполняется идемпотентный seed
+   `docker/keycloak/seed-demo-users.sh`. Он создаёт или обновляет локальные
+   демонстрационные аккаунты из `KEYCLOAK_TEST_*_PASSWORD` и назначает им группы.
+   Повторно запустить seed вручную можно командой:
+   ```bash
+   make keycloak.seed
+   ```
 5. **Вход через Keycloak**: Откройте `http://elms.localhost:8082/login`. Используется стандартная форма Frappe: отдельная кнопка Keycloak не показывается, её submit связан с Keycloak через `login-keycloak.js`. Для локальной проверки введите учетные данные Keycloak; для brokered-входа Keycloak предложит Yandex 360.
 6. **Проверка идентичности и ролей**: После callback убедитесь, что пользователь авторизован в Frappe Desk (`/app`), идентичность связана по `sub`, а роли по умолчанию (`Desk User`, `ELMS LMS User`) назначены автоматически.
 7. **Проверка отказа**: При недоступности Yandex brokered-вход должен завершаться явной ошибкой Keycloak; локальный обход SSO не является production-путём.

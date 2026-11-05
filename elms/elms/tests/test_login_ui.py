@@ -31,7 +31,21 @@ class LoginButtonParser(HTMLParser):
 class TestLoginUI(unittest.TestCase):
     def setUp(self):
         self.css_path = REPO_ROOT / "elms/elms/public/css/login.css"
+        self.icon_path = REPO_ROOT / "elms/elms/public/images/nftgz-favicon.svg"
         self.hooks_path = REPO_ROOT / "elms/elms/hooks.py"
+
+    def test_nftgz_icon_is_used_for_app_logo_and_favicon(self):
+        """The product icon is available as an app asset and wired to web and Desk surfaces."""
+        self.assertTrue(self.icon_path.is_file(), "nftgz-favicon.svg must exist")
+
+        hooks_content = self.hooks_path.read_text(encoding="utf-8")
+        icon_url = "/assets/elms/images/nftgz-favicon.svg"
+        self.assertIn(f'app_logo_url = "{icon_url}"', hooks_content)
+
+        from elms.install import update_website_context
+
+        self.assertEqual(update_website_context({}).get("favicon"), icon_url)
+        self.assertEqual(update_website_context({"for_test": "login.html"}).get("favicon"), icon_url)
 
     def test_login_css_asset_exists_and_registered_in_hooks(self):
         """CSS asset exists and is registered via web_include_css in hooks.py."""
@@ -55,8 +69,8 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn('context.get("for_test") == "login.html"', install_content)
         self.assertIn('"app_name": "ELMS СДО"', install_content)
 
-    def test_update_website_context_allows_single_keycloak_login_control(self):
-        """update_website_context must not suppress provider_logins or hide .btn-keycloak."""
+    def test_update_website_context_hides_keycloak_provider_button(self):
+        """The login page uses the standard form without a separate Keycloak button."""
         from elms.install import update_website_context
 
         context = {
@@ -71,7 +85,8 @@ class TestLoginUI(unittest.TestCase):
         }
         res = update_website_context(context)
         self.assertEqual(res.get("app_name"), "ELMS СДО")
-        self.assertNotIn("provider_logins", res)
+        self.assertEqual(res.get("provider_logins"), [])
+        self.assertFalse(res.get("social_login"))
         self.assertEqual(len(context["provider_logins"]), 1)
 
     def test_elms_desk_route_is_available_for_system_users(self):
@@ -147,41 +162,28 @@ class TestLoginUI(unittest.TestCase):
         ):
             self.assertIn(token, css, f"Missing Neftegaz login token: {token}")
 
-    def test_rendered_login_mock_html_keycloak_button_structure(self):
-        """Rendered login page HTML contract: single .btn-keycloak, valid public href, no direct yandex."""
+    def test_rendered_login_mock_html_has_no_keycloak_button(self):
+        """Rendered login page HTML contract: no separate Keycloak provider button."""
         sample_html = """
         <div class="for-login">
             <div class="page-card">
                 <div class="page-card-head"><h4>Вход на сайт ELMS СДО</h4></div>
-                <div class="social-logins text-center">
-                    <p class="text-muted login-divider"><span>or</span></p>
-                    <div class="social-login-buttons">
-                        <a class="btn btn-default btn-sm btn-login-option btn-keycloak"
-                           href="http://127.0.0.1:8480/realms/elms/protocol/openid-connect/auth?client_id=elms-frappe&response_type=code&scope=openid+email+profile&redirect_uri=http%3A%2F%2Felms.localhost%3A8082%2Fapi%2Fmethod%2Ffrappe.integrations.oauth2_logins.login_via_keycloak&state=xyz">
-                            Login with Keycloak
-                        </a>
-                    </div>
-                </div>
+                <form class="form-signin form-login"></form>
             </div>
         </div>
         """
         parser = LoginButtonParser()
         parser.feed(sample_html)
 
-        self.assertEqual(len(parser.keycloak_buttons), 1, "Must render exactly one .btn-keycloak button")
+        self.assertEqual(len(parser.keycloak_buttons), 0, "Must not render a separate .btn-keycloak button")
         self.assertEqual(len(parser.yandex_buttons), 0, "Must not render any direct Yandex button")
 
-        classes, href = parser.keycloak_buttons[0]
-        self.assertIn("btn-keycloak", classes)
-        self.assertTrue(href.startswith("http://127.0.0.1:8480/realms/elms/protocol/openid-connect/auth"))
-        self.assertNotIn("keycloak:8080", href, "Public login URL must not use container-internal host")
-
-    def test_login_page_renders_single_keycloak_button(self):
-        """Verify HTML parser correctly asserts single Keycloak button."""
-        html = '<div class="for-login"><a class="btn-login-option btn-keycloak" href="http://127.0.0.1:8480/realms/elms/auth">Keycloak</a></div>'
+    def test_login_page_renders_no_keycloak_button(self):
+        """Verify HTML parser detects that the separate Keycloak button is absent."""
+        html = '<div class="for-login"><form class="form-signin form-login"></form></div>'
         parser = LoginButtonParser()
         parser.feed(html)
-        self.assertEqual(len(parser.keycloak_buttons), 1)
+        self.assertEqual(len(parser.keycloak_buttons), 0)
 
     def test_login_page_has_no_yandex_provider(self):
         """Verify HTML parser rejects direct Yandex provider button."""

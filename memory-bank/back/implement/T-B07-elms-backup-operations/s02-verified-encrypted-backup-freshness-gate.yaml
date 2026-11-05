@@ -1,0 +1,115 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-B07-elms-backup-operations
+task_id: T-B07-elms-backup-operations
+title: s02 — Verified encrypted backup freshness gate IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-B07-elms-backup-operations/yaml/steps/s02-verified-encrypted-backup-freshness-gate.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - Backup execution now requires a protected password file, configured repository, and hard capacity gate before restic upload; status output is atomic and redacted.
+  - Verified evidence is published only after restic backup and repository check; stale, future, failed, pending, and unverified evidence fails closed in reports and promotion.
+  - The daily systemd unit wires backup to verification through one verified-status path, while the runbook documents operator configuration and forbids retention deletion or volume removal.
+
+files:
+  - scripts/infra/backup_runner.py
+  - scripts/infra/deploy_wrapper.py
+  - ops/systemd/elms-backup.service
+  - ops/systemd/elms-backup.timer
+  - tests/infra/test_production_contracts.py
+  - docs/operations/elms-production.md
+
+deletes:
+  - scripts/infra/backup_runner.py::backup writes verified-upload status before repository verification
+  - scripts/infra/deploy_wrapper.py::required_evidence accepts backup evidence by file existence alone
+
+tests:
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_credentials or backup_capacity' -q"
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_verification or backup_failure' -q"
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_evidence or no_prune' -q"
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_' -q"
+  - "! rg -n -i '(restic (forget|prune)|docker (volume )?rm|down -v|volume removal)' scripts/infra/backup_runner.py ops/systemd/elms-backup.service ops/systemd/elms-backup.timer"
+  - "rg -n 'ExecStart|ExecStartPost|OnCalendar|Persistent' ops/systemd/elms-backup.service ops/systemd/elms-backup.timer"
+
+integration_check:
+  - "python3 -m py_compile scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py tests/infra/test_production_contracts.py"
+  - "python3 scripts/infra/backup_runner.py manifest --output /tmp/elms-backup-manifest-t-b07.json"
+  - "rg -n 'RESTIC_REPOSITORY|RESTIC_PASSWORD_FILE|BACKUP_MIN_FREE_BYTES|verified|fresh|retention' scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py"
+  - "! rg -n 'file existence|verified-upload|pre-verification|backup-fresh\\.json|last-success\\.json|PASS: encrypted restic backup' docs/operations/elms-production.md scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py ops/systemd/elms-backup.service ops/systemd/elms-backup.timer"
+
+verification_results:
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_credentials or backup_capacity' -q — 1 passed, 23 deselected"
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_verification or backup_failure' -q — 1 passed, 23 deselected"
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_evidence or no_prune' -q — 1 passed, 23 deselected; destructive-command scan had no matches"
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'backup_' -q — 10 passed, 14 deselected"
+  - "python3 -m py_compile scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py tests/infra/test_production_contracts.py — PASS"
+  - "python3 scripts/infra/backup_runner.py manifest --output /tmp/elms-backup-manifest-t-b07.json — PASS"
+  - "systemd backup/verify/timer scan — PASS; no destructive-command matches"
+  - "sunset inventory loop-sunset-inventory/v1 — PASS, ok=true, items=[]"
+
+plan_parity_scan:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-004
+  target_layout:
+    - scripts/infra/backup_runner.py
+    - scripts/infra/deploy_wrapper.py
+    - ops/systemd/elms-backup.service
+    - ops/systemd/elms-backup.timer
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+
+wire_complete:
+  call_sites:
+    - backup_runner.py backup -> elms-backup.service ExecStart -> status evidence
+    - elms-backup.service ExecStartPost -> backup_runner.py verify -> verified evidence
+    - deploy_wrapper.py execute -> read_success_evidence -> promotion gate
+  enforce_path: backup status is running/verifying until restic check succeeds; deploy reads only verified fresh status
+  dual_path_rg: >-
+    rg -n 'backup-fresh\.json|PASS: encrypted restic backup|verify$' scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py ops/systemd/elms-backup.service ops/systemd/elms-backup.timer docs/operations/elms-production.md
+  instruction_rg: >-
+    rg -n 'file existence|verified-upload|pre-verification|backup-fresh\.json' docs/operations/elms-production.md scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py ops/systemd/elms-backup.service ops/systemd/elms-backup.timer
+  deny_old_proven: true
+
+sunset_inventory:
+  schema: loop-sunset-inventory/v1
+  boundary_id: elms-backup-freshness-promotion
+  new_sot: scripts/infra/backup_runner.py
+  ok: true
+  items: []
+  deny_old_proven:
+    - backup-fresh.json and last-success.json paths are absent from the allowed scope
+    - systemd uses only /var/lib/elms-backup/verified-status.json
+    - --last-success remains only the required CLI interface
+    - promotion uses semantic status validation and exact Vault PASS, not file existence
+
+checkpoints:
+  - id: cp1
+    criterion: Missing/weak RESTIC_PASSWORD_FILE, invalid repository configuration, or insufficient capacity returns non-zero before upload.
+    status: done
+  - id: cp2
+    criterion: Verified freshness evidence is written only after backup and repository check both pass; a failed check cannot leave fresh evidence.
+    status: done
+  - id: cp3
+    criterion: Deploy/promotion rejects stale, invalid, or unverified evidence and no command invokes prune, delete, or volume removal.
+    status: done
+  - id: cp4
+    criterion: Daily systemd execution is ordered as encrypted backup then verification with a persistent timer and no secret values in the unit.
+    status: done
+
+resume_from: cp1

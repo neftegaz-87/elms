@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "lesson_id",
+  "watched_seconds",
+  "playback_speed",
+  "verified"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "lesson_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Lesson Identifier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "watched_seconds",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Watched Seconds",
+   "reqd": 1
+  },
+  {
+   "default": 1,
+   "fieldname": "playback_speed",
+   "fieldtype": "Float",
+   "label": "Playback Speed"
+  },
+  {
+   "default": 1,
+   "fieldname": "verified",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Verified"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Video Watch Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "ELMS Admin",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS Operations User",
+   "write": 0
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS LMS User",
+   "write": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

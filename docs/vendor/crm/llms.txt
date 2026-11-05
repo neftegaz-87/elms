@@ -1,0 +1,63 @@
+# CRM
+
+Append `.md` to any URL below for that page's raw markdown source.
+
+## CRM
+
+- **Setup Guide**
+  - [Your First Steps with Frappe CRM](https://docs.frappe.io/crm/setup-guide/your-first-steps-with-frappe-crm.md)
+- [Getting Started](https://docs.frappe.io/crm/introduction.md)
+  - [Introduction](https://docs.frappe.io/crm/introduction.md)
+  - [Installation](https://docs.frappe.io/crm/introduction/installation.md)
+  - [Setting Up Your Workspace](https://docs.frappe.io/crm/setting-up.md)
+  - [Profile and Preferences](https://docs.frappe.io/crm/profile-and-preferences.md)
+  - [Inviting Your Team](https://docs.frappe.io/crm/inviting-your-team.md)
+- **Settings**
+  - [Custom Branding](https://docs.frappe.io/crm/custom-branding.md)
+  - [Home Actions](https://docs.frappe.io/crm/home-actions.md)
+  - [General and Defaults](https://docs.frappe.io/crm/general-and-defaults.md)
+  - [Sales Hierarchy](https://docs.frappe.io/crm/settings/sales-hierarchy.md)
+- **Core Records**
+  - [Lead](https://docs.frappe.io/crm/lead.md)
+  - [Deal](https://docs.frappe.io/crm/deal.md)
+  - [Contact](https://docs.frappe.io/crm/contact.md)
+  - [Organization](https://docs.frappe.io/crm/organization.md)
+  - [Note](https://docs.frappe.io/crm/note.md)
+  - [Task](https://docs.frappe.io/crm/task.md)
+  - [Call Log](https://docs.frappe.io/crm/call-log.md)
+  - [Email Template](https://docs.frappe.io/crm/email-template.md)
+- **Capturing Leads**
+  - [Forms](https://docs.frappe.io/crm/capturing-leads/web-form.md)
+  - [Custom Script](https://docs.frappe.io/crm/custom-script.md)
+- **Views**
+  - [Saved View](https://docs.frappe.io/crm/view.md)
+  - [Public View](https://docs.frappe.io/crm/public-view.md)
+  - [Pinned View](https://docs.frappe.io/crm/pinned-view.md)
+- **Automations**
+  - [Introduction](https://docs.frappe.io/crm/automations/introduction.md)
+  - [Getting started](https://docs.frappe.io/crm/automations/getting-started.md)
+  - [Events](https://docs.frappe.io/crm/automations/events.md)
+  - [Blocks](https://docs.frappe.io/crm/automations/blocks.md)
+  - [Actions](https://docs.frappe.io/crm/automations/actions.md)
+- **Integrations**
+  - [Frappe CRM <> Twilio](https://docs.frappe.io/crm/twilio.md)
+  - [Frappe CRM <> Exotel](https://docs.frappe.io/crm/exotel.md)
+  - [Frappe CRM <> WhatsApp](https://docs.frappe.io/crm/whatsapp.md)
+  - [Frappe CRM <> ERPNext](https://docs.frappe.io/crm/erpnext.md)
+- **Lead Syncing**
+  - [Facebook / Instagram](https://docs.frappe.io/crm/lead-syncing/meta.md)
+- **Customization**
+  - [Custom Fields](https://docs.frappe.io/crm/custom-fields.md)
+  - [Custom Actions](https://docs.frappe.io/crm/custom-actions.md)
+  - [Custom Statuses](https://docs.frappe.io/crm/custom-statuses.md)
+  - [Custom List Actions](https://docs.frappe.io/crm/custom-list-actions.md)
+  - [Quick Entry Layout](https://docs.frappe.io/crm/quick-entry-layout.md)
+- **Frappe CRM Mobile**
+  - [Mobile App Installation](https://docs.frappe.io/crm/mobile-app-installation.md)
+- **Other Features**
+  - [Email Communication](https://docs.frappe.io/crm/email-communication.md)
+  - [Comment](https://docs.frappe.io/crm/comment.md)
+  - [Data](https://docs.frappe.io/crm/data.md)
+  - [Service Level Agreement](https://docs.frappe.io/crm/service-level-agreement.md)
+  - [Assignment Rule](https://docs.frappe.io/crm/assignment-rule.md)
+  - [Notification](https://docs.frappe.io/crm/notification.md)

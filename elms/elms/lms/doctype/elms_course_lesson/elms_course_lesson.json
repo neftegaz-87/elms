@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "lesson_name",
+  "course",
+  "chapter",
+  "sequence_id",
+  "column_break_type",
+  "content_type",
+  "duration_minutes",
+  "minimum_time_seconds",
+  "is_mandatory",
+  "section_break_content",
+  "video_url",
+  "body"
+ ],
+ "fields": [
+  {
+   "fieldname": "lesson_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Lesson Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "course",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Course",
+   "options": "ELMS Course",
+   "reqd": 1
+  },
+  {
+   "fieldname": "chapter",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Chapter",
+   "options": "ELMS Course Chapter"
+  },
+  {
+   "default": 1,
+   "fieldname": "sequence_id",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sequence"
+  },
+  {
+   "fieldname": "column_break_type",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Article",
+   "fieldname": "content_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Content Type",
+   "options": "Article\nVideo\nQuiz"
+  },
+  {
+   "default": 15,
+   "fieldname": "duration_minutes",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Duration (Minutes)"
+  },
+  {
+   "default": 180,
+   "fieldname": "minimum_time_seconds",
+   "fieldtype": "Int",
+   "label": "Min Study Time (Seconds)"
+  },
+  {
+   "default": 1,
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "label": "Is Mandatory"
+  },
+  {
+   "fieldname": "section_break_content",
+   "fieldtype": "Section Break",
+   "label": "Lesson Materials"
+  },
+  {
+   "fieldname": "video_url",
+   "fieldtype": "Data",
+   "label": "Video URL"
+  },
+  {
+   "fieldname": "body",
+   "fieldtype": "Text Editor",
+   "label": "Lesson Body / Lecture Text"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Course Lesson",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "ELMS Admin",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS Operations User",
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS LMS User",
+   "write": 0
+  }
+ ],
+ "sort_field": "sequence_id",
+ "sort_order": "ASC",
+ "states": []
+}

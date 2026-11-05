@@ -1,1 +1,1 @@
-../dev-hub/harness/claude/CLAUDE.harness.md
+../../dev-hub/harness/claude/CLAUDE.harness.md

@@ -1,7 +1,7 @@
 # Контекст продукта (productContext)
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-10-31 (после T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
+**Обновлено:** 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
 
 ## Текущий срез (Current Wedge & Delivery Status)
 
@@ -46,8 +46,17 @@
     - Production не имеет direct `.env`/local-secret fallback, root-token runtime, Vault dev mode или public `8200`; sealed/unavailable/unauthorized/incomplete render блокирует promotion с non-zero. OAuth/session state остаётся writable application-owned state.
     - Synthetic bootstrap/rotation/snapshot/restore/revoke и redaction evidence, а также fail-closed negative fixtures приняты; legacy fallback tests и SSO documentation reconciled with the current contract.
     - QA подтвердил `87 passed, 2 skipped`, `tests/infra` — `27 passed`, Compose/policy/preflight/legacy scans — PASS и canonical live smoke `live_evidence=true`, `exit_code=0` (`2026-10-31T18:08:24Z`). Реальное production initialization/unseal, KV population, AppRole files и custody остаются operator gates.
+  - **Backup Operations (`T-B07`):** завершён и принят BACK QA как encrypted off-host backup и disposable recovery boundary:
+    - Non-secret manifest охватывает `sites`, logs, MariaDB, Keycloak PostgreSQL, Redis queue, Vault Raft и Caddy data/config; review-service application state остаётся владельцем его repository и не дублируется ELMS.
+    - Client-side encrypted restic/S3-compatible backup публикует promotion evidence только после backup и repository check; RPO 24h: stale, future, failed, pending и unverified evidence, а также freshness старше 24 часов блокируют promotion. Capacity — hard gate до upload/создания target; автоматические prune/delete/volume removal отсутствуют.
+    - Restore/rehearsal начинается с `restore-preflight` и допускает только явно отмеченный disposable target: active volume/project, symlink и неотмеченные targets отклоняются. Redacted rehearsal contract задаёт RTO 4h для MariaDB, Keycloak PostgreSQL, Vault Raft и Caddy; active production restore не заявлен.
+    - External repository, credentials, custody, operations owner, target capacity, export consistency и measured production RTO остаются operator gates. QA подтвердил `87 passed, 2 skipped`, `tests/infra` — `43 passed`; sanitized live HTTP smoke — `live_evidence=true`, `exit_code=0`, `2026-10-31T19:56:42Z`, без raw cookies/tokens.
+  - **CI Release and Rollback (`T-B08`):** завершён и принят BACK QA как immutable release и protected deploy/rollback boundary:
+    - Contract/Compose/policy/secret, Frappe/app и browser gates выполняются до GHCR build/push; release manifest связывает commit-SHA image refs/digests, canonical Compose hash, smoke metadata и rollback verification, отклоняя mutable или secret-like identity.
+    - Protected `production` Environment передаёт только explicit safe target/root/wrapper через known-host-pinned SSH. Allowlisted wrapper требует approval, semantic verified backup/Vault evidence и lock, выполняет фиксированный digest-pinned Compose health/internal-smoke путь и атомарно записывает release только после успеха.
+    - Forced health failure сохраняет предыдущий `current.json`, rollback восстанавливает полный backend/frontend/application pair и не удаляет state volumes; evidence/status остаются redacted. QA подтвердил `87 passed, 2 skipped`, `tests/infra` — `58 passed`, bounded security/SOT scans и sanitized live HTTP smoke `live_evidence=true`, `exit_code=0` (`2026-10-31T19:56:42Z`). Реальные GHCR credentials, protected approval, SSH values и production deploy/rollback остаются operator gates.
 - **Следующие шаги (Next Foundation Wedges):**
   - `T-F01` (Desk workspaces / role navigation): as-built закрыт — LMS/Operations/Settings workspaces, role filter, platform workspaces скрыты; login affordance закрыт в T-A01.
   - Прикладная синхронизация Bitrix24 (LMS / Operations интеграционные сценарии) на базе стабилизированного REST-транспорта `T-B04`.
-  - Follow-up boundaries: `T-B07` — external backup repository, freshness/capacity gate и restore rehearsal; `T-B08` — registry push, protected deploy approval, release/rollback execution и drill; `T-B09` — public edge cutover, DNS/firewall/ACME, host-Caddy ownership и maintenance-window rollback. T-B06 завершён как контракт и evidence gate; реальные production custody/bootstrap actions остаются операторскими gates.
+  - Follow-up boundary: `T-B09` — public edge cutover, DNS/firewall/ACME, host-Caddy ownership и maintenance-window rollback. T-B06, T-B07 и T-B08 завершены как contracts и evidence gates; реальные Vault/bootstrap, backup repository custody и production release actions остаются операторскими gates.
   - **Канон агента (2026-10-30):** SoT в `rules/` (`elms-approach.mdc`, `elms-design.mdc`, `agents-overlay.md`); Cursor подключает через `.cursor/rules.d/elms-*.mdc` → symlink. Роли/атрибуты/домен — LMS/`elms`; ERP/CRM — вторичный read-only источник framework-паттернов Frappe, без ERP/CRM-брендинга; UI — neftegaz + LMS. Hub CRM-секции не канон.

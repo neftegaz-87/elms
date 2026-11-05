@@ -15,11 +15,13 @@ ELMS_ROLES: tuple[str, ...] = (
 )
 
 ELMS_OPERATIONS_SECTION_DOCTYPE: str = "ELMS Operations Section"
+ELMS_REVIEW_SECTION_DOCTYPE: str = "ELMS Review Section"
 ELMS_LMS_SECTION_DOCTYPE: str = "ELMS LMS Section"
 ELMS_SETTINGS_SECTION_DOCTYPE: str = "ELMS Settings Section"
 
 SECTION_DOCTYPES: tuple[str, ...] = (
     ELMS_OPERATIONS_SECTION_DOCTYPE,
+    ELMS_REVIEW_SECTION_DOCTYPE,
     ELMS_LMS_SECTION_DOCTYPE,
     ELMS_SETTINGS_SECTION_DOCTYPE,
 )
@@ -28,6 +30,11 @@ SECTION_DOCPERM_MATRIX: dict[str, list[dict[str, Any]]] = {
     ELMS_OPERATIONS_SECTION_DOCTYPE: [
         {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
         {"role": ELMS_OPERATIONS_USER_ROLE, "read": 1, "write": 1, "create": 0, "delete": 0},
+    ],
+    ELMS_REVIEW_SECTION_DOCTYPE: [
+        {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
+        {"role": ELMS_OPERATIONS_USER_ROLE, "read": 1, "write": 1, "create": 0, "delete": 0},
+        {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     ],
     ELMS_LMS_SECTION_DOCTYPE: [
         {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
@@ -54,8 +61,11 @@ def update_website_context(context: dict[str, Any]) -> dict[str, Any]:
     if context.get("for_test") == "login.html":
         return {
             "app_name": "ELMS СДО",
+            "favicon": "/assets/elms/images/nftgz-favicon.svg",
+            "provider_logins": [],
+            "social_login": False,
         }
-    return {}
+    return {"favicon": "/assets/elms/images/nftgz-favicon.svg"}
 
 
 if not hasattr(frappe, "ValidationError"):
@@ -169,6 +179,25 @@ def reconcile_keycloak_user(user_doc, keycloak_data: dict[str, Any]) -> None:
         if role not in existing_roles:
             user_doc.add_roles(role)
 
+    # 4. Bitrix User ID reconciliation
+    bitrix_uid = keycloak_data.get("bitrix_user_id")
+    if not bitrix_uid and isinstance(keycloak_data.get("attributes"), dict):
+        attr_vals = keycloak_data["attributes"].get("bitrix_user_id")
+        if attr_vals and isinstance(attr_vals, list) and attr_vals[0]:
+            bitrix_uid = attr_vals[0]
+
+    if not bitrix_uid and getattr(user_doc, "email", None):
+        from elms.sso.mapping import get_mapping_registry
+        m = get_mapping_registry().get_mapping(user_doc.email)
+        if m and m.bitrix_id:
+            bitrix_uid = m.bitrix_id
+
+    if bitrix_uid:
+        if hasattr(user_doc, "custom_bitrix_user_id"):
+            user_doc.custom_bitrix_user_id = str(bitrix_uid)
+        if hasattr(user_doc, "bitrix_user_id"):
+            user_doc.bitrix_user_id = str(bitrix_uid)
+
     user_doc.save()
 
 
@@ -244,10 +273,15 @@ def handle_yandex_smtp_outage(error: Exception) -> None:
 def after_migrate() -> None:
     """Post-migration hook for ELMS app.
 
-    Idempotently ensures required ELMS roles, section permissions, and Social Login Key exist.
+    Idempotently ensures required ELMS roles, section permissions, review visibility field,
+    and Social Login Key exist.
     """
     ensure_roles()
     ensure_section_perms()
+    from elms.sso.review import ensure_review_visibility_field
+    ensure_review_visibility_field()
+    from elms.sso.roles import ensure_bitrix_user_field
+    ensure_bitrix_user_field()
     from elms.desk.workspaces import ensure_workspaces
     ensure_workspaces()
     from elms.sso.ensure import ensure_social_login_keys
@@ -258,10 +292,14 @@ def after_install() -> None:
     """Post-installation hook for ELMS app.
 
     Sets up Keycloak Social Login Key, Yandex SMTP configuration,
-    and ensures required ELMS roles and section permissions exist.
+    and ensures required ELMS roles, section permissions, and review visibility field exist.
     """
     ensure_roles()
     ensure_section_perms()
+    from elms.sso.review import ensure_review_visibility_field
+    ensure_review_visibility_field()
+    from elms.sso.roles import ensure_bitrix_user_field
+    ensure_bitrix_user_field()
     from elms.desk.workspaces import ensure_workspaces
     ensure_workspaces()
 

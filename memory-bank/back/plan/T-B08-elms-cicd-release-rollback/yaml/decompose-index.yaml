@@ -1,0 +1,157 @@
+schema: epic-decompose-index/v1
+plan_id: T-B08-elms-cicd-release-rollback
+level: L3
+sNN_cap: 3
+dependencies:
+- T-B05-elms-production-container-stack
+- T-B06-elms-vault-secrets
+- T-B07-elms-backup-operations
+blocks:
+- T-B09-elms-caddy-edge-cutover
+steps:
+- id: s01
+  file: s01-immutable-release-manifest-and-ci-gates.yaml
+  title: Gate verified checks before immutable GHCR release manifest
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-allowlisted-deploy-wrapper-and-pair-rollback.yaml
+  title: Execute approved digest-pinned deploy and pair rollback through the allowlisted
+    wrapper
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-forced-failure-rollback-and-redaction-purge.yaml
+  title: Prove health-failure pair rollback, volume preservation, and redacted release
+    evidence
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Existing Frappe/app tests, browser QA, and Compose policy all pass
+    before the workflow can push to GHCR.
+- id: FR-002
+  step: s01
+  description: The repository builds commit-SHA-tagged images, records their immutable
+    digests, and hands the digest pair to deployment.
+- id: FR-003
+  step: s01
+  description: The release manifest records commit, image refs/digests, Compose hash,
+    and smoke metadata while rejecting secret-like content.
+- id: FR-004
+  step: s02
+  description: Production execution requires the protected GitHub Environment and
+    an explicit, known-host-pinned remote allowlisted wrapper with lock and preflight.
+- id: FR-005
+  step: s02
+  description: Deploy and rollback operate on a verified complete image/config pair
+    and never remove state volumes; s03 proves the failed-health branch.
+- id: FR-006
+  step: s02
+  description: Remote target and known-host material are explicit, and a development
+    target cannot silently resolve to the production host.
+stages_coverage:
+- stage: Stage s01 — manifest validator and workflow build/push metadata with all
+    pre-push gates
+  step: s01
+- stage: Stage s02 — server-side deploy/status/rollback allowlist, approval, evidence,
+    lock, and digest override
+  step: s02
+- stage: Stage s03 — forced-health-failure rollback fixture, redaction checks, and
+    operator/documentation purge
+  step: s03
+outcome_map:
+- outcome: A release reaches GHCR only after the existing application, browser, Compose,
+    and policy checks pass, and its manifest is immutable and non-secret.
+  step: s01
+- outcome: An approved operator can deploy, inspect, or roll back one verified backend/frontend/application
+    pair through a serialized allowlisted server boundary.
+  step: s02
+- outcome: A failed health gate leaves the previous release available, restores the
+    complete previous pair when invoked, preserves state volumes, and emits only redacted
+    evidence.
+  step: s03
+replacement_cleanup:
+  s01:
+    replaces: A pre-push workflow that can publish without browser evidence and a
+      release identity that is not machine-validated as commit plus digest.
+    target: .github/workflows/production-release.yml, scripts/infra/check_release_manifest.py,
+      and tests/infra/fixtures/release-manifest.json
+  s02:
+    replaces: Unbounded remote release execution and deployment evidence accepted
+      without an explicit non-production-safe target or verified predecessor.
+    target: .github/workflows/production-release.yml and scripts/infra/deploy_wrapper.py
+  s03:
+    replaces: Nominal-only rollback confidence and operator instructions that do not
+      prove failed-health behavior, redaction, or volume preservation.
+    target: tests/infra/test_production_contracts.py, tests/infra/fixtures/release-rollback-failure.json,
+      and docs/operations/elms-production.md
+  items:
+  - symbol: workflow GHCR push reachable before browser QA, Compose policy, and application
+      gates
+    kind: A
+    replacement: ordered contract, Frappe, and browser gates before docker/build-push-action
+    step: s01
+    policy: delete in-epic
+  - symbol: mutable latest/dev/prod-local release identity accepted by CI or deployment
+    kind: C
+    replacement: commit-SHA release tags plus sha256 image digests and manifest validation
+    step: s01
+    policy: delete in-epic
+  - symbol: arbitrary SSH/remote shell execution or an implicit production deploy
+      target
+    kind: B
+    replacement: known-host-pinned SSH handoff to the fixed deploy_wrapper.py command
+      with an explicit target guard
+    step: s02
+    policy: delete in-epic
+  - symbol: deployment accepted from path presence instead of verified Vault/backup
+      and predecessor evidence
+    kind: C
+    replacement: semantic evidence preflight and a complete digest-pinned release
+      pair
+    step: s02
+    policy: delete in-epic
+  - symbol: rollback evidence based only on a nominal help/status path
+    kind: A
+    replacement: deterministic forced-health-failure fixture proving previous-release
+      retention and pair rollback
+    step: s03
+    policy: delete in-epic
+  - symbol: operator/CI instructions that expose secrets or imply checkout-build,
+      mutable-tag, or destructive-volume rollback
+    kind: I
+    replacement: non-secret release/rollback runbook with explicit volume-preserving
+      and approval boundaries
+    step: s03
+    policy: rewrite in-epic
+  sunset:
+  - workflow GHCR push before browser and application gates
+  - mutable latest/dev/prod-local release identity
+  - arbitrary remote shell or implicit production target
+  - path-presence-only Vault/backup evidence
+  - rollback without forced-health-failure evidence
+  - instructions that expose secrets or remove state volumes
+  deletes:
+  - workflow GHCR push before browser QA, Compose policy, and application gates
+  - mutable latest/dev/prod-local release identity
+  - arbitrary SSH/remote shell execution and implicit production target
+  - path-presence-only deployment evidence
+  - nominal-only rollback verification
+  - secret-bearing or destructive-volume release instructions
+out_of_scope:
+- Real GHCR credentials, protected GitHub Environment configuration, remote host credentials,
+  and owner-approved known-host values.
+- Building on a production host, automatic public edge/DNS/firewall switching, and
+  Caddy cutover owned by T-B09.
+- Vault application values, backup repository credentials, and live production state;
+  CI and release artifacts remain non-secret.
+- A live production rollback rehearsal; the repository provides a disposable forced-health-failure
+  fixture and operator contract.
+boundary_notes:
+- T-B05 owns the image-only Compose contract; T-B06 owns Vault preflight; T-B07 owns
+  backup freshness/capacity evidence.
+- The release unit is the verified backend/frontend/application image/config pair;
+  rollback never deletes state volumes.
+- The workflow never prints or receives Vault application values.

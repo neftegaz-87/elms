@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -21,12 +23,32 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
-from check_release_manifest import load, validate  # noqa: E402
+from backup_runner import read_success_evidence
+from check_release_manifest import load, validate
+
+TARGET_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@:\-]*$")
+UNSAFE_TARGETS = frozenset(
+    {
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "elms.localhost",
+        "elms-dev",
+        "dev",
+        "development",
+    }
+)
+REQUIRED_IMAGE_NAMES = frozenset({"elms", "elms-keycloak"})
 
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description=__doc__)
-    root.add_argument("--root", type=Path, default=Path("/opt/elms"), help="server-side release root")
+    root.add_argument("--root", type=Path, default=None, help="explicit server-side release root")
+    root.add_argument(
+        "--target",
+        default=None,
+        help="explicit SSH target recorded by the protected workflow (deploy/rollback only)",
+    )
     root.add_argument("--compose-file", type=Path, default=None)
     root.add_argument("--env-file", type=Path, default=None)
     sub = root.add_subparsers(dest="command", required=True)
@@ -66,12 +88,47 @@ def manifest_path(path: Path) -> Path:
     return resolved
 
 
+def validate_target(target: str | None) -> str:
+    """Reject implicit/local targets before a state-changing release action."""
+    value = str(target or "").strip()
+    if not value:
+        raise SystemExit("ERROR: an explicit --target is required for deploy and rollback")
+    if not TARGET_PATTERN.fullmatch(value):
+        raise SystemExit("ERROR: --target contains unsupported shell or path characters")
+
+    host = value.rsplit("@", 1)[-1].lower()
+    if host in UNSAFE_TARGETS:
+        raise SystemExit("ERROR: --target must not resolve to a local or development target")
+    if host.startswith(("dev.", "elms-dev.")):
+        raise SystemExit("ERROR: --target must not resolve to a development target")
+    return value
+
+
+def explicit_root(args: argparse.Namespace, *, state_changing: bool) -> Path:
+    if args.root is None:
+        if state_changing:
+            raise SystemExit("ERROR: an explicit --root is required for deploy and rollback")
+        return Path("/opt/elms").resolve()
+    root = args.root.expanduser().resolve()
+    if root == Path("/"):
+        raise SystemExit("ERROR: --root must not be the filesystem root")
+    return root
+
+
+def fixed_path(root: Path, supplied: Path | None, relative: str) -> Path:
+    expected = (root / relative).resolve()
+    candidate = expected if supplied is None else supplied.expanduser().resolve()
+    if candidate != expected:
+        raise SystemExit(f"ERROR: only the fixed production {relative} is allowed")
+    if not candidate.is_file():
+        raise SystemExit(f"ERROR: production file is missing: {candidate}")
+    return candidate
+
+
 def compose_command(args: argparse.Namespace) -> list[str]:
-    root = args.root.resolve()
-    compose_file = (args.compose_file or root / "docker/compose.prod.yaml").resolve()
-    env_file = (args.env_file or root / "docker/.env.prod").resolve()
-    if not compose_file.is_file() or not env_file.is_file():
-        raise SystemExit("ERROR: production Compose or env file is missing")
+    root = explicit_root(args, state_changing=True)
+    compose_file = fixed_path(root, args.compose_file, "docker/compose.prod.yaml")
+    env_file = fixed_path(root, args.env_file, "docker/.env.prod")
     return ["docker", "compose", "--env-file", str(env_file), "-f", str(compose_file)]
 
 
@@ -91,30 +148,88 @@ def release_environment(data: dict) -> dict[str, str]:
 
 
 def required_evidence(root: Path) -> list[Path]:
+    def resolve(value: str | Path) -> Path:
+        path = Path(value)
+        return path if path.is_absolute() else root / path
+
+    backup_value = os.environ.get("ELMS_BACKUP_EVIDENCE")
+    vault_value = os.environ.get("ELMS_VAULT_EVIDENCE")
+    if not backup_value or not vault_value:
+        raise SystemExit("ERROR: ELMS_BACKUP_EVIDENCE and ELMS_VAULT_EVIDENCE are required")
     return [
-        Path(os.environ.get("ELMS_BACKUP_EVIDENCE", root / "evidence/backup-fresh.json")),
-        Path(os.environ.get("ELMS_VAULT_EVIDENCE", root / "evidence/vault-preflight.ok")),
+        resolve(backup_value),
+        resolve(vault_value),
     ]
 
 
+def validate_vault_evidence(path: Path) -> None:
+    try:
+        value = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise SystemExit(f"ERROR: invalid Vault preflight evidence: {path}") from exc
+    if value.strip() != "PASS":
+        raise SystemExit(f"ERROR: Vault preflight evidence is not verified: {path}")
+
+
+def validate_required_evidence(root: Path, max_age_hours: int = 24) -> None:
+    backup_evidence, vault_evidence = required_evidence(root)
+    read_success_evidence(backup_evidence, max_age_hours)
+    validate_vault_evidence(vault_evidence)
+
+
+def validate_compose_binding(data: dict, compose_file: Path) -> None:
+    actual = "sha256:" + hashlib.sha256(compose_file.read_bytes()).hexdigest()
+    if data.get("compose_sha256") != actual:
+        raise SystemExit("ERROR: release manifest is bound to a different production Compose file")
+
+
+def verified_release_data(path: Path, releases: Path) -> dict:
+    resolved = path.expanduser().resolve()
+    if resolved.parent != releases.resolve():
+        raise SystemExit("ERROR: verified release must be a direct member of the releases directory")
+    errors = validate(load(resolved))
+    if errors:
+        raise SystemExit("ERROR: recorded release failed validation: " + "; ".join(errors))
+    return load(resolved)
+
+
+def record_release(manifest: Path, data: dict, releases: Path) -> None:
+    releases.mkdir(parents=True, exist_ok=True)
+    stored = releases / f"{data['commit']}.json"
+    if stored.exists():
+        existing = verified_release_data(stored, releases)
+        if existing != data:
+            raise SystemExit("ERROR: immutable release record already contains different content")
+    else:
+        shutil.copyfile(manifest, stored)
+
+    current = releases.parent / "current.json"
+    temporary = releases.parent / ".current.json.tmp"
+    temporary.unlink(missing_ok=True)
+    temporary.symlink_to(stored)
+    temporary.replace(current)
+
+
 def run_release(args: argparse.Namespace, action: str) -> dict:
+    validate_target(args.target)
     manifest = manifest_path(args.manifest)
     data = load(manifest)
-    root = args.root.resolve()
+    root = explicit_root(args, state_changing=True)
     releases = root / "releases"
     release_id = str(data["commit"])
-    stored = releases / f"{release_id}.json"
     compose = compose_command(args)
+    compose_file = Path(compose[compose.index("-f") + 1])
+    validate_compose_binding(data, compose_file)
     environment = release_environment(data)
 
     if action == "rollback":
         current = root / "current.json"
         if not current.is_file():
             raise SystemExit("ERROR: rollback requires a recorded current release")
-        current_data = load(current)
+        current_data = verified_release_data(current, releases)
         if current_data.get("commit") == release_id:
             raise SystemExit("ERROR: rollback target is already the current release")
-        if releases not in manifest.parents:
+        if manifest.parent != releases.resolve():
             raise SystemExit("ERROR: rollback manifest must come from the verified releases directory")
 
     # The wrapper never accepts arbitrary compose arguments. The only executing
@@ -123,9 +238,7 @@ def run_release(args: argparse.Namespace, action: str) -> dict:
     if args.execute:
         if not args.approved:
             raise SystemExit("ERROR: --approved is required for an executing release action")
-        missing = [str(path) for path in required_evidence(root) if not path.is_file()]
-        if missing:
-            raise SystemExit("ERROR: required Vault/backup evidence is missing")
+        validate_required_evidence(root)
         commands.extend(
             (
                 compose + ["pull"],
@@ -143,12 +256,7 @@ def run_release(args: argparse.Namespace, action: str) -> dict:
         for command in commands:
             subprocess.run(command, check=True, env=environment)
         if args.execute:
-            shutil.copyfile(manifest, stored)
-            current = root / "current.json"
-            temporary = root / ".current.json.tmp"
-            temporary.unlink(missing_ok=True)
-            temporary.symlink_to(stored)
-            temporary.replace(current)
+            record_release(manifest, data, releases)
 
     result = {"action": action, "release": release_id, "executed": bool(args.execute)}
     print(json.dumps(result, sort_keys=True))
@@ -156,10 +264,11 @@ def run_release(args: argparse.Namespace, action: str) -> dict:
 
 
 def status(args: argparse.Namespace) -> int:
-    current = args.root.resolve() / "current.json"
+    root = explicit_root(args, state_changing=False)
+    current = root / "current.json"
     value = {"current": str(current), "present": current.is_file()}
     if current.is_file():
-        data = load(current)
+        data = verified_release_data(current, root / "releases")
         value["commit"] = data.get("commit")
         value["images"] = [item.get("name") for item in data.get("images", []) if isinstance(item, dict)]
     print(json.dumps(value, sort_keys=True) if args.json else " ".join(f"{k}={v}" for k, v in value.items()))

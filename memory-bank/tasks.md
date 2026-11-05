@@ -14,21 +14,25 @@
 | T-B07 | elms-backup-operations | active | [plan](back/plan/T-B07-elms-backup-operations/md/plan.md) |
 | T-B08 | elms-cicd-release-rollback | active | [plan](back/plan/T-B08-elms-cicd-release-rollback/md/plan.md) |
 | T-B09 | elms-caddy-edge-cutover | active | [plan](back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md) |
+| T-A02 | elms-learning-core-flows | done | [plan](app/plan/T-A02-elms-learning-core-flows/md/plan.md) |
 
 ## Queues
 
 - BACK: [back/roadmap/queue.yaml](back/roadmap/queue.yaml) batches `elms-foundation`, `bitrix-rest`, `elms-production`
 - FRONT: [front/roadmap/queue.yaml](front/roadmap/queue.yaml) batch `elms-desk-shell`
-- APP: [app/roadmap/queue.yaml](app/roadmap/queue.yaml) batch `elms-auth-surface`
+- APP: [app/roadmap/queue.yaml](app/roadmap/queue.yaml) batches `elms-auth-surface`, `elms-learning-core`
 
 ## Порядок IMPLEMENT
 
-1. T-B01 → 2. T-B02 → 3. T-B03 → 4. T-A01 → 5. T-F01 (Workspaces only; login affordance covered by T-A01) → 6. T-B05 → 7. T-B06 → 8. T-B07 → 9. T-B08 → 10. T-B09
+1. T-B01 → 2. T-B02 → 3. T-B03 → 4. T-A01 → 5. T-F01 → 6. T-B05 → 7. T-B06 → 8. T-B07 → 9. T-B08 → 10. T-B09 → 11. T-A02
 
 ## last
 
 | Дата | Событие |
 |------|---------|
+| 2026-11-05 | APP DONE T-A02 elms-learning-core-flows: 7 доменных DocTypes LMS в MariaDB, Whitelist API (квоты, трекинг времени, рубежи аттестации), Desk LMS Workspace, 110 passed pytest + 2 passed bench runtime QA, context-sync complete |
+| 2026-11-05 | Keycloak Yandex SSO + Bitrix mapping: Protocol Mappers, JIT bitrix_user_id in Frappe, sync_bitrix_keycloak.py, 106 tests; Bitrix card 35677 (Ерохин -> Ерохин) -> Done |
+| 2026-11-05 | APP PLAN T-A02 elms-learning-core-flows: потоки, подписки, прогресс, активность, Desk LMS Workspace, соответствие ФИС ФРДО/ПП 2464/152-ФЗ; синхронизирована документация vendor (learning, marketplace-free, crm, erpnext) |
 | 2026-10-31 | Board: T-B05..T-B09 sync — B05 Done/Erokhin, B06 Build/Erokhin, B07 Design/Erokhin, B08–B09 Design/Sokolov; created 35336–35338 |
 | 2026-10-31 | FRONT T-F01 marked done (as-built workspaces + role filter + manual-ac); Bitrix card 35037 → Done |
 | 2026-10-30 | APP CONTEXT SYNC T-A01: Keycloak login UI, brokered SSO, browser/live evidence; Bitrix card 35210 moved to Done |

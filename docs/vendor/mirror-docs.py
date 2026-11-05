@@ -1,1 +1,1 @@
-../../../PersonalProject/frappe-erp-crm/docs/vendor/mirror-docs.py
+../../../../PersonalProject/frappe-erp-crm/docs/vendor/mirror-docs.py

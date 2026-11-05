@@ -2,13 +2,21 @@
 	email {$ACME_EMAIL}
 }
 
+# Review handoff URL remains a first-party review service contract; strict host routing only.
 http://{$SITE_NAME} {
 	@health path /healthz
-	respond @health 200
+	handle @health {
+		respond 200
+	}
+	handle {
+		respond "Not Found" 404
+	}
 }
 
 {$SITE_NAME} {
 	encode zstd gzip
+	@health path /healthz
+	respond @health 200
 	reverse_proxy frontend:{$NGINX_LISTEN_PORT} {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -20,11 +28,18 @@ http://{$SITE_NAME} {
 
 http://{$AUTH_HOSTNAME} {
 	@health path /healthz
-	respond @health 200
+	handle @health {
+		respond 200
+	}
+	handle {
+		respond "Not Found" 404
+	}
 }
 
 {$AUTH_HOSTNAME} {
 	encode zstd gzip
+	@health path /healthz
+	respond @health 200
 	reverse_proxy keycloak:8080 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}

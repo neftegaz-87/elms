@@ -1,7 +1,7 @@
 # Модули ELMS
 
 **Дата:** 2026-10-28  
-**Обновлено:** 2026-10-30 (lookup: роли/атрибуты из LMS/`elms`; ERP/CRM только framework)
+**Обновлено:** 2026-11-05 (LMS-domain expansion: authoring, cohorts, enrollments, subscriptions, progress, activity, compliance)
 
 ## Runtime
 
@@ -14,107 +14,111 @@
 
 | Модуль | Назначение | Статус |
 |--------|------------|--------|
-| Core | Settings-секция, SSO ensure, общие install hooks | planned (T-B01+) |
-| Operations | Бизнес-операции: BPM/workflows, документы, согласования, AI-автоматизация, задачи, интеграции (placeholder DocType секции) | planned (T-B02) |
-| LMS | Учебный контур: курсы, программы, зачисления | foundation: RBAC-якорь; доменные сущности planned |
+| Core | Settings-секция, SSO ensure, общие install hooks | active (T-B01, T-B02, T-B03, T-A01) |
+| Operations | Бизнес-операции: BPM/workflows, документы, согласования, задачи, сверка заявок, интеграции Bitrix24 | active (T-B02, T-B04) |
+| LMS | Учебный контур: курсы, программы, группы, потоки, зачисления, подписки, прогресс, активность, аттестация | foundation ready; domain slice in APP PLAN |
 
 Классический ERP-контур (финансы, склад, закупки) **не** заявляется именем модуля или роли.
 
 ## Роли (продуктовые)
 
-| Role | Desk разделы | Section DocTypes |
-|------|--------------|------------------|
-| `ELMS Admin` | Operations + LMS + Settings | все RWCD |
-| `ELMS Operations User` | Operations | только `ELMS Operations Section` |
-| `ELMS LMS User` | LMS | только `ELMS LMS Section` |
+| Role | Desk разделы | Права и область ответственности |
+|------|--------------|----------------------------------|
+| `ELMS Admin` | Operations + Review + LMS + Settings | Полный доступ (RWCD) ко всем сущностям системы |
+| `ELMS Operations User` | Operations + Review + LMS | Создание и изменение каталога, потоков, квот и зачислений в LMS |
+| `ELMS LMS User` | LMS | Слушатель СДО: просмотр доступных курсов, прохождение уроков, тестов |
+| `ELMS Instructor` *(planned)* | LMS | Преподаватель/куратор: проверка заданий, выставление оценок, ведение потоков |
+| `ELMS Methodologist` *(planned)* | LMS | Методист: создание программ, курсов, уроков, банков вопросов |
 
 Дополнительно для входа в Desk: стандартная роль `Desk User` (назначается вместе с продуктовой).
 
-### Матрица прав DocPerm (FR-004)
+### Матрица прав DocPerm (якоря и доменные сущности LMS)
 
-| Role | ELMS Operations Section | ELMS LMS Section | ELMS Settings Section |
-| :--- | :--- | :--- | :--- |
-| `ELMS Admin` | Read, Write, Create, Delete (RWCD) | Read, Write, Create, Delete (RWCD) | Read, Write, Create, Delete (RWCD) |
-| `ELMS Operations User` | Read, Write (RW) | Deny (-) | Deny (-) |
-| `ELMS LMS User` | Deny (-) | Read, Write (RW) | Deny (-) |
-| `All` / `Guest` | Deny (-) | Deny (-) | Deny (-) |
+| Role | ELMS Operations Section | ELMS Review Section | ELMS LMS Section | ELMS Settings Section | LMS Доменные сущности (Batch, Course, Enrollment, Progress) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `ELMS Admin` | RWCD | RWCD | RWCD | RWCD | RWCD |
+| `ELMS Operations User` | RW | RW | RWCD* | Deny (-) | Управление LMS по рабочему процессу |
+| `ELMS LMS User` | Deny (-) | Deny (-) | RW | Deny (-) | Read/Write (только свои зачисления и прогресс) |
+| `System Manager` | Deny (-) | RWCD | Deny (-) | Deny (-) | Deny (-) |
+| `All` / `Guest` | Deny (-) | Deny (-) | Deny (-) | Deny (-) | Deny (-) |
 
-Особенности авторизации:
-- **Administrator**: системная учетная запись платформы Frappe, сохраняет полный доступ ко всем DocTypes в обход DocPerm (`Administrator not blocked`, FR-009).
-- **System Manager**: системная роль Frappe для управления сайтом, не привязывается к продуктовым модулям ELMS автоматически.
-- **Section DocTypes**: Single DocTypes (`ELMS Operations Section`, `ELMS LMS Section`, `ELMS Settings Section`), выступающие RBAC-якорями секций без бизнес-логики и доменных полей.
-- **Fail-closed & no-skip**: доступ по умолчанию запрещен; права Guest отсутствуют; пропуски проверок запрещены (AC-6, AC--3).
+`*` Для `ELMS Enrollment` зачисление выполняется через серверный метод `enroll_learner`, который проверяет активность потока, дубликаты и квоту подписки. Обычный слушатель (`ELMS LMS User`) не получает право создавать или изменять каталог.
 
-## Placeholder DocTypes (RBAC якоря, без домена)
+## Рабочий путь LMS (реализованный в T-A02)
 
-| DocType | Module |
-|---------|--------|
-| `ELMS Settings Section` | Core |
-| `ELMS Operations Section` | Operations |
-| `ELMS LMS Section` | LMS |
+На странице `/app/elms-learning` доступны реальные данные базы, а не демонстрационные записи:
 
-## LMS audit (as-built на 2026-10-30)
+1. Методист/оператор открывает вкладку **Управление LMS** и создаёт `ELMS Course`.
+2. Из тех же быстрых действий создаёт `ELMS Course Chapter` и `ELMS Course Lesson`, заполняя текст статьи или ссылку на видео.
+3. Создаёт `ELMS Batch` с датами и курсом, затем `ELMS Subscription` с договором и количеством мест.
+4. Кнопка **Оформить зачисление** вызывает серверную проверку квоты и создаёт зачисление с нулевым прогрессом.
+5. Слушатель видит только свои активные зачисления, открывает структуру курса, изучает уроки и сохраняет прогресс через heartbeat.
+6. Все изменения и чтение учебного процесса проходят через Frappe DocPerm и серверные whitelist-методы; UI не является механизмом безопасности.
 
-Источник истины для LMS — `elms/elms/lms/`. Сейчас в нём есть только:
+На текущем срезе реализованы авторинг курса/раздела/урока, потоки, договорные квоты, зачисления, player, прогресс и аудит. Банк вопросов, протокол комиссии, сертификаты и выгрузка ФИС ФРДО остаются отдельными эпиками: их нельзя считать готовыми только по наличию поля `content_type = Quiz`.
 
-- `ELMS LMS Section` — Single DocType в модуле `LMS`, технический RBAC-якорь;
-- единственное поле `title` (`Data`, read-only, default `ELMS LMS Section`);
-- `ELMS Admin`: полный доступ RWCD;
-- `ELMS LMS User`: Read + Write, без Create/Delete.
+---
 
-Полноценных DocType `Course`, `Program`, `Enrollment`, `Learning Progress`, `Lesson`
-и `Certificate` пока нет. Также нет LMS-specific Settings, API или UI для учебного
-процесса. Поэтому пользователь с ролью `ELMS LMS User` получает базовый Desk-доступ
-и права на якорь секции, но ещё не учебный кабинет с курсами.
+## Доменные сущности контура LMS (app `elms`, module `LMS`)
 
-`/app/setup-wizard/0` не является настройкой LMS: это системный мастер Frappe.
-В `elms` нет `setup_wizard_stages`; язык, часовой пояс и прочие пункты этого экрана
-не создают и не настраивают учебные сущности.
+В соответствии с лучшими мировыми практиками LMS и требованиями законодательства РФ (152-ФЗ, ФИС ФРДО, ПП РФ № 2464, Минцифры № 1236):
 
-## SSO
+| DocType | Назначение сущности | Ключевые поля | Нормативная база / Практика |
+|---|---|---|---|
+| `ELMS Course` | Учебный курс / программа | Название, код, объем часов (академ.), тип (ДПО / ПО / ОТ), статус публикации | 273-ФЗ «Об образовании в РФ» |
+| `ELMS Course Chapter` | Раздел / модуль курса | Курс, заголовок, порядковый номер, блокировка переходов (рубежный контроль) | Модульное обучение |
+| `ELMS Course Lesson` | Учебное занятие (урок) | Глава, тип (видео, текст, вебинар, практика), содержание, мин. время изучения | Приказ Минобрнауки № 816 |
+| `ELMS Batch` | Поток обучения / Учебная группа | Программа/курс, дата начала/окончания, куратор, номер приказа, организация-заказчик | Когортное обучение, приказы |
+| `ELMS Subscription` | Корпоративная подписка / Квота мест | Организация (ИНН/ОГРН), договор, лимит активных мест, период действия | B2B корпоративное обучение |
+| `ELMS Enrollment` | Зачисление слушателя | Слушатель (User), Курс, Поток (Batch), Подписка, статус (Active/Completed/Cancelled) | Юридический учет слушателей |
+| `ELMS Course Progress` | Сводный прогресс по курсу | Зачисление, % выполнения, статус контрольных точек, допуск к аттестации | Академическая успеваемость |
+| `ELMS Lesson Progress` | Детальный прогресс по уроку | Прогресс, Урок, статус завершения, затраченное время (секунды), дата последнего входа | Фиксация времени обучения |
+| `ELMS User Activity` | Журнал активности и телеметрии | Пользователь, событие (login, lesson_view, test_attempt, focus_lost), IP, User-Agent | 152-ФЗ (ротируемый аудит) |
+| `ELMS Video Watch Log` | Журнал просмотра видео | Зачисление, Урок, воспроизведенные интервалы, защита от ускоренной перемотки | Контроль академических часов |
+| `ELMS Quiz` / `ELMS Quiz Question` | Тесты и банк вопросов | Тип теста (Тренировочный vs Аттестация), вопросы, варианты, проходной балл, таймер | ПП РФ № 2464 |
+| `ELMS Exam Protocol` | Протокол проверки знаний / Итоговая аттестация | Номер протокола, дата, 9 обязательных реквизитов, комиссия 3+, статус сдачи | ПП РФ № 2464 (Охрана труда) |
+| `ELMS Certificate Snapshot` | Снимок выданного документа | Серия, номер, СНИЛС, регистрационный номер, шаблон выгрузки ФИС ФРДО | ФИС ФРДО (40 или 35 колонок) |
 
-| Провайдер | Механизм | Эпик |
-|-----------|----------|------|
-| Keycloak | Единственный Frappe Social Login Key `Keycloak` + контейнер в compose | T-B03 |
-| Яндекс | OIDC Identity Provider/broker внутри Keycloak; не отдельный Frappe provider | T-B03 |
+---
 
-Default роль при SSO signup (dev): `ELMS LMS User` + `Desk User`.
+## Обновление Workspace «LMS»
 
-## Workspaces (FRONT)
+Workspace `LMS` расширяется набором карточек, фильтров и ссылок для полноценного управления учебным процессом:
 
-| Workspace | Roles |
-|-----------|-------|
-| Operations | ELMS Admin, ELMS Operations User |
-| LMS | ELMS Admin, ELMS LMS User |
-| Settings | ELMS Admin |
+1. **Карточка «Управление обучением (LMS Core)»:**
+   - `ELMS Course` — Учебные курсы и программы
+   - `ELMS Batch` — Потоки и учебные группы
+   - `ELMS Subscription` — Корпоративные подписки и квоты мест
+   - `ELMS Enrollment` — Зачисления слушателей
+
+2. **Карточка «Успеваемость и прогресс»:**
+   - `ELMS Course Progress` — Прогресс слушателей по курсам
+   - `ELMS Lesson Progress` — Освоение уроков и тем
+   - `ELMS User Activity` — Журнал активности и телеметрии
+
+3. **Карточка «Аттестация и документы (Гос. требования)»:**
+   - `ELMS Quiz` — Банк тестов и заданий (Тренировка / Экзамен)
+   - `ELMS Exam Protocol` — Протоколы проверки знаний (ПП РФ № 2464)
+   - `ELMS Certificate Snapshot` — Реестр документов и экспорт в ФИС ФРДО
+
+---
 
 ## Lookup при реализации
 
 | Вопрос | Ответ в |
 |--------|---------|
 | Какие роли / DocPerm / секции | эта таблица + код `elms/elms/` (install, SSO roles, LMS) |
-| Как устроен учебный домен | модуль **LMS** в `elms` (product SoT; сейчас только RBAC-якорь) |
-| Как писать whitelist / DocType / hooks | `frappe/` + `docs/vendor/framework/`; ERP/CRM — только образец каркаса |
-| Как выглядит UI | `memory-bank/product/design.md` (neftegaz + LMS) |
+| Как устроен учебный домен | модуль **LMS** в `elms` + `memory-bank/product/lms-best-practices.md` |
+| Как писать whitelist / DocType / hooks | `frappe/` + `docs/vendor/framework/` |
+| Как устроен вендорный Frappe Learning | `docs/vendor/learning/` (справочно для API и архитектурных идей) |
+| UI | `memory-bank/product/design.md` (neftegaz-ai-layer + LMS) |
 
 ## DENY
 
 | Что | Почему |
 |-----|--------|
-| ERPNext / Frappe LMS / Education / CRM / HRMS как apps | Пишем своё |
+| ERPNext / Frappe LMS / Education / CRM / HRMS как apps | Пишем своё в `elms` |
 | Брать из ERP/CRM продуктовые роли, доменные поля или бренд | Канон — LMS/`elms`; ERP/CRM только framework-паттерны |
 | Параллельный FastAPI/Django | Один runtime — Frappe |
-| Копипаст DocType vendor wholesale | Только паттерны framework |
-| Secrets SSO в git | Только env/site_config |
-| Имя модуля/роли `ERP` | Канон T-B01: Operations заменяет ERP |
-| Hub AGENTS секции CRM как SoT этого репо | Оверлей `rules/agents-overlay.md` |
-
-## Правило
-
-Новый модуль / DocType-группа / роль = запись сюда **до** кода.
-
-**Стратегия выбора:** LMS-first для предметной области, ролей и настроек; ERP/CRM
-система — вторичный read-only источник для зрелых паттернов Frappe (DocType,
-permissions, workflow, list/form UI, hooks и API). В ELMS оставляем только то, что
-лучше соответствует учебному сценарию; ERP/CRM-брендинг и чужая доменная модель в
-пользовательский интерфейс не переносятся.
+| Копипаст DocType vendor wholesale | Только чистый собственный код и паттерны |
+| Внешние зарубежные CDN/шрифты | Запрет Реестра отечественного ПО Минцифры РФ № 1236 |

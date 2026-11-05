@@ -1,0 +1,47 @@
+{
+  "schema": "elms-release-rollback-failure/v1",
+  "scenario": "forced-health-failure",
+  "candidate": {
+    "commit": "abcdef0123456789abcdef0123456789abcdef01",
+    "images": [
+      {
+        "name": "elms",
+        "ref": "ghcr.io/example/elms:sha-abcdef0123456789abcdef0123456789abcdef01",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "name": "elms-keycloak",
+        "ref": "ghcr.io/example/elms-keycloak:sha-abcdef0123456789abcdef0123456789abcdef01",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    ]
+  },
+  "previous": {
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "images": [
+      {
+        "name": "elms",
+        "ref": "ghcr.io/example/elms:sha-0123456789abcdef0123456789abcdef01234567",
+        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      {
+        "name": "elms-keycloak",
+        "ref": "ghcr.io/example/elms-keycloak:sha-0123456789abcdef0123456789abcdef01234567",
+        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    ]
+  },
+  "observed": {
+    "candidate_published": false,
+    "current_commit_after_failure": "0123456789abcdef0123456789abcdef01234567",
+    "rollback_restores_complete_pair": true,
+    "state_volumes_removed": false,
+    "evidence": "redacted-status-only"
+  },
+  "compose_operations": [
+    "config --quiet",
+    "pull",
+    "up --wait",
+    "internal-health-smoke"
+  ]
+}

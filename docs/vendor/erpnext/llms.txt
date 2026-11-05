@@ -1,0 +1,871 @@
+# ERPNext
+
+Append `.md` to any URL below for that page's raw markdown source.
+
+## ERPNext
+
+- [Introduction](https://docs.frappe.io/erpnext/introduction.md)
+  - [Introduction](https://docs.frappe.io/erpnext/introduction.md)
+  - [Why should businesses use an ERP?](https://docs.frappe.io/erpnext/why-ERP.md)
+  - [Do I Need ERPNext?](https://docs.frappe.io/erpnext/do-i-need-an-erp.md)
+  - [Open Source](https://docs.frappe.io/erpnext/open-source.md)
+  - [The Project Champion](https://docs.frappe.io/erpnext/the-champion.md)
+  - [Concepts and Terms](https://docs.frappe.io/erpnext/concepts-and-terms.md)
+  - [Getting Started with ERPNext](https://docs.frappe.io/erpnext/getting-started-with-erpnext.md)
+- **Setup**
+  - [Setting Up](https://docs.frappe.io/erpnext/setting-up.md)
+  - [Company](https://docs.frappe.io/erpnext/company-setup.md)
+  - [Country](https://docs.frappe.io/erpnext/country.md)
+  - [Awesomebar Global Search](https://docs.frappe.io/erpnext/awesomebar-global-search.md)
+  - **Core Settings**
+    - [Module Settings](https://docs.frappe.io/erpnext/module-settings.md): Learn how ERPNext module settings organise configuration for each business process and how to choose the correct settings page.
+    - [System Settings](https://docs.frappe.io/erpnext/system-settings.md): Configure ERPNext site-wide localisation, login security, email, file, backup, display, and advanced system behaviour with practical examples.
+    - [Global Defaults/ERPNext Settings](https://docs.frappe.io/erpnext/global-defaults.md): Set ERPNext defaults for company, country, currency, distance, and transaction presentation with clear examples and precedence guidance.
+    - [Session Defaults](https://docs.frappe.io/erpnext/session-defaults.md): Use ERPNext Session Defaults to temporarily prefill a company or other value for one user session without changing global defaults.
+    - [Domain Settings](https://docs.frappe.io/erpnext/domain-settings.md): Use ERPNext Domain Settings to keep relevant business domains active and understand how domains differ from modules, workspaces, and permissions.
+    - [Set Language](https://docs.frappe.io/erpnext/set-language.md): Set the default ERPNext language or a user-specific language and understand translation scope, fallback, and verification.
+    - [Set Precision](https://docs.frappe.io/erpnext/set-precision.md): Configure ERPNext float and currency precision globally or for a specific field, with examples showing the effect on transactions.
+    - [Show or Hide Modules](https://docs.frappe.io/erpnext/show-hide-modules.md): Understand the deprecated ERPNext Show or Hide Modules feature and use current roles, workspaces, domains, and module settings instead.
+- **Data Management**
+  - [Introduction](https://docs.frappe.io/erpnext/data-management/introduction.md)
+  - **Import**
+    - [Data Import](https://docs.frappe.io/erpnext/data-import.md)
+    - [Chart Of Accounts Importer](https://docs.frappe.io/erpnext/chart-of-accounts-importer.md)
+  - **Export**
+    - [Data Export](https://docs.frappe.io/erpnext/data-export.md)
+    - [Downloading Backups](https://docs.frappe.io/erpnext/download-backup.md)
+  - **Bulk Operations**
+    - [Bulk Update](https://docs.frappe.io/erpnext/bulk-update.md)
+    - [Bulk Rename](https://docs.frappe.io/erpnext/bulk-rename.md)
+    - [Delete Company Transactions](https://docs.frappe.io/erpnext/delete_company_transactions.md)
+    - [Overwrite Data](https://docs.frappe.io/erpnext/bulk-overwrite.md)
+  - **Personal Data**
+    - [Personal Data Download](https://docs.frappe.io/erpnext/personal-data-download.md)
+    - [Personal Data Deletion](https://docs.frappe.io/erpnext/personal-data-deletion.md)
+  - **Deletion**
+    - [Deleting all transactions for the Company while retaining masters](https://docs.frappe.io/erpnext/deleting-all-transactions-for-the-company.md)
+  - **Help Articles**
+    - [Export Data for Specific Year or Filter](https://docs.frappe.io/erpnext/export-data-for-specific-year-or-filter.md)
+    - [ERPNext Dashboards](https://docs.frappe.io/erpnext/erpnext-dashboards.md)
+- **Users and Permissions**
+  - **User Management**
+    - [Adding Users](https://docs.frappe.io/erpnext/adding-users.md)
+    - [Role Based Permissions](https://docs.frappe.io/erpnext/role-based-permissions.md)
+    - [User Permissions](https://docs.frappe.io/erpnext/user-permissions.md)
+    - [Administrator](https://docs.frappe.io/erpnext/administrator.md)
+    - [Sharing](https://docs.frappe.io/erpnext/sharing.md)
+    - [Change User Password](https://docs.frappe.io/erpnext/change-password.md)
+    - [Disable Any User](https://docs.frappe.io/erpnext/how-to-disable-users-in-the-erpnext-system.md)
+  - **Roles and Permissions**
+    - [Role Based Permissions](https://docs.frappe.io/erpnext/permissions.md)
+    - [Role and Role Profile](https://docs.frappe.io/erpnext/role-and-role-profile.md)
+    - [Role Permission for Page and Report](https://docs.frappe.io/erpnext/role-permission-for-page-and-report.md)
+    - [Field Level Permission Management](https://docs.frappe.io/erpnext/changing-the-properties-of-a-field-based-on-role.md)
+    - [Access Log](https://docs.frappe.io/erpnext/access-log.md)
+    - [Perm Levels](https://docs.frappe.io/erpnext/perm-levels.md)
+    - [Company Restrictions for Item, Customer and Supplier](https://docs.frappe.io/erpnext/company-restrictions-for-item-customer-and-supplier.md)
+  - **Help Articles**
+    - [Setup Two Factor Authentication](https://docs.frappe.io/erpnext/setup-two-factor-authentication.md)
+    - [Change existing user's email ID or Rename User](https://docs.frappe.io/erpnext/change-existing-users-email-id.md)
+    - [Difference Between System User and Website User](https://docs.frappe.io/erpnext/difference-between-system-user-and-website-user.md)
+    - [Setting Up Email Signature in ERPNext](https://docs.frappe.io/erpnext/setting-up-email-signature-in-erpnext.md)
+    - [Edit Export/Print permissions for reports](https://docs.frappe.io/erpnext/how-to-grant-permissions-for-reports.md)
+    - [User Permission based on Hierarchy](https://docs.frappe.io/erpnext/user-permission-based-on-hierarchy.md)
+    - [Maximum User Limit Issue](https://docs.frappe.io/erpnext/how-to-fix-the-reached-maximum-user-limit-for-your-subscription-issue.md)
+    - [Perm Level Error](https://docs.frappe.io/erpnext/perm-level-error-in-permission-manager.md)
+    - [Permission Error Problems](https://docs.frappe.io/erpnext/report-permission-error.md)
+- **Accounting**
+  - **Introduction**
+    - [Accounting Introduction](https://docs.frappe.io/erpnext/accounting-introduction.md): Understand ERPNext Accounting features, ledgers, invoices, payments, taxes, banking, inventory accounting, controls, closing, and financial reports.
+    - [How Transactions Affect the Ledger](https://docs.frappe.io/erpnext/how-transactions-affect-the-ledger.md): Learn how ERPNext invoices, payments, stock transactions, assets, returns, and adjustments create General Ledger, Payment Ledger, and Stock Ledger entries.
+    - [Understanding Debit and Credit](https://docs.frappe.io/erpnext/understand-debit-and-credit.md): Learn how debit and credit work in ERPNext with balanced examples for sales, purchases, payments, stock, expenses, and depreciation.
+    - [Accounting Workflows by Business Type](https://docs.frappe.io/erpnext/accounting-workflows-by-business-type.md): Choose an ERPNext accounting workflow for goods, retail, services, subscriptions, drop shipping, manufacturing, purchasing, or intercompany operations.
+  - **Accounting Setup**
+    - [Accounts Settings](https://docs.frappe.io/erpnext/accounts-settings.md): Configure invoicing, payments, credit limits, assets, closing, reports, and other accounting behavior in ERPNext Accounts Settings.
+    - [Company accounting defaults](https://docs.frappe.io/erpnext/company-accounting-defaults.md): Configure receivable, payable, cash, bank, income, expense, Cost Center, rounding, and exchange accounts for an ERPNext company.
+    - [Fiscal Year](https://docs.frappe.io/erpnext/fiscal-year.md): Create, assign, and manage fiscal years in ERPNext and understand how they differ from accounting periods and year-end closing.
+    - [Chart Of Accounts](https://docs.frappe.io/erpnext/chart-of-accounts.md): Structure, create, maintain, and verify ledger and group accounts in the ERPNext Chart of Accounts.
+    - [Cost Center](https://docs.frappe.io/erpnext/cost-center.md): Create a Cost Center hierarchy in ERPNext and use it to analyze income, expense, budgets, and profitability.
+    - [Bank Accounts and Modes of Payment](https://docs.frappe.io/erpnext/bank-accounts-and-modes-of-payment.md): Configure banks, company bank accounts, ledger accounts, and Modes of Payment in ERPNext for accurate payment processing and reconciliation.
+    - [Payment Terms](https://docs.frappe.io/erpnext/payment-terms.md): Create ERPNext Payment Terms and templates for due dates, deposits, instalments, milestones, and early-payment discounts.
+    - [Setting Up Taxes](https://docs.frappe.io/erpnext/setting-up-taxes.md): Configure tax accounts, sales and purchase tax templates, Tax Categories, Tax Rules, and item-specific rates in ERPNext.
+    - [Default Receivable / Payable Account](https://docs.frappe.io/erpnext/default-receivable-payable-account.md)
+    - [Accounting Setup Checklist](https://docs.frappe.io/erpnext/accounting-setup-checklist.md): Use this ERPNext accounting setup checklist to verify company, accounts, banking, taxes, opening balances, controls, and go-live testing.
+  - **Migration and Opening Balances**
+    - [Accounting Migration Overview](https://docs.frappe.io/erpnext/accounting-migration-overview.md): Plan and complete an ERPNext accounting migration using a clear cutover scope, clean source data, the correct import tools, reconciliation, and finance approval.
+    - [Prepare and Map Legacy Data](https://docs.frappe.io/erpnext/prepare-and-map-legacy-data.md): Clean, map, classify, and validate legacy accounting data before importing masters, invoices, balances, stock, and assets into ERPNext.
+    - [Import Accounting Masters](https://docs.frappe.io/erpnext/import-accounting-masters.md): Import ERPNext accounting masters in dependency order using Data Import, test representative records, correct failures, and validate links and defaults.
+    - [Import Chart of Accounts](<https://docs.frappe.io/erpnext/chart-of-accounts-importer>)
+    - [Opening Balance in Accounts](https://docs.frappe.io/erpnext/opening-balance.md): Enter ERPNext opening accounting balances without double counting invoices, payments, stock, or assets, then reconcile the opening Trial Balance.
+    - [Import Outstanding Invoices with the Opening Invoice Creation Tool](https://docs.frappe.io/erpnext/opening-invoice-creation-tool.md): Import outstanding Sales and Purchase Invoices into ERPNext with correct parties, dates, currencies, ageing, and reconciliation controls.
+    - [Opening and Closing During Migration](https://docs.frappe.io/erpnext/opening-and-closing.md): Close the legacy accounting period, load ERPNext opening data in sequence, reconcile it, freeze the accepted period, and control later corrections.
+    - [Import Advances, Unallocated Payments, Bank, Stock and Asset Balances](https://docs.frappe.io/erpnext/import-advances-unallocated-payments-bank-stock-and-asset-balances.md): Import ERPNext opening advances, unallocated payments, bank and cash, stock, fixed assets, deferred amounts, and foreign-currency balances safely.
+    - [Validate and Correct the Migration](https://docs.frappe.io/erpnext/validate-the-migration.md): Reconcile ERPNext migration masters, invoices, payments, bank, stock, assets, Trial Balance, and financial statements, then correct errors safely.
+    - [Balance in Temporary Account](https://docs.frappe.io/erpnext/balance-in-temporary-account.md)
+    - [ERPNext QuickBooks Migrator](https://docs.frappe.io/erpnext/quickbooks-migrator.md): The built-in ERPNext QuickBooks Migrator has been removed. Review the legacy instructions and use supported ERPNext import tools for current migrations.
+  - **Sales and Receivables**
+    - [Selling Cycle Ledger Impact](https://docs.frappe.io/erpnext/selling-cycle-ledger-impact.md)
+    - [Sales Invoice](https://docs.frappe.io/erpnext/sales-invoice.md): Learn how to create, submit, and collect payment for a Sales Invoice in ERPNext, including taxes, stock updates, ledger impact, and common fixes.
+    - [Credit Note](https://docs.frappe.io/erpnext/credit-note.md): Create full or partial credit notes in ERPNext, return stock, reverse receivables, and allocate or refund customer credit.
+    - [Accounts Receivables](https://docs.frappe.io/erpnext/accounts-receivables.md): Review customer outstanding balances, ageing, payments, and credits with the Accounts Receivable report in ERPNext.
+    - [Process Statement Of Accounts](https://docs.frappe.io/erpnext/process-statement-of-accounts.md): Generate, download, and email customer account statements and ageing summaries in bulk with ERPNext.
+    - [Sales Interest / Dunning](https://docs.frappe.io/erpnext/dunning.md): Set up formal overdue-payment reminders with interest, fees, letter text, and payment processing in ERPNext.
+    - **Subscription**
+      - [Subscription](https://docs.frappe.io/erpnext/subscription.md): Configure recurring customer or supplier billing with plans, invoice timing, taxes, discounts, and billing history in ERPNext.
+      - [Subscription Plan](https://docs.frappe.io/erpnext/subscription-plan.md): Create an ERPNext Subscription Plan to define the item, price, billing interval, payment gateway, and accounting dimensions used for recurring invoices.
+      - [Subscription Settings](https://docs.frappe.io/erpnext/subscription-settings.md): Configure grace periods and automatic cancellation for unpaid recurring invoices generated by ERPNext subscriptions.
+    - [Why Use a Common Receivable Account](https://docs.frappe.io/erpnext/common-receivable-account.md): Use a shared receivable control account while retaining customer and invoice-level balances in ERPNext.
+    - [Allocating Credit Note and Payment](https://docs.frappe.io/erpnext/allocating-credit-note-and-payment.md): Allocate customer payments and credit notes against outstanding sales invoices with ERPNext Payment Reconciliation.
+    - [Accounting for Bad Debts](https://docs.frappe.io/erpnext/accounting-for-bad-debts.md): Write off a customer bad debt in ERPNext with a Journal Entry linked to the outstanding Sales Invoice, then verify the receivable and expense postings.
+  - **Purchase and Payables**
+    - [Purchase Cycle Ledger Impact](https://docs.frappe.io/erpnext/purchase-cycle-ledger-impact.md)
+    - [Purchase Invoice](https://docs.frappe.io/erpnext/purchase-invoice.md): Create, verify, submit, pay, return, and track supplier Purchase Invoices in ERPNext.
+    - [Debit Note](https://docs.frappe.io/erpnext/debit-note.md): Create and submit an ERPNext Debit Note to return purchases or reduce a Supplier invoice.
+    - [Debit Note for Price Adjustment](https://docs.frappe.io/erpnext/debit-note-for-price-adjustment.md): Reduce a submitted ERPNext Purchase Invoice when a Supplier lowers the agreed price without returning goods.
+  - **Banking and Payments**
+    - **Banking**
+      - [Banking](https://docs.frappe.io/erpnext/banking-in-erpnext.md): Set up bank accounts, import statement transactions, record payments, and reconcile bank activity in ERPNext.
+      - [Bank](https://docs.frappe.io/erpnext/bank.md): Create an ERPNext Bank master and configure statement transaction mapping for a financial institution.
+      - [Bank Account](https://docs.frappe.io/erpnext/bank-account.md): Create ERPNext Company and party Bank Accounts and connect them to the correct bank ledger.
+      - [Bank Guarantee](https://docs.frappe.io/erpnext/bank-guarantee.md): Track guarantees received or provided, their validity, beneficiary, margin, charges, and references in ERPNext.
+      - [Bank Transaction](https://docs.frappe.io/erpnext/bank-transaction.md): Import, review, match, reconcile, and troubleshoot bank statement transactions in ERPNext.
+    - **Payments**
+      - **Set up Payments**
+        - [Mode of Payment](https://docs.frappe.io/erpnext/mode-of-payment.md): Set up cash, bank, card, and other payment methods in ERPNext.
+        - [Payment Terms Template](https://docs.frappe.io/erpnext/payment-terms-template.md): Create reusable installment and due-date schedules for ERPNext transactions.
+      - **Receive and Make Payments**
+        - [Payment Entry](https://docs.frappe.io/erpnext/payment-entry.md): Record customer receipts, supplier payments, transfers, advances, and allocations in ERPNext.
+        - [Payment Request](https://docs.frappe.io/erpnext/payment-request.md): Request and track online or offline customer payments from ERPNext transactions.
+        - [Payment Order](https://docs.frappe.io/erpnext/payment-order.md): Prepare and control bulk supplier payments in ERPNext.
+        - [Receiving Bulk Payments](https://docs.frappe.io/erpnext/receiving-bulk-payments-in-erpnext.md): Record and allocate one customer receipt across multiple invoices in ERPNext.
+        - [Advance Payment Entry](https://docs.frappe.io/erpnext/advance-payment-entry.md): Record and later allocate customer or supplier advances in ERPNext.
+      - **Special Payment Scenarios**
+        - [Stale Cheque Accounting](https://docs.frappe.io/erpnext/stale-cheque-accounting.md): Reverse or replace an expired check while preserving the ERPNext audit trail.
+        - [Payment Entry for Capital Account](https://docs.frappe.io/erpnext/payment-entry-for-capital-account.md): Record owner or shareholder capital introduced into ERPNext bank or cash accounts.
+        - [Book Petty Cash Entry](https://docs.frappe.io/erpnext/petty-cash-entry-in-erpnext.md): Record petty cash funding and expenses with a clear ERPNext audit trail.
+        - [Invoice Discount in Payment Entry](https://docs.frappe.io/erpnext/managing-invoice-discount-in-the-payment-entry.md): Record a settlement discount while clearing an ERPNext invoice.
+        - [Advance in Separate Party Account](https://docs.frappe.io/erpnext/advance-in-separate-party-account.md): Post and allocate advances through a separate receivable or payable account in ERPNext.
+        - [Additional Charges in Payment](https://docs.frappe.io/erpnext/handing-deductions-in-payment-entry.md): Record bank fees, withholding, write-offs, and other payment differences in ERPNext.
+        - [Post Dated Cheque Entry](https://docs.frappe.io/erpnext/post-dated-cheque-entry.md): Record and clear post-dated checks without recognizing bank settlement too early in ERPNext.
+      - [Payment Ledger](<https://docs.frappe.io/erpnext/user/manual/en/payment_ledger>)
+      - [Managing TDS / TCS Deduction by Customer in Payment Entry](https://docs.frappe.io/erpnext/booking-customer-deducted-tds-in-payment-entry-in-erpnext.md): Record customer-withheld tax and clear the related ERPNext invoice correctly.
+    - **Reconcile Payments and Banks**
+      - **Reconcile and Allocate Payments**
+        - [Payment Reconciliation](https://docs.frappe.io/erpnext/payment-reconciliation.md): Allocate unlinked payments and credits against ERPNext invoices.
+        - [Single Payment Against Multiple Invoices](https://docs.frappe.io/erpnext/single-payment-multiple-invoices.md): Allocate one ERPNext payment across several customer or supplier invoices.
+        - [Semi-Auto Payment Reconciliation](https://docs.frappe.io/erpnext/semi-auto-payment-reconciliation.md): Use ERPNext suggestions to match unallocated payments and invoices efficiently.
+        - [Handling Excess Customer Payments](https://docs.frappe.io/erpnext/handling-excess-customer-payments.md): Record overpayments and keep the excess available for future ERPNext invoices or refunds.
+        - [Reconcile Advance Payment Made to the Supplier](https://docs.frappe.io/erpnext/reconcile-advance-payment-made-to-the-supplier.md): Allocate a supplier advance to later Purchase Invoices in ERPNext.
+      - [Bank Reconciliation](https://docs.frappe.io/erpnext/bank-reconciliation.md): Match ERPNext accounting vouchers with bank statement transactions and balances.
+      - [Process Payment Reconciliation Tool](https://docs.frappe.io/erpnext/process-payment-reconciliation-tool.md): Run queued payment reconciliations and monitor their results in ERPNext.
+      - [Unreconcile Payments](https://docs.frappe.io/erpnext/unreconciliation.md): Remove an incorrect ERPNext payment allocation without deleting the original voucher.
+    - **Other Banking Facilities**
+      - [Invoice Discounting](https://docs.frappe.io/erpnext/invoice_discounting.md): Record invoice-backed short-term financing, disbursement, settlement, charges, and receivable accounts in ERPNext.
+  - **General Ledger, Journals and Adjustments**
+    - [Journal Entry](https://docs.frappe.io/erpnext/journal-entry.md): Create balanced Journal Entries in ERPNext, understand account rows and references, verify General Ledger postings, and reverse an incorrect entry safely.
+    - [Journal Entry Template](https://docs.frappe.io/erpnext/journal-entry-template.md): Learn how to create and use Journal Entry Templates in ERPNext to preload recurring accounts, dimensions, entry settings, and other accounting details.
+    - [Inter Company Journal Entry](https://docs.frappe.io/erpnext/inter-company-journal-entry.md): Create linked Inter Company Journal Entries in ERPNext, record both companies' debit and credit treatment, and verify each company's separate ledger posting.
+    - [Repost Accounting Ledger](https://docs.frappe.io/erpnext/repost-accounting-ledger.md): Safely regenerate General Ledger entries with Repost Accounting Ledger in ERPNext, preview old and new postings, process vouchers, and verify reports.
+    - [Accounting Entries](https://docs.frappe.io/erpnext/accounting-entries.md): Learn how common ERPNext transactions create balanced debit and credit entries, from owner funding and purchases to sales, expenses, payments, and closing.
+    - [Immutable Ledger](https://docs.frappe.io/erpnext/immutable-ledger-in-erpnext.md): Understand ERPNext immutable ledger behavior, cancellation reversals, backdated stock reposting, audit trails, correction workflows, and closed-period controls.
+    - [Adding reference to Journal Entry](https://docs.frappe.io/erpnext/adding-reference-to-journal-entry.md): Learn how to add invoice and document references to Journal Entry rows in ERPNext, allocate receivables or payables, and verify outstanding balances safely.
+    - [Finance Book](https://docs.frappe.io/erpnext/finance-book.md): Learn how to use Finance Books in ERPNext for alternate accounting views, company defaults, report filters, and separate fixed-asset depreciation schedules.
+    - **Manage Chart of Accounts**
+      - [Merging Accounts](https://docs.frappe.io/erpnext/merging-accounts.md): Learn how to safely merge duplicate Accounts in ERPNext, verify matching properties, choose the correct target, and confirm historical ledger results.
+      - [Changing Parent Account](https://docs.frappe.io/erpnext/changing-parent-account.md): Learn how to change an Account's parent in ERPNext, understand report reclassification, validate the new group, and verify the saved Chart of Accounts.
+      - [Freeze an Account](https://docs.frappe.io/erpnext/freeze-account.md): Learn how to freeze an Account in ERPNext, restrict new postings, authorize exception roles, preserve ledger history, verify defaults, and unfreeze it safely.
+      - [Rebuild the Chart of Accounts Tree](https://docs.frappe.io/erpnext/rebuild-tree.md): Learn when and how to rebuild the Chart of Accounts tree in ERPNext, repair hierarchy indexes, verify General Ledger filters, and avoid unnecessary repairs.
+      - [Link Supplier and Customer with Common Party Accounting](https://docs.frappe.io/erpnext/common-party-accounting.md): Link a Customer and Supplier with Common Party Accounting in ERPNext, understand automatic Journal Entries, reconcile advances, and verify invoice balances.
+    - **Discounts and Adjustments**
+      - [Discount Accounting](https://docs.frappe.io/erpnext/discount_accounting.md): Configure ERPNext discount accounting to post sales discounts separately, then verify item, invoice total, and General Ledger values with a clear example.
+      - [Difference Entry](https://docs.frappe.io/erpnext/difference-entry-button.md): Use ERPNext Difference Entry to balance a Journal Entry, select the correct account, avoid masking errors, and verify the submitted General Ledger clearly.
+      - [Book discount allowed and received separately](https://docs.frappe.io/erpnext/book-discount-allowed-and-received-separately.md): Book discounts allowed and received in separate ERPNext accounts using negative charge rows, then verify invoice totals, ledgers, and net payments clearly.
+  - **Taxes & Compliance**
+    - **Tax Setup**
+      - [Taxes](https://docs.frappe.io/erpnext/taxes.md)
+      - [Tax Category](https://docs.frappe.io/erpnext/tax-category.md)
+      - [Tax Rule](https://docs.frappe.io/erpnext/tax-rule.md)
+    - **Tax Templates**
+      - [Item Tax Template](https://docs.frappe.io/erpnext/item-tax-template.md)
+      - [Types in Tax Template](https://docs.frappe.io/erpnext/types-in-tax-template.md)
+      - [Purchase Taxes and Charges Template](https://docs.frappe.io/erpnext/purchase-taxes-and-charges-template.md)
+      - [Sales Taxes and Charges Template](https://docs.frappe.io/erpnext/sales-taxes-and-charges-template.md)
+    - **Tax Calculation**
+      - [Include Tax or Charge in Valuation or Total?](https://docs.frappe.io/erpnext/difference-in-total-and-valuation-in-tax-and-charges.md)
+      - [Tax on another tax amount](https://docs.frappe.io/erpnext/tax-on-another-tax-amount.md)
+      - [Tax Inclusive Accounting](https://docs.frappe.io/erpnext/tax-inclusive-accounting.md)
+      - [Apply Tax on Another Tax or Charge](https://docs.frappe.io/erpnext/how-to-apply-tax-on-tax.md)
+    - **Tax Withholding**
+      - [Tax Withholding Category](https://docs.frappe.io/erpnext/tax-withholding-category.md)
+      - [Adjusting Withhold Amount](https://docs.frappe.io/erpnext/adjusting-withhold-amount.md)
+    - **Regional**
+      - **India**
+        - [Stock Transfer with GST](https://docs.frappe.io/erpnext/stock-transfer-with-gst.md)
+        - [GST for multiple branches](https://docs.frappe.io/erpnext/gst-for-multiple-branches.md)
+        - [Generate GSTR-1 JSON File](https://docs.frappe.io/erpnext/update-gstr-1-data-in-gst-offline-tool.md)
+        - [Naming Series as Per GST Rules](https://docs.frappe.io/erpnext/naming-series-as-per-gst-rules.md)
+  - **Deferred Accounting**
+    - [Deferred Revenue](https://docs.frappe.io/erpnext/deferred-revenue.md): Configure ERPNext deferred revenue for prepaid services, invoice the customer, recognize income over time, and verify the ledger.
+    - [Deferred Expense](https://docs.frappe.io/erpnext/deferred-expense.md): Configure ERPNext deferred expense for prepaid costs, create the Purchase Invoice, recognize expense over time, and verify the ledger.
+    - [Deferred Accounting](https://docs.frappe.io/erpnext/deferred-accounting.md): Understand how ERPNext defers invoice income and expense, recognizes it over a service period, and reports the remaining balance.
+    - [Process Deferred Accounting](https://docs.frappe.io/erpnext/process-deferred-accounting.md): Run and verify ERPNext deferred income or expense recognition manually, with date ranges, account filters, processing logs, and ledger checks.
+  - **Multi Currency**
+    - [Currency](https://docs.frappe.io/erpnext/currency.md): Configure currency symbols, fractions, and number formats in ERPNext before using a currency in transactions.
+    - [Currency Exchange](https://docs.frappe.io/erpnext/currency-exchange.md): Store dated buying and selling exchange rates in ERPNext and understand when a transaction uses them.
+    - [Multi Currency Accounting](https://docs.frappe.io/erpnext/multi-currency-accounting.md): Set up and operate ERPNext accounting for foreign customers, suppliers, bank accounts, invoices, payments, and revaluation.
+    - [Multi Currency Setup](https://docs.frappe.io/erpnext/multi-currency-setup.md): Configure ERPNext for foreign-currency accounts, parties, rates, transactions, payments, and reporting in a reliable order.
+    - [Exchange Rate Revaluation](https://docs.frappe.io/erpnext/exchange-rate-revaluation.md): Revalue open foreign-currency account balances in ERPNext and verify the unrealized gain or loss and resulting Journal Entries.
+    - [Currency Exchange Settings](https://docs.frappe.io/erpnext/currency-exchange-settings.md): Configure the exchange-rate provider ERPNext uses when no eligible manual Currency Exchange record is available.
+    - [Manage Foreign Exchange Difference](https://docs.frappe.io/erpnext/manage-foreign-exchange-difference.md): Record realized foreign-exchange gains or losses in ERPNext when an invoice and its payment use different rates.
+    - [Freeze Exchange Rate](https://docs.frappe.io/erpnext/exchange-rate-field-frozen.md): Understand why an ERPNext exchange-rate field may be read-only and how stale-rate settings affect manual and fetched rates.
+    - [Managing Transactions In Multiple Currency](https://docs.frappe.io/erpnext/managing-transactions-in-multiple-currencies.md): Create, review, print, pay, and verify foreign-currency sales and purchase transactions in ERPNext.
+  - **Accounting Segments**
+    - [Accounting Dimensions Filters](https://docs.frappe.io/erpnext/accounting-dimension-filter.md)
+    - [Cost Center Allocation](https://docs.frappe.io/erpnext/cost_center_allocation.md)
+    - [Accounting Dimensions](https://docs.frappe.io/erpnext/accounting-dimensions.md): Create and use ERPNext Accounting Dimensions to tag transactions, enforce segment rules, and filter financial reports by department or business unit.
+    - [Distributed Cost Center](https://docs.frappe.io/erpnext/distributed-cost-center.md)
+  - **Budgets, Capital and Equity**
+    - **Budgeting**
+      - [Budget](https://docs.frappe.io/erpnext/budget.md)
+      - [Budget Revision](https://docs.frappe.io/erpnext/budget-revision.md)
+      - [Budget Variance Report](https://docs.frappe.io/erpnext/budget-variance-report.md)
+      - [Cost Center and Budgeting](https://docs.frappe.io/erpnext/cost-center-and-budgeting.md)
+    - **Capital and Equity**
+      - [Shareholder Management](https://docs.frappe.io/erpnext/shareholder-management.md)
+      - [Shareholder](https://docs.frappe.io/erpnext/shareholder.md)
+      - [Share Transfer](https://docs.frappe.io/erpnext/share-transfer.md)
+      - [Share Reports](https://docs.frappe.io/erpnext/share-reports.md)
+      - [Withdrawing Salary from Owner's Equity Account](https://docs.frappe.io/erpnext/withdrawing-salary-from-owners-equity-account.md)
+  - **Reports**
+    - [Accounting Reports](https://docs.frappe.io/erpnext/accounting-reports.md)
+    - [Profit and Loss Report](https://docs.frappe.io/erpnext/profit-and-loss-report.md)
+    - [Balance Sheet](https://docs.frappe.io/erpnext/balance-sheet.md)
+    - [Cash Flow Report](https://docs.frappe.io/erpnext/cash-flow-report.md)
+    - [General Ledger](https://docs.frappe.io/erpnext/general-ledger.md)
+    - [Payment Ledger](https://docs.frappe.io/erpnext/payment_ledger.md): Understand the immutable payment allocation ledger used by ERPNext.
+    - [Accounts Receivable and Payable](https://docs.frappe.io/erpnext/accounts-receivable-and-payable.md)
+    - [Financial Report Template](https://docs.frappe.io/erpnext/financial-report-template.md)
+    - [Deferred Revenue/Expense Report](https://docs.frappe.io/erpnext/expense_report.md)
+    - [Payment Terms Status Report](https://docs.frappe.io/erpnext/payment_terms_status_report.md)
+    - [Using Custom API Rows in Financial Report Template](https://docs.frappe.io/erpnext/using-custom-api-rows-in-financial-report-template.md)
+    - [Customise Cash Flow Report](https://docs.frappe.io/erpnext/customise-cash-flow-report.md)
+  - **Period Closing**
+    - [Period Closing Voucher](https://docs.frappe.io/erpnext/period-closing-voucher.md)
+    - [Accounting Period](https://docs.frappe.io/erpnext/accounting-period.md)
+    - [Freeze Accounting Entries](https://docs.frappe.io/erpnext/freeze-accounting-entries.md)
+    - [Closing Accounting Books in ERPNext in v15](https://docs.frappe.io/erpnext/closing-accounting-books-in-erpnext.md)
+  - **Help Articles**
+    - [Purchase Invoice - Account Type Error](https://docs.frappe.io/erpnext/purchase-invoice-account-type-error.md)
+    - [Fixing Fiscal Year Error](https://docs.frappe.io/erpnext/fiscal-year-error.md)
+    - [Round off Account Validation Message](https://docs.frappe.io/erpnext/round-off-account-validation.md)
+    - [Delete entries linked with GL entries](https://docs.frappe.io/erpnext/delete-entries-linked-with-gl-entries.md)
+    - [Invoice rounding issue](https://docs.frappe.io/erpnext/invoice-rounding-issue.md)
+    - [Reverse Charge Mechanism (RCM)](https://docs.frappe.io/erpnext/reverse-charge-mechanism-rcm.md)
+    - [Auto Repeat Recurring Orders and Invoices](https://docs.frappe.io/erpnext/auto-repeat-recurring-orders-and-invoices.md): Schedule ERPNext to create recurring orders, invoices, journals, and other enabled documents from a reference transaction.
+    - [Legacy Controller for Period Closing Voucher](https://docs.frappe.io/erpnext/legacy-controller-for-period-closing-voucher.md)
+- **Assets**
+  - **Introduction**
+    - [Overview](https://docs.frappe.io/erpnext/assets/introduction.md): Understand the ERPNext Assets lifecycle, from purchase and capitalization through depreciation, maintenance, transfer, sale, or scrapping.
+  - **Setup**
+    - [Asset Category](https://docs.frappe.io/erpnext/asset-category.md): Configure ERPNext Asset Categories with depreciation defaults, Finance Books, and company-specific fixed-asset accounts.
+    - [Asset Location](https://docs.frappe.io/erpnext/asset-location.md): Build an ERPNext Asset Location tree and use it to track the physical position of company assets.
+    - [Purchasing an Asset](https://docs.frappe.io/erpnext/purchasing-an-asset.md): Purchase and capitalize fixed assets in ERPNext using correctly configured Items, Purchase Receipts, and Purchase Invoices.
+    - [Asset](https://docs.frappe.io/erpnext/asset.md): Create and manage an ERPNext Asset record, including value, location, ownership, depreciation, insurance, and lifecycle status.
+  - **Features**
+    - **Depreciation**
+      - [Depreciation](https://docs.frappe.io/erpnext/asset-depreciation.md): Learn how ERPNext calculates fixed-asset depreciation from an asset's Finance Books, builds the schedule, posts Journal Entries, and how to verify them.
+      - [Depreciation Methods](https://docs.frappe.io/erpnext/depreciation-methods.md): Choose and configure Straight Line, Double Declining Balance, Written Down Value, or Manual depreciation in ERPNext.
+      - [Daily Depreciation Calculation](https://docs.frappe.io/erpnext/daily-depreciation.md): Configure daily pro-rata depreciation in ERPNext and understand how actual days affect each period.
+      - [Asset Shift Allocation](https://docs.frappe.io/erpnext/asset-shift-allocation.md): Allocate ERPNext asset depreciation by machine shifts when utilization changes across periods.
+      - [Using Finance Book for Asset Depreciation](https://docs.frappe.io/erpnext/using-finance-book-for-asset-depreciation.md): Maintain separate statutory and management depreciation schedules for one ERPNext Asset using Finance Books.
+    - **Maintenance**
+      - [Asset Maintenance](https://docs.frappe.io/erpnext/asset-maintenance.md): Plan recurring preventive maintenance and calibration for ERPNext Assets.
+      - [Asset Maintenance Team](https://docs.frappe.io/erpnext/asset-maintenance-team.md): Create an ERPNext Asset Maintenance Team with a manager, members, and roles.
+      - [Asset Maintenance Log](https://docs.frappe.io/erpnext/asset-maintenance-log.md): Complete ERPNext Asset Maintenance Logs with work performed, dates, status, and certificates.
+      - [Asset Movement](https://docs.frappe.io/erpnext/asset-movement.md): Transfer, issue, or receive ERPNext Assets while preserving location and custody history.
+      - [Asset Repair](https://docs.frappe.io/erpnext/asset-repair.md): Record ERPNext Asset failures, repair work, downtime, costs, consumed items, and capitalization decisions.
+      - [Asset Value Adjustment](https://docs.frappe.io/erpnext/asset-value-adjustment.md): Adjust an ERPNext Asset's carrying value for a selected Finance Book and verify the resulting accounting entry.
+      - [Asset Capitalization](https://docs.frappe.io/erpnext/asset-capitalization.md): Combine stock, existing assets, and service costs into a new or composite ERPNext Asset.
+    - **Disposal**
+      - [Selling an Asset](https://docs.frappe.io/erpnext/selling-an-asset.md): Sell an ERPNext Asset, calculate gain or loss, and verify its disposal and ledger impact.
+      - [Scrapping an Asset](https://docs.frappe.io/erpnext/scrapping-an-asset.md): Scrap an unusable ERPNext Asset and verify the write-off, status, and remaining book value.
+  - **Reports**
+    - [Asset Reports](https://docs.frappe.io/erpnext/asset-reports.md): Use ERPNext Asset reports to reconcile depreciation, balances, fixed-asset registers, and lifecycle activity.
+  - **Help Articles**
+    - [Moving Asset from Stock Item to Fixed Asset Item](https://docs.frappe.io/erpnext/moving-asset-from-stock-item-to-fixed-asset-item.md): Correct an ERPNext Item that was treated as stock but should be a fixed asset without losing accounting control.
+- [Buying](https://docs.frappe.io/erpnext/buying.md)
+  - **Introduction**
+    - [Introduction to Buying Module](https://docs.frappe.io/erpnext/buying.md)
+  - **Setup**
+    - [Supplier Essentials](https://docs.frappe.io/erpnext/supplier-essentials.md)
+    - [Supplier Group](https://docs.frappe.io/erpnext/supplier-group.md)
+    - [Supplier](https://docs.frappe.io/erpnext/supplier.md)
+    - [Buying Settings](https://docs.frappe.io/erpnext/buying-settings.md)
+  - **Features**
+    - [Purchase Transactions](https://docs.frappe.io/erpnext/purchase-transactions.md)
+    - [Material Request](https://docs.frappe.io/erpnext/material-request.md)
+    - [Purchase Return](https://docs.frappe.io/erpnext/purchase-return.md)
+    - [Request for Quotation](https://docs.frappe.io/erpnext/request-for-quotation.md)
+    - [Supplier Quotation](https://docs.frappe.io/erpnext/supplier-quotation.md)
+    - [Purchase Order](https://docs.frappe.io/erpnext/purchase-order.md)
+    - [Create Supplier Quotation through Supplier Portal](https://docs.frappe.io/erpnext/how-to-create-a-supplier-quotation-through-the-supplier-portal.md)
+    - [Supplier Scorecard](https://docs.frappe.io/erpnext/supplier-scorecard.md)
+    - [Customer Portal](https://docs.frappe.io/erpnext/customer-portal.md)
+  - **Reports**
+    - [Buying Reports](https://docs.frappe.io/erpnext/buying_reports.md)
+    - [Procurement Tracker Report](https://docs.frappe.io/erpnext/procurement-tracker-report.md)
+  - **Help Articles**
+    - [Maintaining Supplier's Item Code In the Item master](https://docs.frappe.io/erpnext/maintaining-suppliers-part-no-in-item.md)
+    - [Purchasing in Different UoM](https://docs.frappe.io/erpnext/purchasing-in-different-unit.md)
+    - [Amending Purchase Order after Submit](https://docs.frappe.io/erpnext/amending-purchase-order-after-submit.md)
+    - [Calculating Freight in taxes in ERPNext](https://docs.frappe.io/erpnext/calculatin-freight-in-taxes-in-erpnext.md)
+    - [Fetch shipping charges based item's value or weight](https://docs.frappe.io/erpnext/can-we-fetch-shipping-charges-based-items-value-or-weight-in-po.md)
+    - [Purchase invoice for Services](https://docs.frappe.io/erpnext/item-creation-not-required-in-purchase-invoice.md)
+    - [Procurement Cycle Overview](https://docs.frappe.io/erpnext/procurement-cycle-overview.md)
+  - [Buying Cycle Ledger Impact](<https://docs.frappe.io/erpnext/purchase-cycle-ledger-impact>)
+- [Selling](https://docs.frappe.io/erpnext/selling.md): Learn how ERPNext Selling connects customers, quotations, sales orders, deliveries, invoices, payments, pricing, and sales reports.
+  - [Introduction to Selling Module](https://docs.frappe.io/erpnext/selling.md): Learn how ERPNext Selling connects customers, quotations, sales orders, deliveries, invoices, payments, pricing, and sales reports.
+  - [Selling Cycle Ledger Impact](<https://docs.frappe.io/erpnext/selling-cycle-ledger-impact>)
+  - [Selling Settings](https://docs.frappe.io/erpnext/selling-settings.md): Configure ERPNext Selling Settings for customer defaults, pricing, transaction rules, commissions, subcontracting, and document naming.
+  - [Territory](https://docs.frappe.io/erpnext/territory.md): Learn how to create ERPNext Territories, organize regional hierarchies, assign customers, managers, and item-group sales targets.
+  - **Setup**
+    - **Customer**
+      - [Customer](https://docs.frappe.io/erpnext/customer.md): Learn how to create and configure Customers in ERPNext, add addresses and contacts, set sales defaults, credit limits, payment terms, and accounting.
+      - [Customer Group](https://docs.frappe.io/erpnext/customer-group.md): Learn how to create hierarchical Customer Groups in ERPNext and configure price lists, payment terms, receivable accounts, and credit limits.
+      - [Contact](https://docs.frappe.io/erpnext/contact.md): Learn how to create Contacts in ERPNext, add primary email and phone details, link people to multiple parties, and manage portal invitations.
+      - [Address](https://docs.frappe.io/erpnext/address.md): Learn how to create and link Addresses in ERPNext, choose billing and shipping defaults, apply country templates, and manage regional tax details.
+      - [Address Template](https://docs.frappe.io/erpnext/address-template.md): Learn how ERPNext Address Templates use country-specific Jinja and HTML to format addresses, configure a default fallback, and verify printed results.
+      - [Credit Limit](https://docs.frappe.io/erpnext/credit-limit.md): Learn how to set customer, customer group, and company credit limits in ERPNext, control sales exposure, and configure authorized overrides.
+      - [Customer, Contact and Address Relationship](https://docs.frappe.io/erpnext/customer-contact-and-address-relationship.md): Understand how ERPNext links Customers, Contacts, and Addresses, why they are separate, and how primary contact, billing, and shipping records are selected.
+    - [Terms And Conditions](https://docs.frappe.io/erpnext/terms-and-conditions.md): Learn how to create, apply, print, and manage reusable Terms and Conditions templates across ERPNext sales, buying, and HR transactions.
+  - **Sales Transactions**
+    - [Quotation](https://docs.frappe.io/erpnext/quotation.md): Create, price, submit, share, and convert Quotations in ERPNext, including items, taxes, payment terms, alternatives, and statuses.
+    - **Sales Order**
+      - [Sales Order](https://docs.frappe.io/erpnext/sales-order.md): Learn how to create and submit a Sales Order in ERPNext, add customers and items, apply pricing, and continue to delivery, billing, and payment.
+      - [Packing List](https://docs.frappe.io/erpnext/packing-list.md): Learn how ERPNext Packing Lists expand Product Bundles into their component Items for accurate picking, packing, delivery, and shipment records.
+      - [Sales Order Type: Sales, Maintenance, Shopping Cart](https://docs.frappe.io/erpnext/sales-order-type.md)
+      - [Maintenance Sales Orders](https://docs.frappe.io/erpnext/maintenance-sales-orders.md): Learn how to create Maintenance Sales Orders in ERPNext for service visits, maintenance schedules, recurring support, and follow-up activities.
+      - [Close Sales Order](https://docs.frappe.io/erpnext/close-sales-order.md): Learn how to close an ERPNext Sales Order, stop outstanding delivery or billing, understand its effects, and reopen the order when required.
+      - [Amending Sales Order after Submit](https://docs.frappe.io/erpnext/amending-sales-order-after-submit.md): Learn how to update item values or cancel and amend a submitted Sales Order in ERPNext while preserving linked transactions and the audit trail.
+      - [Partial Fulfilment of Sales Order](https://docs.frappe.io/erpnext/partial-fulfilment-of-sales-order.md): Learn how to partially deliver and invoice ERPNext Sales Orders using multiple documents, decimal quantities, returns, and mixed fulfilment.
+      - [Short Close Multiple Orders](https://docs.frappe.io/erpnext/how-to-short-close-multiple-orders-in-erpnext.md): Learn how to bulk close or reopen multiple Sales Orders in ERPNext while preserving fulfilled quantities and linked transactions.
+      - [Stock Reservation](<https://docs.frappe.io/erpnext/stock-reservation>)
+    - [Proforma Invoice](https://docs.frappe.io/erpnext/proforma-invoice.md): Create and manage Proforma Invoices from Sales Orders in ERPNext, including quantity-based and amount-based advance documents.
+    - [Delivery Note](<https://docs.frappe.io/erpnext/delivery-note>)
+    - [Sales Invoice](<https://docs.frappe.io/erpnext/sales-invoice>)
+    - [Payment Entry](<https://docs.frappe.io/erpnext/payment-entry>)
+    - [Sales Return](https://docs.frappe.io/erpnext/sales-return.md): Learn how to create complete or partial sales returns in ERPNext, receive returned stock, issue Credit Notes, and handle unpaid or paid invoices.
+    - [Blanket Order](https://docs.frappe.io/erpnext/blanket-order.md): Create Blanket Orders in ERPNext to manage long-term customer or supplier commitments, negotiated rates, validity, and released quantities.
+    - [Drop Ship](https://docs.frappe.io/erpnext/drop-shipping-in-erpnext.md): Set up drop shipping in ERPNext so suppliers deliver items directly to customers through linked Sales Orders and Purchase Orders.
+    - [Inter Company Invoices](https://docs.frappe.io/erpnext/inter-company-invoices.md): Create linked Sales and Purchase Invoices between companies in ERPNext and verify parties, accounts, taxes, stock, and balances.
+  - **Sales Performance and Incentives**
+    - [Sales Person](https://docs.frappe.io/erpnext/sales-person.md): Set up Sales Persons, hierarchies, contribution, commission rates, and sales targets in ERPNext for accurate performance reporting.
+    - [Sales Person Target Allocation](https://docs.frappe.io/erpnext/sales-person-target-allocation.md): Allocate Sales Person and Territory targets, apply Monthly Distribution, and review target variance in ERPNext.
+    - [Sales Commission](https://docs.frappe.io/erpnext/how-to-give-commission-to-sales-partner.md): Set a monthly Company sales target in ERPNext and compare it with submitted current-month sales for practical progress tracking.
+    - [Setting Company Sales Goal](https://docs.frappe.io/erpnext/setting-company-sales-goal.md): Calculate Sales Person contribution and incentives in ERPNext using commission rates and the Sales Team table on sales transactions.
+    - [Calculate Incentive For Sales Team](https://docs.frappe.io/erpnext/calculate-incentive-for-sales-team.md)
+    - [Sales Partner Commission](https://docs.frappe.io/erpnext/sales-partner.md): Set up Sales Partners, commission, targets, referrals, website details, and performance reports in ERPNext.
+    - [Sales Persons in the Sales Transactions](https://docs.frappe.io/erpnext/sales-persons-in-the-sales-transactions.md): Assign ERPNext Sales Persons to quotations, orders, deliveries, and invoices, split contribution, and review salesperson transaction reports.
+  - **Pricing, Promotions and Loyalty**
+    - [Pricing Rule](<https://docs.frappe.io/erpnext/pricing-rule>)
+    - [Price List](<https://docs.frappe.io/erpnext/price-lists>)
+    - [Applying a Discount](https://docs.frappe.io/erpnext/applying-discount.md): Apply item-level and transaction-level discounts in ERPNext and understand how discounts affect net rates, taxes, totals, and accounting.
+    - [Adding Margin](https://docs.frappe.io/erpnext/adding-margin.md): Add percentage or fixed margins to ERPNext quotation and sales order items manually or through Pricing Rules, with calculation examples.
+    - [Coupon Code](<https://docs.frappe.io/erpnext/coupon-code>)
+    - [Promotional Scheme](https://docs.frappe.io/erpnext/promotional-scheme.md): Configure ERPNext Promotional Schemes with quantity and amount slabs, party conditions, validity, priorities, and generated Pricing Rules.
+    - [Loyalty Program](https://docs.frappe.io/erpnext/loyalty-program.md): Set up ERPNext Loyalty Program tiers, earning and redemption factors, customer enrollment, point expiry, and Sales Invoice redemption.
+    - [Precent Item rate change in the Sales Cycle](https://docs.frappe.io/erpnext/change-the-rate-of-items-in-the-sales-cycle.md): Configure ERPNext to preserve, warn about, or stop item-rate changes between Sales Orders, Delivery Notes, and Sales Invoices.
+  - **Reports**
+    - [Sales Reports](https://docs.frappe.io/erpnext/sales-analytics.md): Choose and use ERPNext sales reports for orders, billing, customers, items, salespeople, targets, gross profit, and sales pipeline analysis.
+  - **Help Articles**
+    - [Setting up "Buy 1 Get 1 Free" Pricing Rule](https://docs.frappe.io/erpnext/setting-up-buy-1-get-1-free-pricing-rule.md): Create and test an ERPNext Product Discount Pricing Rule for buy-one-get-one-free and other free-item promotions.
+    - [Sales Invoice without an Item](https://docs.frappe.io/erpnext/sales-invoice-without-an-item.md): Create ERPNext Sales Invoices and Credit Notes for one-time charges without an Item Code by completing the required child-row fields.
+    - [Selling in Different UoM](https://docs.frappe.io/erpnext/Selling-in-different-UOM.md): Configure ERPNext UOM conversions, UOM-specific Item Prices, and sales transaction quantities for packs, cartons, units, and fractional measures.
+    - [Drop Ship Between Subsidiary Companies](https://docs.frappe.io/erpnext/assistance-sales-purchase-between-companies.md): Create ERPNext Sales Invoices and Credit Notes for one-time charges without an Item Code by completing the required child-row fields.
+    - [Request for Raw Materials from Sales Order](https://docs.frappe.io/erpnext/request-for-raw-materials-from-sales-order.md): Create an ERPNext Material Request for BOM raw materials directly from one submitted Sales Order, including exploded-item and ordered-quantity options.
+    - [Incoterm and Named Place](https://docs.frappe.io/erpnext/incoterm-and-named-place.md): Record an Incoterm and its named place on ERPNext sales and purchase transactions so delivery responsibilities are captured consistently.
+    - [Restrict Sales Users to specific Customers and Transactions](https://docs.frappe.io/erpnext/salesperson-permissions.md): Learn how to use ERPNext roles and User Permissions so sales users see only assigned Leads, Customers, and transactions linked to those Customers.
+- **ERPNext CRM**
+  - [Introduction to CRM](https://docs.frappe.io/erpnext/CRM.md): Learn how ERPNext CRM manages leads, opportunities, customers, activities, campaigns, and pipeline reporting, plus the planned version 17 transition.
+  - **Setup**
+    - [Lead Source](https://docs.frappe.io/erpnext/lead_source.md): Learn how to configure Lead Sources in ERPNext and use them to track where leads and sales opportunities originate.
+    - [Opportunity Type](https://docs.frappe.io/erpnext/opportunity_type.md): Learn how to configure Opportunity Types in ERPNext and categorize sales opportunities consistently.
+    - [Campaign](https://docs.frappe.io/erpnext/campaign.md): Learn how to create and use Campaigns in ERPNext to organize marketing activity and measure generated leads and opportunities.
+    - [CRM Settings](https://docs.frappe.io/erpnext/crm_settings.md): Configure ERPNext CRM Settings for lead naming, conversion, contact handling, and opportunity behavior.
+  - **Features**
+    - [Lead](https://docs.frappe.io/erpnext/lead.md): Learn how to create, qualify, assign, and convert Leads in ERPNext CRM.
+    - [Opportunity](https://docs.frappe.io/erpnext/opportunity.md): Learn how to create, track, quote, and close sales Opportunities in ERPNext CRM.
+    - [Appointment](https://docs.frappe.io/erpnext/appointment.md): Learn how to schedule and manage customer Appointments in ERPNext CRM.
+    - [Sales Stage](https://docs.frappe.io/erpnext/sales_stage.md): Configure Sales Stages in ERPNext to track the progress of opportunities through your sales process.
+    - [Contract](https://docs.frappe.io/erpnext/contract.md): Learn how to create and manage customer or supplier Contracts in ERPNext, including terms, dates, and fulfilment status.
+    - [Email Campaign](https://docs.frappe.io/erpnext/email-campaign.md): Learn how to create an Email Campaign in ERPNext using email templates, schedules, and recipient records.
+    - **Newsletter**
+      - [Email Group](https://docs.frappe.io/erpnext/email_group.md): Learn how to create and manage Email Groups and subscribers for ERPNext newsletters and campaigns.
+      - [Newsletter](https://docs.frappe.io/erpnext/newsletter.md): Learn how to create, test, schedule, and send Newsletters to subscribed Email Groups in ERPNext.
+  - **Tools**
+    - [Appointment Booking Settings](https://docs.frappe.io/erpnext/appointment-booking-settings.md): Configure ERPNext Appointment Booking Settings for availability, calendar scheduling, and customer bookings.
+    - [Social Media Settings](https://docs.frappe.io/erpnext/social-media-settings.md): Configure Social Media Settings in ERPNext for supported social publishing integrations.
+    - [Twitter Settings](https://docs.frappe.io/erpnext/twitter-settings.md): Configure the legacy Twitter integration settings in ERPNext and understand current availability limitations.
+    - [LinkedIn Settings](https://docs.frappe.io/erpnext/linkedin-settings.md): Configure the LinkedIn integration settings in ERPNext for publishing supported social posts.
+  - **Reports**
+    - [CRM Reports](https://docs.frappe.io/erpnext/crm_reports.md): Use ERPNext CRM Reports to review leads, opportunities, sales activity, conversions, and pipeline performance.
+    - [Sales Pipeline](https://docs.frappe.io/erpnext/sales-pipeline.md): Learn how to manage the ERPNext CRM sales pipeline from lead qualification through opportunity tracking, quotation, and conversion.
+    - [CRM Analytics](https://docs.frappe.io/erpnext/sales_funnel.md): Use ERPNext CRM Analytics to review the sales funnel, pipeline value, and opportunities by lead source across a selected period.
+  - **Help Articles**
+    - [Difference between Lead, Contact, and Customer](https://docs.frappe.io/erpnext/difference_between_lead_contact_and_customer.md): Understand when to use a Lead, Contact, or Customer in ERPNext and how these records relate.
+    - [Automate Lead Creation](https://docs.frappe.io/erpnext/automate_lead_capturing.md): Learn how ERPNext can create Leads from email, Web Forms, ecommerce activity, and data imports.
+- [Stock](https://docs.frappe.io/erpnext/stock.md)
+  - [Introduction to Stock Module](https://docs.frappe.io/erpnext/stock.md)
+  - [Warehouse](https://docs.frappe.io/erpnext/warehouse.md)
+  - **Setup**
+    - [Stock Masters](https://docs.frappe.io/erpnext/stock-masters.md)
+    - **Item**
+      - [Item](https://docs.frappe.io/erpnext/item.md)
+      - [Item Group](https://docs.frappe.io/erpnext/item-group.md)
+      - [Unit of Measure (UoM)](https://docs.frappe.io/erpnext/uom.md)
+      - [Serial and Batch](https://docs.frappe.io/erpnext/serial-and-batch.md)
+      - [Item Variants](https://docs.frappe.io/erpnext/item-variants.md)
+      - [Item Attribute](https://docs.frappe.io/erpnext/item-attribute.md)
+      - [Brand](https://docs.frappe.io/erpnext/brand.md)
+      - [Manufacturer](https://docs.frappe.io/erpnext/manufacturer.md)
+      - [Party Specific Item](https://docs.frappe.io/erpnext/party-specific-item.md)
+    - **Item Pricing**
+      - [Pricing](https://docs.frappe.io/erpnext/pricing.md)
+      - [Price Lists](https://docs.frappe.io/erpnext/price-lists.md)
+      - [Item Price](https://docs.frappe.io/erpnext/item-price.md)
+    - [Opening Stock](https://docs.frappe.io/erpnext/opening-stock.md)
+    - [Stock Settings](https://docs.frappe.io/erpnext/stock-settings.md)
+    - **Stock Accounting**
+      - [Accounting Of Inventory Stock](https://docs.frappe.io/erpnext/accounting-of-inventory-stock.md)
+      - [Perpetual Inventory](https://docs.frappe.io/erpnext/perpetual-inventory.md)
+      - [Periodic Inventory](https://docs.frappe.io/erpnext/periodic-inventory.md)
+    - **Inventory Valuation**
+      - [FIFO and Moving Average](https://docs.frappe.io/erpnext/fifo-and-moving-average.md)
+      - [Standard Valuation Rate](https://docs.frappe.io/erpnext/standard-valuation-rate.md)
+  - **Features**
+    - [Stock Transactions](https://docs.frappe.io/erpnext/stock-transactions.md)
+    - [Purchase Receipt](https://docs.frappe.io/erpnext/purchase-receipt.md)
+    - [Delivery Note](https://docs.frappe.io/erpnext/delivery-note.md)
+    - [Stock Entry](https://docs.frappe.io/erpnext/stock-entry.md)
+    - [Product Bundle](https://docs.frappe.io/erpnext/product-bundle.md)
+    - [Stock Reconciliation](https://docs.frappe.io/erpnext/stock-reconciliation.md)
+    - [Stock Reservation](https://docs.frappe.io/erpnext/stock-reservation.md)
+    - [Pricing Rule](https://docs.frappe.io/erpnext/pricing-rule.md): Create ERPNext Pricing Rules for rates, discounts, margins, free products, parties, quantities, dates, priorities, and cumulative conditions.
+    - [Stock Inspection](https://docs.frappe.io/erpnext/stock-inspection.md)
+    - **Serialized & Batches Inventory**
+      - [Batch](https://docs.frappe.io/erpnext/batch.md)
+      - [Serial Number](https://docs.frappe.io/erpnext/serial-no.md)
+      - [Serial and Batch Bundle](https://docs.frappe.io/erpnext/serial-and-batch-bundle.md)
+    - [Shipping Rule](https://docs.frappe.io/erpnext/shipping-rule.md)
+    - [Delivery Trip](https://docs.frappe.io/erpnext/delivery-trip.md)
+    - [Track Purchases In Accounts](https://docs.frappe.io/erpnext/track-purchases-in-accounts.md)
+    - [Landed Cost Voucher](https://docs.frappe.io/erpnext/stock-transactions-landed-cost-voucher.md)
+    - [Quality Inspection](https://docs.frappe.io/erpnext/quality-inspection.md)
+    - [Stock Adjustment / COGS with Negative Stock](https://docs.frappe.io/erpnext/stock-adjustment-cogs-with-negative-stock.md)
+    - [Stock Closing Entry](https://docs.frappe.io/erpnext/stock-closing-entry.md)
+    - [Disassembly Order](https://docs.frappe.io/erpnext/disassembly-order.md)
+    - [Inventory Account](https://docs.frappe.io/erpnext/inventory-account.md)
+    - [Inventory Dimension](https://docs.frappe.io/erpnext/inventory_dimension.md)
+    - [Managing Batch wise Inventory](https://docs.frappe.io/erpnext/managing-batch-wise-inventory.md)
+    - [Retaining Sample Stock](https://docs.frappe.io/erpnext/retain-sample-stock.md)
+    - [Auto Creation of Material Request](https://docs.frappe.io/erpnext/auto-creation-of-material-request.md)
+    - [Item Alternative](https://docs.frappe.io/erpnext/item-alternative.md)
+    - [Shipment](https://docs.frappe.io/erpnext/shipment.md)
+    - [Installation Note](https://docs.frappe.io/erpnext/installation-note.md)
+    - [Pick List](https://docs.frappe.io/erpnext/pick-list.md)
+    - [Putaway Rule](https://docs.frappe.io/erpnext/putaway-rule.md)
+    - [Packing Slip](https://docs.frappe.io/erpnext/packing-slip.md)
+    - [Landed cost Voucher](https://docs.frappe.io/erpnext/landed-cost-voucher.md)
+    - [Rules](https://docs.frappe.io/erpnext/rules.md)
+    - [Projected Quantity](https://docs.frappe.io/erpnext/projected-quantity.md)
+    - [Weekly Auto Repost](https://docs.frappe.io/erpnext/weekly-auto-repost.md)
+    - [Use Inline Serial / Batch Editor](https://docs.frappe.io/erpnext/use-inline-serial-batch-editor.md)
+    - [Use Serial No Wise Valuation](https://docs.frappe.io/erpnext/use-serial-no-wise-valuation.md)
+  - **Tools**
+    - [Stock Reposting Settings](https://docs.frappe.io/erpnext/stock-reposting-settings.md)
+    - [Repost Item Valuation](https://docs.frappe.io/erpnext/repost-item-valuation.md)
+  - **Reports**
+    - [Stock Ledger Report](https://docs.frappe.io/erpnext/stock-ledger.md)
+    - [Stock Level Report](https://docs.frappe.io/erpnext/stock-level-report.md)
+    - [Quick Stock Balance](https://docs.frappe.io/erpnext/quick-stock-balance.md)
+    - [Closing Stock Balance](https://docs.frappe.io/erpnext/closing-stock-balance.md)
+    - [Stock Value and Account Value Comparison Report](https://docs.frappe.io/erpnext/stock-value-account-value-comparison.md)
+    - [Stock Ledger Variance Report](https://docs.frappe.io/erpnext/stock-reposting.md)
+    - [Serial No and Batch Traceability Report](https://docs.frappe.io/erpnext/serial-and-batch-traceability-report.md)
+    - [Negative Batch Report](https://docs.frappe.io/erpnext/stock/reports/negative-batch-report.md)
+    - [Item Where Used Report](https://docs.frappe.io/erpnext/item-where-used-report.md)
+    - [Stock Ledger Entries of Cancelled Vouchers](https://docs.frappe.io/erpnext/stock-ledger-entries-of-cancelled-vouchers.md)
+    - [Stock Value Comparison](https://docs.frappe.io/erpnext/stock-value-comparison.md)
+  - **Help Articles**
+    - [Change Valuation Method](https://docs.frappe.io/erpnext/change-valuation-method.md)
+    - [Managing Fractions in UOM](https://docs.frappe.io/erpnext/managing-fractions-in-uom.md)
+    - [Serial Number Naming](https://docs.frappe.io/erpnext/serial-no-naming.md)
+    - [Delivery Note Negative Stock Error](https://docs.frappe.io/erpnext/delivery-note-stock-error.md)
+    - [Maintain Stock field Frozen in the Item master](https://docs.frappe.io/erpnext/maintain-stock-field-frozen-in-item-master.md)
+    - [Cannot enable Serial and Batch Number](https://docs.frappe.io/erpnext/not-able-to-select-has-serial-no-batch-option-in-item-list.md)
+    - [Value Out of Sync Error: Stock Balance and Stock Account Balance Syncing](https://docs.frappe.io/erpnext/stock-balance-and-stock-account-balance-syncing.md)
+    - [Linking stock warehouse and accounts](https://docs.frappe.io/erpnext/warehouse-ledger-link.md)
+    - [Allow Over Delivery/Billing](https://docs.frappe.io/erpnext/allow-over-delivery-billing-against-sales-order-upto-certain-limit.md)
+    - [Item Codification](https://docs.frappe.io/erpnext/item-codification.md)
+    - [Track Items Using Barcode](https://docs.frappe.io/erpnext/track-items-using-barcode.md)
+    - [Item Valuation Setup and Transactions](https://docs.frappe.io/erpnext/item-valuation-transactions.md)
+    - [FIFO and Moving Average calculation difference](https://docs.frappe.io/erpnext/calculation-of-valuation-rate-in-fifo-and-moving-average.md)
+    - [Serialised Item Valuation Rate calculation](https://docs.frappe.io/erpnext/how-is-valuation-rate-of-serialised-item-calculated-in-erpnext.md)
+    - [Perpetual Inventory for Non-stock Item](https://docs.frappe.io/erpnext/perpetual-inventory-for-non-stock-item.md)
+    - [Material Transfer from Delivery Note and Purchase Receipt](https://docs.frappe.io/erpnext/material-transfer-from-delivery-note.md)
+    - [Migrate To Perpetual Inventory](https://docs.frappe.io/erpnext/migrate-to-perpetual-inventory.md)
+    - [Purpose of Stock Received but not Billed](https://docs.frappe.io/erpnext/stock-received-but-not-billed.md)
+    - [Opening Stock Balance Entry for Serialized and Batch Item](https://docs.frappe.io/erpnext/opening-stock-balance-entry-for-serialized-and-batch-item.md)
+    - [Stock Entry Purpose](https://docs.frappe.io/erpnext/stock-entry-purpose.md)
+    - [Repack Entry](https://docs.frappe.io/erpnext/repack-entry.md)
+    - [Delivery from Sales Invoice](https://docs.frappe.io/erpnext/update-stock-option-in-sales-invoice.md)
+    - [Return Rejected Items](https://docs.frappe.io/erpnext/return-rejected-item.md)
+    - [Purpose of Stock Delivered But Not Billed](https://docs.frappe.io/erpnext/purpose-of-stock-delivered-but-not-billed.md)
+    - [How to create and print proforma invoice in ERPNext](https://docs.frappe.io/erpnext/how-to-create-and-print-proforma-invoice-in-erpnext.md)
+    - [Why is my valuation rate or stock value negative or abnormally high?](https://docs.frappe.io/erpnext/why-is-my-valuation-rate-or-stock-value-negative-or-abnormally-high.md)
+    - [How to Manage Material Transfers and Goods in Transit](https://docs.frappe.io/erpnext/how-to-manage-material-transfers-and-goods-in-transit.md)
+  - [Stock FAQs](https://docs.frappe.io/erpnext/faqs.md)
+- **Point of Sale**
+  - [Introduction](https://docs.frappe.io/erpnext/point-of-sale.md): Understand POS profiles, cashier sessions, invoices, payments, and closing. Choose a sales workflow and see when stock and accounting are consolidated.
+  - [Getting Started](https://docs.frappe.io/erpnext/point-of-sale/setup.md)
+  - [POS Profile](https://docs.frappe.io/erpnext/pos-profile.md)
+  - [POS Workflows](https://docs.frappe.io/erpnext/pos-workflows.md)
+  - [POS Invoice Consolidation](https://docs.frappe.io/erpnext/pos-invoice-consolidation.md)
+  - **Help Articles**
+    - [Loyalty points redemption in POS](https://docs.frappe.io/erpnext/loyalty-points-redemption-in-pos.md)
+- [Manufacturing](https://docs.frappe.io/erpnext/manufacturing.md)
+  - **Introduction**
+    - [Manufacturing in ERPNext](https://docs.frappe.io/erpnext/manufacturing.md)
+    - [Manufacturing Dashboard](https://docs.frappe.io/erpnext/manufacturing-dashboard.md)
+  - **Setup**
+    - [Bill Of Materials](https://docs.frappe.io/erpnext/bill-of-materials.md)
+    - [Workstation Type](https://docs.frappe.io/erpnext/workstation_type.md)
+    - [Manufacturing Operation](https://docs.frappe.io/erpnext/operation.md)
+    - [Workstation](https://docs.frappe.io/erpnext/workstation.md)
+    - [Routing](https://docs.frappe.io/erpnext/routing.md)
+  - **Features**
+    - [Production and Material Planning](https://docs.frappe.io/erpnext/production-and-material-planning.md)
+    - [Track Semi-Finished Goods](https://docs.frappe.io/erpnext/track-semi-finished-goods.md)
+    - [Stock Reservation for Work Order](https://docs.frappe.io/erpnext/stock-reservation-for-work-order.md)
+    - [Stock Reservation for Production Plan](https://docs.frappe.io/erpnext/stock-reservation-for-production-plan.md)
+    - [Material Requirements Planning (MRP)](https://docs.frappe.io/erpnext/material-requirements-planning-mrp.md)
+    - [Capacity Planning based on Work Order](https://docs.frappe.io/erpnext/capacity-planning.md)
+    - [Capacity Planning based on Production Order](https://docs.frappe.io/erpnext/capacity-planning-based-on-production-order.md)
+    - [Capacity Planning](https://docs.frappe.io/erpnext/production-and-material-planning-capacity-planning.md)
+    - [Downtime Entry](https://docs.frappe.io/erpnext/downtime-entry.md)
+    - [Secondary Items](https://docs.frappe.io/erpnext/secondary-items.md)
+    - [Production Plan Schedule](https://docs.frappe.io/erpnext/production-plan-schedule.md)
+    - [Alternative Finished Goods](https://docs.frappe.io/erpnext/alternative-finished-goods.md)
+    - [Batch Split](https://docs.frappe.io/erpnext/batch-split.md)
+    - [Production Plan Visualizer](https://docs.frappe.io/erpnext/production-plan-visualizer.md)
+  - **Tools**
+    - [BOM Update Tool](https://docs.frappe.io/erpnext/bom-update-tool.md)
+    - [BOM Comparison Tool](https://docs.frappe.io/erpnext/bom-comparison-tool.md)
+    - [Multi-level BOM Creator](https://docs.frappe.io/erpnext/bom-creator.md)
+  - **Important DocTypes**
+    - [Production Plan](https://docs.frappe.io/erpnext/production-plan.md)
+    - [Work Order](https://docs.frappe.io/erpnext/work-order.md): Create an ERPNext Work Order from a BOM, configure materials and transfers, track operations and costs with Job Cards, and record finished goods.
+    - [Job Card](https://docs.frappe.io/erpnext/job-card.md)
+    - [Plant Floor](https://docs.frappe.io/erpnext/plant-floor.md)
+  - **Reports**
+    - [Manufacturing Reports](https://docs.frappe.io/erpnext/manufacturing-reports.md)
+    - [Work Order Summary](https://docs.frappe.io/erpnext/work-order-summary.md)
+    - [BOM Search](https://docs.frappe.io/erpnext/bom-search.md)
+    - [Job Card Summary](https://docs.frappe.io/erpnext/job-card-summary.md)
+    - [BOM Stock Report](https://docs.frappe.io/erpnext/bom-stock-report.md)
+    - [BOM Operations Time](https://docs.frappe.io/erpnext/bom-operation-time.md)
+    - [BOM Explorer](https://docs.frappe.io/erpnext/bom_explorer.md)
+    - [Open Work Order Report](https://docs.frappe.io/erpnext/open-work-orders.md)
+    - [Forecasting Using Exponential Smoothing](https://docs.frappe.io/erpnext/demand-driven-forecasting.md)
+    - [Production Planning Report](https://docs.frappe.io/erpnext/production-planning-report.md)
+    - [Quality Inspection Summary](https://docs.frappe.io/erpnext/quality-inspction-summary.md)
+    - [Production Analytics](https://docs.frappe.io/erpnext/production-analytics.md)
+    - [Downtime Analysis](https://docs.frappe.io/erpnext/downtime-analysis.md)
+    - [Work Order Consumed Materials](https://docs.frappe.io/erpnext/work-order-consumed-materials.md)
+    - [Returned Materials Against Work Order](https://docs.frappe.io/erpnext/returned_materials_against_work_order.md)
+    - [Issued Items Against Work Order](https://docs.frappe.io/erpnext/consumed-materials-in-production.md)
+    - [BOM Stock Analysis](https://docs.frappe.io/erpnext/bom-stock-analysis.md)
+  - **Help Articles**
+    - [BOM Costing in different Currency](https://docs.frappe.io/erpnext/bom-costing-in-different-currency.md)
+    - [Managing Multi-level BOM](https://docs.frappe.io/erpnext/managing-multi-level-bom.md)
+    - [Raw material valuation](https://docs.frappe.io/erpnext/valuation-based-on-field-in-bom.md)
+    - [Material consumption](https://docs.frappe.io/erpnext/material_consumption.md)
+    - [Manufacturing without creating BOM](https://docs.frappe.io/erpnext/manufacturing-without-creating-bom.md)
+    - [Multiple finished goods with single raw material](https://docs.frappe.io/erpnext/how-to-handle-a-scenario-of-1-raw-material-multiple-finish-goods.md)
+    - [Customer Provided Items](https://docs.frappe.io/erpnext/customer-provided-items.md)
+    - [Production Scrap Management](https://docs.frappe.io/erpnext/scrap-management.md)
+  - [Manufacturing Settings](https://docs.frappe.io/erpnext/manufacturing-settings.md)
+- **Quality**
+  - [Introduction](https://docs.frappe.io/erpnext/quality-management.md)
+  - **Setup**
+    - [Quality Goal](https://docs.frappe.io/erpnext/quality_goal.md)
+    - [Quality Procedure](https://docs.frappe.io/erpnext/quality_procedure.md)
+  - **Features**
+    - [Quality Review](https://docs.frappe.io/erpnext/quality_review.md)
+    - [Quality Action](https://docs.frappe.io/erpnext/quality_action.md)
+    - [Non Conformance](https://docs.frappe.io/erpnext/non-conformance.md)
+    - [Quality Feedback Template](https://docs.frappe.io/erpnext/quality-feedback-template.md)
+    - [Quality Feedback](https://docs.frappe.io/erpnext/quality_feedback.md)
+    - [Quality Meeting](https://docs.frappe.io/erpnext/quality_meeting.md)
+- **Subcontracting**
+  - [Introduction](https://docs.frappe.io/erpnext/subcontracting-in-erpnext.md)
+  - [Subcontracting](https://docs.frappe.io/erpnext/subcontracting.md)
+  - [Subcontracting Inward](https://docs.frappe.io/erpnext/subcontracting-inward.md)
+  - [Reports](https://docs.frappe.io/erpnext/subcontracting/reports.md)
+- [Projects](https://docs.frappe.io/erpnext/project.md)
+  - **Introduction**
+    - [Project Overview](https://docs.frappe.io/erpnext/projects-introduction.md)
+  - **Setup**
+    - [Getting Started](https://docs.frappe.io/erpnext/projects/introduction/getting-started.md)
+    - [Project Settings](https://docs.frappe.io/erpnext/projects/project-settings.md)
+    - [Project Type](https://docs.frappe.io/erpnext/project-type.md)
+    - [Project Template](https://docs.frappe.io/erpnext/project-template.md)
+    - [Activity Type](https://docs.frappe.io/erpnext/activity-type.md)
+    - [Activity Cost](https://docs.frappe.io/erpnext/activity-cost.md)
+  - **Project & Task**
+    - [Project](https://docs.frappe.io/erpnext/project.md)
+    - [Tasks](https://docs.frappe.io/erpnext/tasks.md)
+    - [Project Views](https://docs.frappe.io/erpnext/project-views.md)
+    - [Project Update](https://docs.frappe.io/erpnext/project-update.md)
+    - [Project from Customer Portal](https://docs.frappe.io/erpnext/project-customer-portal.md)
+  - **Timesheet & Billing**
+    - [Time Tracking](https://docs.frappe.io/erpnext/time-tracking.md)
+    - [Timesheet](https://docs.frappe.io/erpnext/timesheets.md)
+    - [Time Based Payout](https://docs.frappe.io/erpnext/time-based-payout.md)
+    - [Sales Invoice from Timesheet](https://docs.frappe.io/erpnext/sales-invoice-from-timesheet.md)
+    - [Salary Slip from Timesheet](https://docs.frappe.io/erpnext/salary-slip-from-timesheet.md)
+    - [Timesheet against Work Order](https://docs.frappe.io/erpnext/timesheet-against-work-order.md)
+    - [Timer in Timesheets](https://docs.frappe.io/erpnext/timer-in-timesheets.md)
+  - **Costing & Expenses**
+    - [Project Costing](https://docs.frappe.io/erpnext/project-costing.md)
+    - [Project Profitability](https://docs.frappe.io/erpnext/project-profitability.md)
+    - [Project and Managing Expenses](https://docs.frappe.io/erpnext/project-expense-claims.md)
+  - **Reports**
+    - [Project Reports](https://docs.frappe.io/erpnext/project-reports.md)
+  - **Help Articles**
+    - [Make A Colorful Gantt Chart](https://docs.frappe.io/erpnext/make-a-colorful-gantt-chart.md)
+    - [Bulk Assign Tasks in a Project](https://docs.frappe.io/erpnext/bulk-assign-tasks-in-a-project.md)
+- **Support**
+  - [Support Issues](https://docs.frappe.io/erpnext/support-issues.md)
+  - [Support Settings](https://docs.frappe.io/erpnext/support-settings.md)
+  - [Service Level Agreement](https://docs.frappe.io/erpnext/service-level-agreement.md)
+  - [Support Reports](https://docs.frappe.io/erpnext/support_reports.md)
+  - [Warranty](https://docs.frappe.io/erpnext/warranty.md)
+  - [Warranty Claim](https://docs.frappe.io/erpnext/warranty-claim.md)
+  - [Issue](https://docs.frappe.io/erpnext/issue.md)
+  - [Issue Type](https://docs.frappe.io/erpnext/issue-type-and-priority.md)
+  - [Maintenance](https://docs.frappe.io/erpnext/maintenance.md)
+  - [Maintenance Visit](https://docs.frappe.io/erpnext/maintenance-visit.md)
+  - [Maintenance Schedule](https://docs.frappe.io/erpnext/maintenance-schedule.md)
+  - **Help Articles**
+    - [Automating Issue Assignments in ERPNext](https://docs.frappe.io/erpnext/automating-issue-assignments-to-support-team-in-erpnext.md)
+- **Data Model**
+  - **DocType**
+    - [DocType](https://docs.frappe.io/erpnext/doctype.md)
+    - [Naming Series](https://docs.frappe.io/erpnext/naming-series.md)
+    - [Document Naming Settings](https://docs.frappe.io/erpnext/document-naming-settings.md)
+    - [Document Naming Rule](https://docs.frappe.io/erpnext/document-naming.md)
+  - **Field Types**
+    - [Field Types](https://docs.frappe.io/erpnext/field-types.md)
+    - [Geolocation Field](https://docs.frappe.io/erpnext/geolocation-field.md)
+    - [Table MultiSelect Field](https://docs.frappe.io/erpnext/table-multiselect-field.md)
+    - [Dynamic Link Fields](https://docs.frappe.io/erpnext/dynamic-link-fields.md)
+    - [Signature Field](https://docs.frappe.io/erpnext/electronic-signature.md)
+    - [Creating Custom Link Field](https://docs.frappe.io/erpnext/creating-custom-link-field.md)
+  - **Working with Documents**
+    - [Document Versioning](https://docs.frappe.io/erpnext/document-versioning.md)
+    - [Renaming Documents](https://docs.frappe.io/erpnext/renaming-documents.md)
+    - [Duplicate Records](https://docs.frappe.io/erpnext/duplicate-record.md)
+    - [Edit Submitted Document](https://docs.frappe.io/erpnext/edit-submitted-document.md)
+    - [Delete Submitted Document](https://docs.frappe.io/erpnext/delete-submitted-document.md)
+    - [Deleting and Restoring Documents](https://docs.frappe.io/erpnext/restore-deleted-erpnext.md)
+    - [Restore Deleted Documents](https://docs.frappe.io/erpnext/how-to-restore-deleted-documents-in-erpnext.md)
+    - [Copy Pasting Multiple Records From Excel](https://docs.frappe.io/erpnext/copy-pasting-multiple-records-from-excel.md)
+    - [Checking Link Between Documents](https://docs.frappe.io/erpnext/check-link-between-documents.md)
+    - [Manage Tree Structure Masters](https://docs.frappe.io/erpnext/managing-tree-structure-masters.md)
+    - [Tree Master Renaming](https://docs.frappe.io/erpnext/tree-master-renaming.md)
+  - **Help Articles**
+    - [Set Current Value for Naming Series](https://docs.frappe.io/erpnext/naming-series-current-value.md)
+    - [Company-wise Naming Series](https://docs.frappe.io/erpnext/company-wise-naming-series.md)
+- **Customization**
+  - [Custom Field](https://docs.frappe.io/erpnext/custom-field.md)
+  - [Customize Form](https://docs.frappe.io/erpnext/customize-form.md)
+  - [Document Title](https://docs.frappe.io/erpnext/document-title.md)
+  - [Customizing Workspace](https://docs.frappe.io/erpnext/workspace.md)
+  - [Customizing Module Visibility](https://docs.frappe.io/erpnext/customizing-module-visibility.md)
+  - [Set default values for any field](https://docs.frappe.io/erpnext/setting-default-values-for-any-field-in-erpnext.md)
+  - [Fetching Data from a Document](https://docs.frappe.io/erpnext/fetching-data-from-a-document.md)
+  - [Fetching data from a linked master](https://docs.frappe.io/erpnext/how-to-add-master-link-and-fetch-data-from-the-same.md)
+  - [Data Visibility in Child Tables](https://docs.frappe.io/erpnext/customizing-data-visibility-in-child-table.md)
+  - [Sorting Order in List View](https://docs.frappe.io/erpnext/customizing-sorting-order-in-the-list-view.md)
+  - [Search Record by Specific Field](https://docs.frappe.io/erpnext/search-record-by-specific-field.md)
+  - [Disable Rounded Total](https://docs.frappe.io/erpnext/disable-rounded-total.md)
+  - [Document Title with multiple fields](https://docs.frappe.io/erpnext/document-title-with-multiple-fields.md)
+  - [Edit a Field after Submission](https://docs.frappe.io/erpnext/editing-a-field-after-submission.md)
+  - [Maximum Number of Fields in a Form](https://docs.frappe.io/erpnext/maximum-number-of-fields-in-a-form.md)
+  - **Custom Scripts**
+    - [Client Scripts](https://docs.frappe.io/erpnext/client-scripts.md)
+    - [Filter Options in Select Field](https://docs.frappe.io/erpnext/filter-options-in-select-field.md)
+    - [Fetch value in a child table field from Master](https://docs.frappe.io/erpnext/fetch value in child table field.md)
+    - [Fetching Values From Master](https://docs.frappe.io/erpnext/fetch-values-from-master.md)
+    - [Fetch the entire address text on a custom field](https://docs.frappe.io/erpnext/fetch-the-entire-address-text-on-a-custom-field.md)
+    - [Generate Item Code Based On Custom Logic](https://docs.frappe.io/erpnext/generate-item-code-based-on-custom-logic.md)
+- **Configurations**
+  - **Printing**
+    - [Printing](https://docs.frappe.io/erpnext/printing.md)
+    - [Print Format](https://docs.frappe.io/erpnext/print-format.md)
+    - [Print Format Builder](https://docs.frappe.io/erpnext/print-format-builder.md)
+    - [Print Settings](https://docs.frappe.io/erpnext/print-settings.md)
+    - [Print Style](https://docs.frappe.io/erpnext/print-style.md)
+    - [Printing and Branding](https://docs.frappe.io/erpnext/print.md)
+    - [Letter Head](https://docs.frappe.io/erpnext/letter-head.md)
+    - [Print Headings](https://docs.frappe.io/erpnext/print-headings.md)
+    - [Cheque Print Template](https://docs.frappe.io/erpnext/cheque-print-template.md)
+    - [Raw Printing](https://docs.frappe.io/erpnext/raw-printing.md)
+    - [Customize Print Format](https://docs.frappe.io/erpnext/records-print-format.md)
+    - [Custom Translations in Print Formats](https://docs.frappe.io/erpnext/custom-translations.md)
+    - **Help Articles**
+      - [Add/Remove Fields from Print Format](https://docs.frappe.io/erpnext/add-remove-fields-from-print-format.md)
+      - [Customize tables within your Print Format Builder](https://docs.frappe.io/erpnext/customise-your-items-tables-within-your-print-format-builder.md)
+      - [Customizing Field Visibility in Print Format](https://docs.frappe.io/erpnext/making-fields-visible-in-print-format.md)
+      - [Remove Description in Print Format](https://docs.frappe.io/erpnext/removing-description-removed-item-code-and-name.md)
+      - [Remove Link at the Bottom of the Print Page](https://docs.frappe.io/erpnext/remove-link-at-the-bottom-of-the-print-page.md)
+      - [Print "Centavo" in Words for USD](https://docs.frappe.io/erpnext/centavo-being-printed-in-words-for-usd.md)
+      - [Fetch child table values using Jinja tags](https://docs.frappe.io/erpnext/fetch-child-table-values-using-jinja-tags.md)
+  - **Reporting**
+    - [Using Prepared Report](https://docs.frappe.io/erpnext/prepared-report.md)
+    - [Making Custom Reports](https://docs.frappe.io/erpnext/making-custom-reports.md)
+    - [Deleting Custom Reports](https://docs.frappe.io/erpnext/deleting-custom-reports.md)
+    - [Letter Head in the Report](https://docs.frappe.io/erpnext/letter-head-in-the-report.md)
+    - [Add columns in Standard Report and Export](https://docs.frappe.io/erpnext/how-to-add-columns-in-the-standard-report-and-export.md)
+    - [Energy Point System](https://docs.frappe.io/erpnext/energy-point-system.md)
+  - **Email & Notifications**
+    - [Email Settings](https://docs.frappe.io/erpnext/email.md)
+    - [Email Domain](https://docs.frappe.io/erpnext/email-domain.md)
+    - [Email Account](https://docs.frappe.io/erpnext/email-account.md)
+    - [Email Template](https://docs.frappe.io/erpnext/email-template.md)
+    - [Email Digest](https://docs.frappe.io/erpnext/email-digest.md)
+    - [Email Dropbox](https://docs.frappe.io/erpnext/email-dropbox.md)
+    - [Email Inbox](https://docs.frappe.io/erpnext/email-inbox.md)
+    - [Linking Emails to Documents](https://docs.frappe.io/erpnext/linking-emails-to-document.md)
+    - [Sending Email from any Document](https://docs.frappe.io/erpnext/sending-email.md)
+    - [Auto Email Reports](https://docs.frappe.io/erpnext/auto-email-reports.md)
+    - [Notification](https://docs.frappe.io/erpnext/notifications.md)
+    - [Document Follow](https://docs.frappe.io/erpnext/document-follow.md)
+    - [SMS Settings](https://docs.frappe.io/erpnext/sms-setting.md)
+    - **Help Articles**
+      - [Include Document Link in Notification Email](https://docs.frappe.io/erpnext/include-document-link-in-notification-email.md)
+      - [Adding Attachments to Outgoing Messages](https://docs.frappe.io/erpnext/adding-attachments-to-outgoing-messages.md)
+      - [Configuring A Reply-To Email Address](https://docs.frappe.io/erpnext/configuring-a-reply-to-email-address-in-erpnext.md)
+      - [Setting up Sendgrid SMTP Email in ERPNext](https://docs.frappe.io/erpnext/setting-up-sendgrid-smtp-email-in-erpnext.md)
+      - [Email Error in Sending or Receiving](https://docs.frappe.io/erpnext/email-error.md)
+      - [What if Emails are not being received by the Recipients?](https://docs.frappe.io/erpnext/what-if-emails-are-not-being-received-by-the-recipients.md)
+      - [Sync DocTypes with Events Calendar](https://docs.frappe.io/erpnext/how-to-sync-doc-types-with-calendar.md)
+  - **Workflows**
+    - [Workflows](https://docs.frappe.io/erpnext/workflows.md)
+    - [Workflow](https://docs.frappe.io/erpnext/workflow.md)
+    - [Workflow State](https://docs.frappe.io/erpnext/workflow-state.md)
+    - [Workflow Actions](https://docs.frappe.io/erpnext/workflow-actions.md)
+    - [Workflow Transition Tasks](https://docs.frappe.io/erpnext/workflow-transition-tasks.md)
+    - [Authorization Rule](https://docs.frappe.io/erpnext/authorization-rule.md)
+    - **Help Articles**
+      - [Easy steps to setup Workflow](https://docs.frappe.io/erpnext/easy-steps-to-setup-workflow.md)
+      - [Setting Workflows on Masters](https://docs.frappe.io/erpnext/setting-workflows-on-masters.md)
+  - **Automation**
+    - [Automation](https://docs.frappe.io/erpnext/automation.md)
+    - [Assignment Rule](https://docs.frappe.io/erpnext/assignment-rule.md)
+    - [Auto Repeat](https://docs.frappe.io/erpnext/auto-repeat.md)
+    - [Milestone Tracking](https://docs.frappe.io/erpnext/milestone-tracker.md)
+- **Integrations**
+  - [Integration Categories](https://docs.frappe.io/erpnext/erpnext_integration.md)
+  - [Google Settings](https://docs.frappe.io/erpnext/google_settings.md)
+  - [Setting up LDAP](https://docs.frappe.io/erpnext/ldap-integration.md)
+  - [Google Calendar Integration](https://docs.frappe.io/erpnext/google_calendar.md)
+  - [Setting up fairlogin](https://docs.frappe.io/erpnext/fairlogin-integration.md)
+  - [Google Contacts Integration](https://docs.frappe.io/erpnext/google_contacts.md)
+  - [Setting Up Dropbox Backups](https://docs.frappe.io/erpnext/dropbox-backup.md)
+  - [Google Maps Integration](https://docs.frappe.io/erpnext/google_maps.md)
+  - [Google Drive Integration](https://docs.frappe.io/erpnext/google_drive.md)
+  - [Upload Backups to Amazon S3](https://docs.frappe.io/erpnext/aws_s3.md)
+  - [Plaid Integration](https://docs.frappe.io/erpnext/plaid_integration.md)
+  - [Shopify Integration](https://docs.frappe.io/erpnext/shopify_integration.md)
+  - [WooCommerce Integration](https://docs.frappe.io/erpnext/woocommerce_integration.md)
+  - [Amazon SP-API Integration](https://docs.frappe.io/erpnext/amazon_integration.md)
+  - [Unicommerce Integration](https://docs.frappe.io/erpnext/unicommerce_integration.md)
+  - [Zenoti Integration](https://docs.frappe.io/erpnext/zenoti_integration.md)
+  - [ERPNext Shipping](https://docs.frappe.io/erpnext/erpnext_shipping.md)
+  - [Setting up PayPal](https://docs.frappe.io/erpnext/paypal-integration.md)
+  - [RazorPay Integration](https://docs.frappe.io/erpnext/razorpay-integration.md)
+  - [Setting up GoCardless](https://docs.frappe.io/erpnext/gocardless-integration.md)
+  - [Setting up Stripe](https://docs.frappe.io/erpnext/stripe-integration.md)
+  - [Setting up Braintree](https://docs.frappe.io/erpnext/braintree-integration.md)
+  - [Paytm Integration](https://docs.frappe.io/erpnext/paytm-integration.md)
+  - [M-Pesa Integration](https://docs.frappe.io/erpnext/mpesa-integration.md)
+  - [Exotel Integration](https://docs.frappe.io/erpnext/exotel_integration.md)
+  - [DATEV Integration](https://docs.frappe.io/erpnext/datev-integration.md)
+  - [Integrating ERPNext with other Applications](https://docs.frappe.io/erpnext/integrating-erpnext-with-other-applications.md)
+  - [ERPNext Chat with Raven](https://docs.frappe.io/erpnext/erpnext-chat-with-raven.md)
+- [Regional](https://docs.frappe.io/erpnext/regional.md)
+  - [India Compliance](https://docs.frappe.io/erpnext/india-compliance-app.md)
+  - [Regional](https://docs.frappe.io/erpnext/regional.md)
+  - [Translations](https://docs.frappe.io/erpnext/translations.md)
+  - [Requirements for France](https://docs.frappe.io/erpnext/france.md)
+  - [Sales and Payment Transactions](https://docs.frappe.io/erpnext/local_overrides.md)
+  - [Le Fichier des Écritures Comptables \[FEC\]](https://docs.frappe.io/erpnext/fichier_des_ecritures_comptables.md)
+  - [Lower Deduction Certificate](https://docs.frappe.io/erpnext/lower-deduction-certificate.md)
+  - [TDS Setup for India](https://docs.frappe.io/erpnext/tds-setup-india.md)
+  - [Requirements for Italy](https://docs.frappe.io/erpnext/italy.md)
+  - [Importing e-Invoice from Supplier](https://docs.frappe.io/erpnext/import-e-invoice.md)
+  - [Requirements for United Arab Emirates](https://docs.frappe.io/erpnext/united_arab_emirates.md)
+  - [UAE Regional Fields](https://docs.frappe.io/erpnext/UAE-regional-fields.md)
+  - [UAE VAT 201 Report in ERPNext](https://docs.frappe.io/erpnext/uae-vat-201-report.md)
+  - [VAT/EXCISE Tax Implementation for UAE/KSA](https://docs.frappe.io/erpnext/uae-vat-setup.md)
+  - [Requirements for South Africa](https://docs.frappe.io/erpnext/south_africa.md)
+  - [VAT Audit Report](https://docs.frappe.io/erpnext/vat_audit_report.md)
+  - [KSA VAT Management and Reporting](https://docs.frappe.io/erpnext/simplified_ksa_vat_management_and_reporting.md)
+  - [Regional Chart of Accounts](https://docs.frappe.io/erpnext/regional-chart-of-accounts.md)
+- **E-commerce**
+  - [Set Up E-commerce](https://docs.frappe.io/erpnext/set_up_e_commerce.md)
+  - [E Commerce Settings](https://docs.frappe.io/erpnext/e_commerce_settings.md)
+  - [Website Item](https://docs.frappe.io/erpnext/website_item.md)
+  - [Product Listing](https://docs.frappe.io/erpnext/product-listing.md)
+  - [Item Group-wise Product Listing](https://docs.frappe.io/erpnext/item_group_wise_product_listing.md)
+  - [Shopping Cart](https://docs.frappe.io/erpnext/shopping-cart.md)
+  - [Shop by Category](https://docs.frappe.io/erpnext/shop_by_category.md)
+  - [Coupon Code](https://docs.frappe.io/erpnext/coupon-code.md): Configure ERPNext Coupon Codes with Pricing Rules, validity and usage limits, then apply promotional or gift-card codes in the web store.
+  - [Wishlist](https://docs.frappe.io/erpnext/wishlist.md)
+  - [Reviews and Ratings](https://docs.frappe.io/erpnext/reviews_and_rating.md)
+  - [E-commerce Search](https://docs.frappe.io/erpnext/e_commerce_search.md)
+  - [Installing RediSearch to enable fast E-commerce Search](https://docs.frappe.io/erpnext/installing_redisearch_to_enable_super_fast_e_commerce_search.md)
+  - [Store Landing Page](https://docs.frappe.io/erpnext/store-landing-page.md)
+  - [E-commerce Integrations for ERPNext](https://docs.frappe.io/erpnext/e-commerce-integrations-for-erpnext.md)
+- [Website](https://docs.frappe.io/erpnext/website.md)
+  - [Website Setup](https://docs.frappe.io/erpnext/website.md)
+  - [Website Theme](https://docs.frappe.io/erpnext/website-theme.md)
+  - [Website Settings](https://docs.frappe.io/erpnext/website-settings.md)
+  - [Homepage](https://docs.frappe.io/erpnext/homepage.md)
+  - [Website Components](https://docs.frappe.io/erpnext/website-components.md)
+  - [Web Page](https://docs.frappe.io/erpnext/web-page.md)
+  - [Web Page Builder](https://docs.frappe.io/erpnext/web-page-builder.md)
+  - [Web Forms](https://docs.frappe.io/erpnext/web-form.md)
+  - [Website Route Meta](https://docs.frappe.io/erpnext/website-route-meta.md)
+  - [Blogs](https://docs.frappe.io/erpnext/blogs.md)
+  - [Blog Post](https://docs.frappe.io/erpnext/blog-post.md)
+  - [Portal Login](https://docs.frappe.io/erpnext/portal-login.md)
+  - **Help Articles**
+    - [Disable Signup on ERPNext Website](https://docs.frappe.io/erpnext/disable-signup.md)
+    - [Website Home Page](https://docs.frappe.io/erpnext/website-home-page.md)
+    - [Website Banner Resizing](https://docs.frappe.io/erpnext/website-banner.md)
+    - [3 Step SEO for your ERPNext Website](https://docs.frappe.io/erpnext/how-to-setup-seo-for-your-website-on-erpnext.md)
+    - [2 Step 301 Redirect in your ERPNext Website](https://docs.frappe.io/erpnext/2-step-301-redirect-in-your-erpnext-website.md)
+    - [Feedback Request Using a Web Form](https://docs.frappe.io/erpnext/feedback-request-using-web-form.md)
+- **Industry**
+  - [Healthcare Module in ERPNext](https://docs.frappe.io/erpnext/frappe-healthcare.md)
+  - [ERPNext for Service Organization](https://docs.frappe.io/erpnext/erpnext-for-services-organization.md)
+  - [Non-profit Module in ERPNext](https://docs.frappe.io/erpnext/non-profit.md)
+  - [Education Module in ERPNext](https://docs.frappe.io/erpnext/education-module-in-erpnext.md)
+  - [Agriculture Module in ERPNext](https://docs.frappe.io/erpnext/agriculture-module-in-erpnext.md)
+- [Help Articles](https://docs.frappe.io/erpnext/help-articles.md)
+  - [Help Articles Index](https://docs.frappe.io/erpnext/help-articles.md)
+  - [Report Showing Multiple Rows for One Document](https://docs.frappe.io/erpnext/report-showing-multiple-rows-for-one-document.md)
+  - [Document Naming for Avoiding tabSeries Issues](https://docs.frappe.io/erpnext/document-naming-for-avoiding-tab-series-issues.md)

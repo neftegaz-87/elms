@@ -1,0 +1,358 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B09-elms-caddy-edge-cutover
+plan_id: T-B09-elms-caddy-edge-cutover
+epic_id: T-B09-elms-caddy-edge-cutover
+date: '2026-11-01'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: bfd19691f3361e10383a6972b1b7c13fe0cc995b19da3e1582fa5e7548529f9e
+verify_scope: full
+suite_scope: full
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: full
+  scope_signals: [backend, api, wire, security, reliability, observability, brownfield, compatibility]
+  selected:
+    - id: contract_acceptance
+      name: Contract and acceptance criteria tests
+      status: fail
+      evidence: verify-qa found 3 contract gaps in FR-005 old-route verification, Done-when forced-failure restoration, and RC-003 unmatched path 404 fallback
+    - id: regression
+      name: Changed behavior and prior-defect regression tests
+      status: pass
+      evidence: bin/pytest -q --tb=line — 91 passed, 2 skipped; PYTHONPATH=. pytest -q tests/infra/ tests/bitrix/ — 75 passed
+    - id: backend_unit_component
+      name: Backend unit and component tests
+      status: pass
+      evidence: edge cutover CLI, predecessor evidence gate, port inspector, and restoration commands — 38 infra tests passed
+    - id: backend_integration_state
+      name: Backend integration and state tests
+      status: fail
+      evidence: disposable rollback drill contract proves container stop and host Caddy systemctl start, but lacks automated restoration after forced switch failure and old-route probe
+    - id: api_contract
+      name: API contract, schema, status, and error tests
+      status: pass
+      evidence: edge cutover status inspection JSON contract, preflight validation, and structured rollback outcome verification
+    - id: data_persistence_migration
+      name: Data persistence, migration, idempotency, and rollback tests
+      status: pass
+      evidence: caddy-data and caddy-config named volumes preserve ACME and configuration state; state volumes are never deleted during rollback
+    - id: live_http_smoke
+      name: Live HTTP smoke tests
+      status: pass
+      evidence: "timeout -k 10s 300s bash scripts/live_smoke.sh — exit 0; typed live evidence at 2026-11-01T17:18:50Z"
+    - id: negative_error_paths
+      name: Negative, validation, denial, timeout, and recovery tests
+      status: fail
+      evidence: missing/unapproved/no-execute flags rejected, but forced switch failure recovery and old-route verification are incomplete
+    - id: security_owasp
+      name: Security and OWASP spot-check tests
+      status: pass
+      evidence: host private key mounts prohibited, internal services remain private, non-secret predecessor evidence fixture, and credential leak scan
+    - id: performance_resilience
+      name: Performance, timeout, retry, load, and resilience tests
+      status: pass
+      evidence: serialized flock cutover lock (ELMS_EDGE_LOCK), fail-closed occupied-port check, and 15-minute rollback budget contract
+    - id: observability
+      name: Logging, metrics, tracing, and failure-observability tests
+      status: pass
+      evidence: status command JSON output (http_80_in_use, https_443_in_use, staged_18080_in_use) and structured execution logs
+    - id: cleanup_sot
+      name: Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests
+      status: pass
+      evidence: sunset inventory scan confirming removal of direct Compose public ports, catch-all proxy routes, and unapproved cutover instructions
+  not_applicable:
+    - id: frontend_build_assets
+      reason: No frontend source, styles, or client assets were altered in this edge routing and cutover infrastructure epic.
+    - id: browser_functional
+      reason: No browser user flows were modified; edge routing reverse proxies to existing frontend and Keycloak services.
+    - id: wire_journey
+      reason: Edge cutover provides infrastructure L4/L7 routing and host wrappers rather than new browser-to-API user journeys.
+    - id: auth_session_rbac
+      reason: No application RBAC or session semantics changed; Keycloak routing boundary preserves existing SSO contract.
+    - id: external_integration
+      reason: Production Let's Encrypt ACME issuance and live public DNS remain operator maintenance-window actions outside repository tests.
+    - id: async_jobs_workers_webhooks
+      reason: No Celery/RQ background workers or webhook endpoints were altered in this epic.
+    - id: accessibility
+      reason: No UI markup or visual presentation was modified.
+    - id: responsive_compatibility
+      reason: No client viewport or layout presentation was modified.
+    - id: visual_states
+      reason: No frontend styling, CSS, or visual states were altered.
+    - id: console_network
+      reason: No browser client runtime scripts were added or modified.
+    - id: content_i18n
+      reason: Operator runbook documentation is in English/technical Markdown, not localized product strings.
+    - id: exploratory
+      reason: Deterministic contract tests, unit suites, and disposable drill cover declared CLI and edge routing behaviors.
+  not_run: []
+
+scope:
+  - task: T-B09-elms-caddy-edge-cutover
+  - epic: T-B09-elms-caddy-edge-cutover
+  - steps: s01-s03
+  - "files: docker/compose.prod.yaml, docker/compose.prod.staged.yaml, docker/compose.prod.edge.yaml, docker/caddy/Caddyfile, docker/caddy/Caddyfile.staged, scripts/infra/edge_cutover.py, tests/infra/test_production_contracts.py, tests/infra/fixtures/edge-evidence.json, docs/operations/elms-production.md"
+
+ac_plus:
+  - "FR-001: staged Caddy binds only localhost/high ports (18080) and does not alter DNS, firewall or host Caddy."
+  - "FR-002: public switch requires fresh predecessor evidence, owner approval and serialized lock."
+  - "FR-003: container Caddy is sole 80/443 owner after switch; DB/Redis/backend/Keycloak/Vault remain private."
+  - "FR-004: Caddy owns persistent ACME state via named volumes; host private keys are never copied."
+  - "FR-005: rollback releases container ports, restores host Caddy via systemctl, and verifies old route."
+  - "RC-001: ELMS/Frappe host routes to frontend:8080 and Auth host routes to keycloak:8080."
+  - "RC-002: Review handoff URL remains a first-party review service contract and does not become a catch-all proxy."
+  - "RC-003: /healthz is explicit edge health; unknown host/path does not get fake 200."
+  - "Done when: Missing predecessor evidence or approval exits before changing host Caddy; forced failure restores old edge and proves it."
+
+ac_minus:
+  - Live stopping of production host Caddy or live acquisition of ports 80/443 during tests or outside scheduled maintenance window.
+  - Modifying production DNS records, external cloud firewall rules, or host network interfaces.
+  - Live ACME certificate issuance against public Let's Encrypt servers in CI/local environments.
+  - Copying host private TLS keys into container filesystems or repository.
+  - Automatic edge cutover execution from CI pipelines.
+
+section_011:
+  - "T-B05 owns the base production and staged Compose stack; T-B06 owns Vault preflight; T-B07 owns backup freshness/restore rehearsal; T-B08 owns release manifests and deploy wrapper."
+  - Container Caddy is the sole owner of 80/443 after cutover; all internal services remain on the private network.
+  - Rollback stops container Caddy, restores host Caddy via systemctl start caddy, and checks systemctl is-active without deleting data volumes.
+
+prior_blockers:
+  - none
+
+coverage_map:
+  - id: FR-001
+    kind: AC
+    scenario: Staged Caddy binds only localhost high port (18080) and does not touch public ports or host Caddy.
+    evidence: "docker/compose.prod.staged.yaml; tests/infra/test_production_contracts.py:test_caddy_staged_and_edge_routing_contract -> PASS"
+    status: pass
+  - id: FR-002
+    kind: AC
+    scenario: Public switch requires fresh predecessor evidence (<= 24h), explicit --approved and --execute flags, and serialized cutover lock.
+    evidence: "scripts/infra/edge_cutover.py:execute; tests/infra/test_production_contracts.py:test_edge_switch_requires_approval_and_evidence -> PASS"
+    status: pass
+  - id: FR-003
+    kind: AC
+    scenario: Container Caddy is sole owner of 80/443 after switch; internal DB, Redis, backend, Keycloak, and Vault remain unexposed.
+    evidence: "docker/compose.prod.yaml; docker/compose.prod.edge.yaml; scripts/infra/edge_cutover.py:preflight -> PASS"
+    status: pass
+  - id: FR-004
+    kind: AC
+    scenario: Caddy owns persistent ACME state via named volumes; no host private key mounts exist.
+    evidence: "docker/compose.prod.yaml named volumes caddy-data/caddy-config; tests/infra/test_production_contracts.py:test_caddy_staged_and_edge_routing_contract -> PASS"
+    status: pass
+  - id: FR-005
+    kind: AC
+    scenario: Rollback stops container Caddy, releases ports 80/443, restores host Caddy via systemctl start caddy, and verifies active state.
+    evidence: "scripts/infra/edge_cutover.py:execute; tests/infra/test_production_contracts.py:test_edge_rollback_drill_contract -> GAP: rollback verifies only systemctl is-active, missing old-route check"
+    status: fail
+  - id: RC-001
+    kind: AC
+    scenario: ELMS/Frappe host routes to frontend:8080 and Auth host routes to keycloak:8080.
+    evidence: "docker/caddy/Caddyfile; docker/caddy/Caddyfile.staged; tests/infra/test_production_contracts.py:test_caddy_staged_and_edge_routing_contract -> PASS"
+    status: pass
+  - id: RC-002
+    kind: AC
+    scenario: Review handoff URL remains a first-party review service contract and does not become a catch-all proxy.
+    evidence: "docker/caddy/Caddyfile; docker/caddy/Caddyfile.staged; tests/infra/test_production_contracts.py:test_caddy_staged_and_edge_routing_contract -> PASS"
+    status: pass
+  - id: RC-003
+    kind: AC
+    scenario: /healthz is explicit edge health returning 200; unmatched routes return 404 and do not get fake 200.
+    evidence: "docker/caddy/Caddyfile; docker/caddy/Caddyfile.staged; tests/infra/test_production_contracts.py:test_caddy_staged_and_edge_routing_contract -> GAP: public HTTP Caddy blocks match /healthz but lack explicit unmatched-path 404 fallback evidence"
+    status: fail
+  - id: DONE-001
+    kind: AC
+    scenario: Missing predecessor evidence or approval exits before changing host Caddy; forced failure restores old edge and proves it.
+    evidence: "tests/infra/test_production_contracts.py:test_edge_evidence_stale_or_missing; test_edge_rollback_drill_contract -> GAP: forced switch failure does not automatically restore/prove old edge"
+    status: fail
+  - id: OUT-001
+    kind: AC_MINUS
+    scenario: No immediate host Caddy stop, automatic switch from CI, certificate copying, or public internal services.
+    evidence: "scripts/infra/edge_cutover.py; docker/compose.prod.yaml; docs/operations/elms-production.md:223-281 -> PASS"
+    status: pass
+  - id: SECTION-011-001
+    kind: section_011
+    scenario: Boundary isolation across T-B05 through T-B09; container Caddy sole port ownership; fail-closed systemd restoration.
+    evidence: scripts/infra/edge_cutover.py; docs/operations/elms-production.md; full infra contract suite -> PASS
+    status: pass
+
+review:
+  status: fail
+  scope: s01-s03 Caddy configuration, edge cutover preflight/switch/rollback CLI, predecessor evidence gate, and operator documentation
+  findings:
+    - "B1: rollback verifies only systemctl is-active without old route verification"
+    - "B2: forced switch failure does not exercise automated restoration and proof of old edge"
+    - "B3: public HTTP blocks lack explicit unmatched path 404 fallback handling"
+  notes: "Identified 3 eligible blockers in verify-qa gate audit."
+
+test_audit:
+  status: pass
+  checks:
+    - Test assertions verify exit codes, stdout/stderr messages, lock acquisition, docker compose call arguments, and systemctl execution order.
+    - Disposable rollback drill uses fake docker and systemctl test executables capturing real argument invocations without mutating developer host.
+    - Credential scan verifies no secrets or private keys leaked in predecessor evidence fixture.
+    - Pre-existing 2 test skips in Frappe application suite remain untouched and unrelated to edge cutover.
+  findings: []
+
+browser:
+  status: skipped
+  stack_profile: BACK edge infrastructure and live HTTP profile; no browser UI changes in T-B09
+  evidence_file: ''
+  last_run_at: ''
+  journeys: []
+  artifacts: []
+  reason: Edge cutover is an infrastructure reverse-proxy and host cutover layer; user-facing browser UI was not changed.
+
+retro:
+  status: done
+  defect_missed: Rollback lacked explicit old-route HTTP/curl verification, switch failure drill did not automatically trigger and prove restoration, and Caddyfile public HTTP lacked unmatched-path 404 fallback.
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: Ensure complete failure-path verification and old-route proof are automated in cutover CLI and disposable drills.
+
+sunset_inventory_scan:
+  status: pass
+  scanned_at: '2026-11-01'
+  plan_ref: memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md
+  rows:
+    - symbol: canonical_compose_public_port_bindings
+      kind: B
+      command: '! grep -E "ports:" docker/compose.prod.yaml'
+      result: pass
+      prod_callers: []
+      notes: Canonical compose has no public port bindings.
+    - symbol: catch_all_proxy_definitions
+      kind: C
+      command: '! grep -E "handle \{\s*reverse_proxy" docker/caddy/Caddyfile'
+      result: pass
+      prod_callers: []
+      notes: Strict host matching only; catch-all returns 404 in staged.
+    - symbol: host_private_key_mounts
+      kind: C
+      command: '! grep -E -i "(\.key|private_key|privkey\.pem)" docker/compose.prod.yaml docker/compose.prod.edge.yaml'
+      result: pass
+      prod_callers: []
+      notes: No host private key mounts in compose configurations.
+    - symbol: unauthenticated_edge_switch_paths
+      kind: B
+      command: rg -n "approved.*execute" scripts/infra/edge_cutover.py
+      result: pass
+      prod_callers: [scripts/infra/edge_cutover.py]
+      notes: Switch and rollback strictly require --approved and --execute.
+    - symbol: stale_predecessor_evidence_acceptance
+      kind: C
+      command: rg -n "evidence_is_fresh" scripts/infra/edge_cutover.py
+      result: pass
+      prod_callers: [scripts/infra/edge_cutover.py]
+      notes: Predecessor evidence requires passing gates and mtime <= 24h.
+    - symbol: concurrent_unlocked_cutover_execution
+      kind: C
+      command: rg -n "cutover_lock" scripts/infra/edge_cutover.py
+      result: pass
+      prod_callers: [scripts/infra/edge_cutover.py]
+      notes: Flock lock serialized cutover.
+    - symbol: occupied_port_switch_attempt
+      kind: C
+      command: rg -n "port_state" scripts/infra/edge_cutover.py
+      result: pass
+      prod_callers: [scripts/infra/edge_cutover.py]
+      notes: Pre-switch guard refuses occupied public ports.
+    - symbol: manual_unverified_rollback_procedure
+      kind: A
+      command: rg -n "systemctl.*start.*caddy|systemctl.*is-active" scripts/infra/edge_cutover.py
+      result: pass
+      prod_callers: [scripts/infra/edge_cutover.py]
+      notes: Automated systemd restoration chain in rollback handler.
+    - symbol: legacy_instructions_implying_auto_ci_cutover
+      kind: I
+      command: '! grep -E -i "automatic.*cutover|ci.*switch" docs/operations/elms-production.md'
+      result: pass
+      prod_callers: []
+      notes: Operator runbook explicitly states no CI push performs cutover automatically.
+  legacy_surfaces_remaining: []
+  fallback_remaining: []
+  instruction_remaining: []
+  purge_step_present: true
+
+sot_enforce_scan:
+  status: pass
+  rows:
+    - boundary: elms-edge-routing-and-port-ownership
+      enforce_evidence: rg -n "HTTP_PUBLISH_PORT|HTTPS_PUBLISH_PORT|frontend:8080|keycloak:8080" docker/compose.prod.edge.yaml docker/caddy/Caddyfile
+      deny_old: canonical compose has zero port bindings; no host private key mounts exist
+      result: pass
+      notes: Staged and edge compose overlays and explicit Caddyfiles are the single source of truth.
+    - boundary: elms-edge-cutover-gate
+      enforce_evidence: rg -n "preflight|status|switch|rollback|evidence_is_fresh|cutover_lock" scripts/infra/edge_cutover.py
+      deny_old: unapproved or missing evidence CLI invocations fail closed
+      result: pass
+      notes: edge_cutover.py is the sole switch and rollback operator tool.
+    - boundary: elms-edge-rollback-restoration
+      enforce_evidence: rg -n "compose.*stop.*caddy|systemctl.*start.*caddy|systemctl.*is-active" scripts/infra/edge_cutover.py tests/infra/test_production_contracts.py
+      deny_old: manual destructive volume removal or ad-hoc restart instructions absent
+      result: pass
+      notes: Rollback restores host Caddy and preserves data volumes.
+
+checks:
+  - "full suite: bin/pytest -q --tb=line — PASS (91 passed, 2 skipped)"
+  - "infrastructure suite: PYTHONPATH=. pytest -q tests/infra/ tests/bitrix/ — PASS (75 passed)"
+  - "targeted edge suite: pytest -q tests/infra/test_production_contracts.py -k 'edge' — PASS (9 passed)"
+  - "preflight staged check: python3 scripts/infra/edge_cutover.py preflight --staged — PASS"
+  - "status inspection check: python3 scripts/infra/edge_cutover.py status — PASS"
+  - "runbook documentation check: rg -n 'maintenance window|rollback budget|edge_cutover.py' docs/operations/elms-production.md — PASS"
+  - "non-secret evidence check: ! rg -n -i '(password|secret|token|private.?key|unseal|recovery)' tests/infra/fixtures/edge-evidence.json — PASS"
+  - "live HTTP smoke: EVIDENCE_FILE=docs/reports/elms-production-qa-default-live-smoke.json timeout -k 10s 300s bash scripts/live_smoke.sh — PASS (exit 0, timestamp 2026-11-01T17:18:50Z)"
+  - "sunset inventory and SoT enforce scans — PASS (zero legacy surfaces remaining)"
+
+issues:
+  - "B1: ac_gap: FR-005 — rollback verifies only systemctl is-active; no old-route check (scripts/infra/edge_cutover.py:146-149, drill tests/infra/test_production_contracts.py:423-476)"
+  - "B2: ac_gap: Done when — forced switch failure does not automatically restore/prove the old edge; the drill invokes rollback separately without route evidence (scripts/infra/edge_cutover.py:139-149)"
+  - "B3: ac_gap: RC-003 — public HTTP Caddy blocks only match /healthz and lack explicit unmatched-path 404 evidence (docker/caddy/Caddyfile:6-9,24-27)"
+
+blockers:
+  - id: BF-001
+    class: ac_gap
+    title: "FR-005: rollback verifies only systemctl is-active without old route verification"
+    targets:
+      - scripts/infra/edge_cutover.py
+      - tests/infra/test_production_contracts.py
+  - id: BF-002
+    class: ac_gap
+    title: "Done when: forced switch failure does not automatically restore and prove old edge"
+    targets:
+      - scripts/infra/edge_cutover.py
+      - tests/infra/test_production_contracts.py
+  - id: BF-003
+    class: ac_gap
+    title: "RC-003: public HTTP Caddy blocks lack explicit unmatched path 404 fallback"
+    targets:
+      - docker/caddy/Caddyfile
+      - tests/infra/test_production_contracts.py
+
+fix_plan:
+  - "BF-001: In scripts/infra/edge_cutover.py, add old-route verification probe in rollback handler and update test_edge_rollback_drill_contract to assert old route verification."
+  - "BF-002: In scripts/infra/edge_cutover.py switch handler, catch switch failures, automatically trigger restoration sequence and verify old edge, and prove it in disposable drill."
+  - "BF-003: In docker/caddy/Caddyfile, add explicit handle fallback with 404 for unmatched paths in HTTP blocks and assert in tests."
+
+limitations:
+  - Live production 80/443 port cutover and public DNS modification remain operator gates executed within a scheduled maintenance window.
+  - Interactive external identity provider (Yandex) consent remains not_run; live smoke verifies broker route availability without synthetic credentials.
+  - Disposable rollback drill proves container teardown and systemctl command order using isolated test executables rather than live host mutation.
+
+suite:
+  - "BACK full: bin/pytest -q --tb=line — PASS (91 passed, 2 skipped)"
+  - "Infrastructure and Bitrix contracts: PYTHONPATH=. pytest -q tests/infra/ tests/bitrix/ — PASS (75 passed)"
+  - "Targeted edge contracts: pytest -q tests/infra/test_production_contracts.py -k 'edge' — PASS (9 passed)"
+
+live_smoke:
+  status: pass
+  command: timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  last_run_at: '2026-11-01T17:18:50Z'
+  base_url: http://elms.localhost:8082; Keycloak http://elms-keycloak.localhost:8480
+  level: black_box_http
+  notes: "Typed real-process HTTP evidence has live_evidence=true and exit_code=0; Keycloak discovery, login page, Keycloak auth endpoint, and Yandex broker route validated live."

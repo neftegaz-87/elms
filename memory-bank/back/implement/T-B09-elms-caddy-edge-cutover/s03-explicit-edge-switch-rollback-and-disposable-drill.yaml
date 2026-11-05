@@ -1,0 +1,112 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B09-elms-caddy-edge-cutover
+task_id: T-B09-elms-caddy-edge-cutover
+title: s03 — Explicit edge switch, systemd rollback restoration, and disposable drill contract IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/yaml/steps/s03-explicit-edge-switch-rollback-and-disposable-drill.yaml
+date: 2026-11-01
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - Implemented rollback command in scripts/infra/edge_cutover.py that stops container Caddy, restores host Caddy via systemctl start caddy, and verifies active state via systemctl is-active --quiet caddy.
+  - Enforced that both switch and rollback commands strictly require --approved, --execute, and fresh predecessor evidence.
+  - Implemented disposable rollback drill contract in tests/infra/test_production_contracts.py (test_edge_rollback_drill_contract) proving container teardown and host restoration sequence without privileged host mutations.
+  - Updated production runbook docs/operations/elms-production.md with clear maintenance window, rollback budget, explicit switch and rollback commands, and verified restoration steps without secret values.
+  - Verified clean separation of edge operations and verified absence of legacy unapproved or automated cutover instructions.
+
+files:
+  - scripts/infra/edge_cutover.py
+  - tests/infra/test_production_contracts.py
+  - docs/operations/elms-production.md
+
+deletes:
+  - manual unverified host-Caddy recovery procedures
+  - instructions or scripts implying automatic CI edge cutover
+
+wire_complete:
+  call_sites:
+    - scripts/infra/edge_cutover.py:execute -> compose stop caddy
+    - scripts/infra/edge_cutover.py:execute -> systemctl start caddy
+    - scripts/infra/edge_cutover.py:execute -> systemctl is-active --quiet caddy
+  enforce_path: Rollback releases container Caddy ports, executes systemctl start caddy, and verifies host Caddy is active; disposable drill proves container stop and restoration sequence without privileged host mutations.
+  dual_path_rg: if rg -n 'systemctl.*start.*caddy|systemctl.*is-active' scripts/infra/edge_cutover.py; then exit 0; else exit 1; fi
+  instruction_rg: if rg -n -i '(password|secret|token|private.?key|unseal|recovery)' tests/infra/fixtures/edge-evidence.json; then exit 1; else exit 0; fi
+  deny_old_proven: true
+
+plan_parity_scan:
+  fr_coverage:
+    - id: FR-001
+      step: s01
+      status: completed
+    - id: FR-002
+      step: s02
+      status: completed
+    - id: FR-003
+      step: s01
+      status: completed
+    - id: FR-004
+      step: s01
+      status: completed
+    - id: FR-005
+      step: s03
+      status: completed
+  target_layout:
+    - docker/compose.prod.yaml: image-only canonical graph without public ports
+    - docker/compose.prod.staged.yaml: localhost high-port rehearsal overlay (18080)
+    - docker/compose.prod.edge.yaml: public port overlay (80/443)
+    - docker/caddy/Caddyfile: production edge routing with explicit /healthz
+    - docker/caddy/Caddyfile.staged: staged edge routing with localhost /healthz
+    - scripts/infra/edge_cutover.py: edge cutover preflight, status, switch, and rollback CLI
+    - tests/infra/fixtures/edge-evidence.json: non-secret predecessor evidence fixture
+    - tests/infra/test_production_contracts.py: contract tests including disposable rollback drill
+    - docs/operations/elms-production.md: operator runbook with maintenance window and rollback budget
+
+tests:
+  - "`python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge'`"
+  - "`python3 scripts/infra/edge_cutover.py preflight --staged`"
+  - "`python3 scripts/infra/edge_cutover.py status`"
+  - "`rg -n 'maintenance window|rollback budget|edge_cutover.py' docs/operations/elms-production.md`"
+  - "`! rg -n -i \"(password|secret|token|private.?key|unseal|recovery)\" tests/infra/fixtures/edge-evidence.json`"
+
+integration_check:
+  - "python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge' — 9 passed"
+  - "python3 scripts/infra/edge_cutover.py preflight --staged — PASS"
+  - "python3 scripts/infra/edge_cutover.py status — PASS (non-mutating inspection)"
+  - "docs/operations/elms-production.md defines maintenance window, rollback budget, and rollback steps"
+  - "tests/infra/fixtures/edge-evidence.json credential leak scan — PASS (CLEAN)"
+
+verification_results:
+  - "python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge' — 9 passed, 12 deselected"
+  - "python3 scripts/infra/edge_cutover.py preflight --staged — PASS"
+  - "python3 scripts/infra/edge_cutover.py status — PASS"
+  - "rg -n 'maintenance window|rollback budget|edge_cutover.py' docs/operations/elms-production.md — PASS"
+  - "! rg -n -i '(password|secret|token|private.?key|unseal|recovery)' tests/infra/fixtures/edge-evidence.json — PASS"
+
+checkpoints:
+  - id: cp1
+    criterion: Rollback command stops container Caddy and invokes systemctl start and is-active.
+    status: done
+  - id: cp2
+    criterion: Switch and rollback commands strictly require both --approved and --execute flags.
+    status: done
+  - id: cp3
+    criterion: Disposable rollback drill proves container stop and host restoration contract without privileged host mutations.
+    status: done
+  - id: cp4
+    criterion: Production operations documentation defines maintenance window, rollback budget, and explicit switch/rollback steps without secrets.
+    status: done
+
+resume_from: cp1

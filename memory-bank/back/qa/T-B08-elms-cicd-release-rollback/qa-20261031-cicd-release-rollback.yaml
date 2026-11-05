@@ -1,0 +1,308 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B08-elms-cicd-release-rollback
+plan_id: T-B08-elms-cicd-release-rollback
+epic_id: T-B08-elms-cicd-release-rollback
+date: '2026-10-31'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: b35cec7832c2b89707f89c3b338ccad2ff4a967fbb419610a73887079db440b6
+verify_scope: full
+suite_scope: full
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: full
+  scope_signals: [backend, api, wire, security, reliability, observability, brownfield, compatibility]
+  selected:
+    - id: contract_acceptance
+      name: Contract and acceptance criteria tests
+      status: pass
+      evidence: "tests/infra/test_production_contracts.py; s01-s03 implement evidence; full release/rollback contract suite"
+    - id: regression
+      name: Changed behavior and prior-defect regression tests
+      status: pass
+      evidence: "bin/pytest -q --tb=line — 87 passed, 2 skipped"
+    - id: backend_unit_component
+      name: Backend unit and component tests
+      status: pass
+      evidence: "release validator, target guard, evidence gate, and wrapper contract tests — 58 infra tests passed"
+    - id: backend_integration_state
+      name: Backend integration and state tests
+      status: pass
+      evidence: "forced health failure retains current.json; pair rollback atomically records the predecessor"
+    - id: api_contract
+      name: API contract, schema, status, and error tests
+      status: pass
+      evidence: "release manifest schema, wrapper CLI, status/current release, and typed evidence rejection tests"
+    - id: data_persistence_migration
+      name: Data persistence, migration, idempotency, and rollback tests
+      status: pass
+      evidence: "immutable releases/<commit>.json records, atomic current.json replacement, and complete-pair rollback tests"
+    - id: live_http_smoke
+      name: Live HTTP smoke tests
+      status: pass
+      evidence: "timeout -k 10s 300s bash scripts/live_smoke.sh — exit 0; typed live evidence at 2026-10-31T19:56:42Z"
+    - id: negative_error_paths
+      name: Negative, validation, denial, timeout, and recovery tests
+      status: pass
+      evidence: "approval, unsafe target, mutable/commit-unbound tag, stale/future/unverified evidence, forced health failure, and destructive-path denial tests"
+    - id: security_owasp
+      name: Security and OWASP spot-check tests
+      status: pass
+      evidence: "known_hosts/target/path validation, digest binding, secret-like content rejection, redaction scan, and no shell/volume-removal scan"
+    - id: performance_resilience
+      name: Performance, timeout, retry, load, and resilience tests
+      status: pass
+      evidence: "deployment flock, Compose --wait-timeout, fail-closed health path, and atomic release record tests"
+    - id: observability
+      name: Logging, metrics, tracing, and failure-observability tests
+      status: pass
+      evidence: "status-only release output and redacted failure fixture; failed health leaves a machine-readable predecessor"
+    - id: cleanup_sot
+      name: Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests
+      status: pass
+      evidence: "bounded sunset inventory and deny-old scans for mutable tags, arbitrary remote commands, volume removal, and secret-bearing instructions"
+  not_applicable:
+    - id: frontend_build_assets
+      reason: "No frontend source, styles, generated assets, or frontend build behavior is changed; browser QA is only a pre-push workflow gate."
+    - id: browser_functional
+      reason: "No user-visible browser behavior is changed; the workflow contract checks that the existing browser gate precedes GHCR push."
+    - id: wire_journey
+      reason: "The change is an operator/CI boundary, not a UI-to-API user journey; live smoke is recorded separately."
+    - id: auth_session_rbac
+      reason: "No application authentication, session, or role behavior is changed; SSH/Environment approval is covered as infrastructure policy."
+    - id: external_integration
+      reason: "Real GHCR, SSH, Vault, backup repository, and production credentials are explicit out-of-scope operator inputs."
+    - id: async_jobs_workers_webhooks
+      reason: "No async worker, queue, retry job, or webhook behavior is changed."
+    - id: accessibility
+      reason: "No user-visible UI is in scope."
+    - id: responsive_compatibility
+      reason: "No viewport, browser, or supported-client behavior is changed."
+    - id: visual_states
+      reason: "No visual, CSS, layout, or asset-cascade behavior is changed."
+    - id: console_network
+      reason: "No browser client runtime behavior is changed."
+    - id: content_i18n
+      reason: "The runbook is operator documentation, not product-facing localized content."
+    - id: exploratory
+      reason: "Deterministic contracts, negative fixtures, and live HTTP smoke cover the declared infrastructure boundary."
+  not_run: []
+
+scope:
+  - "task: T-B08-elms-cicd-release-rollback"
+  - "epic: T-B08-elms-cicd-release-rollback"
+  - "steps: s01-s03"
+  - "files: .github/workflows/production-release.yml, scripts/infra/check_release_manifest.py, scripts/infra/deploy_wrapper.py, tests/infra/test_production_contracts.py, tests/infra/fixtures/release-manifest.json, tests/infra/fixtures/release-rollback-failure.json, docs/operations/elms-production.md"
+
+ac_plus:
+  - "FR-001: existing Frappe/app tests, browser QA and compose policy precede GHCR push."
+  - "FR-002: backend image is built from repo and tagged by commit SHA; deploy uses digest, not latest."
+  - "FR-003: release manifest contains commit, image refs/digests, compose hash and smoke metadata, no secrets."
+  - "FR-004: production uses GitHub Environment approval and an allowlisted remote wrapper with lock/preflight."
+  - "FR-005: rollback restores previous verified image/config pair and never deletes state volumes."
+  - "FR-006: any remote target must be explicit, pinned by known-hosts, and different from production; this repository does not default a dev deploy to the production host."
+  - "Done when: Failed health/policy gate leaves previous release available and rollback restores backend/frontend/application pair as one release."
+
+ac_minus:
+  - "Real production SSH credentials, hostnames, known-hosts values, GitHub approval configuration, and live Vault/backup evidence."
+  - "Public edge cutover, DNS, firewall, ACME, and host-Caddy ownership."
+  - "Vault application values, backup repository credentials, and live production state; CI and release artifacts remain non-secret."
+  - "A live production rollback rehearsal; the repository provides a disposable forced-health-failure fixture and operator contract."
+
+section_011:
+  - "T-B05 owns the image-only Compose contract; T-B06 owns Vault preflight; T-B07 owns backup freshness/capacity evidence."
+  - "The release unit is the verified backend/frontend/application image/config pair; rollback never deletes state volumes."
+  - "The workflow never prints or receives Vault application values."
+
+prior_blockers:
+  - none
+
+coverage_map:
+  - id: FR-001
+    kind: AC
+    scenario: "The contract, Frappe application, and existing browser QA commands are ordered before the immutable build job."
+    evidence: ".github/workflows/production-release.yml:31-78; tests/infra/test_production_contracts.py:147-155; full suite — PASS"
+    status: pass
+  - id: FR-002
+    kind: AC
+    scenario: "The build job emits commit-SHA image refs and captured digests, and the wrapper injects ref@digest overrides."
+    evidence: ".github/workflows/production-release.yml:128-160; scripts/infra/deploy_wrapper.py:140-152; targeted digest test — PASS"
+    status: pass
+  - id: FR-003
+    kind: AC
+    scenario: "Manifest validation accepts the complete non-secret pair and rejects mutable, commit-unbound, malformed, or secret-like values."
+    evidence: "scripts/infra/check_release_manifest.py:47-108; tests/infra/fixtures/release-manifest.json; manifest CLI — PASS"
+    status: pass
+  - id: FR-004
+    kind: AC
+    scenario: "Protected Environment approval, known-host-pinned SSH, lock, evidence preflight, health wait, and internal smoke form one allowlisted path."
+    evidence: ".github/workflows/production-release.yml:167-247; scripts/infra/deploy_wrapper.py:50-257; wrapper approval/evidence tests — PASS"
+    status: pass
+  - id: FR-005
+    kind: AC
+    scenario: "A failed candidate health command leaves the predecessor current; rollback applies the predecessor backend/frontend/application pair and never removes state volumes."
+    evidence: "tests/infra/test_production_contracts.py:330-423; tests/infra/fixtures/release-rollback-failure.json; rollback suite — PASS"
+    status: pass
+  - id: FR-006
+    kind: AC
+    scenario: "Target, root, wrapper, and known_hosts are explicit; local/development targets, unsafe paths, and arbitrary shell/Compose paths are rejected."
+    evidence: ".github/workflows/production-release.yml:191-247; scripts/infra/deploy_wrapper.py:91-139; target guard and negative scans — PASS"
+    status: pass
+  - id: DONE-001
+    kind: AC
+    scenario: "The forced failure fixture and operator contract demonstrate predecessor retention and a single verified pair rollback."
+    evidence: "tests/infra/fixtures/release-rollback-failure.json; docs/operations/elms-production.md:187-218; full suite — PASS"
+    status: pass
+  - id: OUT-001
+    kind: AC_MINUS
+    scenario: "Live credentials, public edge cutover, live production state, and live rollback rehearsal remain out of scope."
+    evidence: "memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:30-46; no live credentials or production deployment evidence is claimed"
+    status: pass
+  - id: OUT-002
+    kind: AC_MINUS
+    scenario: "No checkout build on production, mutable tag, arbitrary SSH, or destructive volume path is introduced."
+    evidence: "workflow/wrapper/fixture deny-old scan — PASS; docs/operations/elms-production.md:189-218"
+    status: pass
+  - id: SECTION-011-001
+    kind: section_011
+    scenario: "T-B05/T-B06/T-B07 boundaries remain consumed by image-only Compose, Vault, and semantic backup evidence."
+    evidence: "s02 implement artifact wire_complete; scripts/infra/deploy_wrapper.py:180-257; full infra suite — PASS"
+    status: pass
+  - id: SECTION-011-002
+    kind: section_011
+    scenario: "The release unit remains one verified backend/frontend/application image/config pair and the workflow does not receive Vault values."
+    evidence: "scripts/infra/check_release_manifest.py:57-95; .github/workflows/production-release.yml:146-160; redaction scan — PASS"
+    status: pass
+
+review:
+  status: pass
+  scope: "s01-s03 workflow gates, manifest validator, server wrapper, evidence boundary, forced rollback fixture, and operator runbook"
+  findings: []
+  notes: "Review covered approval/target/path fail-closed behavior, digest/config binding, atomic current release recording, health-failure retention, pair rollback, redaction, and ownership boundaries."
+
+test_audit:
+  status: pass
+  checks:
+    - "Assertions exercise manifest fields, command order, evidence rejection, current-release retention, pair equality, redaction, and no-volume-removal outcomes rather than status/build only."
+    - "Fake Docker is a bounded executable fixture that records public command outcomes; no global API mock, route.fulfill, or in-process live claim is used."
+    - "The browser QA command is wired into the declared frappe-tests job before the build job; the UI itself is not changed by this epic."
+    - "The two full-suite skips are pre-existing application/runtime skips and are not used to hide infrastructure coverage."
+  findings: []
+
+browser:
+  status: skipped
+  stack_profile: "BACK infrastructure/CI and live HTTP profile; no browser UI behavior is claimed by T-B08"
+  evidence_file: ''
+  last_run_at: ''
+  journeys: []
+  artifacts: []
+  reason: "Browser QA is an existing CI gate whose ordering is statically verified; no user-visible browser behavior is changed in this epic."
+
+retro:
+  status: done
+  defect_missed: "The initial release path lacked a commit-bound image-tag assertion and the wrapper lacked explicit target/Compose binding; targeted negative tests now preserve those boundaries."
+  redundant_gate: "none"
+  flaky_test: "none"
+  next_cycle_change: "Keep immutable manifest, forced-health-failure, and full-suite/live-smoke evidence required before any production release or edge-cutover epic."
+
+sunset_inventory_scan:
+  status: pass
+  scanned_at: '2026-10-31'
+  plan_ref: memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md
+  rows:
+    - symbol: workflow_push_before_gates
+      kind: A
+      command: >-
+        rg -n 'Run browser QA|name: build immutable release images|needs: \[contract, frappe-tests\]' .github/workflows/production-release.yml
+      result: pass
+      prod_callers: [.github/workflows/production-release.yml]
+      notes: "Browser/application gates precede the build/push job."
+    - symbol: mutable_release_identity
+      kind: C
+      command: "rg -n -i 'latest|prod-local|dev-[0-9a-f]' .github/workflows/production-release.yml tests/infra/fixtures/release-manifest.json"
+      result: pass
+      prod_callers: []
+      notes: "Release refs are commit-bound and manifest validation rejects mutable tags."
+    - symbol: arbitrary_remote_or_implicit_target
+      kind: B
+      command: "rg -n 'validate_target|fixed_path|--target|StrictHostKeyChecking=yes|ELMS_DEPLOY_TARGET' scripts/infra/deploy_wrapper.py .github/workflows/production-release.yml"
+      result: pass
+      prod_callers: [.github/workflows/production-release.yml]
+      notes: "The workflow and wrapper require an explicit safe target and fixed paths."
+    - symbol: path_presence_only_evidence
+      kind: C
+      command: "rg -n 'read_success_evidence|validate_vault_evidence|validate_required_evidence' scripts/infra/deploy_wrapper.py"
+      result: pass
+      prod_callers: [scripts/infra/deploy_wrapper.py]
+      notes: "Semantic freshness and exact Vault PASS are required before execution."
+    - symbol: nominal_rollback_only
+      kind: A
+      command: "rg -n 'forced-health-failure|test_rollback_health_failure|test_rollback_restores_complete_image_pair' tests/infra"
+      result: pass
+      prod_callers: [scripts/infra/deploy_wrapper.py]
+      notes: "The failure fixture and subprocess regression exercise predecessor retention and pair rollback."
+    - symbol: secret_or_destructive_release_instructions
+      kind: I
+      command: "rg -n -i '(client_secret|handoff_secret|secret_id|unseal|recovery_key|oauth.*cookie|private.?key|docker (volume )?rm|down -v)' scripts/infra/deploy_wrapper.py tests/infra/fixtures/release-manifest.json tests/infra/fixtures/release-rollback-failure.json docs/operations/elms-production.md .github/workflows/production-release.yml"
+      result: pass
+      prod_callers: []
+      notes: "The independent deny-old/redaction scan has no matches."
+  legacy_surfaces_remaining: []
+  fallback_remaining: []
+  instruction_remaining: []
+  purge_step_present: true
+
+sot_enforce_scan:
+  status: pass
+  rows:
+    - boundary: elms-immutable-release-manifest
+      enforce_evidence: "rg -n 'REQUIRED_IMAGES|rollback_verified|compose_sha256|commit.*tag' scripts/infra/check_release_manifest.py .github/workflows/production-release.yml"
+      deny_old: "mutable/commit-unbound/secret-bearing manifest scan returned no accepted legacy path"
+      result: pass
+      notes: "Manifest validator is the release identity source of truth."
+    - boundary: elms-production-release-deploy
+      enforce_evidence: "rg -n 'validate_target|fixed_path|validate_compose_binding|validate_required_evidence|deploy.lock|--wait' scripts/infra/deploy_wrapper.py"
+      deny_old: "arbitrary shell, alternate Compose path, local/development target, and path-only evidence scans returned no matches"
+      result: pass
+      notes: "The wrapper is the only server-side state-changing release boundary."
+    - boundary: elms-release-rollback-evidence
+      enforce_evidence: "rg -n 'forced-health-failure|candidate_published|state_volumes_removed|complete_pair' tests/infra/fixtures/release-rollback-failure.json tests/infra/test_production_contracts.py"
+      deny_old: "forced failure, mixed-pair, volume-removal, and credential-bearing evidence scans returned no matches"
+      result: pass
+      notes: "Rollback evidence is deterministic and status-only."
+
+checks:
+  - "full suite: bin/pytest -q --tb=line — PASS (87 passed, 2 skipped)"
+  - "infrastructure suite: bin/pytest -q tests/infra — PASS (58 passed)"
+  - "release manifest CLI, wrapper help, Python compilation, and workflow YAML parse — PASS"
+  - "target/evidence/approval/digest/forced-failure/pair-rollback contract tests — PASS"
+  - "live HTTP smoke: timeout -k 10s 300s bash scripts/live_smoke.sh — PASS; typed live_evidence=true and exit_code=0"
+  - "bounded mutable-tag, arbitrary-shell, volume-removal, secret/redaction, and legacy-path scans — PASS"
+  - "ruff check touched Python files — one pre-existing FLY002 in the existing infra test helper; no new wrapper/validator lint findings"
+  - "optional ty, semgrep, and shellcheck binaries are unavailable; compileall, full tests, bash live smoke, and bounded security scans provide applicable evidence"
+
+issues: []
+blockers: []
+fix_plan: []
+
+limitations:
+  - "Real GHCR push, protected GitHub Environment approval, SSH credentials, production Vault/backup evidence, and live production deploy/rollback remain operator gates and were not claimed as executed."
+  - "Interactive external-provider consent remains not_run; the live smoke only verifies the non-secret broker boundary."
+  - "The browser QA job is contractually ordered and artifact-backed in CI, but no new UI journey is claimed by this infrastructure epic."
+  - "One pre-existing FLY002 style finding remains in the existing infra test helper; it is not an eligible product blocker."
+
+suite:
+  - "BACK full: bin/pytest -q --tb=line — PASS (87 passed, 2 skipped)"
+  - "Infrastructure contracts: bin/pytest -q tests/infra — PASS (58 passed)"
+
+live_smoke:
+  status: pass
+  command: "timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  last_run_at: '2026-10-31T19:56:42Z'
+  base_url: "http://elms.localhost:8082; Keycloak http://elms-keycloak.localhost:8480"
+  level: black_box_http
+  notes: "Typed real-process HTTP evidence has live_evidence=true and exit_code=0; QA records status/command/timestamp only and does not copy raw cookies or tokens."

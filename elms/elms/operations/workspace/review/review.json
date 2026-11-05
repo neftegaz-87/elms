@@ -1,0 +1,68 @@
+{
+ "charts": [],
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>ELMS \u0421\u0414\u041e</b></span>\", \"col\": 12}}, {\"type\": \"paragraph\", \"data\": {\"text\": \"\u0421\u0432\u0435\u0440\u043a\u0430 \u0437\u0430\u044f\u0432\u043e\u043a: \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c \u0434\u043e\u0441\u0442\u0443\u043f\u0430 \u0438 \u043f\u0435\u0440\u0435\u0445\u043e\u0434 \u043a \u0440\u0430\u0431\u043e\u0447\u0435\u043c\u0443 \u044d\u043a\u0440\u0430\u043d\u0443 \u0441\u0432\u0435\u0440\u043a\u0438.\", \"col\": 12}}, {\"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0421\u0432\u0435\u0440\u043a\u0430 \u0437\u0430\u044f\u0432\u043e\u043a\", \"col\": 4}}]",
+ "creation": "2026-11-05 12:00:00",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 1,
+ "icon": "check-circle",
+ "idx": 0,
+ "indicator_color": "blue",
+ "is_hidden": 0,
+ "label": "Review",
+ "links": [
+  {
+   "hidden": 0,
+   "icon": "check-circle",
+   "is_query_report": 0,
+   "label": "\u0421\u0432\u0435\u0440\u043a\u0430 \u0437\u0430\u044f\u0432\u043e\u043a",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u041f\u0440\u0430\u0432\u0430 \u0441\u0432\u0435\u0440\u043a\u0438 \u0437\u0430\u044f\u0432\u043e\u043a",
+   "link_count": 0,
+   "link_to": "ELMS Review Section",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-05 13:17:06.382440",
+ "modified_by": "Administrator",
+ "module": "Operations",
+ "name": "Review",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "ELMS Admin"
+  },
+  {
+   "role": "ELMS Operations User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 3.0,
+ "shortcuts": [
+  {
+   "doc_view": "",
+   "icon": "check-circle",
+   "label": "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0441\u0432\u0435\u0440\u043a\u0443 \u0437\u0430\u044f\u0432\u043a\u0438",
+   "type": "URL",
+   "url": "/app/elms-review"
+  }
+ ],
+ "title": "Review"
+}

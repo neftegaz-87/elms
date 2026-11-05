@@ -20,9 +20,82 @@ DEFAULT_REVIEW_ROLE_MAP = {
     "ELMS Operations User": "dispatcher",
     "System Manager": "admin",
 }
+REVIEW_SHORTCUT_URL = "/app/elms-review"
+REVIEW_SECTION_DOCTYPE = "ELMS Review Section"
+REVIEW_VISIBILITY_FIELD = "custom_elms_review_visible"
+REVIEW_VISIBILITY_FIELD_SPEC = {
+    "fieldname": REVIEW_VISIBILITY_FIELD,
+    "fieldtype": "Check",
+    "label": "Видимость сверки заявок",
+    "default": "1",
+    "description": "Снимите флажок, чтобы скрыть сверку заявок для этого пользователя.",
+    "insert_after": "roles_permissions_tab",
+    "permlevel": 1,
+}
 DEFAULT_HANDOFF_TTL_SECONDS = 60
 HANDOFF_CACHE_PREFIX = "elms_review_handoff:"
 HANDOFF_TICKET_PATTERN = re.compile(r"^[A-Za-z0-9_-]{32,256}$")
+
+
+def ensure_review_visibility_field() -> None:
+    """Ensure the administrator-controlled review visibility flag exists on User."""
+
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    create_custom_fields({"User": [dict(REVIEW_VISIBILITY_FIELD_SPEC)]})
+
+
+def is_review_visible(user: str | None = None) -> bool:
+    """Return whether the selected user may see and open the review surface."""
+
+    current_user = str(user or getattr(frappe.session, "user", "") or "").strip()
+    if not current_user or current_user == "Guest":
+        return False
+
+    value = frappe.db.get_value("User", current_user, REVIEW_VISIBILITY_FIELD)
+    if value is None:
+        return False
+    return str(value).strip().casefold() not in {"0", "false", "no", "off", ""}
+
+
+def has_review_app_permission(user: str | None = None) -> bool:
+    """Return the single server-side gate for the review app and its navigation."""
+
+    current_user = str(user or getattr(frappe.session, "user", "") or "").strip()
+    if not current_user or current_user == "Guest":
+        return False
+    if not is_review_visible(current_user):
+        return False
+    return bool(
+        frappe.has_permission(
+            REVIEW_SECTION_DOCTYPE,
+            ptype="read",
+            user=current_user,
+        )
+    )
+
+
+def extend_bootinfo(bootinfo) -> None:
+    """Expose the per-user visibility decision to the Desk navigation."""
+
+    bootinfo["elms_review_visible"] = int(has_review_app_permission())
+
+
+@frappe.whitelist()
+def get_desktop_page(page: str) -> dict[str, object]:
+    """Return a workspace page without the review shortcut for hidden users."""
+
+    from frappe.desk.desktop import get_desktop_page as get_standard_desktop_page
+
+    page_data = get_standard_desktop_page(page)
+    if has_review_app_permission():
+        return page_data
+
+    shortcuts = page_data.get("shortcuts") if isinstance(page_data, dict) else None
+    items = shortcuts.get("items") if isinstance(shortcuts, dict) else None
+    if isinstance(items, list):
+        shortcuts["items"] = [item for item in items if item.get("url") != REVIEW_SHORTCUT_URL]
+    return page_data
 
 
 def _configured_roles() -> frozenset[str]:
@@ -127,6 +200,8 @@ def open_review() -> None:
     user = str(getattr(frappe.session, "user", "") or "").strip()
     if not user or user == "Guest":
         frappe.throw("Войдите в ELMS, чтобы открыть сверку заявки.", frappe.PermissionError)
+    if not has_review_app_permission(user):
+        frappe.throw("У вас нет права открывать сверку заявок.", frappe.PermissionError)
     roles = set(frappe.get_roles(user) or [])
     allowed_roles = _configured_roles()
     if not roles.intersection(allowed_roles):
@@ -178,4 +253,12 @@ def redeem_review_handoff(ticket: str | None = None) -> dict[str, object]:
     }
 
 
-__all__ = ["open_review", "redeem_review_handoff"]
+__all__ = [
+    "ensure_review_visibility_field",
+    "extend_bootinfo",
+    "get_desktop_page",
+    "has_review_app_permission",
+    "is_review_visible",
+    "open_review",
+    "redeem_review_handoff",
+]

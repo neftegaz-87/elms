@@ -1,1 +1,1 @@
-../dev-hub/AGENTS.md
+../../dev-hub/AGENTS.md

@@ -1,0 +1,93 @@
+﻿bitrix_id,bitrix_email,full_name,position,departments,target_login,target_email,role_profile,elms_roles,keycloak_realm_roles,is_priority_target
+5,hjccbz86ehfk@mail.ru,Стеклова Александра Витальевна,"Ведущий специалист учебно-методического отдела ЧПОУ ""ЦИО ""НЕФТЕГАЗ""",Учебно-методический отдел,steklova.a,steklova.a@nftgz.ru,ELMS Operations,"Desk User, ELMS Operations User, ELMS LMS User",employee,YES
+6,gala0222@mail.ru,Семенова Галина Алексеевна,"Главный бухгалтер ЧПОУ ""ЦИО""НЕФТЕГАЗ""",Бухгалтерия,semenova.g,semenova.g@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+10,grachiev74-nv@mail.ru,Грачев Олег Геннадьевич,,"Экзаменационный центр ""Контроль"", Отдел продаж и маркетинга",grachev.o,grachev.o@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+11,Zakusgv@mail.ru,Закусилов Глеб Викторович,,Группа компаний Нефтегаз,zakusilov.g,zakusilov.g@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+12,lotus86@list.ru,Прошкина Татьяна Викторовна,Директор,Учебный центр Нефтегаз,proshkina.t,proshkina.t@nftgz.ru,ELMS Admin,"Desk User, ELMS Admin, ELMS Operations User, ELMS LMS User",admin,YES
+18,clinic86@mail.ru,Арсланова Екатерина Маратовна,,Медклиника_Нижневартовск,arslanova.e,arslanova.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+25,katya163nv_t@mail.ru,Туряк Екатерина Вячеславовна,Ведущий специалист отдела неразрушающего контроля,"Экзаменационный центр ""Контроль""",turyak.e,turyak.e@nftgz.ru,ELMS Operations,"Desk User, ELMS Operations User, ELMS LMS User",employee,NO
+26,neftegaz.svb@mail.ru,Ширшикова Серафима Геннадьевна,Специалист учебно-методического отдела,УЦ_Свободный,shirshikova.s,shirshikova.s@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+27,neftegaz-surgut@mail.ru,Исакова Ксения Викторовна,Специалист учебно-методического отдела,УЦ_Сургут,isakova.k,isakova.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+30,neftegaz-kingisepp@mail.ru,Соловей Инна Анатольевна,Специалист учебно-методического отдела,УЦ_Усть-Луга,solovey.i,solovey.i@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+32,bla.bka96@mail.ru,Тощева Мария Олеговна,Специалист учебно-методического отдела,Учебно-методический отдел,toshcheva.m,toshcheva.m@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+35,Yafakt@yandex.ru,Лебедева Наталья,,"Юрист, ОРП",lebedeva.n,lebedeva.n@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+36,betatyan@yandex.ru,Подковырова Татьяна,,"Юрист, ОРП",podkovyrova.t,podkovyrova.t@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+37,Sergei.laborant@yandex.ru,Руденко Сергей,,Медклиника_Нижневартовск,rudenko.s,rudenko.s@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+38,kristinapudikova@mail.ru,Гамбух Кристина,,Договорной отдел,gambukh.k,gambukh.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+39,elia.ismagilowa@yandex.ru,Мирзаева Эля,Специалист договорного отдела,Договорной отдел,mirzaeva.e,mirzaeva.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+40,yul.maksimenkova@yandex.ru,Максименкова Юлия Петровна,Старшая медицинская сестра,Средний и младший медицинский персонал,maksimenkova.y,maksimenkova.y@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+41,svetlanka86-00@mail.ru,Илларионова Светлана,,Средний и младший медицинский персонал,illarionova.s,illarionova.s@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+45,kudrina_elvira@bk.ru,Кудрина Эльвира Юрьевна,Специалист учебно-методического отдела,УЦ_Тюмень,kudrina.e,kudrina.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+46,zulya_rabota80@mail.ru,Ахметшина Зульфия,Старший администратор,Регистратура,akhmetshina.z,akhmetshina.z@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+47,gkaarsplus@gmail.com,Гончаров Константин Александрович,Руководитель информационно-технического отдела,Информационно-технический отдел,goncharov.k,goncharov.k@nftgz.ru,ELMS Operations,"Desk User, ELMS Operations User, ELMS LMS User",employee,NO
+51,knkerner@mail.ru,Кернер Кристина Николаевна,регистратор,"Медклиника_Нижневартовск, Регистратура",kerner.k,kerner.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+52,info-tyumen@ucneftegaz.ru,Нежданова Екатерина Александровна,Ведущий специалист учебно-методического отдела,"УЦ_Тюмень, Тендерный отдел",nezhdanova.e,nezhdanova.e@nftgz.ru,ELMS Operations,"Desk User, ELMS Operations User, ELMS LMS User",employee,NO
+70,Artur_Damir@mail.ru,Альмухаметова Альбина Руслановна,Специалист тендерного отдела,Тендерный отдел,almukhametova.a,almukhametova.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+73,ilnurniyazov@gmail.com,Ниязов Ильнур Ахтямович,,Врачебный персонал,niyazov.i,niyazov.i@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+74,busarova89@mail.ru,Костикова Ирина Юрьевна,Специалист учебно-методического отдела,УЦ_Сургут,kostikova.i,kostikova.i@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+76,belo4ka_26@mail.ru,Терентьева Александра,,Договорной отдел,terenteva.a,terenteva.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+77,seredaewgenij@yandex.ru,Середа Евгений Евгеньевич,Системный администратор,IT отдел,sereda.e,sereda.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+79,natasharomanyuk@yandex.ru,Романюк Наталья,специалист договорного отдела,"Медклиника_Нижневартовск, Договорной отдел",romanyuk.n,romanyuk.n@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+82,ividakina002@gmail.com,Видякина Ирина Викторовна,Руководитель проектов,"Группа компаний Нефтегаз, Учебный центр Нефтегаз",vidyakina.i,vidyakina.i@nftgz.ru,ELMS Operations,"Desk User, ELMS Operations User, ELMS LMS User",employee,YES
+83,alina.uspech@yandex.ru,Шафеева Алина Ильшатовна,старшая медицинская сестра,Средний медицинский персонал,shafeeva.a,shafeeva.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+86,alyasitnik@bk.ru,Ситник Альвира,,ФП,sitnik.a,sitnik.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+88,nas_nas@mail.ru,Самчук Анастасия Михайловна,Главный врач,Врачи,samchuk.a,samchuk.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+89,Korzheek91@gmail.com,Кожушко Александр Эдуардович,,Группа компаний Нефтегаз,kozhushko.a,kozhushko.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+96,alieva565656@gmail.com,Тухватуллина Милана,Старший администратор,Регистратура,tukhvatullina.m,tukhvatullina.m@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+98,dorofeevalada90@gmail.com,Дорофеева Лада,Маркетолог,Отдел продаж и маркетинга,dorofeeva.l,dorofeeva.l@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+99,lptvll@yandex.ru,Никитина Елена,бухгалтер,Бухгалтерия,nikitina.e,nikitina.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+100,Yousuf2805@icloud.com,Максютов Владимир Игоревич,Менеджер по продажам,Отдел продаж и маркетинга,maksyutov.v,maksyutov.v@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+101,svetazubenko777@gmail.com,Зубенко Светлана,HRBP ГК Нефтегаз,Медклиника_Нижневартовск,zubenko.s,zubenko.s@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+105,katyusha.chebotareva.92@mail.ru,Чеботарева Екатерина Игоревна,Специалист учебно-методического отдела,УЦ_Нижневартовск,chebotareva.e,chebotareva.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+110,shulganatalia@inbox.ru,Шульга Наталья,,Регистратура,shulga.n,shulga.n@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+113,tlyavkaeva77@bk.ru,Тлявкаева Луиза Нигматовна,,Лаборатория,tlyavkaeva.l,tlyavkaeva.l@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+115,LR98loz@mail.ru,Лозуков Роман Юрьевич,Старший кальянный мастер,Группа компаний Нефтегаз,lozukov.r,lozukov.r@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+116,n1kolaychef@yandex.ru,Власов Николай Анатольевич,Шеф-повар,Группа компаний Нефтегаз,vlasov.n,vlasov.n@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+117,plehanov_a_v@mail.ru,Плеханов Алексей,Системный администратор,УЦ_Нижневартовск,plekhanov.a,plekhanov.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+118,leonidevseev@mail.ru,Евсеев Леонид,менеджер по продажам,Отдел продаж и маркетинга,evseev.l,evseev.l@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+119,vip.derkembaeva69@mail.ru,Такабаевна Жылдыз,,Врачи,takabaevna.z,takabaevna.z@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+120,ragneda.panchenko@mail.ru,Панченко Рагнеда Абдуллаевна,специалист отдела неразрушающего контроля,"Экзаменационный центр ""Контроль""",panchenko.r,panchenko.r@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+121,Svetlana.savinova.76@gmail.com,Савинова Светлана,,"Медклиника_Нижневартовск, Бухгалтерия",savinova.s,savinova.s@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+123,yuzuneko@rambler.ru,Зимарин Константин,Юрист,Юридический отдел,zimarin.k,zimarin.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+125,631063@kit-media.com,Горбачёва КИТ МЕДИА Елена,Интегратор Битрикс,Группа компаний Нефтегаз,gorbachyova.kit.media.e,gorbachyova.kit.media.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+128,o@kit-media.com,Жукова-Кит Ольга,,Группа компаний Нефтегаз,zhukova.kit.o,zhukova.kit.o@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+130,alll.tttt@inbox.ru,Туркменова Алина,,Средний медицинский персонал,turkmenova.a,turkmenova.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+131,zolotuxina.05@mail.ru,Екатерина Золотухина,,Средний медицинский персонал,ekaterina.z,ekaterina.z@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+132,bbklimenko00@mail.ru,Клименко Бэлла,Администратор,Регистратура,klimenko.b,klimenko.b@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+136,gorbunov@centrfenix.ru,интегратор ГК ФЕНИКС Антон,,Учебно-методический отдел,integrator.gk.feniks.a,integrator.gk.feniks.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+137,izma_plachet@mail.ru,Гончарова Дарья,Менеджер,Группа компаний Нефтегаз,goncharova.d,goncharova.d@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+139,lydvina@yandex.ru,Ничволод Вера Витальевна,главный бухгалтер,Бухгалтерия,nichvolod.v,nichvolod.v@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+141,ifilwob@gmail.com,Грачева Виктория Витальевна,Специалист учебно-методического отдела,УЦ_Тюмень,gracheva.v,gracheva.v@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+142,SisBitrix@centrfenix.ru,Аккаунт Системный,,Группа компаний Нефтегаз,akkaunt.s,akkaunt.s@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+145,yantsnatalia@yandex.ru,Янц Наталия,,Группа компаний Нефтегаз,yants.n,yants.n@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+146,aleksandra444@mail.ru,Никитина Александра Николаевна,,"Группа компаний Нефтегаз, Договорной отдел",nikitina.a,nikitina.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+149,oksanapetrukhina2016@mail.ru,Петрухина Оксана Петровна,Помощник руководителя,Учебный центр Нефтегаз,petrukhina.o,petrukhina.o@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+153,julia.nv.97@mail.ru,Кузнецова Юлия Валерьевна,Специалист учебно-методического отдела,УЦ_Нижневартовск,kuznetsova.y,kuznetsova.y@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+155,y.zhelonkin@gmail.com,Юрий Желонкин,,Группа компаний Нефтегаз,yuriy.z,yuriy.z@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+176,a_ekaterina@live.ru,Алагулова Екатерина,,Тендерный отдел,alagulova.e,alagulova.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+180,kornilova.yu13@mail.ru,Корнилова Юлия Вячеславовна,Специалист учебно-методического отдела,Учебный центр Нефтегаз-Нефтеюганск,kornilova.y,kornilova.y@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+181,julijuice2000@gmail.com,Дымова Юлия Дмитриевна,Специалист учебно-методического отдела,УЦ_Сургут,dymova.y,dymova.y@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+183,Pahomova.neky@gmail.com,Екимовских Анастасия Владимировна,Специалист учебно-методического отдела,УЦ_Нижневартовск,ekimovskikh.a,ekimovskikh.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+185,neftegaznv86@gmail.com,Беседа Кристина Николаевна,Специалист учебно-методического отдела,УЦ_Свободный,beseda.k,beseda.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+190,chef@consulting-prof.ru,Тыртышная Ирина,,Группа компаний Нефтегаз,tyrtyshnaya.i,tyrtyshnaya.i@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+197,oleg-larin-1972@mail.ru,Ларин Олег,,Отдел продаж и маркетинга,larin.o,larin.o@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+201,kristukaeva95@icloud.com,Тукаева Кристина Константиновна,Специалист учебно-методического отдела,УЦ_Нижневартовск,tukaeva.k,tukaeva.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+202,nsvec1947@gmail.com,Швец Наталья Ивановна,Менеджер по продажам,Отдел продаж и маркетинга,shvets.n,shvets.n@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+203,Kolmikova.lina88@mail.ru,Колмыкова Алина,Менеджер по продажам,Отдел продаж и маркетинга,kolmykova.a,kolmykova.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+217,olga86.10@mail.ru,Бадритдинова Ольга Владимировна,,Бухгалтерия,badritdinova.o,badritdinova.o@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+225,irina_serenko@mail.ru,Хачатурова Ирина,,Тендерный отдел,khachaturova.i,khachaturova.i@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+227,utagonovamilana815@gmail.com,Утагонова Милана,,Средний медицинский персонал,utagonova.m,utagonova.m@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+237,kir.drogin@yandex.ru,Дрогин Кирилл,,Группа компаний Нефтегаз,drogin.k,drogin.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+240,sokolovavs13@yandex.ru,Соколов Евгений,,"Группа компаний Нефтегаз, Учебно-методический отдел",sokolov.e,sokolov.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",YES
+248,ndrmnv@mail.ru,Тарановская Надежда Александровна,Специалист учебно-методического отдела,УЦ_Тюмень,taranovskaya.n,taranovskaya.n@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+249,alina201729@gmail.com,Палайчук Алина Григорьевна,Специалист учебно-методического отдела,УЦ_Нижневартовск,palaychuk.a,palaychuk.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+253,roxirnd@gmail.com,Петрова Татьяна,,Отдел продаж и маркетинга,petrova.t,petrova.t@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+255,ksenya.ignateva.00@list.ru,Жукова Ксения Дмитриевна,Специалист учебно-методического отдела,Учебный центр Нефтегаз-Нефтеюганск,zhukova.k,zhukova.k@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+257,Zemchenkov69@mail.ru,Земченков Андрей,,Медклиника_Нижневартовск,zemchenkov.a,zemchenkov.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+261,valentinaladkina@gmail.com,Ладкина Валентина Андреевна,Специалист учебно-методического отдела,УЦ_Сургут,ladkina.v,ladkina.v@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+264,rafikova.valera@gmail.com,Рафикова Валерия Радиковна,Специалист учебно-методического отдела,УЦ_Нижневартовск,rafikova.v,rafikova.v@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+267,Stupnikova.Nastena2002@mail.ru,Ступникова Анастасия Евгеньевна,Специалист учебно-методического отдела,УЦ_Сургут,stupnikova.a,stupnikova.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+274,aeroalgo@gmail.com,Ерохин Андрей,,Учебно-методический отдел,erokhin.a,erokhin.a@nftgz.ru,ELMS Admin,"Desk User, ELMS Admin, ELMS Operations User, ELMS LMS User",admin,YES
+275,valiullinartur@mail.ru,Валиуллин Артур,,"Юрист, ОРП",valiullin.a,valiullin.a@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+277,valiullinartur1@mail.ru,Валиуллин Артур,,"Юрист, ОРП",valiullin.a2,valiullin.a2@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO
+279,andryushchenko04.00@mail.ru,Андрющенко Екатерина Владимировна,Специалист учебно-методического отдела,УЦ_Нижневартовск,andryushchenko.e,andryushchenko.e@nftgz.ru,ELMS Standard LMS,"Desk User, ELMS LMS User","student, employee",NO

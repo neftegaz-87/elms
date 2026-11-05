@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import pickle
+import sys
+import types
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -784,7 +786,9 @@ class TestReviewHandoff(unittest.TestCase):
             clear=False,
         ), patch.object(frappe, "session", SimpleNamespace(user="elms.test.admin@elms.local")), patch.object(
             frappe, "get_roles", return_value=["ELMS Admin", "Desk User"]
-        ), patch.object(frappe, "cache", return_value=cache), patch.object(frappe, "local", local):
+        ), patch.object(frappe, "db", SimpleNamespace(get_value=MagicMock(return_value=1)), create=True), patch.object(
+            frappe, "cache", return_value=cache
+        ), patch.object(review, "has_review_app_permission", return_value=True), patch.object(frappe, "local", local):
             review.open_review()
 
         location = urlparse(local.response["location"])
@@ -794,6 +798,66 @@ class TestReviewHandoff(unittest.TestCase):
         ticket = parse_qs(location.query)["ticket"][0]
         self.assertIn(review._handoff_key(ticket), cache.values)
         self.assertEqual(cache.values[review._handoff_key(ticket)]["roles"], ["admin"])
+
+    def test_open_review_rejects_user_with_review_visibility_disabled(self):
+        from elms.sso import review
+
+        local = SimpleNamespace(response={}, request=SimpleNamespace(headers={}))
+        with patch.object(frappe, "session", SimpleNamespace(user="hidden@example.com")), patch.object(
+            frappe, "db", SimpleNamespace(get_value=MagicMock(return_value=0)), create=True
+        ), patch.object(frappe, "local", local), patch.object(
+            frappe, "throw", side_effect=frappe.PermissionError("hidden")
+        ), self.assertRaises(frappe.PermissionError):
+            review.open_review()
+
+    def test_review_visibility_fails_closed_without_a_flag_value(self):
+        from elms.sso import review
+
+        with patch.object(frappe, "session", SimpleNamespace(user="missing-flag@example.com")), patch.object(
+            frappe, "db", SimpleNamespace(get_value=MagicMock(return_value=None)), create=True
+        ):
+            self.assertFalse(review.is_review_visible())
+
+    def test_review_app_permission_requires_visibility_and_review_docperm(self):
+        from elms.sso import review
+
+        with patch.object(frappe, "session", SimpleNamespace(user="review-user@example.com")), patch.object(
+            frappe, "db", SimpleNamespace(get_value=MagicMock(return_value=1)), create=True
+        ), patch.object(frappe, "has_permission", return_value=False) as has_permission:
+            self.assertFalse(review.has_review_app_permission())
+            has_permission.assert_called_once_with(
+                "ELMS Review Section",
+                ptype="read",
+                user="review-user@example.com",
+            )
+
+        with patch.object(frappe, "session", SimpleNamespace(user="review-user@example.com")), patch.object(
+            frappe, "db", SimpleNamespace(get_value=MagicMock(return_value=1)), create=True
+        ), patch.object(frappe, "has_permission", return_value=True):
+            self.assertTrue(review.has_review_app_permission())
+
+    def test_hidden_user_does_not_receive_review_shortcut(self):
+        from elms.sso import review
+
+        page_data = {
+            "shortcuts": {
+                "items": [
+                    {"url": "/app/elms-review", "label": "Сверка заявки"},
+                    {"url": "/app/other", "label": "Другая ссылка"},
+                ]
+            }
+        }
+        desktop_module = types.ModuleType("frappe.desk.desktop")
+        desktop_module.get_desktop_page = lambda page: page_data
+        desk_module = types.ModuleType("frappe.desk")
+        desk_module.desktop = desktop_module
+        with patch.dict(
+            sys.modules,
+            {"frappe.desk": desk_module, "frappe.desk.desktop": desktop_module},
+        ), patch.object(review, "is_review_visible", return_value=False):
+            result = review.get_desktop_page("Operations")
+
+        self.assertEqual(result["shortcuts"]["items"], [{"url": "/app/other", "label": "Другая ссылка"}])
 
     def test_redeem_review_handoff_is_secret_protected_and_one_time(self):
         from elms.sso import review

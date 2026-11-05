@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "course_progress",
+  "lesson_id",
+  "lesson",
+  "is_completed",
+  "time_spent_seconds",
+  "last_heartbeat_at"
+ ],
+ "fields": [
+  {
+   "fieldname": "course_progress",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Course Progress",
+   "options": "ELMS Course Progress",
+   "reqd": 1
+  },
+  {
+   "fieldname": "lesson_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Lesson Identifier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "lesson",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Course Lesson",
+   "options": "ELMS Course Lesson"
+  },
+  {
+   "default": 0,
+   "fieldname": "is_completed",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Completed"
+  },
+  {
+   "default": 0,
+   "fieldname": "time_spent_seconds",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Time Spent (Seconds)"
+  },
+  {
+   "fieldname": "last_heartbeat_at",
+   "fieldtype": "Datetime",
+   "label": "Last Heartbeat Timestamp"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Lesson Progress",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "ELMS Admin",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS Operations User",
+   "write": 0
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS LMS User",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company_name",
+  "inn",
+  "course",
+  "contract_number",
+  "total_seats",
+  "seats_used",
+  "valid_from",
+  "valid_to",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Company Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "inn",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "INN",
+   "reqd": 1
+  },
+  {
+   "fieldname": "course",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Course / Program",
+   "options": "ELMS Course"
+  },
+  {
+   "fieldname": "contract_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contract Number"
+  },
+  {
+   "fieldname": "total_seats",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Seats",
+   "reqd": 1
+  },
+  {
+   "default": 0,
+   "fieldname": "seats_used",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Seats Used",
+   "read_only": 1
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From"
+  },
+  {
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "label": "Valid To"
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Active\nExpired\nExhausted"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Subscription",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "ELMS Admin",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "role": "System Manager",
+   "read": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS Operations User",
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS LMS User",
+   "write": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

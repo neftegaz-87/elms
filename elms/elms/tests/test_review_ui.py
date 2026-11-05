@@ -15,6 +15,8 @@ class TestReviewUI(unittest.TestCase):
 
     def test_review_uses_a_desk_route_and_embeds_the_service(self):
         self.assertIn('reviewPageName = "elms-review"', self.js)
+        self.assertIn("elms_review_visible", self.js)
+        self.assertIn("function isReviewVisible()", self.js)
         self.assertIn('frappe.standard_pages[reviewPageName]', self.js)
         self.assertIn('frame.src = reviewEndpoint', self.js)
         self.assertIn('shell.className = "elms-review-shell"', self.js)
@@ -41,6 +43,18 @@ class TestReviewUI(unittest.TestCase):
         self.assertNotIn("min-height: 640px", self.css)
         self.assertIn(".elms-review-page .elms-review-frame", self.css)
         self.assertIn('frame.setAttribute("scrolling", "no")', self.js)
+
+    def test_review_visibility_is_part_of_the_boot_and_workspace_contract(self):
+        self.assertIn("extend_bootinfo", self.hooks)
+        self.assertIn("elms.sso.review.extend_bootinfo", self.hooks)
+        self.assertIn("override_whitelisted_methods", self.hooks)
+        self.assertIn("elms.sso.review.get_desktop_page", self.hooks)
+
+    def test_apps_screen_has_logos_and_permission_gated_review_card(self):
+        self.assertIn('"logo": "/assets/elms/images/nftgz-favicon.svg"', self.hooks)
+        self.assertIn('"title": "Сверка заявки"', self.hooks)
+        self.assertIn('"route": "/app/review"', self.hooks)
+        self.assertIn('"has_permission": "elms.sso.review.has_review_app_permission"', self.hooks)
 
 
 if __name__ == "__main__":

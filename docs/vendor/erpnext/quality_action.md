@@ -1,0 +1,44 @@
+---
+title: "Quality Action\n"
+space: "ERPNext"
+url: "https://docs.frappe.io/erpnext/quality_action"
+updated: "2026-02-26"
+---
+
+**A Quality Action is taken on a Quality Review to correct unsatisfactory results or prevent them from happening.**
+
+Quality Action is a standard feature to allow implementation of corrective and preventive actions. This will meet compliance with industry regulations including GMP, ISO 9001 and 14001, TSCA, REACH, etc.
+
+Quality Action workflows provide a controlled environment and reduce the risk of repeat issues by ensuring that defined solutions and processes are met.
+
+Quality Actions can be initialized for a Quality Goal or for a Customer Feedback which may not meet the expected quality standards. Depending on that a Corrective or Preventive Action can be started.
+
+To access Quality Action, go to:
+
+> Home > Quality > Review and Action > Quality Action
+
+## 1. Prerequisites
+
+Before creating and using a Quality Action it is advised to create the following first:
+
+- [Quality Review](https://docs.frappe.io/erpnext/user/manual/en/quality_review) or [Quality Feedback](https://docs.frappe.io/erpnext/user/manual/en/quality_feedback)
+
+## 2. How to create a Quality Action
+
+1. Go to the Quality Action list, click on New.
+2. Select whether it's a Corrective or Preventive action. This indicates whether the action is being scheduled for Corrective or for Preventive Purpose.
+3. Select the Document Type whether a Quality Review or a Quality Feedback.
+4. Select the actual Quality Review or Feedback under Document Name.
+5. Enter a Resolution proposed for the problem in the Resolution field.
+6. Save.
+
+![](/files/action0e0bc8.gif)
+
+The Status field indicates whether the Quality Action is Open and ongoing or Closed.
+
+## 3. Related Topics
+
+- [Quality Goal](https://docs.frappe.io/erpnext/user/manual/en/quality_goal)
+- [Quality Review](https://docs.frappe.io/erpnext/user/manual/en/quality_review)
+- [Quality Procedure](https://docs.frappe.io/erpnext/user/manual/en/quality_procedure)
+

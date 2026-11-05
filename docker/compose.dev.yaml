@@ -145,7 +145,7 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://elms-keycloak.localhost:8480}
-      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8480}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}
       ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
       ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-0}
       ELMS_REVIEW_URL: ${ELMS_REVIEW_URL:-http://127.0.0.1:8765/auth/handoff}
@@ -163,6 +163,7 @@ services:
   backend:
     <<: *backend
     environment:
+      ELMS_VAULT_REQUIRED: "0"
       ELMS_BUILD_ASSETS_ON_START: "1"
       GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
@@ -170,7 +171,7 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://elms-keycloak.localhost:8480}
-      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8480}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}
       ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
       ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-0}
       ELMS_REVIEW_URL: ${ELMS_REVIEW_URL:-http://127.0.0.1:8765/auth/handoff}
@@ -218,6 +219,7 @@ services:
     <<: *image
     command: ["nginx-entrypoint.sh"]
     environment:
+      ELMS_VAULT_REQUIRED: "0"
       BACKEND: backend:8000
       SOCKETIO: websocket:9000
       NGINX_LISTEN_PORT: ${NGINX_LISTEN_PORT:-8080}
@@ -275,9 +277,12 @@ services:
       KEYCLOAK_TEST_ONE_PASSWORD: ${KEYCLOAK_TEST_ONE_PASSWORD:-}
       KEYCLOAK_TEST_TWO_PASSWORD: ${KEYCLOAK_TEST_TWO_PASSWORD:-}
       KEYCLOAK_TEST_ADMIN_PASSWORD: ${KEYCLOAK_TEST_ADMIN_PASSWORD:-}
+      KEYCLOAK_SEED_DEMO_USERS: ${KEYCLOAK_SEED_DEMO_USERS:-1}
+      KEYCLOAK_SEED_SCRIPT: /opt/keycloak/seed-demo-users.sh
     entrypoint: ["/opt/keycloak/entrypoint.sh"]
     volumes:
       - ./keycloak/entrypoint.sh:/opt/keycloak/entrypoint.sh:ro
+      - ./keycloak/seed-demo-users.sh:/opt/keycloak/seed-demo-users.sh:ro
       - ./keycloak/realm-elms.json:/opt/keycloak/data/import-template/realm-elms.json:ro
     ports:
       - "${KEYCLOAK_PUBLISH_PORT:-8480}:8080"

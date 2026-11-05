@@ -144,6 +144,45 @@ def test_snapshot_fixture_restore_is_disposable_and_redacted(tmp_path: Path) -> 
     assert "synthetic-db-value" not in marker.read_text(encoding="utf-8")
 
 
+@pytest.mark.parametrize("case", ["active-project", "symlink", "unmarked-existing", "capacity-blocked"])
+def test_snapshot_fixture_restore_rejects_unsafe_targets_before_writing(
+    tmp_path: Path, case: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fixture = FIXTURES / "vault-synthetic-snapshot.json"
+    if case == "active-project":
+        target = tmp_path / "elms-prod" / "restore"
+    elif case == "symlink":
+        resolved_target = tmp_path / "resolved-target"
+        resolved_target.mkdir()
+        target = tmp_path / "symlink-target"
+        target.symlink_to(resolved_target, target_is_directory=True)
+    elif case == "unmarked-existing":
+        target = tmp_path / "existing-target"
+        target.mkdir()
+    else:
+        target = tmp_path / "capacity-target"
+        monkeypatch.setenv("BACKUP_MIN_FREE_BYTES", str(10**30))
+
+    result = run_bash(
+        "vault_snapshot.sh",
+        "restore",
+        "--fixture",
+        "--input",
+        str(fixture),
+        "--target",
+        str(target),
+    )
+
+    assert result.returncode != 0
+    assert "PASS: synthetic snapshot restored" not in result.stdout + result.stderr
+    if case == "symlink":
+        assert list(resolved_target.iterdir()) == []
+    elif case == "unmarked-existing":
+        assert list(target.iterdir()) == []
+    else:
+        assert not target.exists()
+
+
 def test_production_surfaces_use_single_secret_source() -> None:
     bounded = [
         ROOT / "scripts/infra/vault_bootstrap.sh",

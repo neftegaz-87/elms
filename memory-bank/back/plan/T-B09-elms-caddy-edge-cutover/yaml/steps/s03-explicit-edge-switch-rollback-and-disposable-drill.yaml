@@ -1,0 +1,137 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-B09-elms-caddy-edge-cutover
+title: Explicit edge switch, systemd rollback restoration, and disposable drill contract
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+
+goal: |
+  Обеспечить доказанный reversible switch & rollback механизм: switch и rollback требуют явных флагов
+  --approved --execute, rollback останавливает контейнерный Caddy, освобождает публичные порты,
+  восстанавливает host Caddy через systemd (systemctl start caddy) и проверяет прежний route.
+  Disposable rollback drill доказывает поведение на failure path без вмешательства в живые DNS/firewall/Caddy,
+  а документация фиксирует maintenance window и rollback budget с полной зачисткой устаревших путей.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-005
+  nouns:
+    - explicit switch
+    - explicit rollback
+    - approved flag
+    - execute flag
+    - container port release
+    - systemctl start caddy
+    - systemctl is-active
+    - old route verification
+    - disposable rollback drill
+    - maintenance window
+    - rollback budget
+    - operator runbook
+  layout_paths:
+    - scripts/infra/edge_cutover.py
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  ac_quotes:
+    - 'FR-002: public switch requires fresh predecessor evidence, owner approval and serialized lock.'
+    - 'FR-005: rollback releases container ports, restores host Caddy and verifies old route.'
+    - 'Done when: Missing predecessor evidence or approval exits before changing host Caddy; forced failure restores old edge and proves it.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:23-27
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:41-50
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/prompt.md:3-15
+
+context:
+  consumes:
+    - s01 staged routing and Compose edge overlay
+    - s02 predecessor evidence gate, flock lock, and status check
+  produces:
+    - explicit switch and rollback CLI handlers requiring --approved and --execute
+    - systemd restoration command chain (systemctl start caddy && systemctl is-active caddy)
+    - disposable rollback drill test simulating switch failure and proving old edge restoration
+    - operator runbook defining maintenance window, rollback budget, and non-secret evidence
+  plan_refs:
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:26-27
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:43-48
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/prompt.md:12-14
+  files:
+    - scripts/infra/edge_cutover.py
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+
+as_built:
+  - scripts/infra/edge_cutover.py implements switch and rollback commands with compose up/stop and systemctl commands.
+  - tests/infra/test_production_contracts.py verifies switch requires approval.
+  - docs/operations/elms-production.md outlines edge cutover requirements and status commands.
+
+delta:
+  - Enforce that rollback releases container Caddy, executes systemctl start caddy, and verifies host Caddy is active.
+  - Add disposable rollback drill contract in tests proving container teardown and restoration sequence without executing privileged systemctl on developer machine.
+  - Update docs/operations/elms-production.md with clear maintenance window, rollback budget, and exact switch/rollback commands without secrets.
+  - Purge any legacy instruction or script implying automatic CI edge cutover or unapproved port manipulation.
+
+deletes:
+  - manual unverified host-Caddy recovery procedures
+  - instructions or scripts implying automatic CI edge cutover
+
+wire_complete_required: true
+
+sunset_scope:
+  required: true
+  boundary_id: elms-edge-rollback-restoration
+  new_sot: scripts/infra/edge_cutover.py
+  allow_read:
+    - scripts/infra/edge_cutover.py
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+out_of_scope:
+  - Live execution of systemctl start caddy against a production host outside maintenance window.
+  - Modifying production DNS or public firewall rules.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Rollback command stops container Caddy and invokes systemctl start and is-active.
+    verify: rg -n 'systemctl.*start.*caddy|systemctl.*is-active' scripts/infra/edge_cutover.py
+  - id: cp2
+    criterion: Switch and rollback commands strictly require both --approved and --execute flags.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge_switch_requires_approval'
+  - id: cp3
+    criterion: Disposable rollback drill proves container stop and host restoration contract without privileged host mutations.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge_rollback_drill'
+  - id: cp4
+    criterion: Production operations documentation defines maintenance window, rollback budget, and explicit switch/rollback steps without secrets.
+    verify: rg -n 'Edge cutover|maintenance window|rollback|systemctl' docs/operations/elms-production.md
+
+verify:
+  - python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge'
+  - python3 scripts/infra/edge_cutover.py preflight --staged
+  - python3 scripts/infra/edge_cutover.py status
+  - rg -n 'maintenance window|rollback budget|edge_cutover.py' docs/operations/elms-production.md
+  - '! rg -n -i "(password|secret|token|private.?key|unseal|recovery)" tests/infra/fixtures/edge-evidence.json'
+
+tdd:
+  - test_edge_rollback_drill_contract
+  - test_edge_rollback_requires_approved_and_execute
+  - test_edge_cutover_runbook_documentation

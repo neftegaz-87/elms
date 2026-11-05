@@ -20,6 +20,11 @@ venv/
 dist/
 build/
 
+secrets/
+
+# Local GSTACK screenshots/receipts; canonical process docs live in docs/process.
+.gstack/
+
 sites/
 logs/
 *.log

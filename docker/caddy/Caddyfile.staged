@@ -2,11 +2,21 @@
 	admin off
 }
 
+# Review handoff URL remains a first-party review service contract; strict host routing only.
 :80 {
 	encode zstd gzip
 
-	@health path /healthz
-	respond @health 200
+	@auth_health {
+		host {$AUTH_HOSTNAME}
+		path /healthz
+	}
+	respond @auth_health 200
+
+	@elms_health {
+		host {$SITE_NAME}
+		path /healthz
+	}
+	respond @elms_health 200
 
 	@auth host {$AUTH_HOSTNAME}
 	handle @auth {
@@ -19,7 +29,8 @@
 		}
 	}
 
-	handle {
+	@elms host {$SITE_NAME}
+	handle @elms {
 		reverse_proxy frontend:{$NGINX_LISTEN_PORT} {
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
@@ -27,5 +38,9 @@
 			header_up X-Forwarded-Proto http
 			header_up X-Forwarded-Host {host}
 		}
+	}
+
+	handle {
+		respond "Not Found" 404
 	}
 }

@@ -8,6 +8,7 @@ from elms.sso.constants import (
     DEFAULT_SSO_ROLES_CONF_KEY,
     KEYCLOAK_PROVIDER_NAME,
 )
+from elms.sso.mapping import get_mapping_registry
 
 
 def _(text: str) -> str:
@@ -78,8 +79,15 @@ def maybe_assign_sso_roles(doc, method: str | None = None) -> None:
 
     # BN-005 / TM-005: Validate that all default roles exist in the database fail-closed
     default_roles = get_default_sso_roles()
+    target_roles = list(default_roles)
+    mapping = get_mapping_registry().get_mapping(str(email).strip().lower())
+    if mapping and mapping.elms_roles:
+        target_roles = list(mapping.elms_roles)
+        if "Desk User" not in target_roles:
+            target_roles.insert(0, "Desk User")
+
     if hasattr(frappe, "db") and hasattr(frappe.db, "exists"):
-        for role in default_roles:
+        for role in target_roles:
             if not frappe.db.exists("Role", role):
                 frappe.throw(
                     _("Default SSO role '{0}' does not exist. Fail-closed signup aborted.").format(role),
@@ -103,11 +111,27 @@ def maybe_assign_sso_roles(doc, method: str | None = None) -> None:
         if hasattr(doc, "user_type"):
             doc.user_type = "System User"
 
-    roles_to_add = [r for r in default_roles if r not in existing_roles]
+    roles_to_add = [r for r in target_roles if r not in existing_roles]
     if not roles_to_add:
         if getattr(doc, "user_type", None) == "System User" and hasattr(doc, "save"):
             doc.save()
         return
+
+    bitrix_uid = None
+    oauth_data = getattr(frappe, "local", None) and getattr(frappe.local, "oauth_user_data", None)
+    if isinstance(oauth_data, dict):
+        bitrix_uid = oauth_data.get("bitrix_user_id")
+
+    if not bitrix_uid and email:
+        m = get_mapping_registry().get_mapping(str(email).strip().lower())
+        if m and m.bitrix_id:
+            bitrix_uid = m.bitrix_id
+
+    if bitrix_uid:
+        if hasattr(doc, BITRIX_USER_ID_FIELD):
+            setattr(doc, BITRIX_USER_ID_FIELD, str(bitrix_uid))
+        if hasattr(doc, "bitrix_user_id"):
+            setattr(doc, "bitrix_user_id", str(bitrix_uid))
 
     if flags:
         flags.in_sso_role_assignment = True
@@ -121,3 +145,21 @@ def maybe_assign_sso_roles(doc, method: str | None = None) -> None:
     finally:
         if flags:
             flags.in_sso_role_assignment = False
+
+
+BITRIX_USER_ID_FIELD = "custom_bitrix_user_id"
+BITRIX_USER_ID_FIELD_SPEC = {
+    "fieldname": BITRIX_USER_ID_FIELD,
+    "fieldtype": "Data",
+    "label": "Bitrix User ID",
+    "read_only": 1,
+    "insert_after": "email",
+    "description": "Идентификатор пользователя в Битрикс24",
+}
+
+
+def ensure_bitrix_user_field() -> None:
+    """Ensure the administrator-controlled bitrix_user_id custom field exists on User."""
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    create_custom_fields({"User": [dict(BITRIX_USER_ID_FIELD_SPEC)]})

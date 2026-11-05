@@ -1,0 +1,140 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-B09-elms-caddy-edge-cutover
+title: Predecessor evidence verification, status inspection, and serialized cutover gate
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+
+goal: |
+  Реализовать fail-closed gate verifier: проверка статуса портов (80, 443, 18080) без изменения процессов,
+  валидация свежести (max-age <= 24h) и структуры predecessor evidence (release, vault, backup, staged,
+  rollback), обязательное owner approval и сериализация через flock lock до любых попыток переключения.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+  nouns:
+    - predecessor edge evidence
+    - release passed
+    - vault passed
+    - backup fresh
+    - staged passed
+    - rollback passed
+    - owner approval
+    - max age hours
+    - cutover lock
+    - port state inspection
+    - occupied port refusal
+    - preflight gate
+  layout_paths:
+    - scripts/infra/edge_cutover.py
+    - tests/infra/fixtures/edge-evidence.json
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  ac_quotes:
+    - 'FR-002: public switch requires fresh predecessor evidence, owner approval and serialized lock.'
+    - 'FR-003: container Caddy is sole 80/443 owner after switch; DB/Redis/backend/Keycloak/Vault remain private.'
+    - 'Done when: Missing predecessor evidence or approval exits before changing host Caddy; forced failure restores old edge and proves it.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:20-27
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:34-40
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/prompt.md:12-14
+
+context:
+  consumes:
+    - s01 staged edge routing and Compose port topology
+    - T-B05 staged smoke verification
+    - T-B06 Vault preflight status
+    - T-B07 verified backup freshness evidence
+    - T-B08 release manifest and deploy wrapper evidence
+  produces:
+    - edge_cutover.py status command providing non-mutating port inspection
+    - fail-closed evidence_is_fresh validator requiring all five predecessor gates and owner approval
+    - serialized flock cutover_lock context manager using ELMS_EDGE_LOCK
+    - occupied port refusal preventing switch if 80 or 443 are already in use
+  plan_refs:
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:23-24
+    - memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md:36-39
+  files:
+    - scripts/infra/edge_cutover.py
+    - tests/infra/fixtures/edge-evidence.json
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+
+as_built:
+  - scripts/infra/edge_cutover.py contains preflight, status, and evidence_is_fresh checks for predecessor gates.
+  - tests/infra/fixtures/edge-evidence.json provides passing contract fixture with release, vault, backup, staged, rollback, and owner_approved.
+  - tests/infra/test_production_contracts.py verifies preflight --staged and switch refusal without approval.
+
+delta:
+  - Enforce fail-closed predecessor evidence validation rejecting missing, malformed, stale (>24h), or unapproved evidence files.
+  - Enforce status command reporting port usage without mutating system processes.
+  - Enforce cutover_lock serialization and occupied-port check (refusing switch if host 80/443 are already in use).
+  - Add targeted contract tests for stale evidence, missing predecessor fields, and locked cutover execution.
+
+deletes:
+  - unvalidated edge switch execution path
+  - un-serialized cutover concurrency
+  - path-presence-only predecessor evidence acceptance
+
+wire_complete_required: true
+
+sunset_scope:
+  required: true
+  boundary_id: elms-caddy-edge-cutover-gate
+  new_sot: scripts/infra/edge_cutover.py
+  allow_read:
+    - scripts/infra/edge_cutover.py
+    - tests/infra/fixtures/edge-evidence.json
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  kind_hint:
+    - A
+    - B
+    - C
+
+out_of_scope:
+  - Real production maintenance window scheduling and live host edge release.
+  - Modifying production DNS or external firewalls.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Status command reports port 80, 443, and 18080 state in structured JSON without modifying processes.
+    verify: python3 scripts/infra/edge_cutover.py status
+  - id: cp2
+    criterion: Predecessor evidence validator requires release, vault, backup, staged, rollback, and owner_approved.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge_switch_requires_approval_and_evidence'
+  - id: cp3
+    criterion: Stale evidence (> max-age-hours) or unapproved evidence is rejected with non-zero exit and diagnostic.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge_evidence_stale_or_missing'
+  - id: cp4
+    criterion: Cutover operations use flock lock on ELMS_EDGE_LOCK and refuse switch when ports are occupied.
+    verify: rg -n 'cutover_lock|ELMS_EDGE_LOCK|occupied' scripts/infra/edge_cutover.py
+
+verify:
+  - python3 scripts/infra/edge_cutover.py preflight --staged
+  - python3 scripts/infra/edge_cutover.py status
+  - python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge'
+  - '! rg -n -i "(password|secret|token|private.?key|unseal|recovery)" tests/infra/fixtures/edge-evidence.json'
+
+tdd:
+  - test_edge_switch_requires_approval_and_evidence
+  - test_edge_status_json_inspection
+  - test_edge_evidence_stale_rejection
+  - test_edge_switch_refuses_occupied_ports

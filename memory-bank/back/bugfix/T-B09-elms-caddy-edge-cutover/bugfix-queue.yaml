@@ -1,0 +1,75 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-B09-elms-caddy-edge-cutover
+role: back
+source_qa: memory-bank/back/qa/T-B09-elms-caddy-edge-cutover/qa-20261101-caddy-edge-cutover.yaml
+checklist_sha256: bfd19691f3361e10383a6972b1b7c13fe0cc995b19da3e1582fa5e7548529f9e
+created_at: '2026-11-01T17:18:50Z'
+updated_at: '2026-11-02T06:43:10Z'
+current_id: BF-003
+verification:
+  status: pass
+  command: bash scripts/live_smoke.sh
+  last_run_at: '2026-11-02T06:43:10Z'
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  evidence: 'All 3 bugfix items verified green: 21 passed in test_production_contracts.py
+    and full suite passed 91 passed, 2 skipped.'
+items:
+- id: BF-001
+  status: done
+  done_at: '2026-11-01T17:18:50Z'
+  class: ac_gap
+  title: 'ac_gap: FR-005 — rollback verifies only systemctl is-active without old
+    route verification'
+  blocker_ref: 'ac_gap: FR-005 — rollback verifies only systemctl is-active; no old-route
+    check (scripts/infra/edge_cutover.py:146-149, drill tests/infra/test_production_contracts.py:423-476)
+    · add runtime old-route verification.'
+  fix_plan_ref: In scripts/infra/edge_cutover.py, add old-route verification probe
+    in rollback handler and update test_edge_rollback_drill_contract to assert old
+    route verification.
+  targets:
+  - scripts/infra/edge_cutover.py
+  - tests/infra/test_production_contracts.py
+  verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge_rollback_drill'
+  evidence: 'VERIFY passed: python3 -m pytest -q tests/infra/test_production_contracts.py
+    -k edge_rollback_drill passed (1 passed, 20 deselected); restore_host_edge verifies
+    curl http://127.0.0.1/healthz.'
+  notes: Rollback must release container ports, restore host Caddy, and verify old
+    route.
+- id: BF-002
+  status: done
+  done_at: '2026-11-01T17:18:50Z'
+  class: ac_gap
+  title: 'ac_gap: Done when — forced switch failure does not automatically restore/prove
+    old edge'
+  blocker_ref: 'ac_gap: Done when — forced switch failure does not automatically restore/prove
+    the old edge; the drill invokes rollback separately without route evidence (scripts/infra/edge_cutover.py:139-149)
+    · exercise and capture restoration after forced failure.'
+  fix_plan_ref: In scripts/infra/edge_cutover.py switch handler, catch switch failures,
+    automatically trigger restoration sequence and verify old edge, and prove it in
+    disposable drill.
+  targets:
+  - scripts/infra/edge_cutover.py
+  - tests/infra/test_production_contracts.py
+  verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge_rollback_drill'
+  evidence: 'VERIFY passed: switch failure catches exceptions, triggers restore_host_edge,
+    and disposable drill verifies rollback restoration and old route probe.'
+  notes: Forced failure restores old edge and proves it.
+- id: BF-003
+  status: done
+  done_at: '2026-11-01T17:18:50Z'
+  class: ac_gap
+  title: 'ac_gap: RC-003 — public HTTP Caddy blocks lack explicit unmatched path 404
+    fallback'
+  blocker_ref: 'ac_gap: RC-003 — public HTTP Caddy blocks only match /healthz and
+    lack explicit unmatched-path 404 evidence (docker/caddy/Caddyfile:6-9,24-27) ·
+    add fallback and observable route assertion.'
+  fix_plan_ref: In docker/caddy/Caddyfile, add explicit handle fallback with 404 for
+    unmatched paths in HTTP blocks and assert in tests.
+  targets:
+  - docker/caddy/Caddyfile
+  - tests/infra/test_production_contracts.py
+  verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'caddy_staged_and_edge_routing_contract'
+  evidence: 'VERIFY passed: python3 -m pytest -q tests/infra/test_production_contracts.py
+    -k caddy_staged_and_edge_routing_contract passed (1 passed, 20 deselected); explicit
+    handle 404 fallback added for unmatched paths.'
+  notes: Unmatched host/path does not get fake 200 or unhandled pass-through.

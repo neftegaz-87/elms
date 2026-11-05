@@ -1,0 +1,176 @@
+schema: epic-decompose-index/v1
+plan_id: T-A02-elms-learning-core-flows
+level: L1
+sNN_cap: 1
+appetite:
+  timebox_days: 1
+  cut_list:
+  - Custom React or Vue full-page SPA for lesson viewer (deferred to next editor slice)
+  - Direct individual bank card acquiring (using B2B contracts & subscriptions)
+  - Native iOS and Android mobile applications
+  - Direct integration with YouTube/Vimeo third-party CDNs
+effort_probe:
+  outcomes:
+  - outcome: Unified Core Learning Flows vertical slice (DocTypes, Whitelist API,
+      Quotas, Telemetry, Progress, Workspace LMS, and Tests)
+    hours_mid: 4.0
+    hours_range: 3-5
+    confidence: high
+    notes: DocTypes for batches, subscriptions, enrollments, course progress, lesson
+      progress, activity log, video watch log, API methods, Desk workspace navigation,
+      and complete unit/integration tests
+  total_hours: 4.0
+  effort_hours_total: 4.0
+  effort_class: S
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 1
+  sNN_target: 1
+steps:
+- id: s01
+  file: s01-learning-core-vertical-slice.yaml
+  title: Unified Core Learning Flows vertical slice (DocTypes, Whitelist API, Quotas,
+    Telemetry, Progress, Workspace LMS, and Tests)
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Domain Schema & DocTypes in module LMS (ELMS Batch, Subscription, Enrollment,
+    Course Progress, Lesson Progress, Activity, Video Log)
+- id: FR-002
+  step: s01
+  description: Whitelist API endpoints for enrollment, time tracking, course progress
+    calculation, and learner dashboard
+- id: FR-003
+  step: s01
+  description: Desk Workspace LMS navigation update with structured cards (Learning
+    Management, Progress, Documents)
+- id: US-LMS-001
+  step: s01
+  description: Admin creates training batch with dates, instructor, order number,
+    and customer organization
+- id: US-LMS-002
+  step: s01
+  description: B2B manager creates corporate subscription with seat quota
+- id: US-LMS-003
+  step: s01
+  description: Admin cannot enroll learner exceeding subscription seat quota
+- id: US-LMS-004
+  step: s01
+  description: Learner sees only own enrollments and progress in Workspace LMS
+- id: US-LMS-005
+  step: s01
+  description: Learner time-on-task is accurately accumulated and recorded
+- id: US-LMS-006
+  step: s01
+  description: Exam eligibility opens strictly upon 100 percent mandatory course milestones
+    completion
+- id: US-LMS-007
+  step: s01
+  description: Learner actions and telemetry are logged under 152-FZ privacy requirements
+- id: AC-001
+  step: s01
+  description: Registered and migrated DocTypes with valid schemas and DocPerm in
+    module LMS
+- id: AC-002
+  step: s01
+  description: Desk Workspace LMS displays new cards and links without missing DocType
+    errors
+- id: AC-003
+  step: s01
+  description: Enrollment API creates active enrollment, decrements quota, and initializes
+    course progress
+- id: AC-004
+  step: s01
+  description: Quota overflow is rejected with validation error
+- id: AC-005
+  step: s01
+  description: Lesson progress and heartbeat record time spent and update completion
+    status
+- id: AC-006
+  step: s01
+  description: Course progress reaches 100 percent and marks exam_eligible=1 only
+    when all required lessons are complete
+- id: AC-007
+  step: s01
+  description: DocPerm isolates learner data and rejects unauthorized guest access
+- id: BN-001
+  step: s01
+  description: Subscription quota exceeded raises ValidationError without partial
+    enrollment
+- id: BN-002
+  step: s01
+  description: Non-existent user or batch raises DoesNotExistError
+- id: BN-003
+  step: s01
+  description: Suspicious heartbeat delta over 300 seconds is rejected
+- id: BN-004
+  step: s01
+  description: Unauthenticated guest API call is rejected with 403 PermissionError
+- id: BN-005
+  step: s01
+  description: Learner attempting to record progress for another user's enrollment
+    is denied
+- id: BN-006
+  step: s01
+  description: Duplicate active enrollment for same user and batch is rejected
+- id: TM-001
+  step: s01
+  description: test_lms_doctypes_registered verifies all 7 DocTypes exist in schema
+    and module LMS
+- id: TM-002
+  step: s01
+  description: test_lms_subscription_quota_enforcement verifies seat tracking and
+    overflow rejection
+- id: TM-003
+  step: s01
+  description: test_lms_enrollment_lifecycle verifies active enrollment and progress
+    document creation
+- id: TM-004
+  step: s01
+  description: test_lms_duplicate_enrollment_rejected asserts single active enrollment
+    per user and batch
+- id: TM-005
+  step: s01
+  description: test_lms_record_lesson_progress verifies heartbeat, time tracking,
+    and completion flag
+- id: TM-006
+  step: s01
+  description: test_lms_heartbeat_boundary_guard rejects deltas greater than 300 seconds
+- id: TM-007
+  step: s01
+  description: test_lms_course_progress_calculation verifies percentage math and exam_eligible
+    flag
+- id: TM-008
+  step: s01
+  description: test_lms_user_activity_telemetry verifies 152-FZ activity audit log
+    creation
+- id: TM-009
+  step: s01
+  description: test_lms_docperm_and_isolation verifies guest denial and cross-user
+    data protection
+- id: TM-010
+  step: s01
+  description: test_lms_workspace_navigation verifies updated LMS Desk workspace cards
+    and links
+stages_coverage:
+- stage: Stage s01 learning-core-vertical-slice
+  step: s01
+outcome_map:
+- outcome: Unified Core Learning Flows vertical slice (DocTypes, Whitelist API, Quotas,
+    Telemetry, Progress, Workspace LMS, and Tests)
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Placeholder-only LMS workspace and lack of LMS domain entities
+    target: Production-grade LMS domain models, enrollment APIs, progress tracking,
+      and Desk workspace navigation
+  items:
+  - symbol: Placeholder-only LMS workspace links in workspaces.py
+    kind: A
+    replacement: Structured LMS Workspace cards (Learning Management, Progress, Documents)
+    step: s01
+    policy: replace in-epic
+  sunset:
+  - Unstructured placeholder links in Workspace LMS

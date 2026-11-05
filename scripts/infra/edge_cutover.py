@@ -10,6 +10,7 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -23,6 +24,18 @@ def port_state(port: int, host: str = "127.0.0.1") -> bool:
 
 def root_path(args: argparse.Namespace) -> Path:
     return args.root.resolve()
+
+def default_lock_path() -> Path:
+    configured = os.environ.get("ELMS_EDGE_LOCK")
+    if configured:
+        return Path(configured)
+    run_lock = Path("/run/lock")
+    if run_lock.is_dir() and os.access(run_lock, os.W_OK):
+        return run_lock / "elms-edge-cutover.lock"
+    tmp = Path(tempfile.gettempdir())
+    if os.access(tmp, os.W_OK):
+        return tmp / "elms-edge-cutover.lock"
+    return Path("./elms-edge-cutover.lock")
 
 
 def evidence_is_fresh(path: Path, max_age_hours: int) -> None:
@@ -39,13 +52,17 @@ def evidence_is_fresh(path: Path, max_age_hours: int) -> None:
         "staged": "passed",
         "rollback": "passed",
     }
+    if not isinstance(value, dict):
+        raise SystemExit("ERROR: predecessor edge evidence must be a JSON object")
     for key, expected in required.items():
         if not isinstance(value.get(key), dict) or value[key].get("status") != expected:
             raise SystemExit(f"ERROR: predecessor evidence is missing a passing {key} gate")
     if value.get("owner_approved") is not True:
         raise SystemExit("ERROR: predecessor evidence does not record owner approval")
-    age_seconds = max(0.0, time.time() - path.stat().st_mtime)
-    if age_seconds > max_age_hours * 3600:
+    mtime = path.stat().st_mtime
+    now = time.time()
+    age_seconds = now - mtime
+    if age_seconds < -60.0 or age_seconds > max_age_hours * 3600:
         raise SystemExit("ERROR: predecessor edge evidence is stale")
 
 
@@ -70,7 +87,7 @@ def preflight(args: argparse.Namespace) -> int:
             errors.append(f"missing edge artifact: {path}")
     if compose.is_file() and "ports:" in compose.read_text(encoding="utf-8"):
         errors.append("canonical Compose must not own public ports")
-    if staged_caddy.is_file() and "127.0.0.1" not in staged.read_text(encoding="utf-8"):
+    if staged_caddy.is_file() and staged.is_file() and "127.0.0.1" not in staged.read_text(encoding="utf-8"):
         errors.append("staged edge must bind localhost only")
     if caddy.is_file() and "/healthz" not in caddy.read_text(encoding="utf-8"):
         errors.append("public Caddyfile must define /healthz")
@@ -93,9 +110,18 @@ def status(args: argparse.Namespace) -> int:
     return 0
 
 
+def restore_host_edge(compose: list[str]) -> None:
+    subprocess.run(compose + ["stop", "caddy"], check=True)
+    subprocess.run(["systemctl", "start", "caddy"], check=True)
+    subprocess.run(["systemctl", "is-active", "--quiet", "caddy"], check=True)
+    subprocess.run(["curl", "--fail", "--silent", "--show-error", "http://127.0.0.1/healthz"], check=True)
+
+
 def execute(args: argparse.Namespace, action: str) -> int:
     if not args.approved or not args.execute:
         raise SystemExit(f"ERROR: {action} requires both --approved and --execute")
+    if preflight(args) != 0:
+        raise SystemExit(f"ERROR: preflight check failed before {action}")
     if args.max_age_hours <= 0:
         raise SystemExit("ERROR: --max-age-hours must be positive")
     evidence = args.predecessor_evidence
@@ -115,18 +141,21 @@ def execute(args: argparse.Namespace, action: str) -> int:
         "-f",
         str(root / "docker/compose.prod.edge.yaml"),
     ]
-    lock_path = Path(os.environ.get("ELMS_EDGE_LOCK", "/run/lock/elms-edge-cutover.lock"))
+    lock_path = default_lock_path()
     with cutover_lock(lock_path):
         if action == "switch":
             if port_state(80) or port_state(443):
                 raise SystemExit("ERROR: 80/443 are still occupied; host edge must be released explicitly")
-            subprocess.run(compose + ["up", "-d", "--remove-orphans", "--wait", "caddy"], check=True)
-            if not port_state(80) or not port_state(443):
-                raise SystemExit("ERROR: container Caddy did not acquire both public ports")
+            try:
+                subprocess.run(compose + ["up", "-d", "--remove-orphans", "--wait", "caddy"], check=True)
+                if not port_state(80) or not port_state(443):
+                    raise RuntimeError("container Caddy did not acquire both public ports")
+            except Exception as exc:
+                sys.stderr.write(f"Switch failed: {exc}; triggering automatic restoration...\n")
+                restore_host_edge(compose)
+                raise SystemExit(f"ERROR: switch failed and automatic restoration completed: {exc}") from exc
         else:
-            subprocess.run(compose + ["stop", "caddy"], check=True)
-            subprocess.run(["systemctl", "start", "caddy"], check=True)
-            subprocess.run(["systemctl", "is-active", "--quiet", "caddy"], check=True)
+            restore_host_edge(compose)
     print(json.dumps({"action": action, "executed": True}, sort_keys=True))
     return 0
 

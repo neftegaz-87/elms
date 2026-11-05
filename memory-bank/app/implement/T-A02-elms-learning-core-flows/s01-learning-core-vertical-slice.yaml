@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: app
+step_id: s01
+plan_id: T-A02-elms-learning-core-flows
+title: s01 — Unified Core Learning Flows vertical slice IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/app/plan/T-A02-elms-learning-core-flows/yaml/steps/s01-learning-core-vertical-slice.yaml
+date: 2026-11-05
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/frontend-patterns/SKILL.md
+
+done:
+  - Created 7 LMS domain DocTypes (ELMS Batch, ELMS Subscription, ELMS Enrollment, ELMS Course Progress, ELMS Lesson Progress, ELMS User Activity, ELMS Video Watch Log) with schemas, DocPerm and controllers
+  - Implemented Whitelist API endpoints in elms.lms.api with seat quota validation, heartbeat anti-cheat bounds, 152-FZ telemetry audit, and exam eligibility calculation
+  - Updated Desk Workspace LMS navigation in workspaces.py with structured cards for learning management, progress, and assessments
+  - Added comprehensive unit and contract test suite in test_lms_core.py covering quotas, time tracking, eligibility, and fail-closed RBAC
+
+files:
+  - elms/elms/lms/doctype/elms_batch/elms_batch.json
+  - elms/elms/lms/doctype/elms_batch/elms_batch.py
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.json
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.json
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.py
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.json
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.py
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.json
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.py
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.json
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.py
+  - elms/elms/lms/api.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/tests/test_lms_core.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "Desk Workspace LMS (/app/lms) -> Workspace DocType links -> ELMS Batch, ELMS Subscription, ELMS Enrollment, ELMS Course Progress"
+    - "Client Learner Portal / REST -> elms.lms.api.enroll_learner -> Quota check & ELMS Enrollment & ELMS Course Progress initialization"
+    - "Client Video Player / Lesson Tracker -> elms.lms.api.record_lesson_progress -> Heartbeat telemetry & ELMS Lesson Progress & Course percentage update"
+  enforce_path: "elms/elms/lms/api.py"
+  dual_path_rg: "rg -n 'enroll_learner|record_lesson_progress' elms/elms/lms/api.py"
+  instruction_rg: "rg -n 'ELMS Batch|ELMS Enrollment' elms/elms/desk/workspaces.py"
+  deny_old_proven: true
+
+tests:
+  - '`./bin/pytest -q elms/elms/tests/test_lms_core.py`'
+
+integration_check:
+  - '`./bin/pytest`'
+
+checkpoints:
+  - id: cp1
+    criterion: All 7 LMS DocTypes are created with valid json schemas and Python controllers
+    status: done
+    verify: python3 -c 'import json, pathlib; p = pathlib.Path("elms/elms/lms/doctype"); assert len(list(p.glob("*/*.json"))) >= 7'
+  - id: cp2
+    criterion: Desk Workspace LMS is updated with structured cards and verified in workspaces.py
+    status: done
+    verify: grep -q 'ELMS Batch' elms/elms/desk/workspaces.py && grep -q 'ELMS Enrollment' elms/elms/desk/workspaces.py
+  - id: cp3
+    criterion: Whitelist API module elms.lms.api exists with enroll_learner, record_lesson_progress, and calculate_course_progress
+    status: done
+    verify: python3 -c 'import elms.elms.lms.api as api; assert hasattr(api, "enroll_learner") and hasattr(api, "record_lesson_progress")'
+  - id: cp4
+    criterion: Test suite test_lms_core.py passes 100 percent of tests for quotas, progress, and telemetry
+    status: done
+    verify: bin/pytest -q elms/elms/tests/test_lms_core.py

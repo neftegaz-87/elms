@@ -1,0 +1,85 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-B09-elms-caddy-edge-cutover
+task_id: T-B09-elms-caddy-edge-cutover
+title: s02 — Predecessor evidence verification, status inspection, and serialized cutover gate IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/yaml/steps/s02-predecessor-evidence-and-cutover-gate-verifier.yaml
+date: 2026-11-01
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+
+done:
+  - Implemented fail-closed edge_cutover.py status command providing non-mutating inspection of ports 80, 443, and staged 18080.
+  - Implemented fail-closed predecessor evidence verification in edge_cutover.py requiring passing release, vault, backup (fresh), staged, rollback gates, explicit owner approval, and fresh mtime (<= 24h).
+  - Enforced serialized flock cutover_lock on ELMS_EDGE_LOCK before any mutating edge switch or rollback operation.
+  - Enforced pre-switch occupied-port refusal preventing container Caddy activation if ports 80 or 443 are already in use.
+  - Enforced preflight execution within execute() before attempting edge actions.
+  - Added targeted contract tests in tests/infra/test_production_contracts.py verifying status inspection, missing/stale/unapproved evidence rejection, missing gate rejection, and occupied port refusal.
+  - Documented edge cutover predecessor evidence, locking, and port refusal requirements in docs/operations/elms-production.md.
+
+files:
+  - scripts/infra/edge_cutover.py
+  - tests/infra/fixtures/edge-evidence.json
+  - tests/infra/test_production_contracts.py
+  - docs/operations/elms-production.md
+
+deletes:
+  - unvalidated edge switch execution path
+  - un-serialized cutover concurrency
+  - path-presence-only predecessor evidence acceptance
+
+wire_complete:
+  call_sites:
+    - scripts/infra/edge_cutover.py:execute -> preflight()
+    - scripts/infra/edge_cutover.py:execute -> evidence_is_fresh()
+    - scripts/infra/edge_cutover.py:execute -> cutover_lock()
+    - scripts/infra/edge_cutover.py:execute -> port_state(80) / port_state(443)
+  enforce_path: Predecessor evidence is validated for 5 passing gates (release, vault, backup, staged, rollback), owner approval, and mtime <= 24h; cutover operations serialize via flock on ELMS_EDGE_LOCK; switch strictly refuses occupied public ports.
+  dual_path_rg: if rg -n 'port_state\(80\) or port_state\(443\)' scripts/infra/edge_cutover.py; then exit 0; else exit 1; fi
+  instruction_rg: if rg -n -i '(password|secret|token|private.?key|unseal|recovery)' tests/infra/fixtures/edge-evidence.json; then exit 1; else exit 0; fi
+  deny_old_proven: true
+
+tests:
+  - "`python3 scripts/infra/edge_cutover.py preflight --staged`"
+  - "`python3 scripts/infra/edge_cutover.py status`"
+  - "`python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge'`"
+  - "`! rg -n -i \"(password|secret|token|private.?key|unseal|recovery)\" tests/infra/fixtures/edge-evidence.json`"
+
+integration_check:
+  - "python3 scripts/infra/edge_cutover.py preflight --staged — PASS"
+  - "python3 scripts/infra/edge_cutover.py status — PASS (non-mutating port inspection)"
+  - "python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge' — 6 passed"
+  - "tests/infra/fixtures/edge-evidence.json credential leak scan — PASS (CLEAN)"
+
+verification_results:
+  - "python3 scripts/infra/edge_cutover.py preflight --staged — PASS"
+  - "python3 scripts/infra/edge_cutover.py status — PASS"
+  - "python3 -m pytest -q tests/infra/test_production_contracts.py -k 'edge' — 6 passed, 39 deselected"
+  - "! rg -n -i '(password|secret|token|private.?key|unseal|recovery)' tests/infra/fixtures/edge-evidence.json — PASS"
+
+checkpoints:
+  - id: cp1
+    criterion: Status command reports port 80, 443, and 18080 state in structured JSON without modifying processes.
+    status: done
+  - id: cp2
+    criterion: Predecessor evidence validator requires release, vault, backup, staged, rollback, and owner_approved.
+    status: done
+  - id: cp3
+    criterion: Stale evidence (> max-age-hours) or unapproved evidence is rejected with non-zero exit and diagnostic.
+    status: done
+  - id: cp4
+    criterion: Cutover operations use flock lock on ELMS_EDGE_LOCK and refuse switch when ports are occupied.
+    status: done
+
+resume_from: cp1
+

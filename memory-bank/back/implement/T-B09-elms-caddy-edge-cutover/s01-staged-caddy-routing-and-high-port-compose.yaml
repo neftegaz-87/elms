@@ -1,0 +1,97 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B09-elms-caddy-edge-cutover
+task_id: T-B09-elms-caddy-edge-cutover
+title: s01 — Staged Caddy routing, localhost high-port overlay, and internal service isolation IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-B09-elms-caddy-edge-cutover/yaml/steps/s01-staged-caddy-routing-and-high-port-compose.yaml
+date: 2026-11-01
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - Staged Caddy routing in docker/caddy/Caddyfile.staged now enforces explicit host routing to frontend:8080 and keycloak:8080 with strict 404 fallbacks for unknown hosts, replacing catch-all proxying.
+  - Public edge Caddyfile in docker/caddy/Caddyfile defines explicit /healthz endpoints responding 200 for both ELMS and Keycloak hosts without wildcard or fake 200 health responses.
+  - Both Caddyfiles document that the review handoff URL is an external first-party review service contract and prevent catch-all proxy drift.
+  - Canonical Compose policy confirms zero public port bindings and internal private network isolation for backend, db, redis, keycloak, and vault.
+  - Container Caddy stores persistent ACME state in caddy-data and caddy-config named volumes with zero host private key mounts.
+  - Targeted infrastructure tests verify staged and edge Caddy routing, port boundaries, volume isolation, and preflight checks.
+
+files:
+  - docker/compose.prod.yaml
+  - docker/compose.prod.staged.yaml
+  - docker/compose.prod.edge.yaml
+  - docker/caddy/Caddyfile
+  - docker/caddy/Caddyfile.staged
+  - tests/infra/test_production_contracts.py
+
+deletes:
+  - public port bindings from canonical docker/compose.prod.yaml
+  - catch-all reverse proxy definitions that return fake 200 to unknown hosts
+
+wire_complete:
+  call_sites:
+    - compose.prod.staged.yaml -> caddy container -> Caddyfile.staged -> frontend:8080 and keycloak:8080
+    - compose.prod.edge.yaml -> caddy container -> Caddyfile -> frontend:8080 and keycloak:8080
+    - compose.prod.yaml -> private internal network and persistent caddy-data / caddy-config volumes
+  enforce_path: Staged Caddy binds localhost:18080 without altering host Caddy or public ports; canonical compose publishes zero host ports; explicit /healthz responds 200 while unknown hosts/paths reject fake 200; persistent ACME volumes prevent host private key copying.
+  dual_path_rg: >-
+    if rg -n -i 'catch-all|catchall' docker/caddy/Caddyfile docker/caddy/Caddyfile.staged; then exit 1; else exit 0; fi
+  instruction_rg: >-
+    if rg -n -i '(\.key|private_key|privkey\.pem)' docker/compose.prod.yaml docker/compose.prod.edge.yaml; then exit 1; else exit 0; fi
+  deny_old_proven: true
+
+tests:
+  - "python3 -m pytest tests/infra/test_production_contracts.py -k 'test_edge_preflight_and_wrapper_help or test_caddy_staged_and_edge_routing_contract' -q"
+  - "python3 scripts/infra/edge_cutover.py preflight --staged"
+  - "python3 scripts/infra/check_compose_policy.py"
+  - "rg -n '/healthz|reverse_proxy frontend|reverse_proxy keycloak' docker/caddy/Caddyfile docker/caddy/Caddyfile.staged"
+  - "rg -n 'caddy-data|caddy-config' docker/compose.prod.yaml"
+  - "! rg -n -i '(\\.key|private_key|privkey\\.pem)' docker/compose.prod.yaml docker/compose.prod.edge.yaml"
+  - "rg -n -i 'review|first-party' docker/caddy/Caddyfile docker/caddy/Caddyfile.staged"
+  - "! rg -n -i 'catch-all|catchall' docker/caddy/Caddyfile docker/caddy/Caddyfile.staged"
+  - "! rg -n -i 'unknown.*200|200.*unknown' docker/caddy/Caddyfile docker/caddy/Caddyfile.staged"
+
+integration_check:
+  - "python3 scripts/infra/edge_cutover.py preflight --staged — PASS"
+  - "python3 scripts/infra/check_compose_policy.py — PASS"
+  - "targeted pytest for staged and edge routing contracts — 2 passed"
+
+verification_results:
+  - "python3 -m pytest tests/infra/test_production_contracts.py -k 'test_edge_preflight_and_wrapper_help or test_caddy_staged_and_edge_routing_contract' -q — 2 passed, 40 deselected"
+  - "python3 scripts/infra/edge_cutover.py preflight --staged — PASS"
+  - "python3 scripts/infra/check_compose_policy.py — PASS"
+  - "Caddyfile route and explicit /healthz check — PASS"
+  - "No host private key mounts scan — PASS"
+  - "First-party review contract and catch-all elimination scan — PASS"
+
+checkpoints:
+  - id: cp1
+    criterion: Canonical compose has no public port bindings while staged overlay binds only localhost high ports.
+    status: done
+  - id: cp2
+    criterion: Staged and public Caddyfiles route frontend and keycloak with explicit /healthz and no catch-all fake 200.
+    status: done
+  - id: cp3
+    criterion: ACME state uses persistent named volumes and no host private keys are mounted into Caddy.
+    status: done
+  - id: cp4
+    criterion: Backend, database, redis, and vault services remain on the internal private network with no published host ports.
+    status: done
+  - id: cp5
+    criterion: Review handoff URL remains a first-party review service contract and is not a catch-all proxy.
+    status: done
+  - id: cp6
+    criterion: /healthz is explicit edge health and unknown host/path does not receive fake 200.
+    status: done
+
+resume_from: cp1

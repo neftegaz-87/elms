@@ -53,6 +53,10 @@ class TestSSOConfiguration(unittest.TestCase):
         callback_uri = "http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak"
         self.assertIn(callback_uri, redirect_uris, "redirectUris must contain login_via_keycloak callback")
 
+        frappe_mappers = {m.get("name") for m in client.get("protocolMappers", [])}
+        self.assertIn("bitrix-user-id", frappe_mappers)
+        self.assertIn("bitrix-department-ids", frappe_mappers)
+
         review_clients = [c for c in clients if c.get("clientId") == "neftegaz-review"]
         self.assertEqual(len(review_clients), 1, "neftegaz-review client must exist in realm-elms.json")
         review = review_clients[0]

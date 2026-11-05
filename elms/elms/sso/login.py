@@ -34,6 +34,11 @@ except (ImportError, ModuleNotFoundError):
         return decorator
 
 try:
+    import frappe.utils
+except (ImportError, ModuleNotFoundError):
+    pass
+
+try:
     from frappe.utils.oauth import create_oauth_state, login_oauth_user
 except (ImportError, ModuleNotFoundError):
     create_oauth_state = None
@@ -41,7 +46,16 @@ except (ImportError, ModuleNotFoundError):
 
 from requests.exceptions import RequestException
 
-from elms.sso.constants import DEFAULT_KEYCLOAK_REALM, KEYCLOAK_LOGIN_CONF_KEY
+from elms.sso.constants import (
+    DEFAULT_KEYCLOAK_CLIENT_ID,
+    DEFAULT_KEYCLOAK_REALM,
+    KEYCLOAK_DEFAULT_REDIRECT_URL,
+    KEYCLOAK_LOGIN_CONF_KEY,
+    YANDEX_IDP_ALIAS,
+)
+from elms.sso.ensure import get_keycloak_public_realm_url
+from elms.sso.mapping import get_mapping_registry
+from urllib.parse import urlencode
 
 KEYCLOAK_INTERNAL_URL_ENV = "KEYCLOAK_INTERNAL_URL"
 KEYCLOAK_INTERNAL_URL_DEFAULT = "http://keycloak:8080"
@@ -109,6 +123,9 @@ def authenticate_keycloak(username: str, password: str) -> dict[str, Any]:
     if not username or not password or len(password) > 512:
         raise KeycloakLoginError("Invalid login credentials")
 
+    # Resolve Bitrix source email / login to canonical Yandex / Keycloak identity
+    target_username = get_mapping_registry().resolve_target_identity(username)
+
     client_id, client_secret = _get_keycloak_credentials()
     base_url = _get_keycloak_internal_url()
     session = frappe.utils.get_request_session()
@@ -120,7 +137,7 @@ def authenticate_keycloak(username: str, password: str) -> dict[str, Any]:
                 "grant_type": "password",
                 "client_id": client_id,
                 "client_secret": client_secret,
-                "username": username,
+                "username": target_username,
                 "password": password,
                 "scope": "openid profile email",
             },
@@ -182,3 +199,37 @@ def login_with_keycloak(usr: str | None = None, pwd: str | None = None) -> dict[
     if not login_token:
         _raise_invalid_login()
     return {"login_token": login_token}
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
+def get_sso_authorization_url(user_input: str | None = None, redirect_to: str | None = "/app") -> dict[str, str]:
+    """Return the OIDC broker authorization URL pointing directly to Yandex via Keycloak.
+
+    Resolves Bitrix source email to target Yandex email and attaches kc_idp_hint and login_hint.
+    """
+    try:
+        client_id, _ = _get_keycloak_credentials()
+    except Exception:
+        client_id = DEFAULT_KEYCLOAK_CLIENT_ID
+
+    realm_url = get_keycloak_public_realm_url()
+    target_identity = get_mapping_registry().resolve_target_identity(user_input or "") if user_input else ""
+
+    params = {
+        "client_id": client_id,
+        "response_type": "code",
+        "scope": "openid profile email",
+        "redirect_uri": KEYCLOAK_DEFAULT_REDIRECT_URL,
+        "kc_idp_hint": YANDEX_IDP_ALIAS,
+    }
+    if target_identity and "@" in target_identity:
+        params["login_hint"] = target_identity
+    if create_oauth_state:
+        params["state"] = create_oauth_state(redirect_to or "/app")
+
+    auth_url = f"{realm_url.rstrip('/')}/protocol/openid-connect/auth?{urlencode(params)}"
+    return {
+        "auth_url": auth_url,
+        "target_identity": target_identity,
+        "mapped": bool(target_identity and target_identity != user_input),
+    }

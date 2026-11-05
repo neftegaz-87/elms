@@ -8,6 +8,7 @@ from elms.install import (
     ELMS_ADMIN_ROLE,
     ELMS_OPERATIONS_SECTION_DOCTYPE,
     ELMS_OPERATIONS_USER_ROLE,
+    ELMS_REVIEW_SECTION_DOCTYPE,
     ELMS_LMS_SECTION_DOCTYPE,
     ELMS_LMS_USER_ROLE,
     ELMS_ROLES,
@@ -49,6 +50,9 @@ def get_doctype_json_permissions(doctype: str) -> list[dict]:
         ELMS_LMS_SECTION_DOCTYPE: os.path.join(
             base_dir, "lms", "doctype", "elms_lms_section", "elms_lms_section.json"
         ),
+        ELMS_REVIEW_SECTION_DOCTYPE: os.path.join(
+            base_dir, "operations", "doctype", "elms_review_section", "elms_review_section.json"
+        ),
         ELMS_SETTINGS_SECTION_DOCTYPE: os.path.join(
             base_dir, "elms_core", "doctype", "elms_settings_section", "elms_settings_section.json"
         ),
@@ -85,8 +89,7 @@ def simulate_has_permission(doctype: str, ptype: str = "read", user: str | None 
     return False
 
 
-if not hasattr(frappe, "has_permission"):
-    frappe.has_permission = simulate_has_permission
+frappe.has_permission = simulate_has_permission
 
 
 class TestRolesRBACSeed(unittest.TestCase):
@@ -99,11 +102,17 @@ class TestRolesRBACSeed(unittest.TestCase):
             ("ELMS Admin", "ELMS Operations User", "ELMS LMS User"),
         )
         self.assertEqual(ELMS_OPERATIONS_SECTION_DOCTYPE, "ELMS Operations Section")
+        self.assertEqual(ELMS_REVIEW_SECTION_DOCTYPE, "ELMS Review Section")
         self.assertEqual(ELMS_LMS_SECTION_DOCTYPE, "ELMS LMS Section")
         self.assertEqual(ELMS_SETTINGS_SECTION_DOCTYPE, "ELMS Settings Section")
         self.assertEqual(
             SECTION_DOCTYPES,
-            ("ELMS Operations Section", "ELMS LMS Section", "ELMS Settings Section"),
+            (
+                "ELMS Operations Section",
+                "ELMS Review Section",
+                "ELMS LMS Section",
+                "ELMS Settings Section",
+            ),
         )
 
     def test_ensure_roles_creates_all_three_roles(self):
@@ -212,6 +221,9 @@ class TestRolesRBACDocPermMatrix(unittest.TestCase):
         self.assertFalse(frappe.has_permission(ELMS_OPERATIONS_SECTION_DOCTYPE, "create", user=operations_user))
         self.assertFalse(frappe.has_permission(ELMS_OPERATIONS_SECTION_DOCTYPE, "delete", user=operations_user))
 
+        self.assertTrue(frappe.has_permission(ELMS_REVIEW_SECTION_DOCTYPE, "read", user=operations_user))
+        self.assertTrue(frappe.has_permission(ELMS_REVIEW_SECTION_DOCTYPE, "write", user=operations_user))
+
         self.assertFalse(frappe.has_permission(ELMS_LMS_SECTION_DOCTYPE, "read", user=operations_user))
         self.assertFalse(frappe.has_permission(ELMS_LMS_SECTION_DOCTYPE, "write", user=operations_user))
 
@@ -230,6 +242,8 @@ class TestRolesRBACDocPermMatrix(unittest.TestCase):
 
         self.assertFalse(frappe.has_permission(ELMS_OPERATIONS_SECTION_DOCTYPE, "read", user=lms_user))
         self.assertFalse(frappe.has_permission(ELMS_OPERATIONS_SECTION_DOCTYPE, "write", user=lms_user))
+        self.assertFalse(frappe.has_permission(ELMS_REVIEW_SECTION_DOCTYPE, "read", user=lms_user))
+        self.assertFalse(frappe.has_permission(ELMS_REVIEW_SECTION_DOCTYPE, "write", user=lms_user))
 
         self.assertFalse(frappe.has_permission(ELMS_SETTINGS_SECTION_DOCTYPE, "read", user=lms_user))
         self.assertFalse(frappe.has_permission(ELMS_SETTINGS_SECTION_DOCTYPE, "write", user=lms_user))
@@ -309,10 +323,10 @@ class TestRolesRBACDocPermMatrix(unittest.TestCase):
             frappe, "new_doc", side_effect=fake_new_doc
         ), patch.object(frappe, "get_doc", side_effect=fake_get_doc):
             ensure_section_perms()
-            self.assertEqual(len(custom_perms_db), 5)
+            self.assertEqual(len(custom_perms_db), 8)
 
             ensure_section_perms()
-            self.assertEqual(len(custom_perms_db), 5)
+            self.assertEqual(len(custom_perms_db), 8)
 
     def test_ensure_section_perms_fails_closed_when_db_absent(self):
         """AC-6, AC--1: ensure_section_perms must fail closed when db is absent."""
@@ -328,14 +342,24 @@ class TestRolesRBACDocPermMatrix(unittest.TestCase):
         """AC-6, AC--1: ensure_section_perms must fail closed when DocType is missing."""
         mock_db = MagicMock()
         def fake_exists(doctype, name=None):
-            if doctype == "DocType" and name in (ELMS_OPERATIONS_SECTION_DOCTYPE, "Custom DocPerm"):
+            if doctype == "DocType" and name in (
+                ELMS_OPERATIONS_SECTION_DOCTYPE,
+                ELMS_REVIEW_SECTION_DOCTYPE,
+                "Custom DocPerm",
+            ):
                 return True
             return False
 
         mock_db.exists.side_effect = fake_exists
+        mock_db.get_value.return_value = None
         fake_throw = MagicMock(side_effect=RuntimeError("DocType missing"))
 
-        with patch.object(frappe, "db", mock_db), patch.object(frappe, "throw", fake_throw):
+        with (
+            patch.object(frappe, "db", mock_db),
+            patch.object(frappe, "throw", fake_throw),
+            patch.object(frappe, "get_doc", return_value=MagicMock()),
+            patch.object(frappe, "new_doc", return_value=MagicMock()),
+        ):
             with self.assertRaises(RuntimeError):
                 ensure_section_perms()
             fake_throw.assert_called()

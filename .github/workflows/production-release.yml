@@ -64,9 +64,23 @@ jobs:
         run: |
           docker compose --env-file docker/.env.dev -f docker/compose.dev.yaml \
             exec -T backend bench --site elms.localhost run-tests --app elms
+      - name: Install browser QA dependencies
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+      - name: Run browser QA
+        run: python scripts/run_browser_qa.py --base-url http://elms.localhost:8082
+      - name: Upload browser QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: elms-browser-qa-${{ github.sha }}
+          path: browser-artifacts/browser-evidence.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Tear down the ephemeral test stack
         if: always()
-        run: docker compose --env-file docker/.env.dev -f docker/compose.dev.yaml down -v --remove-orphans
+        run: docker compose --env-file docker/.env.dev -f docker/compose.dev.yaml down --remove-orphans
 
   build:
     name: build immutable release images
@@ -174,6 +188,33 @@ jobs:
           install -d -m 700 "$RUNNER_TEMP/ssh"
           install -m 600 <(printf '%s\n' "$DEPLOY_KEY") "$RUNNER_TEMP/ssh/id_ed25519"
           install -m 644 <(printf '%s\n' "$KNOWN_HOSTS") "$RUNNER_TEMP/ssh/known_hosts"
+      - name: Validate explicit production target boundary
+        env:
+          TARGET: ${{ secrets.ELMS_DEPLOY_TARGET }}
+          REMOTE_ROOT: ${{ secrets.ELMS_DEPLOY_ROOT }}
+          WRAPPER: ${{ secrets.ELMS_DEPLOY_WRAPPER }}
+          KNOWN_HOSTS: ${{ secrets.ELMS_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test -n "$TARGET"
+          test -n "$REMOTE_ROOT"
+          test -n "$WRAPPER"
+          test -n "$KNOWN_HOSTS"
+          python - <<'PY'
+          import os
+          import re
+
+          target = os.environ["TARGET"].strip()
+          remote_root = os.environ["REMOTE_ROOT"].strip()
+          wrapper = os.environ["WRAPPER"].strip()
+          if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.@:-]*", target):
+              raise SystemExit("target contains unsupported shell characters")
+          host = target.rsplit("@", 1)[-1].lower()
+          if host in {"localhost", "127.0.0.1", "::1", "elms.localhost", "elms-dev", "dev", "development"}:
+              raise SystemExit("target must be an explicit non-development host")
+          for name, value in (("REMOTE_ROOT", remote_root), ("WRAPPER", wrapper)):
+              if not value.startswith("/") or ".." in value or not re.fullmatch(r"[A-Za-z0-9_./-]+", value):
+                  raise SystemExit(f"{name} must be a safe absolute remote path")
+          PY
       - name: Upload manifest to the server-side wrapper
         env:
           TARGET: ${{ secrets.ELMS_DEPLOY_TARGET }}
@@ -202,4 +243,5 @@ jobs:
             -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
             -o StrictHostKeyChecking=yes "$TARGET" \
             python3 "$WRAPPER" --root "$REMOTE_ROOT" \
+              --target "$TARGET" \
               deploy --manifest "$REMOTE_ROOT/incoming/release-manifest.json" --approved --execute

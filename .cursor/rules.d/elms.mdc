@@ -1,0 +1,14 @@
+---
+description: HARD — продуктовый канон elms (поверх hub AGENTS.md)
+alwaysApply: true
+---
+
+# elms — продуктовый канон (HARD, always)
+
+Корневой `AGENTS.md` — symlink на hub. Правила **этого** продукта лежат рядом:
+
+- **SoT продукта:** `AGENTS.elms.md`
+- **Codex:** `AGENTS.override.md` → Read `AGENTS.elms.md`
+- **Claude (кратко):** `CLAUDE.elms.md`
+
+До любой работы в этом репозитории: прочитай и следуй `AGENTS.elms.md`.

@@ -16,10 +16,34 @@ Codex в **этом** каталоге читает `AGENTS.override.md` **вм�
 ## Workflow (общий hub)
 
 Ролевые команды `BACK` / `FRONT` / `APP` / … и router — в hub AGENTS.  
-Путь: содержимое `.dev-hub` (сейчас `../dev-hub`) + `/AGENTS.md`, т.е. обычно `../dev-hub/AGENTS.md`.
+Путь: содержимое `.dev-hub` (сейчас `../../dev-hub`) + `/AGENTS.md`.
 
 Прочитай hub AGENTS **после** `rules/`.  
 Секции hub про ERPNext / CRM / CRM Playwright для ELMS **не применять** — см. `rules/agents-overlay.md`.
+
+Документация цикла собрана в двух слоях:
+
+- `docs/process/` — объяснение гибридного GSTACK + harness workflow и ссылки на
+  внешнюю GSTACK-документацию;
+- `memory-bank/` — состояние ELMS, решения и исполняемые артефакты PLAN /
+  DECOMPOSE / IMPLEMENT / QA.
+
+`docs/process/gstack-vs-harness-workflow.md` — точка входа для выбора контура.
+Локальные receipts/screens из GSTACK могут лежать в `.gstack/`, но это не SoT и
+не должны попадать в git; долговременная память задачи остаётся в `memory-bank/`.
+Внешний GSTACK не копируется в ELMS: если он установлен, его slash-skills
+используются как точечный review-gate, а выполнение ведётся через hub roles.
+
+### GSTACK routing
+
+- product/engineering review: GSTACK `office-hours` / `plan-*` / `review` по
+  необходимости, затем результат фиксируется в `docs/process/` и принятом
+  артефакте `memory-bank/`;
+- browser acceptance / ship: GSTACK `qa` / `ship` только при наличии внешнего
+  skill и подходящего стенда;
+- неизвестный запрос к набору GSTACK направляется в установленный GSTACK skill;
+  если его нет, использовать соответствующий `BACK` / `FRONT` / `APP` route;
+- исходники GSTACK и его slash-команды не добавлять в ELMS автоматически.
 
 ## Cursor vs Codex
 

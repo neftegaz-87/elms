@@ -1,0 +1,107 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-B08-elms-cicd-release-rollback
+task_id: T-B08-elms-cicd-release-rollback
+title: s03 — Prove health-failure pair rollback and redacted release evidence IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-B08-elms-cicd-release-rollback/yaml/steps/s03-forced-failure-rollback-and-redaction-purge.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-observability/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - Added a deterministic forced-health-failure fixture and integration contracts proving a failed candidate does not replace current.json and a rollback restores the predecessor image pair atomically.
+  - Added checks that failure/rollback evidence and the operator runbook contain no credential, OAuth-cookie, private-key, or recovery-value material.
+  - Removed the remaining workflow teardown volume-removal command and documented explicit approval, target, digest-pair, failed-health retention, and state-volume boundaries.
+
+files:
+  - scripts/infra/deploy_wrapper.py
+  - scripts/infra/check_release_manifest.py
+  - tests/infra/test_production_contracts.py
+  - tests/infra/fixtures/release-manifest.json
+  - tests/infra/fixtures/release-rollback-failure.json
+  - docs/operations/elms-production.md
+  - .github/workflows/production-release.yml
+
+deletes:
+  - nominal-only rollback confidence without a forced health-failure branch
+  - mixed backend/frontend rollback guidance and any state-volume removal path
+  - secret-bearing release/rollback evidence and mutable or checkout-build instructions
+
+wire_complete:
+  call_sites:
+    - fake health failure -> deploy_wrapper subprocess failure -> previous current.json remains unchanged
+    - verified predecessor manifest -> rollback wrapper -> complete image pair -> atomic current.json replacement
+    - release/rollback fixtures and status output -> redaction tests -> operator runbook boundary
+  enforce_path: >-
+    The candidate is recorded only after config, pull, wait-for-health, and all internal smoke
+    commands pass; a forced failure leaves the verified predecessor current, and rollback can
+    only consume a validated release from releases/ as one image/config pair without volume removal.
+  dual_path_rg: >-
+    if rg -n -i '(client_secret|handoff_secret|secret_id|unseal|recovery_key|oauth.*cookie|private.?key|docker (volume )?rm|down -v|volume removal)'
+    scripts/infra/deploy_wrapper.py tests/infra/fixtures/release-manifest.json
+    tests/infra/fixtures/release-rollback-failure.json docs/operations/elms-production.md
+    .github/workflows/production-release.yml; then exit 1; else exit 0; fi
+  instruction_rg: >-
+    if rg -n -i 'copy.*password|print.*secret|build on production host|checkout build'
+    docs/operations/elms-production.md; then exit 1; else exit 0; fi
+  deny_old_proven: true
+
+tests:
+  - "bin/pytest -q tests/infra/test_production_contracts.py -k 'rollback or release_redaction'"
+  - "python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json"
+  - "if rg -n 'previous|pair|health|rollback|state volumes|never' docs/operations/elms-production.md; then exit 0; else exit 1; fi"
+  - "if rg -n -i '(client_secret|handoff_secret|secret_id|unseal|recovery_key|oauth.*cookie|private.?key|docker (volume )?rm|down -v)' scripts/infra/deploy_wrapper.py tests/infra/fixtures/release-manifest.json tests/infra/fixtures/release-rollback-failure.json docs/operations/elms-production.md .github/workflows/production-release.yml; then exit 1; else exit 0; fi"
+
+integration_check:
+  - "forced health-failure and predecessor-pair rollback contracts — PASS"
+  - "fixture state-volume preservation and evidence redaction checks — PASS"
+  - "release manifest validation — PASS"
+  - "runbook and workflow legacy/destructive-path scan — PASS"
+
+verification_results:
+  - "bin/pytest -q tests/infra/test_production_contracts.py -k 'rollback or release_redaction' — PASS"
+  - "python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json — PASS"
+  - "forced-failure fixture, pair equality, and volume preservation — PASS"
+  - "release/rollback/runbook redaction scan — PASS"
+
+plan_parity_scan:
+  fr_ids:
+    - FR-003
+    - FR-005
+  target_layout:
+    - scripts/infra/deploy_wrapper.py
+    - scripts/infra/check_release_manifest.py
+    - tests/infra/test_production_contracts.py
+    - tests/infra/fixtures/release-rollback-failure.json
+    - docs/operations/elms-production.md
+  plan_jumps:
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:15-22
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:24-46
+
+checkpoints:
+  - id: cp1
+    criterion: A forced health/internal-smoke failure does not publish the candidate as current and leaves the previous verified manifest available.
+    status: done
+  - id: cp2
+    criterion: Rollback restores the previous backend/frontend/application pair as one manifest and the fixture proves no state volume removal command is present.
+    status: done
+  - id: cp3
+    criterion: Release, rollback, and failure evidence contain no Vault/application secrets, OAuth cookies, private keys, or recovery material.
+    status: done
+  - id: cp4
+    criterion: The operator runbook states approval, digest-pinned pair rollback, failed-health retention, and no-volume-deletion boundaries without teaching a legacy path.
+    status: done
+
+resume_from: cp1

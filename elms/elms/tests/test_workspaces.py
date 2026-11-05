@@ -13,10 +13,29 @@ from elms.desk.workspaces import (
 
 class TestELMSWorkspaces(unittest.TestCase):
     def test_workspace_roles_and_lms_first_order_are_product_roles(self):
-        self.assertEqual([item["name"] for item in ELMS_WORKSPACE_DEFINITIONS], ["LMS", "Operations", "Settings"])
+        self.assertEqual(
+            [item["name"] for item in ELMS_WORKSPACE_DEFINITIONS],
+            ["LMS", "Operations", "Review", "Settings"],
+        )
         self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[0]["roles"], ("ELMS Admin", "ELMS LMS User"))
         self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[1]["roles"], ("ELMS Admin", "ELMS Operations User"))
-        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[2]["roles"], ("ELMS Admin",))
+        self.assertEqual(
+            ELMS_WORKSPACE_DEFINITIONS[2]["roles"],
+            ("ELMS Admin", "ELMS Operations User", "System Manager"),
+        )
+        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[3]["roles"], ("ELMS Admin",))
+
+    def test_review_workspace_exposes_the_permission_anchor_and_handoff(self):
+        review = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "Review")
+        assert review["links"] == (("Сверка заявок", "ELMS Review Section", "Права сверки заявок"),)
+        assert review["shortcuts"] == (
+            {
+                "type": "URL",
+                "url": "/app/elms-review",
+                "label": "Открыть сверку заявки",
+                "icon": "check-circle",
+            },
+        )
 
     def test_operations_workspace_exposes_guarded_review_handoff(self):
         operations = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "Operations")

@@ -1,7 +1,6 @@
 """Runtime acceptance tests for ELMS workspace visibility."""
 
 import unittest
-import pytest
 
 try:
     import frappe
@@ -13,7 +12,7 @@ else:
     has_frappe_test = True
 
 
-@pytest.mark.skipif(not has_frappe_test, reason="Requires Frappe test framework runtime")
+@unittest.skipUnless(has_frappe_test, "Requires Frappe test framework runtime")
 class TestELMSWorkspaceRuntime(FrappeTestCase):
     def setUp(self):
         if not has_frappe_test:
@@ -38,7 +37,7 @@ class TestELMSWorkspaceRuntime(FrappeTestCase):
         with self.set_user("Administrator"):
             names = [page["name"] for page in get_workspace_sidebar_items()["pages"]]
 
-        self.assertEqual(names, ["LMS", "Operations", "Settings"])
+        self.assertEqual(names, ["LMS", "Operations", "Review", "Settings"])
 
     def test_lms_user_sees_only_lms_workspace(self):
         from frappe.desk.desktop import get_workspace_sidebar_items

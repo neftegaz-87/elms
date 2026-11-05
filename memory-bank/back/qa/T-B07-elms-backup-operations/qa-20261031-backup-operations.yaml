@@ -1,0 +1,311 @@
+schema: epic-qa/v1
+role: back
+task_id: T-B07-elms-backup-operations
+plan_id: T-B07-elms-backup-operations
+epic_id: T-B07-elms-backup-operations
+date: '2026-10-31'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 5a84c0670bc238082334271f5d5677717b2d707ca71af47bc3bf96f92086866b
+verify_scope: full
+suite_scope: full
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: full
+  scope_signals: [backend, api, wire, data, async, security, reliability, observability, brownfield, compatibility]
+  selected:
+    - id: contract_acceptance
+      name: Contract and acceptance criteria tests
+      status: pass
+      evidence: "tests/infra/test_production_contracts.py; implement shards s01-s03; manifest, freshness, and disposable-restore contracts"
+    - id: regression
+      name: Changed behavior and prior-defect regression tests
+      status: pass
+      evidence: "bin/pytest -q --tb=line — 87 passed, 2 skipped"
+    - id: backend_unit_component
+      name: Backend unit and component tests
+      status: pass
+      evidence: "bin/pytest -q --tb=line — 87 passed, 2 skipped; tests/infra contract assertions"
+    - id: backend_integration_state
+      name: Backend integration and state tests
+      status: pass
+      evidence: "bin/pytest tests/infra -q — 43 passed"
+    - id: api_contract
+      name: API contract, schema, status, and error tests
+      status: pass
+      evidence: "backup_runner manifest/restore-rehearsal-manifest/restore-preflight invocations and deploy evidence rejection tests"
+    - id: data_persistence_migration
+      name: Data persistence, migration, idempotency, and rollback tests
+      status: pass
+      evidence: "disposable marker repeatability, atomic status evidence, stale/future/unverified report rejection tests"
+    - id: async_jobs_workers_webhooks
+      name: Async job, worker, queue, retry, and webhook tests
+      status: pass
+      evidence: "ops/systemd/elms-backup.service and .timer ordering, flock, and persistent daily timer contract"
+    - id: live_http_smoke
+      name: Live HTTP smoke tests
+      status: pass
+      evidence: "timeout -k 10s 300s bash scripts/live_smoke.sh — exit 0; live_evidence=true at 2026-10-31T19:56:42Z"
+    - id: negative_error_paths
+      name: Negative, validation, denial, timeout, and recovery tests
+      status: pass
+      evidence: "active-volume/project, symlink, marker, capacity, credential, restic-failure, stale-evidence, and Vault-redaction fixtures"
+    - id: security_owasp
+      name: Security and OWASP spot-check tests
+      status: pass
+      evidence: "secret-like manifest/rehearsal field rejection, status-only output, protected password-file checks, and bounded destructive-path scans"
+    - id: performance_resilience
+      name: Performance, timeout, retry, load, and resilience tests
+      status: pass
+      evidence: "hard capacity gate, atomic running/verifying/failed status lifecycle, RPO 24h/RTO 4h contract, and live-smoke timeout"
+    - id: observability
+      name: Logging, metrics, tracing, and failure-observability tests
+      status: pass
+      evidence: "status-only backup/Vault/rehearsal evidence and failure-state assertions; no secret values in operator output"
+    - id: cleanup_sot
+      name: Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests
+      status: pass
+      evidence: "independent bounded sunset scan and sot_enforce_scan for freshness promotion and disposable restore boundaries"
+  not_applicable:
+    - id: frontend_build_assets
+      reason: "No frontend source, styles, or generated assets are in scope."
+    - id: browser_functional
+      reason: "No user-visible browser journey is changed; the required runtime check is live HTTP smoke."
+    - id: wire_journey
+      reason: "No UI-to-API user journey is claimed; operator CLI/systemd call sites are covered by contract and enforce-path checks."
+    - id: auth_session_rbac
+      reason: "Keycloak state is inventoried for backup, but no authentication, session, or role behavior is changed."
+    - id: external_integration
+      reason: "Real restic/S3 credentials, repository custody, and production bootstrap are explicit operator gates and out of scope for this repository check."
+    - id: accessibility
+      reason: "No user-visible UI is in scope."
+    - id: responsive_compatibility
+      reason: "No viewport, browser, or client-layout behavior is in scope."
+    - id: visual_states
+      reason: "No visual, CSS, layout, or asset-cascade behavior is in scope."
+    - id: console_network
+      reason: "No browser client runtime is in scope."
+    - id: content_i18n
+      reason: "The runbook is operator documentation, not product-facing localized content behavior."
+    - id: exploratory
+      reason: "Deterministic infrastructure fixtures, bounded scans, and live HTTP smoke cover the declared contract."
+  not_run: []
+
+scope:
+  - "task: T-B07-elms-backup-operations"
+  - "epic: T-B07-elms-backup-operations"
+  - "steps: s01-s03"
+  - "files: scripts/infra/backup_runner.py, scripts/infra/deploy_wrapper.py, ops/systemd/elms-backup.service, ops/systemd/elms-backup.timer, tests/infra/test_production_contracts.py, tests/infra/test_vault_recovery_contract.py, docs/operations/elms-production.md, scripts/infra/vault_snapshot.sh"
+
+ac_plus:
+  - "FR-001: encrypted client-side off-host repository (restic/S3-compatible) with state manifest."
+  - "FR-002: last-success age ≤24h, upload/checksum verification and retention."
+  - "FR-003: restore-preflight rejects active production volumes and requires disposable target."
+  - "FR-004: capacity hard block at configured threshold; no prune/delete/volume removal."
+  - "FR-005: logs/manifests redact PII, OAuth and Vault recovery material."
+  - "Done when: Failed/stale/unverifiable backup blocks production promotion, and restore never writes active volumes by default."
+
+ac_minus:
+  - "Out: Destructive cleanup, automatic Docker prune, firewall/Caddy changes and active production restore."
+
+section_011:
+  - "Review service state not duplicated: its backup contract belongs to its repository; ELMS preserves only handoff/config contract."
+  - "Production activation remains blocked until external repository, credentials, operations owner and target capacity are provided."
+
+prior_blockers:
+  - none
+
+coverage_map:
+  - id: FR-001
+    kind: AC
+    scenario: "Generate and validate the complete non-secret manifest with client-side encrypted restic/S3-compatible off-host policy."
+    evidence: "scripts/infra/backup_runner.py:90,134; tests/infra/test_production_contracts.py:239,275; manifest command exit 0"
+    status: pass
+  - id: FR-002
+    kind: AC
+    scenario: "Publish promotion evidence only after restic backup and check, then reject stale, future, failed, pending, or unverified evidence."
+    evidence: "scripts/infra/backup_runner.py:374,419; tests/infra/test_production_contracts.py:341,387,428,448; ops/systemd/elms-backup.service:12-13"
+    status: pass
+  - id: FR-003
+    kind: AC
+    scenario: "Reject active Docker volume/project, symlink-resolved, unmarked existing, and unsafe targets; accept only marked disposable targets."
+    evidence: "scripts/infra/backup_runner.py:460; scripts/infra/vault_snapshot.sh:140; tests/infra/test_production_contracts.py:147,158,171,182,198; tests/infra/test_vault_recovery_contract.py:147; docs/operations/elms-production.md:181"
+    status: pass
+  - id: FR-004
+    kind: AC
+    scenario: "Block insufficient capacity before target creation/upload and prove no prune, delete, or Docker volume removal command exists."
+    evidence: "tests/infra/test_production_contracts.py:198,319,510; bounded destructive-path scan — PASS"
+    status: pass
+  - id: FR-005
+    kind: AC
+    scenario: "Keep manifest, rehearsal, Vault restore, and operator diagnostics status-only and free of PII/OAuth/recovery values."
+    evidence: "scripts/infra/backup_runner.py:134,286,396; tests/infra/test_production_contracts.py:214,275; tests/infra/test_vault_recovery_contract.py:109"
+    status: pass
+  - id: DONE-001
+    kind: AC
+    scenario: "Promotion consumes semantic verified backup/Vault evidence and restore rehearsal starts with disposable preflight."
+    evidence: "scripts/infra/deploy_wrapper.py:94,118; docs/operations/elms-production.md:134-154,174-185; full suite — PASS"
+    status: pass
+  - id: OUT-001
+    kind: AC_MINUS
+    scenario: "No destructive cleanup, automatic prune, firewall/Caddy change, or active production restore is introduced."
+    evidence: "scripts/infra/backup_runner.py and docs/operations/elms-production.md bounded negative scan — PASS"
+    status: pass
+  - id: SECTION-011-001
+    kind: section_011
+    scenario: "Review-service application state remains owned by its repository and excluded from ELMS rehearsal."
+    evidence: "scripts/infra/backup_runner.py:311-318; docs/operations/elms-production.md:152-154; rehearsal manifest command — PASS"
+    status: pass
+  - id: SECTION-011-002
+    kind: section_011
+    scenario: "External repository, credentials, capacity, and operations-owner evidence remain explicit activation gates."
+    evidence: "memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md:21-23; docs/operations/elms-production.md:118-125"
+    status: pass
+
+review:
+  status: pass
+  scope: "s01-s03 backup manifest, verified freshness promotion, disposable restore boundary, runbook/systemd callers, and Vault synthetic restore boundary"
+  findings: []
+  notes: "Ruff reports existing import/order, unused-import, noqa, and formatting findings in touched Python files; these are style-only and not eligible QA blockers."
+
+test_audit:
+  status: pass
+  checks:
+    - "Assertions exercise manifest fields, redaction outcomes, status transitions, freshness rejection, target safety, and no-destructive-command outcomes rather than status/build only."
+    - "No global API mocking, route.fulfill, or browser test is used; fake restic is a bounded executable fixture for deterministic command failure/call-order tests."
+    - "The two full-suite skips are pre-existing Frappe runtime tests and are not used to hide this infrastructure coverage."
+    - "The live HTTP command is a separate real-process smoke and its QA record stores only status, command, base URLs, and timestamp rather than raw cookies/tokens."
+  findings: []
+
+browser:
+  status: skipped
+  stack_profile: "BACK infrastructure/CLI and live HTTP profile; no browser UI or UI-to-API journey is claimed by T-B07"
+  evidence_file: ''
+  last_run_at: ''
+  journeys: []
+  artifacts: []
+
+retro:
+  status: done
+  defect_missed: "The initial s02 implementation could publish success evidence before repository verification; the implementation gate caught it and the final QA matrix rechecked the fail-closed lifecycle."
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: "Keep full-suite plus live-smoke execution and independent sunset/enforce scans mandatory for backup and restore boundary epics."
+
+sunset_inventory_scan:
+  status: pass
+  scanned_at: '2026-10-31'
+  plan_ref: "memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md"
+  rows:
+    - symbol: "superseded freshness evidence paths and pre-verification status"
+      kind: C
+      command: >-
+        if rg -n -i '(backup-fresh\.json|last-success\.json|verified-upload|pre-verification)'
+        scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py
+        ops/systemd/elms-backup.service ops/systemd/elms-backup.timer
+        docs/operations/elms-production.md; then exit 1; else exit 0; fi
+      result: pass
+      prod_callers: []
+      notes: "The --last-success interface remains only as the required report argument and points to verified-status.json."
+    - symbol: "retention deletion and Docker volume removal"
+      kind: C
+      command: >-
+        if rg -n -i '(restic (forget|prune)|docker (volume )?rm|down -v|volume removal)'
+        scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py
+        ops/systemd/elms-backup.service ops/systemd/elms-backup.timer
+        docs/operations/elms-production.md; then exit 1; else exit 0; fi
+      result: pass
+      prod_callers: []
+      notes: "Retention is declarative; no automatic prune, delete, or volume removal path exists."
+    - symbol: vault_snapshot_restore_entrypoints
+      kind: C
+      command: "rg -n 'vault_snapshot.sh (snapshot|restore)|elms-vault-restore-' scripts/infra/vault_snapshot.sh docs/operations/elms-production.md"
+      result: pass
+      prod_callers: []
+      notes: "The existing helper remains a disposable synthetic/explicit-project helper; the runbook requires backup_runner restore-preflight before invocation."
+    - symbol: synthetic_restore
+      kind: C
+      command: "rg -n 'backup_runner.py restore-preflight|vault_snapshot.sh restore --fixture|target is not disposable' scripts/infra/vault_snapshot.sh docs/operations/elms-production.md"
+      result: pass
+      prod_callers: []
+      notes: "Synthetic restore is redacted and gated by the disposable target contract."
+    - symbol: real_restore
+      kind: C
+      command: "rg -n 'real restore requires a disposable project named elms-vault-restore-' scripts/infra/vault_snapshot.sh docs/operations/elms-production.md"
+      result: pass
+      prod_callers: []
+      notes: "Real Vault restore requires an explicitly disposable Compose project; no active ELMS project is accepted."
+    - symbol: test_snapshot_fixture_restore_is_disposable_and_redacted
+      kind: C
+      command: "rg -n 'def test_snapshot_fixture_restore_is_disposable_and_redacted|secret_keys|redacted' tests/infra/test_vault_recovery_contract.py"
+      result: pass
+      prod_callers: []
+      notes: "The test is retained as the regression guard for the replacement disposable/redacted contract."
+    - symbol: vault_snapshot_restore_runbook
+      kind: I
+      command: "rg -n 'restore-preflight|never restore into|elms-vault-restore-' docs/operations/elms-production.md"
+      result: pass
+      prod_callers: []
+      notes: "Operator instructions use the disposable preflight and project boundary; no active-volume restore instruction remains."
+  legacy_surfaces_remaining: []
+  fallback_remaining: []
+  instruction_remaining: []
+  purge_step_present: true
+
+sot_enforce_scan:
+  status: pass
+  rows:
+    - boundary: elms-backup-freshness-promotion
+      enforce_evidence: "rg -n 'read_success_evidence|validate_required_evidence|verified-status.json|ExecStartPost' scripts/infra/backup_runner.py scripts/infra/deploy_wrapper.py ops/systemd/elms-backup.service"
+      deny_old: "bounded scan for backup-fresh.json, last-success.json, verified-upload, pre-verification, file-presence-only promotion, prune/delete, and volume-removal patterns returned no matches"
+      result: pass
+      notes: "Promotion requires semantic verified status plus PASS Vault evidence."
+    - boundary: elms-disposable-restore-target
+      enforce_evidence: "rg -n 'restore_preflight|ensure_restore_capacity|_has_symlink_component|_validate_disposable_marker|DISPOSABLE_MARKER' scripts/infra/backup_runner.py scripts/infra/vault_snapshot.sh tests/infra/test_production_contracts.py tests/infra/test_vault_recovery_contract.py"
+      deny_old: "bounded active-volume/active-project/destructive-restore scan returned no matches in the ELMS restore entrypoint and runbook"
+      result: pass
+      notes: "Target rejection occurs before creation or reuse."
+    - boundary: elms-restore-rehearsal
+      enforce_evidence: "rg -n 'RESTORE_REHEARSAL_SCHEMA|active_volume_write|destructive_cleanup|review-service application state|redacted-status' scripts/infra/backup_runner.py docs/operations/elms-production.md tests/infra/test_production_contracts.py"
+      deny_old: "rehearsal contract contains no secret-like fields or active-volume write path"
+      result: pass
+      notes: "MariaDB, Keycloak PostgreSQL, Vault Raft, and Caddy smoke are named in a redacted machine contract."
+
+checks:
+  - "full suite: bin/pytest -q --tb=line — PASS (87 passed, 2 skipped)"
+  - "infrastructure suite: bin/pytest tests/infra -q — PASS (43 passed)"
+  - "py_compile: backup_runner.py, deploy_wrapper.py, and infra tests — PASS"
+  - "bash syntax: scripts/infra/vault_snapshot.sh — PASS"
+  - "manifest, restore-rehearsal-manifest, and disposable restore-preflight invocations — PASS"
+  - "Vault synthetic restore preflight guard and unsafe-target regression cases — PASS"
+  - "active-volume, superseded-freshness, and destructive-command scans — PASS"
+  - "systemd service/timer ordering and persistent timer contract — PASS"
+  - "live HTTP smoke: timeout -k 10s 300s bash scripts/live_smoke.sh — PASS; live_evidence=true, exit_code=0"
+  - "ruff check/format check: non-zero on existing style/import findings; recorded as ineligible style residual, not changed in QA"
+  - "optional ty, semgrep, and shellcheck binaries are unavailable; py_compile, bash -n, bounded security scans, and full tests provide the applicable evidence"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "Real restic/S3 repository credentials, custody, production export consistency, owner approval, and measured production RTO remain operator gates."
+  - "Ruff style/import findings and unavailable optional ty/semgrep/shellcheck tools were not converted into product blockers; no linter-only code edits were made."
+  - "Live smoke evidence is recorded as status, command, base URLs, and timestamp; raw HTTP output is intentionally not copied into this QA artifact because it contains session material."
+
+suite:
+  - "BACK full: bin/pytest -q --tb=line — PASS (87 passed, 2 skipped)"
+  - "Infrastructure contracts: bin/pytest tests/infra -q — PASS (43 passed)"
+
+live_smoke:
+  status: pass
+  command: "timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: docs/reports/elms-production-qa-default-live-smoke.json
+  last_run_at: '2026-10-31T19:56:42Z'
+  base_url: "http://elms.localhost:8082; Keycloak http://elms-keycloak.localhost:8480"
+  level: black_box_http
+  notes: "Real HTTP runtime evidence is synchronized from the sanitized artifact: timestamp is live_smoke.last_run_at, artifact command is 'bash scripts/live_smoke.sh' under the QA wrapper 'timeout -k 10s 300s bash scripts/live_smoke.sh', exit_code is 0. QA records no raw HTTP, cookies, or tokens; interactive Yandex consent remains not_run."

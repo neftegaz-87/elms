@@ -5,10 +5,15 @@
 	var reviewHref = "/app/" + reviewPageName;
 	var reviewEndpoint = "/api/method/elms.sso.review.open_review";
 	var reviewLabel = "Сверка заявки";
-	var reviewRoles = ["ELMS Admin", "ELMS Operations User", "System Manager"];
+
+	function isReviewVisible() {
+		var value = window.frappe && frappe.boot && frappe.boot.elms_review_visible;
+		return value === true || value === 1 || value === "1";
+	}
 
 	function registerReviewPage() {
 		if (!window.frappe || !frappe.container || !frappe.ui) return;
+		if (!canOpenReview()) return;
 		frappe.provide("frappe.standard_pages");
 		if (frappe.standard_pages[reviewPageName]) return;
 
@@ -39,10 +44,7 @@
 	}
 
 	function canOpenReview() {
-		var roles = (window.frappe && (frappe.user_roles || (frappe.boot && frappe.boot.user && frappe.boot.user.roles))) || [];
-		return Array.isArray(roles) && reviewRoles.some(function (role) {
-			return roles.indexOf(role) !== -1;
-		});
+		return isReviewVisible();
 	}
 
 	function addReviewLink() {

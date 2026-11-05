@@ -1,0 +1,121 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-B08-elms-cicd-release-rollback
+title: Gate verified checks before immutable GHCR release manifest
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть CI boundary: существующие Frappe/app tests, browser QA, Compose/policy checks
+  и secret-contract gates должны завершиться успешно до GHCR push; затем workflow выпускает
+  commit-SHA image refs/digests и проверенный non-secret release manifest.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+  nouns:
+    - existing Frappe/app tests
+    - browser QA
+    - Compose policy
+    - GHCR push
+    - backend image
+    - repository commit SHA
+    - immutable image refs/digests
+    - release manifest
+    - Compose hash
+    - smoke metadata
+    - no secrets
+  layout_paths:
+    - .github/workflows/production-release.yml
+    - scripts/infra/check_release_manifest.py
+    - tests/infra/test_production_contracts.py
+    - tests/infra/fixtures/release-manifest.json
+  ac_quotes:
+    - 'FR-001: existing Frappe/app tests, browser QA and compose policy precede GHCR push.'
+    - 'FR-002: backend image is built from repo and tagged by commit SHA; deploy uses digest, not latest.'
+    - 'FR-003: release manifest contains commit, image refs/digests, compose hash and smoke metadata, no secrets.'
+  plan_jumps:
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:13-28
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:30-46
+
+context:
+  consumes:
+    - T-B05 image-only production Compose and policy contract
+    - T-B06 Vault/secret boundary checks
+    - T-B07 backup/capacity evidence contract
+    - scripts/run_browser_qa.py existing browser QA entrypoint
+  produces:
+    - ordered GitHub workflow gates before docker/build-push-action GHCR publication
+    - commit-SHA image refs and sha256 digest metadata for the ELMS and Keycloak images
+    - elms-release-manifest/v1 artifact with compose hash, smoke status, and secret rejection
+  plan_refs:
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:15-17
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:24-28
+  files:
+    - .github/workflows/production-release.yml
+    - scripts/infra/check_release_manifest.py
+    - tests/infra/test_production_contracts.py
+    - tests/infra/fixtures/release-manifest.json
+
+as_built:
+  - .github/workflows/production-release.yml already runs infrastructure contract checks and the Frappe app suite before the build job.
+  - The workflow already builds ELMS and Keycloak images with sha-${GITHUB_SHA} tags, captures build-push digests, and uploads release-manifest.json.
+  - scripts/infra/check_release_manifest.py already rejects mutable tags, malformed digests, and secret-like manifest keys/content; the fixture is a passing contract example.
+
+delta:
+  - Add the existing browser QA result and the merged Compose/policy/secret checks as explicit required predecessors of the GHCR build/push job, with no successful fallback when a gate is absent or fails.
+  - Make manifest generation and validation preserve commit identity, both image refs/digests, the canonical Compose sha256, passed smoke metadata, and a non-secret boundary; do not accept latest/dev/prod-local identities.
+  - Add targeted workflow-order and manifest redaction tests so the CI contract is machine-checked rather than documented only.
+
+deletes:
+  - workflow GHCR push path that can run without browser QA and the existing contract/application gates
+  - mutable latest/dev/prod-local release identity in the release handoff
+
+wire_complete_required: true
+
+out_of_scope:
+  - Real GHCR credentials, protected Environment approval, remote SSH execution, and live production health evidence.
+  - Browser infrastructure provisioning beyond invoking the existing project browser QA entrypoint.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  devops:
+    - .agents/skills/docker-compose/SKILL.md
+    - .agents/skills/docker-management/SKILL.md
+  omit_justification:
+    python-observability: This step validates CI status and manifest metadata, but adds no metrics or structured telemetry subsystem.
+    python-resilience: Retry, lock, health-failure handling, and reversible rollback belong to s02/s03.
+
+checkpoints:
+  - id: cp1
+    criterion: The release workflow cannot reach GHCR build/push until Compose policy, secret boundary, Frappe/app tests, and browser QA have passed.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'release_workflow or browser_qa'
+  - id: cp2
+    criterion: A valid fixture containing commit, image refs/digests, Compose sha256, and passed smoke metadata is accepted by the manifest CLI.
+    verify: python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json
+  - id: cp3
+    criterion: Mutable tags and secret-like fields are rejected with a non-zero result and diagnostic.
+    verify: python3 -m pytest -q tests/infra/test_production_contracts.py -k 'release_manifest_rejects_latest_and_secrets'
+  - id: cp4
+    criterion: The workflow exposes commit-SHA refs, digest outputs, manifest validation, and artifact upload in the same build contract.
+    verify: rg -n 'GITHUB_SHA|build-push-action|steps\.(app|keycloak)\.outputs\.digest|check_release_manifest.py|upload-artifact' .github/workflows/production-release.yml
+
+verify:
+  - python3 -m pytest -q tests/infra/test_production_contracts.py -k 'release_manifest or release_workflow or browser_qa'
+  - python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json
+  - rg -n 'frappe-tests|run_browser_qa.py|check_compose_policy.py|check_secret_contract.py|docker/build-push-action' .github/workflows/production-release.yml
+  - '! rg -n -i "(password|secret|token|private.?key|unseal|recovery)" tests/infra/fixtures/release-manifest.json'
+
+tdd:
+  - test_release_workflow_gates_before_ghcr_push
+  - test_release_manifest_fixture_passes
+  - test_release_manifest_rejects_latest_and_secrets

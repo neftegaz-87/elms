@@ -1,0 +1,95 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-B08-elms-cicd-release-rollback
+task_id: T-B08-elms-cicd-release-rollback
+title: s01 — Gate verified checks before immutable GHCR release manifest IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-B08-elms-cicd-release-rollback/yaml/steps/s01-immutable-release-manifest-and-ci-gates.yaml
+date: 2026-10-31
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/docker-compose/SKILL.md
+  - .agents/skills/docker-management/SKILL.md
+
+done:
+  - The release workflow now runs browser QA against the isolated dev stack before the immutable build/push job can start, and uploads redacted browser evidence.
+  - Release manifest validation now requires every image tag to identify the declared commit in addition to validating digest format, smoke status, mutable-tag rejection, and secret redaction.
+  - Targeted infrastructure tests cover the workflow gate ordering, valid manifest, mutable/secret rejection, and commit-unbound image tags.
+
+files:
+  - .github/workflows/production-release.yml
+  - scripts/infra/check_release_manifest.py
+  - tests/infra/test_production_contracts.py
+  - tests/infra/fixtures/release-manifest.json
+
+deletes:
+  - workflow GHCR push path that can run without browser QA and the existing contract/application gates
+  - mutable latest/dev/prod-local release identity in the release handoff
+
+wire_complete:
+  call_sites:
+    - contract job -> frappe-tests job -> Run browser QA step -> build job with needs: [contract, frappe-tests]
+    - build job -> check_release_manifest.py -> release-manifest.json artifact upload
+    - check_release_manifest.py -> manifest fixture and targeted infrastructure tests
+  enforce_path: A failed contract, Frappe/app, or browser QA command returns non-zero before the build job; the validator rejects mutable, malformed, commit-unbound, or secret-bearing release manifests.
+  dual_path_rg: >-
+    if rg -n -i '(^|[:/])latest($|[^[:alnum:]-])|prod-local|dev-[0-9a-f]' .github/workflows/production-release.yml tests/infra/fixtures/release-manifest.json; then exit 1; else exit 0; fi
+  instruction_rg: >-
+    if rg -n -i 'copy.*password|print.*secret|docker.*down -v|build on production host' docs/operations/elms-production.md; then exit 1; else exit 0; fi
+  deny_old_proven: true
+
+tests:
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'release_manifest or release_workflow or browser_qa' -q"
+  - "python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json"
+  - "python3 -m compileall -q scripts/infra/check_release_manifest.py tests/infra/test_production_contracts.py"
+  - "rg -n 'frappe-tests|run_browser_qa.py|check_compose_policy.py|check_secret_contract.py|docker/build-push-action' .github/workflows/production-release.yml"
+  - "if rg -n -i '(password|secret|token|private.?key|unseal|recovery)' tests/infra/fixtures/release-manifest.json; then exit 1; else exit 0; fi"
+
+integration_check:
+  - "python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json — exit 0"
+  - "workflow YAML parse and targeted contract tests — PASS"
+  - "CI gate order scan confirms browser QA appears before the build job"
+
+verification_results:
+  - "bin/pytest tests/infra/test_production_contracts.py -k 'release_manifest or release_workflow or browser_qa' -q — 4 passed, 28 deselected"
+  - "python3 scripts/infra/check_release_manifest.py --fixture tests/infra/fixtures/release-manifest.json — PASS"
+  - "python3 -m compileall -q scripts/infra/check_release_manifest.py tests/infra/test_production_contracts.py — PASS"
+  - "GitHub workflow YAML parse — PASS"
+  - "release fixture secret scan — PASS"
+
+plan_parity_scan:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+  target_layout:
+    - .github/workflows/production-release.yml
+    - scripts/infra/check_release_manifest.py
+    - tests/infra/test_production_contracts.py
+    - tests/infra/fixtures/release-manifest.json
+  plan_jumps:
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:13-28
+    - memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md:30-46
+
+checkpoints:
+  - id: cp1
+    criterion: The release workflow cannot reach GHCR build/push until Compose policy, secret boundary, Frappe/app tests, and browser QA have passed.
+    status: done
+  - id: cp2
+    criterion: A valid fixture containing commit, image refs/digests, Compose sha256, and passed smoke metadata is accepted by the manifest CLI.
+    status: done
+  - id: cp3
+    criterion: Mutable tags and secret-like fields are rejected with a non-zero result and diagnostic.
+    status: done
+  - id: cp4
+    criterion: The workflow exposes commit-SHA refs, digest outputs, manifest validation, and artifact upload in the same build contract.
+    status: done
+
+resume_from: cp1

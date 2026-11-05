@@ -34,7 +34,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-30 02:51:15.985606",
+ "modified": "2026-11-05 13:17:06.330043",
  "modified_by": "Administrator",
  "module": "Operations",
  "name": "Operations",
@@ -54,8 +54,9 @@
  "sequence_id": 2.0,
  "shortcuts": [
   {
+   "doc_view": "",
    "icon": "check-circle",
-   "label": "Сверка заявки",
+   "label": "\u0421\u0432\u0435\u0440\u043a\u0430 \u0437\u0430\u044f\u0432\u043a\u0438",
    "type": "URL",
    "url": "/app/elms-review"
   }

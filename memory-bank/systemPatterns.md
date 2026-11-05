@@ -1,7 +1,7 @@
 # Архитектурные паттерны системы (systemPatterns)
 
-**Дата:** 2026-10-31
-**Статус:** Базовые системные паттерны подтверждены по результатам T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS
+**Дата:** 2026-11-01
+**Статус:** Базовые системные паттерны подтверждены по результатам T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
 
 ## 1. Slim Single-App Frappe Architecture
 
@@ -77,3 +77,25 @@
 - **Vault source of truth:** KV v2 через authenticated AppRole/Vault Agent render — единственный production static-secret source. Pinned integrated-Raft Vault слушает только внутри Compose; dev mode, root-token runtime, public `8200`, direct `.env`/local fallback и secret-bearing diagnostics запрещены. Development synthetic secrets изолированы от production delivery.
 - **Promotion and state boundary:** `vault_preflight.sh` и service dependencies fail closed для sealed, unavailable, unauthorized и incomplete render states; MariaDB/Keycloak DB получают `*_PASSWORD_FILE`, а OAuth/session state остаётся writable application-owned state вне read-only Vault render boundary.
 - **Recovery evidence:** bootstrap, rotation, snapshot, restore, revoke и preflight runbooks возвращают status-only diagnostics; synthetic fixtures подтверждают redaction и disposable restore без публикации secret values. Root-owned AppRole files находятся вне repository и не читаются в stdout/logs.
+
+## 9. Encrypted Backup and Disposable Recovery Boundary
+
+- **State ownership:** Канонический non-secret manifest перечисляет `sites`, logs, MariaDB, Keycloak PostgreSQL, Redis queue, Vault Raft и Caddy data/config. Состояние review service не дублируется: его backup contract принадлежит его repository, а ELMS сохраняет только handoff/config boundary.
+- **Verified freshness promotion:** Backup выполняется client-side encrypted в off-host restic/S3-compatible repository. RPO 24h: `verified-status.json` публикуется только после успешных restic backup и repository check; promotion принимает semantic verified evidence с возрастом последнего успеха не более 24 часов и fail-closed отклоняет stale, future, failed, pending или unverified reports.
+- **Capacity and non-destructive operation:** Настроенный capacity threshold — hard gate до создания disposable target или upload. Retention декларативен; автоматические restic prune, delete и Docker volume removal отсутствуют.
+- **Disposable-only rehearsal:** `restore-preflight` до создания/reuse разрешает только validated disposable marker, проверяет path resolution/symlink/capacity и отклоняет active Docker volume/project, unsafe target и существующий unmarked directory. Redacted rehearsal contract покрывает RTO 4h для MariaDB, Keycloak PostgreSQL, Vault Raft и Caddy data/config, запрещая active-volume write и destructive cleanup.
+- **Operator and evidence boundary:** External repository, credentials, custody, operations owner, target capacity, export consistency и measured production RTO — явные operator gates. Live HTTP smoke принимается как sanitized status-only evidence (`docs/reports/elms-production-qa-default-live-smoke.json`, `live_evidence=true`, `exit_code=0`); raw HTTP, cookies и tokens не переносятся в canon.
+
+## 10. Immutable CI Release and Pair Rollback Gate
+
+- **Pre-push ordering:** Contract/Compose/policy/secret checks, Frappe/app tests и существующий browser QA проходят до GHCR build/push. Workflow публикует commit-SHA image refs и captured digests, а `elms-release-manifest/v1` связывает commit, обязательную backend/Keycloak image pair, canonical Compose sha256, passed smoke metadata и `rollback_verified`; mutable и secret-like values отклоняются.
+- **Protected handoff:** Production deployment доступен только через protected GitHub Environment с explicit target/root/wrapper, non-development target guard и SSH `known_hosts`/`StrictHostKeyChecking=yes`. Server-side `deploy_wrapper.py` — единственная allowlisted state-changing boundary; arbitrary remote shell, Compose overrides и volume removal отсутствуют.
+- **Verified execution:** Wrapper под `deploy.lock` принимает только validated complete pair, matching Compose hash, fresh verified backup и exact Vault `PASS` evidence; затем выполняет fixed Compose config/pull/up `--wait`/health/internal-smoke sequence и атомарно records `current.json` только после успеха.
+- **Reversible pair state:** Forced health failure leaves the verified predecessor current; rollback consumes one predecessor manifest and restores the complete backend/frontend/application pair without deleting state volumes. Release, rollback and failure evidence/status expose only redacted status-level data. Real GHCR credentials, protected approval, SSH values and production execution remain operator gates.
+
+## 11. Observability Client (ship logs to central)
+
+- **Принцип:** ELMS — клиент внешнего центра мониторинга. Центр (Grafana/Loki/Prometheus) живёт в отдельном проекте/сервере; ELMS только подключается и отправляет логи.
+- **Контракт:** структурированный JSON в stdout → Vector или Grafana Alloy → центральный Loki.
+- **FORBIDDEN в ELMS SoT:** поднимать Loki/Grafana/Prometheus как локальное хранилище вместо центра.
+- **Канон:** `memory-bank/decisions/observability-stack.md` (принято 2026-11-01; агент ещё не as-built).

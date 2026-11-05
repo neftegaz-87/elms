@@ -1,0 +1,247 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A02-elms-learning-core-flows
+title: Unified Core Learning Flows vertical slice (DocTypes, Whitelist API, Quotas, Telemetry, Progress, Workspace LMS, and Tests)
+next_phase: APP IMPLEMENT
+needs_creative: 'no'
+goal: 'Реализовать единый вертикальный срез учебного контура (Core Learning Flows) на Frappe Framework:
+
+  1. Доменные DocTypes в модуле LMS: ELMS Batch (потоки/группы), ELMS Subscription (корпоративные квоты мест), ELMS Enrollment (зачисления), ELMS Course Progress (прогресс курса и допуск к экзамену), ELMS Lesson Progress (прогресс уроков и время изучения), ELMS User Activity (журнал сессий и действий 152-ФЗ), ELMS Video Watch Log (фиксация просмотра видео 816 приказ).
+
+  2. Обновление конфигурации Desk Workspace LMS в elms/elms/desk/workspaces.py: структурированные карточки «Управление обучением», «Успеваемость и активность», «Аттестация и документы».
+
+  3. Whitelist API методы в elms/elms/lms/api.py: enroll_learner, record_lesson_progress, calculate_course_progress, get_learner_dashboard с валидацией прав, лимитов квот и защитой от накруток времени.
+
+  4. Полноценное тестовое покрытие (FrappeTestCase/pytest) жизненного цикла зачислений, квот, расчёта процентов, фиксации времени и ролевой изоляции (fail-closed).'
+plan_contract:
+  fr_ids:
+  - FR-001
+  - FR-002
+  - FR-003
+  - US-LMS-001
+  - US-LMS-002
+  - US-LMS-003
+  - US-LMS-004
+  - US-LMS-005
+  - US-LMS-006
+  - US-LMS-007
+  - AC-001
+  - AC-002
+  - AC-003
+  - AC-004
+  - AC-005
+  - AC-006
+  - AC-007
+  - BN-001
+  - BN-002
+  - BN-003
+  - BN-004
+  - BN-005
+  - BN-006
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+  - TM-007
+  - TM-008
+  - TM-009
+  - TM-010
+  fr_coverage:
+  - id: FR-001
+    section: FR-001 — Domain Schema & DocTypes (Module LMS)
+    details: Defines ELMS Batch, ELMS Subscription, ELMS Enrollment, ELMS Course Progress, ELMS Lesson Progress, ELMS User Activity, and ELMS Video Watch Log with validation hooks and DocPerm.
+  - id: FR-002
+    section: FR-002 — Whitelist API Endpoints
+    details: Implements elms.lms.api methods for enrollment, lesson progress recording, progress calculation, and learner dashboard with fail-closed security.
+  - id: FR-003
+    section: FR-003 — Workspace Navigation Update
+    details: Updates workspaces.py with structured cards for learning management, progress, and assessments.
+  nouns:
+  - ELMS Batch
+  - ELMS Subscription
+  - ELMS Enrollment
+  - ELMS Course Progress
+  - ELMS Lesson Progress
+  - ELMS User Activity
+  - ELMS Video Watch Log
+  - Workspace LMS
+  - seats_used
+  - total_seats
+  - exam_eligible
+  - time_spent_seconds
+  - heartbeat
+  - DocPerm
+  - Whitelist API
+  layout_paths:
+  - elms/elms/lms/doctype/elms_batch/elms_batch.json
+  - elms/elms/lms/doctype/elms_batch/elms_batch.py
+  - elms/elms/lms/doctype/elms_batch/__init__.py
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.json
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+  - elms/elms/lms/doctype/elms_subscription/__init__.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+  - elms/elms/lms/doctype/elms_enrollment/__init__.py
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.json
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.py
+  - elms/elms/lms/doctype/elms_course_progress/__init__.py
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.json
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.py
+  - elms/elms/lms/doctype/elms_lesson_progress/__init__.py
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.json
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.py
+  - elms/elms/lms/doctype/elms_user_activity/__init__.py
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.json
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.py
+  - elms/elms/lms/doctype/elms_video_watch_log/__init__.py
+  - elms/elms/lms/api.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/tests/test_lms_core.py
+  ac_quotes:
+  - 'AC-001 — Registered DocTypes: Given the LMS module, all 7 DocTypes are created with valid schemas, correct field types, and DocPerm matrices in Frappe'
+  - 'AC-002 — Desk Workspace LMS: The LMS workspace presents structured navigation cards for Learning Management, Course Progress, and Assessments'
+  - 'AC-003 — Enrollment and Progress: Calling enroll_learner creates an active enrollment, decrements subscription available seats, and initializes a course progress record'
+  - 'AC-004 — Quota Enforcement: When total seats are exhausted, additional enrollments fail with a clear ValidationError'
+  - 'AC-005 — Time-on-Task Tracking: Calling record_lesson_progress accumulates validated study seconds and creates telemetry entries'
+  - 'AC-006 — Exam Eligibility: When all mandatory course units reach completion, exam_eligible is set to 1'
+  - 'AC-007 — Role Isolation: Learners access only their own enrollments and progress; unauthenticated guests receive 403 Forbidden'
+  plan_jumps:
+  - memory-bank/app/plan/T-A02-elms-learning-core-flows/md/plan.md:120-180
+  - memory-bank/app/plan/T-A02-elms-learning-core-flows/md/plan.md:190-240
+  - memory-bank/app/plan/T-A02-elms-learning-core-flows/md/plan.md:250-290
+context:
+  consumes:
+  - memory-bank/app/plan/T-A02-elms-learning-core-flows/md/plan.md
+  - memory-bank/product/modules.md
+  - memory-bank/product/lms-best-practices.md
+  - elms/elms/desk/workspaces.py
+  produces:
+  - elms/elms/lms/doctype/elms_batch/elms_batch.json
+  - elms/elms/lms/doctype/elms_batch/elms_batch.py
+  - elms/elms/lms/doctype/elms_batch/__init__.py
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.json
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+  - elms/elms/lms/doctype/elms_subscription/__init__.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+  - elms/elms/lms/doctype/elms_enrollment/__init__.py
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.json
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.py
+  - elms/elms/lms/doctype/elms_course_progress/__init__.py
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.json
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.py
+  - elms/elms/lms/doctype/elms_lesson_progress/__init__.py
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.json
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.py
+  - elms/elms/lms/doctype/elms_user_activity/__init__.py
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.json
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.py
+  - elms/elms/lms/doctype/elms_video_watch_log/__init__.py
+  - elms/elms/lms/api.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/tests/test_lms_core.py
+  plan_refs:
+  - plan.md#functional-requirements
+  - plan.md#contract-api-specifications
+  - plan.md#test-qa-charter
+  files:
+  - elms/elms/lms/doctype/elms_batch/elms_batch.json
+  - elms/elms/lms/doctype/elms_batch/elms_batch.py
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.json
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.json
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.py
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.json
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.py
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.json
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.py
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.json
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.py
+  - elms/elms/lms/api.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/tests/test_lms_core.py
+as_built:
+- elms/elms/lms/ currently contains only the Single DocType ELMS LMS Section as an RBAC anchor
+- elms/elms/desk/workspaces.py defines generic links to User Group and User without domain learning entities
+- elms/elms/lms/ has no Whitelist API or tracking logic
+delta:
+- Create ELMS Batch, ELMS Subscription, ELMS Enrollment, ELMS Course Progress, ELMS Lesson Progress, ELMS User Activity, ELMS Video Watch Log DocTypes with controller logic and schemas
+- Implement elms/elms/lms/api.py with enroll_learner, record_lesson_progress, calculate_course_progress, and get_learner_dashboard
+- Update elms/elms/desk/workspaces.py to wire the new DocTypes into structured cards in the LMS workspace
+- Add comprehensive test suite in elms/elms/tests/test_lms_core.py covering subscriptions, quotas, enrollments, heartbeats, progress, and DocPerm security
+deletes: []
+wire_complete_required: true
+replacement_cleanup:
+  replaces: Placeholder-only LMS workspace and lack of LMS domain entities
+  target: Production-grade LMS domain models, enrollment APIs, progress tracking, and Desk workspace navigation
+  items:
+  - symbol: Placeholder-only LMS workspace links in workspaces.py
+    kind: A
+    replacement: Structured LMS Workspace cards (Learning Management, Progress, Documents)
+    step: s01
+    policy: replace in-epic
+  sunset:
+  - Unstructured placeholder links in Workspace LMS
+out_of_scope:
+  - Full WYSIWYG lesson editor (deferred to content authoring epic)
+  - Direct individual credit card gateway acquiring (B2B corporate billing model)
+  - External video hosting dependencies (YouTube/Vimeo)
+skills:
+  code_surface: mixed
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/frontend-patterns/SKILL.md
+checkpoints:
+- id: cp1
+  criterion: All 7 LMS DocTypes are created with valid json schemas and Python controllers
+  verify: python3 -c 'import json, pathlib; p = pathlib.Path("elms/elms/lms/doctype"); assert len(list(p.glob("*/*.json"))) >= 7'
+- id: cp2
+  criterion: Desk Workspace LMS is updated with structured cards and verified in workspaces.py
+  verify: grep -q 'ELMS Batch' elms/elms/desk/workspaces.py && grep -q 'ELMS Enrollment' elms/elms/desk/workspaces.py
+- id: cp3
+  criterion: Whitelist API module elms.lms.api exists with enroll_learner, record_lesson_progress, and calculate_course_progress
+  verify: python3 -c 'import elms.elms.lms.api as api; assert hasattr(api, "enroll_learner") and hasattr(api, "record_lesson_progress")'
+- id: cp4
+  criterion: Test suite test_lms_core.py passes 100 percent of tests for quotas, progress, and telemetry
+  verify: bin/pytest -q elms/elms/tests/test_lms_core.py
+verify:
+- python3 -c 'import json, pathlib; p = pathlib.Path("elms/elms/lms/doctype"); assert len(list(p.glob("*/*.json"))) >= 7'
+- grep -q 'ELMS Batch' elms/elms/desk/workspaces.py
+- bin/pytest -q elms/elms/tests/test_lms_core.py
+tdd:
+- test_lms_doctypes_registered
+- test_lms_subscription_quota_enforcement
+- test_lms_enrollment_lifecycle
+- test_lms_duplicate_enrollment_rejected
+- test_lms_record_lesson_progress
+- test_lms_heartbeat_boundary_guard
+- test_lms_course_progress_calculation
+- test_lms_user_activity_telemetry
+- test_lms_docperm_and_isolation
+- test_lms_workspace_navigation
+files:
+- elms/elms/lms/doctype/elms_batch/elms_batch.json
+- elms/elms/lms/doctype/elms_batch/elms_batch.py
+- elms/elms/lms/doctype/elms_subscription/elms_subscription.json
+- elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+- elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+- elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+- elms/elms/lms/doctype/elms_course_progress/elms_course_progress.json
+- elms/elms/lms/doctype/elms_course_progress/elms_course_progress.py
+- elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.json
+- elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.py
+- elms/elms/lms/doctype/elms_user_activity/elms_user_activity.json
+- elms/elms/lms/doctype/elms_user_activity/elms_user_activity.py
+- elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.json
+- elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.py
+- elms/elms/lms/api.py
+- elms/elms/desk/workspaces.py
+- elms/elms/tests/test_lms_core.py
+

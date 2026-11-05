@@ -1,0 +1,235 @@
+schema: epic-decompose-index/v1
+plan_id: T-B09-elms-caddy-edge-cutover
+level: L3
+sNN_cap: 3
+dependencies:
+- T-B05-elms-production-container-stack
+- T-B06-elms-vault-secrets
+- T-B07-elms-backup-operations
+- T-B08-elms-cicd-release-rollback
+blocks: []
+steps:
+- id: s01
+  file: s01-staged-caddy-routing-and-high-port-compose.yaml
+  title: Staged Caddy routing, localhost high-port overlay, and internal service isolation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-predecessor-evidence-and-cutover-gate-verifier.yaml
+  title: Predecessor evidence verification, status inspection, and serialized cutover
+    gate
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-explicit-edge-switch-rollback-and-disposable-drill.yaml
+  title: Explicit edge switch, systemd rollback restoration, and disposable drill
+    contract
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: staged Caddy binds only localhost/high ports and does not alter DNS,
+    firewall or host Caddy.
+- id: FR-002
+  step: s02
+  description: public switch requires fresh predecessor evidence, owner approval and
+    serialized lock.
+- id: FR-003
+  step: s01
+  description: container Caddy is sole 80/443 owner after switch; DB/Redis/backend/Keycloak/Vault
+    remain private.
+- id: FR-004
+  step: s01
+  description: Caddy owns persistent ACME state; host private keys are never copied.
+- id: FR-005
+  step: s03
+  description: rollback releases container ports, restores host Caddy and verifies
+    old route.
+- id: RC-001
+  step: s01
+  description: ELMS/Frappe host routes to frontend:8080 and Auth host routes to keycloak:8080.
+- id: RC-002
+  step: s01
+  description: Review handoff URL remains a first-party review service contract and
+    does not become a catch-all proxy.
+- id: RC-003
+  step: s01
+  description: /healthz is explicit edge health; unknown host/path does not get fake
+    200.
+stages_coverage:
+- stage: Stage s01 — Staged Caddyfile, high-port compose override and route smoke
+  step: s01
+- stage: Stage s02 — Gate verifier with port/TLS/config evidence
+  step: s02
+- stage: Stage s03 — Explicit edge wrapper and disposable rollback drill
+  step: s03
+outcome_map:
+- outcome: Staged Caddy provides localhost high-port rehearsal for ELMS and Keycloak
+    routes with explicit /healthz while keeping backend services private and preserving
+    ACME state.
+  step: s01
+- outcome: Edge cutover gate enforces fresh predecessor evidence, owner approval,
+    serialized locking, and occupied-port checks before allowing any switch attempt.
+  step: s02
+- outcome: Operators have an explicit, serialized switch and systemd rollback wrapper
+    with a verified disposable drill contract that restores the old edge without touching
+    live DNS or firewalls.
+  step: s03
+prompt_outcome_coverage:
+- id: done-predecessor-evidence-and-approval
+  source: prompt.md#done-when
+  outcome: Missing predecessor evidence or approval exits before changing host Caddy.
+  coverage: s02 edge cutover preflight and evidence gate
+  replacement: fail-closed predecessor evidence and owner approval check before switch
+- id: done-forced-failure-rollback-proves-old-edge
+  source: prompt.md#done-when
+  outcome: Forced failure restores old edge and proves it.
+  coverage: s03 explicit rollback wrapper and systemd restoration drill
+  replacement: deterministic container stop and host Caddy systemd restoration contract
+- id: out-no-immediate-host-caddy-stop-or-ci-switch
+  source: prompt.md#out
+  outcome: No immediate host Caddy stop, automatic switch from CI, or certificate
+    copying.
+  coverage: s01/s02/s03 explicit boundary and out_of_scope
+  replacement: explicit owner-approved CLI execution only; host ACME state remains
+    in container volume without copying host keys
+- id: out-private-internal-services
+  source: prompt.md#out
+  outcome: Internal services (DB, Redis, backend, Keycloak, Vault) remain private
+    and never expose public ports.
+  coverage: s01 compose network isolation and port policy
+  replacement: internal private network and sole container Caddy 80/443 ownership
+final_prompt_outcome_evidence:
+- prompt_outcome: Публичный ELMS host обслуживается контейнерным Caddy только после
+    staged rehearsal, owner approval и проверенного rollback на прежний edge.
+  evidence: s01 staged high-port rehearsal, s02 owner approval and predecessor evidence
+    gate, and s03 disposable rollback drill
+- prompt_outcome: Missing predecessor evidence or approval exits before changing host
+    Caddy.
+  evidence: s02 fail-closed evidence validation and approval preflight checkpoints
+- prompt_outcome: Forced failure restores old edge and proves it.
+  evidence: s03 systemd Caddy restoration and old route verification rollback drill
+- prompt_outcome: Host private keys are never copied and container Caddy owns persistent
+    ACME state.
+  evidence: s01 caddy-data/caddy-config named volumes and volume policy checks
+- prompt_outcome: Container Caddy is sole 80/443 owner; internal DB, Redis, backend,
+    Keycloak, and Vault remain private.
+  evidence: s01 canonical compose network isolation and s02 status listener checks
+replacement_cleanup:
+  s01:
+    replaces: Direct public port binding in canonical Compose, catch-all proxy routes,
+      and copying host TLS private keys.
+    target: docker/compose.prod.yaml, docker/compose.prod.staged.yaml, docker/caddy/Caddyfile,
+      docker/caddy/Caddyfile.staged
+  s02:
+    replaces: Unvalidated or automated CI edge cutover without fresh predecessor evidence,
+      owner approval, or serialized locking.
+    target:
+    - scripts/infra/edge_cutover.py
+    - tests/infra/fixtures/edge-evidence.json
+    - tests/infra/test_production_contracts.py
+    - docs/operations/elms-production.md
+  s03:
+    replaces: Nominal or manual-only edge rollback procedures without verified systemd
+      restoration or disposable drill evidence.
+    target: scripts/infra/edge_cutover.py, tests/infra/test_production_contracts.py,
+      docs/operations/elms-production.md
+  items:
+  - symbol: canonical docker/compose.prod.yaml publishing host ports 80/443
+    kind: B
+    replacement: localhost high-port staged overlay and explicit owner-approved edge
+      overlay
+    step: s01
+    policy: delete in-epic
+  - symbol: catch-all proxy routing or fake 200 health responses on edge
+    kind: C
+    replacement: explicit /healthz respond 200 and strict host-matched reverse proxies
+    step: s01
+    policy: delete in-epic
+  - symbol: copying host private keys into container Caddy
+    kind: C
+    replacement: container-owned persistent ACME state in caddy-data/caddy-config
+      volumes
+    step: s01
+    policy: delete in-epic
+  - symbol: automated CI edge cutover or unapproved public switch
+    kind: B
+    replacement: fail-closed CLI preflight requiring explicit --approved and --execute
+    step: s02
+    policy: delete in-epic
+  - symbol: edge cutover without fresh predecessor evidence
+    kind: C
+    replacement: freshness-checked predecessor evidence schema and max-age validation
+    step: s02
+    policy: delete in-epic
+  - symbol: concurrent edge switch execution without serialized lock
+    kind: C
+    replacement: flock-serialized cutover lock on ELMS_EDGE_LOCK
+    step: s02
+    policy: delete in-epic
+  - symbol: switching edge while ports 80/443 are already occupied
+    kind: C
+    replacement: port_state pre-switch guard refusing occupied public ports
+    step: s02
+    policy: delete in-epic
+  - symbol: destructive rollback or manual unverified host-Caddy recovery
+    kind: A
+    replacement: systemctl start caddy restoration and old route verification
+    step: s03
+    policy: delete in-epic
+  - symbol: runbook instructions implying immediate host Caddy shutdown or untested
+      rollback
+    kind: I
+    replacement: non-secret edge cutover runbook with maintenance window and rollback
+      budget
+    step: s03
+    policy: rewrite in-epic
+  sunset:
+  - canonical docker/compose.prod.yaml publishing host ports 80/443
+  - catch-all proxy routing or fake 200 health responses on edge
+  - copying host private keys into container Caddy
+  - automated CI edge cutover or unapproved public switch
+  - edge cutover without fresh predecessor evidence
+  - concurrent edge switch execution without serialized lock
+  - switching edge while ports 80/443 are already occupied
+  - destructive rollback or manual unverified host-Caddy recovery
+  - runbook instructions implying immediate host Caddy shutdown or untested rollback
+  deletes:
+  - canonical docker/compose.prod.yaml public port bindings
+  - catch-all proxy definitions in Caddyfile
+  - host private key mounts in compose.prod.edge.yaml
+  - unauthenticated or unapproved edge switch paths
+  - stale or incomplete predecessor evidence acceptance
+  - unlocked edge cutover execution
+  - switching when 80/443 are occupied without prior host release
+  - legacy instructions implying automatic CI edge cutover
+deletes:
+- canonical docker/compose.prod.yaml public port bindings
+- catch-all proxy definitions in Caddyfile
+- host private key mounts in compose.prod.edge.yaml
+- unauthenticated or unapproved edge switch paths
+- stale or incomplete predecessor evidence acceptance
+- unlocked edge cutover execution
+- switching when 80/443 are occupied without prior host release
+- legacy instructions implying automatic CI edge cutover
+out_of_scope:
+- Modifying production DNS records, external cloud firewall rules, or host network
+  interfaces.
+- Live stopping of production host Caddy or live acquisition of ports 80/443 during
+  CI / unit tests.
+- ACME certificate issuance against public Let Encrypt servers in CI/local environments.
+- Real production maintenance-window execution; repository provides the disposable
+  drill, schema, and operator contract.
+- Moving external review service or Neftegaz runtime into ELMS Caddy.
+follow_up: []
+boundary_notes:
+- T-B05 owns the base production and staged Compose stack; T-B06 owns Vault preflight;
+  T-B07 owns backup freshness/restore rehearsal; T-B08 owns immutable release manifests
+  and deploy wrapper.
+- Container Caddy is the sole owner of 80/443 after cutover; all other services (DB,
+  Redis, backend, Keycloak, Vault) remain on the private network.
+- Predecessor evidence is strictly validated for non-secret status objects, fresh
+  mtime (<= 24h), and owner approval.
+- Rollback stops container Caddy, restores host Caddy via systemctl, and verifies
+  old route availability without data volume loss.

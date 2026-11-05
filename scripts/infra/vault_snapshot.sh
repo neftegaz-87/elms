@@ -137,6 +137,7 @@ PY
 synthetic_restore() {
   [[ -n "$INPUT" && -r "$INPUT" ]] || { echo "ERROR: --input is required for fixture restore" >&2; exit 1; }
   [[ -n "$TARGET" ]] || { echo "ERROR: --target is required for fixture restore" >&2; exit 1; }
+  python3 "$ROOT_DIR/scripts/infra/backup_runner.py" restore-preflight --target "$TARGET"
   python3 - "$INPUT" "$TARGET" <<'PY'
 import hashlib
 import json

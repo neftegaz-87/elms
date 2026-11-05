@@ -10,11 +10,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{7,64}$")
 FORBIDDEN = re.compile(r"(?i)(password|secret|token|private.?key|unseal|recovery)")
 MUTABLE_TAGS = {"latest", "dev", "prod-local"}
+REQUIRED_IMAGES = frozenset({"elms", "elms-keycloak"})
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -48,6 +48,8 @@ def validate(value: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if value.get("schema") != "elms-release-manifest/v1":
         errors.append("schema must be elms-release-manifest/v1")
+    if value.get("application") != "elms":
+        errors.append("application must be elms")
     commit = value.get("commit")
     if not isinstance(commit, str) or not COMMIT.fullmatch(commit):
         errors.append("commit must be a hexadecimal commit id")
@@ -79,8 +81,17 @@ def validate(value: dict[str, Any]) -> list[str]:
                     errors.append(f"images[{index}].ref must include a release tag")
                 elif tag in MUTABLE_TAGS:
                     errors.append(f"images[{index}].ref must use an immutable release tag, not {tag}")
+                elif isinstance(commit, str) and commit[:7] and commit[:7] not in tag:
+                    errors.append(f"images[{index}].ref tag must identify commit {commit[:7]}")
             if not isinstance(digest, str) or not SHA256.fullmatch(digest):
                 errors.append(f"images[{index}].digest must be sha256")
+        if names != REQUIRED_IMAGES:
+            missing = sorted(REQUIRED_IMAGES - names)
+            unexpected = sorted(names - REQUIRED_IMAGES)
+            if missing:
+                errors.append("images is missing required release pair: " + ", ".join(missing))
+            if unexpected:
+                errors.append("images contains unsupported release members: " + ", ".join(unexpected))
     smoke = value.get("smoke")
     if not isinstance(smoke, dict) or smoke.get("status") != "passed":
         errors.append("smoke.status must be passed")

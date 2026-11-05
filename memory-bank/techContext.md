@@ -1,7 +1,7 @@
 # Технический контекст
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-10-31 (T-B06 QA PASS & context sync; T-B05 QA PASS & context sync; T-A01 APP QA PASS; T-B04 QA PASS; T-B03 re-QA PASS & context sync)
+**Обновлено:** 2026-11-01 (observability stack decision); 2026-10-31 (T-B08 QA PASS & context sync; T-B07 QA PASS & context sync; T-B06 QA PASS & context sync; T-B05 QA PASS & context sync; T-A01 APP QA PASS; T-B04 QA PASS; T-B03 re-QA PASS & context sync)
 
 ## Стек
 
@@ -12,6 +12,7 @@
 - **Production boundary:** Vault/Vault Agent render gate, внутренние сети без host-портов, health/readiness, restart/security/resource policy и release image tag+digest проверяются до promotion. Production static secrets имеют единственный источник — KV v2 через authenticated Vault Agent render; local/env/dev fallback запрещён.
 - Keycloak 24 (+ Postgres `keycloak-db`) в compose topology
 - Desk UI (stock); SSO через единый Social Login Key + Keycloak broker (Yandex 360 OIDC IdP)
+- **Observability (клиент ELMS):** ELMS подключается к **внешнему** центральному серверу (**Grafana + Loki + Prometheus**, агент **Alloy/Vector**) и скидывает туда JSON-логи. Центр и его compose — отдельный проект; в ELMS SoT — только агент + контракт отправки. Канон: [`decisions/observability-stack.md`](decisions/observability-stack.md).
 
 ## Frappe documentation (offline SoT for API/how-to)
 
@@ -37,10 +38,12 @@
 
 Физически symlink → `PersonalProject/frappe-erp-crm/docs/vendor/framework` (скачанный mirror). Обновление: `python3 docs/vendor/mirror-docs.py --spaces framework`. Справочник вендора ≠ продуктовый SoT ELMS (`memory-bank/` + `elms/`).
 
-## Фактическое дерево (as-built T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
+## Фактическое дерево (as-built T-B08 + T-B07 + T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
 
 ```text
 elms/                    # repo root
+  .github/workflows/
+    production-release.yml # gated immutable release and protected deploy handoff
   frappe/                # framework v15
   elms/                  # custom app
     pyproject.toml
@@ -69,7 +72,9 @@ elms/                    # repo root
   docs/
     sso.md               # SSO architecture, Yandex broker, JIT provisioning & outage runbook
     bitrix-incoming-webhook.md  # Bitrix24 incoming webhook setup & env configuration manual
+    operations/elms-production.md # backup/restore operator contract and production runbook
     reports/sso-browser-api-trace.json  # Typed live Frappe/Keycloak HTTP evidence
+    reports/elms-production-qa-default-live-smoke.json # sanitized live HTTP smoke evidence
   docker/
     Dockerfile           # slim multi-stage build (vendor apps denied)
     compose.dev.yaml     # dev topology (backend, websocket, queues, scheduler, configurator, create-site, db, redis, keycloak, keycloak-db)
@@ -86,6 +91,12 @@ elms/                    # repo root
   scripts/docker-up.sh
   scripts/live_smoke.sh  # Black-box Frappe/Keycloak HTTP smoke
     scripts/infra/        # Compose, Vault, secret, recovery and release contract checks
+  ops/systemd/elms-backup.service # daily backup then verification caller
+  ops/systemd/elms-backup.timer   # persistent daily backup schedule
+  scripts/infra/backup_runner.py  # manifest, encrypted backup, freshness and disposable restore gates
+  scripts/infra/check_release_manifest.py # immutable, non-secret release manifest validator
+  scripts/infra/deploy_wrapper.py # allowlisted digest-pinned release/deploy/rollback gate
+  scripts/infra/vault_snapshot.sh  # disposable synthetic/explicit-project Vault helper
   scripts/bitrix/
     __init__.py
     rest_client.py       # Bitrix24 REST webhook transport (post_json, WebhookEndpoint, CallArgs, RestEnvelope, token masking)
@@ -100,8 +111,12 @@ elms/                    # repo root
   memory-bank/
     back/qa/T-B05-elms-production-container-stack/ # accepted typed QA evidence
     back/qa/T-B06-elms-vault-secrets/ # accepted typed QA evidence
+    back/qa/T-B07-elms-backup-operations/ # accepted typed QA evidence
+    back/qa/T-B08-elms-cicd-release-rollback/ # accepted typed QA evidence
     back/context-sync/T-B05-elms-production-container-stack/ # canonical sync report
     back/context-sync/T-B06-elms-vault-secrets/ # canonical sync report
+    back/context-sync/T-B07-elms-backup-operations/ # canonical sync report
+    back/context-sync/T-B08-elms-cicd-release-rollback/ # canonical sync report
 ```
 
 ## Эталон паттернов (read-only)
@@ -132,8 +147,11 @@ elms/                    # repo root
 16. Защитные ограничения и маскирование секретов REST-клиента: маскирование секретного токена вебхука во всех сообщениях об ошибках, исключениях и строковых представлениях (`***`); валидация синтаксиса имени метода (`[a-z0-9_]+(\.[a-z0-9_]+)+`), обязательность JSON-объекта (dict) для `--params`; локальный batch guard (не более 50 команд, запрет вложенных batch).
 17. Runtime SSO evidence gate: перед принятием live HTTP evidence `create-site` должен завершиться с кодом 0, а `scripts/live_smoke.sh` — записать `docs/reports/sso-browser-api-trace.json` со `status=pass`, `live_evidence=true` и `exit_code=0`; интерактивный Yandex остаётся `not_run` без реальных credentials и зарегистрированного callback.
 18. Login UI surface (`T-A01`): штатная страница Frappe `/login` остаётся единственным UI-владельцем входа; стандартная форма связывается с Keycloak через `login-keycloak.js`, рендерится ровно одна кнопка `.btn-keycloak` с публичным URL Keycloak (`KEYCLOAK_PUBLIC_URL/realms/elms`), прямой Yandex-контрол и template fork отсутствуют. `login.css` подключается через `web_include_css` и гарантирует стиль Neftegaz (специфичность и `!important` исключают переопределение со стороны `login.bundle.css`). Runtime browser evidence подтвердил `44px` высоту, `3px` radius и cobalt action `rgb(13, 76, 211)` (`#0d4cd3`). Все выявленные дефекты (BF-001..BF-004) закрыты.
-19. Production boundary (`T-B05`): canonical `docker/compose.prod.yaml` — image-only SoT без `build`, source mounts и host-публикации внутренних сервисов; local/CI build, staged high-port rehearsal и owner-approved edge switch живут в отдельных overlays. Mandatory services проходят health/readiness, restart, `no-new-privileges` и bounded-resource checks; runtime/database secrets приходят через Vault Agent rendered files с fail-closed missing-key behavior; release manifest требует release tag плюс digest и отклоняет mutable/secret-like identity. Staged smoke использует изолированный project/high port и typed live evidence, а внешний review service остаётся отдельной signed-handoff boundary. Vault contract закрыт T-B06; backup/restore, registry deploy/rollback и public edge cutover остаются follow-up epics T-B07–T-B09, а реальный Vault bootstrap/unseal и custody остаются operator gates.
+19. Production boundary (`T-B05`): canonical `docker/compose.prod.yaml` — image-only SoT без `build`, source mounts и host-публикации внутренних сервисов; local/CI build, staged high-port rehearsal и owner-approved edge switch живут в отдельных overlays. Mandatory services проходят health/readiness, restart, `no-new-privileges` и bounded-resource checks; runtime/database secrets приходят через Vault Agent rendered files с fail-closed missing-key behavior; release manifest требует release tag плюс digest и отклоняет mutable/secret-like identity. Staged smoke использует изолированный project/high port и typed live evidence, а внешний review service остаётся отдельной signed-handoff boundary. Vault contract закрыт T-B06; backup/restore boundary закрыт T-B07; immutable CI release/deploy/rollback boundary закрыт T-B08; public edge cutover остаётся follow-up epic T-B09, а реальный Vault bootstrap/unseal и custody остаются operator gates.
 20. Vault static-secret boundary (`T-B06`): production использует pinned integrated-Raft Vault на private Compose-only listener и authenticated AppRole/Vault Agent render. KV v2 policy `elms-agent` read-only и ограничена заявленными backend/Keycloak paths; MariaDB и Keycloak DB получают password files, Frappe/Keycloak/review/Yandex runtime получают rendered files. Sealed, unavailable, unauthorized или incomplete render блокирует promotion non-zero; root-token runtime, direct credential interpolation, public `8200`, local fallback и secret-value diagnostics запрещены. OAuth/session state остаётся writable application-owned state вне read-only Vault boundary.
+21. Backup and disposable recovery boundary (`T-B07`): ELMS публикует полный non-secret state manifest для `sites`, logs, MariaDB, Keycloak PostgreSQL, Redis queue, Vault Raft и Caddy data/config; review-service application state остаётся во владении его repository и не дублируется. Backup выполняется client-side encrypted в off-host restic/S3-compatible repository, а promotion принимает только семантически verified evidence после backup и repository check с RPO 24h (возраст последнего успеха не более 24 часов). Недостаточная capacity блокирует upload/target creation до действия; автоматические prune/delete/volume removal запрещены. `restore-preflight` разрешает только явно отмеченный disposable target, отклоняет active volume/project, symlink и небезопасные/неотмеченные targets; redacted rehearsal contract покрывает RTO 4h для MariaDB, Keycloak PostgreSQL, Vault Raft и Caddy. External repository, credentials, custody, operations owner, target capacity и measured production RTO остаются operator gates.
+22. Immutable CI release and pair rollback boundary (`T-B08`): contract/Compose/policy/secret, Frappe/app и browser gates завершаются до GHCR build/push; commit-SHA image refs и captured digests проходят non-secret manifest validation с Compose hash, smoke status и rollback verification. Protected production handoff требует GitHub Environment approval, explicit non-development target/root/wrapper и known-host-pinned SSH. Единственный state-changing wrapper под lock выполняет fixed digest-pinned Compose config/pull/up/health/internal-smoke sequence после semantic backup/Vault evidence; `current.json` записывается атомарно только после успеха. Forced health failure сохраняет predecessor, rollback применяет полный backend/frontend/application pair и не удаляет state volumes; status/evidence redacted. Реальный GHCR, SSH, protected approval и production deploy/rollback остаются operator gates.
+23. Observability client boundary (2026-11-01, decision-only): ELMS не владеет центром; обязан писать JSON-логи и через Vector/Alloy пушить на центральный Loki выбранного стека (Grafana + Loki + Prometheus). Loki/Grafana как SoT внутри ELMS compose запрещены. Детали: `memory-bank/decisions/observability-stack.md`.
 
 ## Board actors (Bitrix)
 
@@ -156,8 +174,10 @@ elms/                    # repo root
 | Keycloak Login UI | `memory-bank/app/plan/T-A01-elms-keycloak-login-ui/md/plan.md` | done (as-built T-A01, QA PASS) |
 | Production container stack | `memory-bank/back/plan/T-B05-elms-production-container-stack/md/plan.md` | done (as-built T-B05, QA PASS) |
 | Vault secrets | `memory-bank/back/plan/T-B06-elms-vault-secrets/md/plan.md` | done (as-built T-B06, QA PASS) |
+| Backup operations | `memory-bank/back/plan/T-B07-elms-backup-operations/md/plan.md` | done (as-built T-B07, QA PASS) |
+| CI release and rollback | `memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md` | done (as-built T-B08, QA PASS) |
 
-## Тестовое покрытие (as-built T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
+## Тестовое покрытие (as-built T-B08 + T-B07 + T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
 
 Исторический foundation-срез содержит 88 автоматических тестов: 51 в ELMS/Frappe suite и 37 в Bitrix suite; T-B06 QA дополнительно подтвердил полный прогон `87 passed, 2 skipped` и инфраструктурный прогон `27 passed`.
 - **Frappe / ELMS app suite:**
@@ -176,6 +196,35 @@ elms/                    # repo root
 - T-A01 runtime evidence: `browser-artifacts/browser-evidence.json` подтверждает live login page, один Keycloak control, отсутствие прямого Yandex-контрола и computed style; `docs/reports/sso-browser-api-trace.json` подтверждает journeys `JRN-SSO-001`, `JRN-SSO-001A`, `JRN-SSO-001B` и отсутствие прямого Frappe-вызова Yandex. Интерактивный Yandex остаётся `not_run`, broker endpoint без state вернул ожидаемый fail-closed `502`.
 - T-B05 BACK QA: `bin/pytest -q --tb=line` — 87 passed, 2 skipped; `python3 -m pytest -q tests/infra` — 15 passed; staged dry-run, Compose/Vault/release policy checks и Bash syntax checks — PASS. Canonical live smoke без environment override записал `docs/reports/elms-production-qa-default-live-smoke.json` с `live_evidence=true`, `exit_code=0`, timestamp `2026-10-31T14:56:33Z`; BF-001 (T-B05 `behavior_smoke`) закрыт со статусом `done`, no-override regression подтверждён.
 - T-B06 BACK QA: `bin/pytest -q --tb=line` — 87 passed, 2 skipped; `python3 -m pytest -q tests/infra` — 27 passed; Compose dev/prod config, Vault secret/policy contracts, preflight negative fixtures, recovery/redaction fixtures, Bash syntax и bounded legacy scans — PASS. Canonical live smoke записал `docs/reports/elms-production-qa-default-live-smoke.json` с `live_evidence=true`, `exit_code=0`, timestamp `2026-10-31T18:08:24Z`; BF-001/BF-002 закрыты, stale fallback tests/docs reconciled to fail-closed behavior.
+- T-B07 BACK QA: `bin/pytest -q --tb=line` — 87 passed, 2 skipped; `bin/pytest tests/infra -q` — 43 passed; manifest/freshness/capacity/disposable-restore contracts, systemd ordering, redaction and bounded sunset/SOT scans — PASS. Sanitized canonical live smoke записал `docs/reports/elms-production-qa-default-live-smoke.json` с `live_evidence=true`, `exit_code=0`, timestamp `2026-10-31T19:56:42Z`; raw HTTP, cookies и tokens в QA evidence не копируются.
+- T-B08 BACK QA: `bin/pytest -q --tb=line` — 87 passed, 2 skipped; `bin/pytest tests/infra -q` — 58 passed; immutable manifest/workflow ordering, protected target/wrapper, semantic backup/Vault evidence, forced-health-failure pair rollback, redaction and bounded sunset/SOT scans — PASS. Sanitized live HTTP smoke записал `docs/reports/elms-production-qa-default-live-smoke.json` с `live_evidence=true`, `exit_code=0`, timestamp `2026-10-31T19:56:42Z`; real GHCR, protected approval, SSH credentials и production deploy/rollback остаются operator gates.
+
+## Государственные требования и сертификационные правила
+
+В папке `memory-bank/compliance/` зафиксированы нормативные документы и требования регуляторов РФ, определяющие архитектуру данных, структуру DocTypes и правила валидации учебного контура:
+
+1. **Реестр российского ПО (ПП РФ № 1236):** [`memory-bank/compliance/reestr-po-certification.md`](compliance/reestr-po-certification.md)
+   - Автономность без зарубежных внешних облаков и сервисов; запрет скачивания зависимостей на старте (air-gapped режим).
+   - Строгий запрет GPL/AGPL в прикладном коде; разрешены MIT, BSD, Apache 2.0. Обоснование LGPL для связки с СУБД.
+   - Отсутствие внешних CDN и внешних шрифтов (локальные Source Sans 3, Onest, IBM Plex Mono, JetBrains Mono).
+   - Полная русификация интерфейса и эксплуатационной документации; сборка на мощностях резидента РФ.
+2. **ФИС ФРДО (Рособрнадзор):** [`memory-bank/compliance/fis-frdo-export.md`](compliance/fis-frdo-export.md)
+   - Раздельные шаблоны выгрузок: модуль ДПО (40 колонок) и модуль ПО (35 колонок).
+   - Формат файла: `ОГРН-КПП-год-номер.xlsx`, до 3000 строк на пакет, валидация СНИЛС по алгоритму СФР, код ОКСМ.
+   - Подписание пакета УКЭП оператора (КриптоАРМ / ViPNet PKI Client).
+   - Неизменяемые снимки документов (`snapshot`) при выдаче; дубликаты отдельными связанными записями.
+3. **Охрана труда (ПП РФ № 2464):** [`memory-bank/compliance/ot-exam-attempts.md`](compliance/ot-exam-attempts.md)
+   - Разграничение тренировочных тестов (самопроверка, без ограничений) и официальных проверок знаний (1 попытка на назначение, протокол комиссии).
+   - 9 обязательных полей протокола (п. 92); состав комиссии не менее 3 человек.
+   - Обязательное направление на пересдачу при оценке «неудовлетворительно» в течение не более 30 календарных дней (п. 79).
+   - Запрет раскрытия слушателю правильных ответов для исключения компрометации банка вопросов.
+4. **Миграция с СДО «Прометей»:** [`memory-bank/compliance/prometey-migration-checklist.md`](compliance/prometey-migration-checklist.md)
+   - Замена действующей системы учебного центра без прерывания обучения («Прометей» отключается последним).
+   - Сверка 7 контрольных количественных показателей (люди, организации, программы, зачисления, завершения, документы, протоколы).
+   - СНИЛС как единственный ключ дедупликации физических лиц.
+5. **152-ФЗ «О персональных данных»:** [`memory-bank/compliance/152-fz-privacy.md`](compliance/152-fz-privacy.md)
+   - Хранение всех баз данных и файлов строго на территории РФ; запрет трансграничной передачи ПДн слушателей.
+   - Разделение бессрочных реестров документов и ротируемой технической телеметрии.
 
 ## Открыто (после foundation)
 

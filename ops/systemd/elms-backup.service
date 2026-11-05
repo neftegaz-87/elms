@@ -9,8 +9,8 @@ User=root
 Group=root
 WorkingDirectory=/opt/elms
 EnvironmentFile=/etc/elms/backup.env
-ExecStart=/usr/bin/flock -n /run/lock/elms-backup.lock /usr/bin/python3 /opt/elms/scripts/infra/backup_runner.py backup --source-root /var/lib/elms-backup/staging --manifest /var/lib/elms-backup/elms-backup-manifest.json --status-output /var/lib/elms-backup/last-success.json
-ExecStartPost=/usr/bin/python3 /opt/elms/scripts/infra/backup_runner.py verify
+ExecStart=/usr/bin/flock -n /run/lock/elms-backup.lock /usr/bin/python3 /opt/elms/scripts/infra/backup_runner.py backup --source-root /var/lib/elms-backup/staging --manifest /var/lib/elms-backup/elms-backup-manifest.json --status-output /var/lib/elms-backup/verified-status.json
+ExecStartPost=/usr/bin/python3 /opt/elms/scripts/infra/backup_runner.py verify --status-output /var/lib/elms-backup/verified-status.json
 NoNewPrivileges=true
 PrivateTmp=true
 
