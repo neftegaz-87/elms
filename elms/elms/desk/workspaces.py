@@ -9,11 +9,12 @@ import frappe
 ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
     {
         "name": "LMS",
+        "label": "elms",
         "module": "LMS",
         "icon": "education",
         "sequence_id": 1,
         "roles": ("ELMS Admin", "ELMS LMS User"),
-        "content": "Учебный контур ELMS СДО: курсы, потоки, подписки, прогресс и аттестация.",
+        "content": "Курсы, потоки, подписки, прогресс и аттестация.",
         "shortcuts": (
             {
                 "type": "URL",
@@ -32,7 +33,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
             ("Успеваемость и прогресс", "ELMS Course Progress", "Прогресс по курсам"),
             ("Успеваемость и прогресс", "ELMS Lesson Progress", "Освоение уроков"),
             ("Успеваемость и прогресс", "ELMS User Activity", "Журнал активности"),
-            ("Аттестация и документы", "ELMS LMS Section", "Состояние LMS"),
+            ("Аттестация и документы", "ELMS LMS Section", "Состояние обучения"),
             ("Пользователи и группы", "User Group", "Учебные группы"),
             ("Пользователи и группы", "User", "Слушатели и пользователи"),
         ),
@@ -43,7 +44,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "icon": "organization",
         "sequence_id": 2,
         "roles": ("ELMS Admin", "ELMS Operations User"),
-        "content": "Операционный контур ELMS: процессы и рабочие задачи.",
+        "content": "Операционный контур elms: процессы и рабочие задачи.",
         "links": (("Операционный контур", "ELMS Operations Section", "Состояние Operations"),),
         "shortcuts": (
             {
@@ -77,9 +78,9 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "icon": "setting",
         "sequence_id": 4,
         "roles": ("ELMS Admin",),
-        "content": "Настройки ELMS: роли, профили доступа и группы пользователей.",
+        "content": "Настройки elms: роли, профили доступа и группы пользователей.",
         "links": (
-            ("Настройки ELMS", "ELMS Settings Section", "Состояние настроек"),
+            ("Настройки elms", "ELMS Settings Section", "Состояние настроек"),
             ("Доступ и роли", "Role", "Роли"),
             ("Доступ и роли", "Role Profile", "Профили ролей"),
             ("Доступ и роли", "User Group", "Группы пользователей"),
@@ -109,7 +110,7 @@ def _workspace_content(description: str, links: tuple[tuple[str, str, str], ...]
         [
             {
                 "type": "header",
-                "data": {"text": "<span class=\"h3\"><b>ELMS СДО</b></span>", "col": 12},
+                "data": {"text": "<span class=\"h3\"><b>elms</b></span>", "col": 12},
             },
             {"type": "paragraph", "data": {"text": description, "col": 12}},
             {"type": "spacer", "data": {"col": 12}},
@@ -160,8 +161,8 @@ def _ensure_workspace(definition: dict[str, Any]) -> None:
 
     workspace.update(
         {
-            "label": name,
-            "title": name,
+            "label": definition.get("label", name),
+            "title": definition.get("label", name),
             "module": definition["module"],
             "icon": definition["icon"],
             "sequence_id": definition["sequence_id"],

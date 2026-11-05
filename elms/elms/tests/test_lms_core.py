@@ -341,6 +341,20 @@ class TestLMSCoreFlows(unittest.TestCase):
         self.assertIn("ELMS User Activity", doctypes_linked)
         self.assertIn("ELMS LMS Section", doctypes_linked)
 
+    def test_self_enrollment_requires_active_published_batch(self):
+        """A learner may self-enroll only into a published active course batch."""
+        frappe.session.user = "student@example.ru"
+        with patch.object(frappe.db, "exists", return_value=True), \
+             patch.object(frappe.db, "get_value", side_effect=[
+                 {"course": "COURSE-1", "status": "Active"},
+                 1,
+             ]), \
+             patch.object(lms_api, "enroll_learner", return_value={"enrollment": "ENR-1"}) as enroll:
+            result = lms_api.enroll_self("BATCH-1")
+
+        self.assertEqual(result["enrollment"], "ENR-1")
+        enroll.assert_called_once_with(user="student@example.ru", batch="BATCH-1")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -58,16 +58,16 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn("web_include_js", hooks_content)
         self.assertIn("/assets/elms/js/login-keycloak.js", hooks_content)
 
-    def test_login_branding_uses_elms_sdo_name(self):
-        """The standard Frappe login template receives the ELMS SDO brand name."""
+    def test_login_branding_uses_elms_name(self):
+        """The standard Frappe login template receives the canonical elms brand."""
         hooks_content = self.hooks_path.read_text(encoding="utf-8")
         install_content = (REPO_ROOT / "elms/elms/install.py").read_text(encoding="utf-8")
 
-        self.assertIn('app_title = "ELMS СДО"', hooks_content)
+        self.assertIn('app_title = "elms"', hooks_content)
         self.assertIn("update_website_context", hooks_content)
         self.assertIn('"elms.install.update_website_context"', hooks_content)
         self.assertIn('context.get("for_test") == "login.html"', install_content)
-        self.assertIn('"app_name": "ELMS СДО"', install_content)
+        self.assertIn('"app_name": "elms"', install_content)
 
     def test_update_website_context_hides_keycloak_provider_button(self):
         """The login page uses the standard form without a separate Keycloak button."""
@@ -84,7 +84,7 @@ class TestLoginUI(unittest.TestCase):
             ],
         }
         res = update_website_context(context)
-        self.assertEqual(res.get("app_name"), "ELMS СДО")
+        self.assertEqual(res.get("app_name"), "elms")
         self.assertEqual(res.get("provider_logins"), [])
         self.assertFalse(res.get("social_login"))
         self.assertEqual(len(context["provider_logins"]), 1)
@@ -96,14 +96,19 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn('"name": "elms"', hooks_content)
         self.assertIn('"route": "/app"', hooks_content)
 
-    def test_login_js_replaces_only_the_standard_password_submit(self):
-        """The added browser behavior delegates the standard form to the server endpoint."""
+    def test_login_js_uses_keycloak_authorization_code_flow(self):
+        """The browser redirects to Keycloak and never submits a password to Frappe."""
         js = (REPO_ROOT / "elms/elms/public/js/login-keycloak.js").read_text(encoding="utf-8")
 
         self.assertIn('$(document).on("login_rendered"', js)
-        self.assertIn('"elms.sso.login.login_with_keycloak"', js)
-        self.assertIn("frappe.www.login.login_via_token", js)
-        self.assertIn('forms.off("submit")', js)
+        self.assertIn('"elms.sso.login.get_sso_authorization_url"', js)
+        self.assertIn('mode: mode', js)
+        self.assertIn('redirectToKeycloak(this, "yandex")', js)
+        self.assertIn('redirectToKeycloak(form, "local")', js)
+        self.assertIn('window.location.assign(authUrl)', js)
+        self.assertNotIn("login_with_keycloak", js)
+        self.assertNotIn("frappe.www.login.login_via_token", js)
+        self.assertNotIn("grant_type=password", js)
         self.assertNotIn("btn-keycloak", js)
 
     def test_login_css_neftegaz_design_tokens(self):
@@ -167,7 +172,7 @@ class TestLoginUI(unittest.TestCase):
         sample_html = """
         <div class="for-login">
             <div class="page-card">
-                <div class="page-card-head"><h4>Вход на сайт ELMS СДО</h4></div>
+                <div class="page-card-head"><h4>Вход в elms</h4></div>
                 <form class="form-signin form-login"></form>
             </div>
         </div>
@@ -232,6 +237,9 @@ class TestAcceptanceCriteriaEvidence(unittest.TestCase):
         yandex_idps = [i for i in idps if i.get("alias") == "yandex"]
         self.assertEqual(len(yandex_idps), 1, "Yandex identity provider broker must exist in realm-elms.json")
         self.assertEqual(yandex_idps[0].get("providerId"), "oidc")
+
+        client = next(client for client in realm["clients"] if client.get("clientId") == "elms-frappe")
+        self.assertFalse(client.get("directAccessGrantsEnabled"), "Frappe must not use the password grant")
 
     def test_ac_005_fail_closed_config(self):
         """AC-005: Fail closed on missing credentials."""

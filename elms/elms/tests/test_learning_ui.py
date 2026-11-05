@@ -38,9 +38,15 @@ class TestLearningUI(unittest.TestCase):
         """JS must register elms-learning page and bind anti-cheat heartbeat."""
         js = self.js_path.read_text(encoding="utf-8")
         self.assertIn('frappe.standard_pages[pageName]', js)
+        self.assertIn('<span>elms</span>', js)
+        self.assertNotIn('ELMS СДО', js)
         self.assertIn('elms.lms.api.get_learner_dashboard', js)
         self.assertIn('elms.lms.api.get_learning_admin_data', js)
-        self.assertIn('Управление LMS', js)
+        self.assertIn('elms.lms.api.get_course_catalog', js)
+        self.assertIn('elms.lms.api.enroll_self', js)
+        self.assertIn('Записаться на курс', js)
+        self.assertIn('Каталог курсов', js)
+        self.assertIn('Управление обучением', js)
         self.assertIn('Создать курс', js)
         self.assertIn('Оформить зачисление', js)
         self.assertIn('ELMS Course Chapter', js)
@@ -48,6 +54,12 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn('window.addEventListener("blur"', js)
         self.assertIn('window.addEventListener("focus"', js)
         self.assertIn('heartbeatInterval', js)
+
+    def test_learning_css_catalog_surface(self):
+        """The learner catalogue has a scoped responsive card surface."""
+        css = self.css_path.read_text(encoding="utf-8")
+        self.assertIn(".elms-catalog-grid", css)
+        self.assertIn(".elms-catalog-card", css)
 
     def test_lms_workspace_exposes_learning_cabinet_shortcut(self):
         """Workspace LMS must provide shortcut to /app/elms-learning."""

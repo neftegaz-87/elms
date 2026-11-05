@@ -126,6 +126,43 @@
 	border-color: var(--elms-action);
 }
 
+.elms-catalog-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 20px;
+}
+
+.elms-catalog-card {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.elms-catalog-card h3 {
+	font-size: 18px;
+	line-height: 1.35;
+	margin: 0;
+}
+
+.elms-catalog-card p {
+	color: var(--elms-muted);
+	line-height: 1.5;
+	margin: 0;
+	min-height: 66px;
+}
+
+.elms-catalog-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	color: var(--elms-muted);
+	font-size: 12px;
+}
+
 .elms-course-header {
 	margin-bottom: 12px;
 }

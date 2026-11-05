@@ -1,7 +1,7 @@
 app_name = "elms"
-app_title = "ELMS СДО"
+app_title = "elms"
 app_publisher = "ELMS Team"
-app_description = "Система дистанционного обучения ELMS"
+app_description = "Система дистанционного обучения elms"
 app_email = "admin@example.com"
 app_license = "mit"
 app_logo_url = "/assets/elms/images/nftgz-favicon.svg"
@@ -10,7 +10,7 @@ add_to_apps_screen = [
 	{
 		"name": "elms",
 		"logo": "/assets/elms/images/nftgz-favicon.svg",
-		"title": "ELMS СДО",
+		"title": "elms",
 		"route": "/app",
 	},
 	{

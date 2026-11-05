@@ -536,6 +536,74 @@ def get_learning_admin_data() -> Dict[str, Any]:
 
 
 @frappe.whitelist()
+def get_course_catalog() -> Dict[str, Any]:
+    """Return published active batches available to the current learner."""
+    user = _require_authenticated()
+    batches = frappe.get_all(
+        "ELMS Batch",
+        filters={"status": "Active"},
+        fields=["name", "batch_name", "course", "start_date", "end_date", "organization"],
+        order_by="start_date asc, modified asc",
+        limit_page_length=200,
+    )
+    catalog = []
+    for batch in batches:
+        course = frappe.db.get_value(
+            "ELMS Course",
+            batch.get("course"),
+            [
+                "course_name", "course_code", "category", "academic_hours",
+                "short_description", "is_published",
+            ],
+            as_dict=True,
+        ) or {}
+        if not course.get("is_published"):
+            continue
+        enrollment = frappe.db.get_value(
+            "ELMS Enrollment",
+            {"user": user, "batch": batch.get("name"), "status": "Active"},
+            "name",
+        )
+        catalog.append(
+            {
+                "batch": batch.get("name"),
+                "batch_name": batch.get("batch_name"),
+                "course": batch.get("course"),
+                "course_name": course.get("course_name"),
+                "course_code": course.get("course_code"),
+                "category": course.get("category"),
+                "academic_hours": course.get("academic_hours"),
+                "short_description": course.get("short_description"),
+                "start_date": batch.get("start_date"),
+                "end_date": batch.get("end_date"),
+                "organization": batch.get("organization"),
+                "enrollment": enrollment,
+            }
+        )
+    return {"user": user, "courses": catalog}
+
+
+@frappe.whitelist()
+def enroll_self(batch: str) -> Dict[str, Any]:
+    """Enroll the current learner into a published active batch."""
+    user = _require_authenticated()
+    if not frappe.db.exists("ELMS Batch", batch):
+        frappe.throw(_("Batch {0} does not exist").format(batch), frappe.DoesNotExistError)
+
+    batch_data = frappe.db.get_value(
+        "ELMS Batch", batch, ["course", "status"], as_dict=True
+    ) or {}
+    if batch_data.get("status") != "Active":
+        frappe.throw(_("This course is not open for enrollment"), frappe.ValidationError)
+    if not frappe.db.get_value("ELMS Course", batch_data.get("course"), "is_published"):
+        frappe.throw(_("This course is not published"), frappe.ValidationError)
+
+    result = enroll_learner(user=user, batch=batch)
+    _record_user_activity(user, "Self Enrollment", "ELMS Enrollment", result["enrollment"])
+    return result
+
+
+@frappe.whitelist()
 def record_lesson_progress(
     enrollment: str,
     lesson_id: str,

@@ -60,7 +60,7 @@ APPROVED_ROLE_MAPPINGS: dict[str, list[str]] = {
 def update_website_context(context: dict[str, Any]) -> dict[str, Any]:
     if context.get("for_test") == "login.html":
         return {
-            "app_name": "ELMS СДО",
+            "app_name": "elms",
             "favicon": "/assets/elms/images/nftgz-favicon.svg",
             "provider_logins": [],
             "social_login": False,

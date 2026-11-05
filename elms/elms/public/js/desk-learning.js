@@ -16,6 +16,7 @@
 		currentLesson: null,
 		currentStructure: null,
 		courses: [],
+		catalog: [],
 		activities: [],
 		admin: { can_manage: false, courses: [], batches: [], subscriptions: [], enrollments: [], users: [] }
 	};
@@ -86,6 +87,11 @@
 				var managerTab = state.root && state.root.querySelector(".elms-manager-tab");
 				if (managerTab) managerTab.hidden = false;
 			}
+				renderAll();
+			});
+		call("elms.lms.api.get_course_catalog", {}, function (catalog) {
+			if (!catalog) return;
+			state.catalog = catalog.courses || [];
 			renderAll();
 		});
 	}
@@ -93,9 +99,9 @@
 	function renderLayout(container) {
 		container.innerHTML = [
 			'<div class="elms-learning-shell">',
-			'  <div class="elms-learning-header"><div><h1 class="elms-learning-title"><span>Кабинет обучения ELMS СДО</span><span class="elms-learning-badge">Учебный контур</span></h1><div class="elms-learning-subtitle">Курсы, потоки, зачисления, прогресс и контроль освоения в одном рабочем месте</div></div><button class="elms-btn-secondary" id="elms-refresh-btn">Обновить данные</button></div>',
-			'  <div class="elms-learning-tabs"><button class="elms-tab-btn active" data-tab="courses">Мои курсы</button><button class="elms-tab-btn" data-tab="player">Учебный плеер</button><button class="elms-tab-btn" data-tab="progress">Прогресс и аттестация</button><button class="elms-tab-btn" data-tab="activity">Журнал активности</button><button class="elms-tab-btn elms-manager-tab" data-tab="manage" hidden>Управление LMS</button></div>',
-			'  <div id="elms-tab-courses" class="elms-tab-pane active"></div><div id="elms-tab-player" class="elms-tab-pane"></div><div id="elms-tab-progress" class="elms-tab-pane"></div><div id="elms-tab-activity" class="elms-tab-pane"></div><div id="elms-tab-manage" class="elms-tab-pane"></div>',
+			'  <div class="elms-learning-header"><div><h1 class="elms-learning-title"><span>elms</span><span class="elms-learning-badge">Обучение</span></h1><div class="elms-learning-subtitle">Курсы, потоки, зачисления, прогресс и контроль освоения в одном рабочем месте</div></div><button class="elms-btn-secondary" id="elms-refresh-btn">Обновить данные</button></div>',
+				'  <div class="elms-learning-tabs"><button class="elms-tab-btn active" data-tab="courses">Мои курсы</button><button class="elms-tab-btn" data-tab="catalog">Каталог курсов</button><button class="elms-tab-btn" data-tab="player">Учебный плеер</button><button class="elms-tab-btn" data-tab="progress">Прогресс и аттестация</button><button class="elms-tab-btn" data-tab="activity">Журнал активности</button><button class="elms-tab-btn elms-manager-tab" data-tab="manage" hidden>Управление обучением</button></div>',
+				'  <div id="elms-tab-courses" class="elms-tab-pane active"></div><div id="elms-tab-catalog" class="elms-tab-pane"></div><div id="elms-tab-player" class="elms-tab-pane"></div><div id="elms-tab-progress" class="elms-tab-pane"></div><div id="elms-tab-activity" class="elms-tab-pane"></div><div id="elms-tab-manage" class="elms-tab-pane"></div>',
 			'</div>'
 		].join("");
 
@@ -110,6 +116,7 @@
 	function renderAll() {
 		if (!state.root) return;
 		renderCoursesTab();
+		renderCatalogTab();
 		renderPlayerTab();
 		renderProgressTab();
 		renderActivityTab();
@@ -131,7 +138,7 @@
 		var pane = state.root && state.root.querySelector("#elms-tab-courses");
 		if (!pane) return;
 		if (!state.courses.length) {
-			pane.innerHTML = '<div class="elms-empty-state"><div class="elms-empty-icon">🎓</div><h3>Зачислений пока нет</h3><p>Куратор должен добавить вас в поток. После зачисления курс появится здесь автоматически.</p>' + (state.admin.can_manage ? '<button class="elms-btn-action" data-action="enroll">Оформить зачисление</button>' : '<div class="elms-role-note">Режим слушателя: создание курсов и зачисление доступны пользователям с ролью ELMS Admin или ELMS Operations User.</div>') + '</div>';
+			pane.innerHTML = '<div class="elms-empty-state"><div class="elms-empty-icon">🎓</div><h3>Зачислений пока нет</h3><p>Откройте каталог и выберите активный курс. После записи он появится здесь автоматически.</p><button class="elms-btn-action" data-action="open-catalog">Открыть каталог курсов</button></div>';
 			bindActions(pane);
 			return;
 		}
@@ -139,6 +146,31 @@
 		pane.innerHTML = '<div class="elms-section-intro"><div><div class="elms-kicker">ЛИЧНЫЙ КАБИНЕТ</div><h2>Мои программы обучения</h2><p>Выберите курс, чтобы продолжить обучение с последнего сохранённого урока.</p>' + modeNote + '</div><span class="elms-count-badge">' + state.courses.length + ' активн.</span></div><div class="elms-cards-grid">' + state.courses.map(courseCard).join("") + '</div>';
 		pane.querySelectorAll(".elms-open-player-btn").forEach(function (button) {
 			button.addEventListener("click", function () { openPlayer(button.getAttribute("data-enr")); });
+		});
+	}
+
+	function renderCatalogTab() {
+		var pane = state.root && state.root.querySelector("#elms-tab-catalog");
+		if (!pane) return;
+		var cards = state.catalog.map(catalogCard).join("");
+		pane.innerHTML = '<div class="elms-section-intro"><div><div class="elms-kicker">ОТКРЫТЫЙ КАТАЛОГ</div><h2>Курсы по нефтегазовой отрасли</h2><p>Выберите активный поток и запишитесь самостоятельно. Материалы в демо-каталоге предназначены для проверки сценария обучения.</p></div><span class="elms-count-badge">' + state.catalog.length + ' доступн.</span></div><div class="elms-catalog-grid">' + (cards || '<div class="elms-empty-state"><h3>Активных курсов пока нет</h3><p>Методист ещё не открыл поток для записи.</p></div>') + '</div>';
+		pane.querySelectorAll(".elms-catalog-enroll-btn").forEach(function (button) {
+			button.addEventListener("click", function () { enrollInCatalog(button.getAttribute("data-batch")); });
+		});
+	}
+
+	function catalogCard(course) {
+		var enrolled = Boolean(course.enrollment);
+		return ['<article class="elms-catalog-card"><div class="elms-course-batch">' + esc(course.category || "Нефтегаз") + '</div><h3>' + esc(course.course_name || "Курс без названия") + '</h3><p>' + esc(course.short_description || "Учебная программа ELMS") + '</p><div class="elms-catalog-meta"><span>' + esc(course.academic_hours || 0) + ' акад. ч.</span><span>' + esc(course.batch_name) + '</span></div>', enrolled ? '<span class="elms-status-pill success">Вы уже записаны</span><button class="elms-btn-secondary" data-action="open-catalog-course" data-enr="' + esc(course.enrollment) + '">Открыть обучение →</button>' : '<button class="elms-btn-action elms-catalog-enroll-btn" data-batch="' + esc(course.batch) + '">Записаться на курс</button>', '</article>'].join("");
+	}
+
+	function enrollInCatalog(batch) {
+		call("elms.lms.api.enroll_self", { batch: batch }, function (result) {
+			if (!result) return;
+			frappe.show_alert({ message: "Вы записаны на курс", indicator: "green" });
+			state.activeTab = "courses";
+			loadData();
+			switchTab("courses");
 		});
 	}
 
@@ -239,6 +271,8 @@
 				if (action === "batch-new") openForm("ELMS Batch");
 				if (action === "subscription-new") openForm("ELMS Subscription");
 				if (action === "enroll") openEnrollmentDialog();
+				if (action === "open-catalog") switchTab("catalog");
+				if (action === "open-catalog-course") openPlayer(element.getAttribute("data-enr"));
 			});
 		});
 	}

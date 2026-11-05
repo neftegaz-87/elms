@@ -25,6 +25,10 @@ class TestELMSWorkspaces(unittest.TestCase):
         )
         self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[3]["roles"], ("ELMS Admin",))
 
+    def test_lms_workspace_uses_canonical_elms_display_label(self):
+        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[0]["label"], "elms")
+        self.assertNotIn("ELMS СДО", ELMS_WORKSPACE_DEFINITIONS[0]["content"])
+
     def test_review_workspace_exposes_the_permission_anchor_and_handoff(self):
         review = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "Review")
         assert review["links"] == (("Сверка заявок", "ELMS Review Section", "Права сверки заявок"),)

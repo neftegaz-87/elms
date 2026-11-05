@@ -134,7 +134,7 @@
       "bearerOnly": false,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "secret": "${env.KEYCLOAK_CLIENT_SECRET:}",
       "rootUrl": "http://elms.localhost:8082",
