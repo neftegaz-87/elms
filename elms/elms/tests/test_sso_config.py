@@ -22,7 +22,7 @@ class TestSSOConfiguration(unittest.TestCase):
         self.assertEqual(KEYCLOAK_PROVIDER_NAME, "Keycloak")
         self.assertEqual(YANDEX_IDP_ALIAS, "yandex")
         self.assertEqual(KEYCLOAK_LOGIN_CONF_KEY, "keycloak_login")
-        self.assertEqual(DEFAULT_SSO_ROLES, ("Desk User", "ELMS LMS User"))
+        self.assertEqual(DEFAULT_SSO_ROLES, ("Desk User", "ELMS Learner"))
         self.assertEqual(DEFAULT_SSO_ROLES_CONF_KEY, "elms_sso_default_roles")
 
         # Explicitly verify no direct external IdP provider constants exist
@@ -103,10 +103,12 @@ class TestSSOConfiguration(unittest.TestCase):
         self.assertEqual(len(yandex_idps), 1, "Yandex identity provider must exist in realm-elms.json")
         yandex = yandex_idps[0]
 
-        self.assertEqual(yandex.get("providerId"), "oidc")
+        self.assertEqual(yandex.get("providerId"), "yandex-oauth")
         self.assertEqual(yandex.get("firstBrokerLoginFlowAlias"), "first broker login")
         self.assertTrue(yandex.get("trustEmail"))
         self.assertTrue(yandex.get("enabled"))
+        self.assertEqual(yandex.get("config", {}).get("defaultScope"), "login:email login:info")
+        self.assertNotIn("openid", yandex.get("config", {}).get("defaultScope", ""))
 
     def test_dev_test_users_use_environment_backed_passwords(self):
         """The local verification accounts must be Keycloak-only and never carry passwords in git."""
@@ -160,7 +162,7 @@ class TestSSOConfiguration(unittest.TestCase):
         cfg_empty = sso_conf.build_sso_site_config(empty_env)
         self.assertNotIn("keycloak_login", cfg_empty)
         self.assertNotIn(FORBIDDEN_IDP_KEY, cfg_empty)
-        self.assertEqual(cfg_empty["elms_sso_default_roles"], ["Desk User", "ELMS LMS User"])
+        self.assertEqual(cfg_empty["elms_sso_default_roles"], ["Desk User", "ELMS Learner"])
 
         # Case 3: ELMS_SSO_REQUIRE=1 with missing secrets throws ValueError
         req_env = {"ELMS_SSO_REQUIRE": "1"}
@@ -219,7 +221,7 @@ class TestSsoSettingsContract(unittest.TestCase):
             "KEYCLOAK_PUBLIC_URL": "http://127.0.0.1:8480",
             "YANDEX_CLIENT_ID": "yandex-id",
             "YANDEX_CLIENT_SECRET": "yandex-secret",
-            "ELMS_SSO_DEFAULT_ROLES": "Desk User, ELMS LMS User",
+            "ELMS_SSO_DEFAULT_ROLES": "Desk User, ELMS Learner",
             "ELMS_SSO_REQUIRE": "1",
         }
         settings = SsoSettings.from_env(env)
@@ -228,7 +230,7 @@ class TestSsoSettingsContract(unittest.TestCase):
         self.assertEqual(settings.keycloak_public_url, "http://127.0.0.1:8480")
         self.assertEqual(settings.yandex_client_id, "yandex-id")
         self.assertEqual(settings.yandex_client_secret.get_secret_value(), "yandex-secret")
-        self.assertEqual(settings.elms_sso_default_roles, ["Desk User", "ELMS LMS User"])
+        self.assertEqual(settings.elms_sso_default_roles, ["Desk User", "ELMS Learner"])
         self.assertTrue(settings.elms_sso_require)
 
     def test_sso_settings_fail_closed_on_missing_secret_when_required(self):

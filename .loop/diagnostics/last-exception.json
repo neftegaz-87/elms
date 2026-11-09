@@ -1,18 +1,18 @@
 {
   "context": {
     "command": "finish",
-    "epic_id": null,
+    "epic_id": "T-A04-elms-course-studio",
     "phase": null
   },
   "diagnostic_path": "/home/aero/PyProject/NEFTEGAZ/elms/.loop/diagnostics/last-exception.json",
-  "error_id": "4be966f5aa1e",
+  "error_id": "c79a8e2f7be2",
   "exception": {
-    "message": "cannot finish QA pass before context-sync completion: spawn agent_type=context-sync then write memory-bank/app/context-sync/T-A02-elms-learning-core-flows/sync-*.md",
-    "traceback": "Traceback (most recent call last):\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/cli.py\", line 1674, in main\n    transition = engine.finish(step_id=args.step)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 1357, in finish\n    result = self.store.transact(planner)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/store.py\", line 354, in transact\n    plan = planner(current, context)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 1348, in planner\n    return self._finish_plan(\n           ^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 983, in _finish_plan\n    raise TransitionError(\nloop.kernel.engine.TransitionError: cannot finish QA pass before context-sync completion: spawn agent_type=context-sync then write memory-bank/app/context-sync/T-A02-elms-learning-core-flows/sync-*.md\n",
+    "message": "cannot finish BUGFIX: verify-bugfix PASS is required before finish",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/cli.py\", line 1674, in main\n    transition = engine.finish(step_id=args.step)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 1357, in finish\n    result = self.store.transact(planner)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/store.py\", line 354, in transact\n    plan = planner(current, context)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 1348, in planner\n    return self._finish_plan(\n           ^^^^^^^^^^^^^^^^^^\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 891, in _finish_plan\n    self._require_gate_pass(cursor, transaction, gate_pass=gate_pass)\n  File \"/home/aero/PyProject/dev-hub/loop/kernel/engine.py\", line 845, in _require_gate_pass\n    raise TransitionError(\nloop.kernel.engine.TransitionError: cannot finish BUGFIX: verify-bugfix PASS is required before finish\n",
     "type": "TransitionError"
   },
   "journal_path": "/home/aero/PyProject/NEFTEGAZ/elms/.loop/diagnostics/exceptions.jsonl",
   "operation": "cli.finish",
   "schema": "loop-exception/v1",
-  "timestamp": "2026-11-05T09:53:54.979025+00:00"
+  "timestamp": "2026-11-09T18:22:29.359783+00:00"
 }

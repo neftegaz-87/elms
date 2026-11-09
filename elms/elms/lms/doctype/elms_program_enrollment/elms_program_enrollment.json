@@ -1,0 +1,34 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["program", "user", "enrollment_date", "status", "current_course", "total_courses", "completed_courses", "progress_percentage"],
+ "fields": [
+  {"fieldname": "program", "fieldtype": "Link", "in_list_view": 1, "label": "Program", "options": "ELMS Program", "reqd": 1},
+  {"fieldname": "user", "fieldtype": "Link", "in_list_view": 1, "label": "Learner", "options": "User", "reqd": 1},
+  {"default": "Today", "fieldname": "enrollment_date", "fieldtype": "Date", "in_list_view": 1, "label": "Enrollment Date"},
+  {"default": "Active", "fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "label": "Status", "options": "Active\nCompleted\nCancelled"},
+  {"fieldname": "current_course", "fieldtype": "Link", "label": "Current Course", "options": "ELMS Course"},
+  {"default": 0, "fieldname": "total_courses", "fieldtype": "Int", "label": "Total Courses"},
+  {"default": 0, "fieldname": "completed_courses", "fieldtype": "Int", "label": "Completed Courses"},
+  {"default": 0, "fieldname": "progress_percentage", "fieldtype": "Float", "in_list_view": 1, "label": "Progress Percentage"}
+ ],
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Program Enrollment",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1},
+  {"create": 1, "delete": 0, "read": 1, "role": "ELMS Operations User", "write": 1},
+  {"create": 0, "delete": 0, "read": 1, "role": "ELMS Instructor", "write": 0},
+  {"create": 0, "delete": 0, "read": 0, "role": "ELMS Methodologist", "write": 0},
+  {"create": 0, "delete": 0, "read": 0, "role": "ELMS Learner", "write": 0}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

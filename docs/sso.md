@@ -36,9 +36,10 @@
    - Допустимые redirect URIs:
      `http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak`
 3. **Конфигурация брокера Yandex в Keycloak**:
-   - Алиас провайдера: `yandex`.
+   - Алиас провайдера: `yandex`; тип — встроенный ELMS OAuth 2.0 provider `yandex-oauth`.
    - Redirect URI приложения в консоли OAuth Yandex:
      `http://localhost:8480/realms/elms/broker/yandex/endpoint` (или внешний HTTPS URL).
+   - Запрашиваемые scope: `login:email login:info`. Scope `openid` не используется: Яндекс ID в этом контуре предоставляет OAuth 2.0, а не OIDC.
    - Сценарий первого входа: `first broker login`.
 
 ---
@@ -56,7 +57,7 @@ ELMS не использует тяжелые протоколы массово�
    - Frappe создает документ `User`, заполняя имя, email и привязывая `social_logins`.
    - Срабатывает хук `doc_events` на событие `User.after_insert` (`elms.sso.roles.maybe_assign_sso_roles`).
    - Хук проверяет наличие верифицированного email (при отсутствии — выбрасывается исключение fail-closed).
-   - Хук проверяет наличие в базе данных обязательных ролей (`Desk User`, `ELMS LMS User` или список из `elms_sso_default_roles`). Если хотя бы одна роль отсутствует, процесс прерывается через `frappe.throw`.
+   - Хук проверяет наличие в базе данных обязательных ролей (`Desk User`, `ELMS Learner` или список из `elms_sso_default_roles`). Если хотя бы одна роль отсутствует, процесс прерывается через `frappe.throw`.
    - Пользователю назначаются роли по умолчанию, гарантирующие доступ к учебному порталу и Desk.
 
 ---
@@ -145,8 +146,8 @@ Keycloak остается единственной границей иденти
 
 | Сценарий проверки | Входные условия | Действие пользователя | Ожидаемый и фактический исход (Concrete Outcome) | Статус |
 |---|---|---|---|---|
-| **1. Штатный вход через брокер (JIT)** | Yandex 360 доступен, пользователь впервые входит в ELMS | Ввод данных в стандартную форму -> Keycloak broker -> выбор Yandex -> ввод логина/пароля Yandex | **В Keycloak:** создана учетная запись с привязкой `federated_identities` (`identityProvider=yandex`).<br>**В Frappe:** создан `User`, привязан `social_login`, хук `maybe_assign_sso_roles` присвоил ровно две роли: `Desk User` и `ELMS LMS User`. Открыта рабочая сессия (`sid`, HTTP 200). | PASS |
+| **1. Штатный вход через брокер (JIT)** | Yandex 360 доступен, пользователь впервые входит в ELMS | Ввод данных в стандартную форму -> Keycloak broker -> выбор Yandex -> ввод логина/пароля Yandex | **В Keycloak:** создана учетная запись с привязкой `federated_identities` (`identityProvider=yandex`).<br>**В Frappe:** создан `User`, привязан `social_login`, хук `maybe_assign_sso_roles` присвоил ровно две роли: `Desk User` и `ELMS Learner`. Открыта рабочая сессия (`sid`, HTTP 200). | PASS |
 | **2. Отказ Yandex** | Внешний IdP Yandex 360 недоступен (HTTP 502/503/timeout) | Вход через Keycloak broker -> выбор Yandex | **Fail-Closed (BN-007, TM-009):** Keycloak отображает ошибку внешнего провайдера. Редирект в Frappe **не выполняется**; сессия, `User` и JIT-учетная запись не создаются. Доступ заблокирован. | PASS |
-| **3. Отсутствие обязательной роли при JIT** | Роль `ELMS LMS User` удалена или отсутствует в БД Frappe | Прохождение аутентификации в Keycloak новым пользователем | **Fail-Closed (BN-005, TM-005):** Хук `maybe_assign_sso_roles` выбрасывает исключение `frappe.throw`. Транзакция создания пользователя откатывается, пользователь без прав не сохраняется в БД. | PASS |
+| **3. Отсутствие обязательной роли при JIT** | Роль `ELMS Learner` удалена или отсутствует в БД Frappe | Прохождение аутентификации в Keycloak новым пользователем | **Fail-Closed (BN-005, TM-005):** Хук `maybe_assign_sso_roles` выбрасывает исключение `frappe.throw`. Транзакция создания пользователя откатывается, пользователь без прав не сохраняется в БД. | PASS |
 | **4. Попытка входа с неверифицированным email** | Userinfo от IdP содержит `email_verified: false` или пустой email | Попытка завершения OAuth callback | **Fail-Closed (BN-004, TM-004):** Валидация входа прерывается с ошибкой. Создание пользователя или сессии блокируется. | PASS |
 | **5. Неполный render секретов Vault** | Vault sealed/unavailable/unauthorized либо отсутствует обязательный rendered key | Preflight перед запуском production-сервисов | **Fail-Closed:** preflight завершается с ненулевым кодом, Keycloak и Frappe не продвигаются в рабочее состояние; значения секретов не выводятся. | PASS |

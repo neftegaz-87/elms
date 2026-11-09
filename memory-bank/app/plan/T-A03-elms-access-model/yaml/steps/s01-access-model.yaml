@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+epic_id: T-A03-elms-access-model
+step_id: s01
+role: app
+next_phase: APP IMPLEMENT
+wire_complete_required: true
+contract:
+  outcome: "Понятная и рабочая модель ролей, профилей, групп и ограничений в Settings"
+  roles: "ELMS Admin управляет product access; System Manager сохраняет технический полный доступ; Learner не видит Settings"
+  api: "elms.permissions.get_role_profile_summary; native permission-manager calls routed through ELMS wrapper"
+  ui: "Settings → profile/group/role/matrix/user-permission journey"
+files:
+  - elms/elms/install.py
+  - elms/elms/permissions.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/hooks.py
+  - elms/elms/sso/constants.py
+  - elms/elms/sso/roles.py
+  - elms/elms/sso/mapping.py
+  - elms/elms/sso/data/email-mapping.csv
+  - elms/elms/lms/doctype/elms_batch/elms_batch.json
+  - elms/elms/lms/doctype/elms_course/elms_course.json
+  - elms/elms/lms/doctype/elms_course_chapter/elms_course_chapter.json
+  - elms/elms/lms/doctype/elms_course_lesson/elms_course_lesson.json
+  - elms/elms/lms/doctype/elms_course_progress/elms_course_progress.json
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+  - elms/elms/lms/doctype/elms_lesson_progress/elms_lesson_progress.json
+  - elms/elms/lms/doctype/elms_lms_section/elms_lms_section.json
+  - elms/elms/lms/doctype/elms_program/elms_program.json
+  - elms/elms/lms/doctype/elms_program_course/elms_program_course.json
+  - elms/elms/lms/doctype/elms_program_enrollment/elms_program_enrollment.json
+  - elms/elms/lms/doctype/elms_quiz/elms_quiz.json
+  - elms/elms/lms/doctype/elms_quiz_attempt/elms_quiz_attempt.json
+  - elms/elms/lms/doctype/elms_quiz_question/elms_quiz_question.json
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.json
+  - elms/elms/lms/doctype/elms_user_activity/elms_user_activity.json
+  - elms/elms/lms/doctype/elms_video_watch_log/elms_video_watch_log.json
+  - elms/elms/lms/page/elms_learning/elms_learning.json
+  - elms/elms/lms/workspace/lms/lms.json
+  - docs/sso.md
+  - memory-bank/product/modules.md
+  - memory-bank/product/lms-best-practices.md
+  - memory-bank/systemPatterns.md
+  - .env.example
+  - docker/.env.dev.example
+  - docker/.env.prod.example
+  - docker/README.md
+  - elms/elms/public/js/role-profile.js
+  - elms/elms/public/js/role.js
+  - elms/elms/public/js/user-group.js
+  - elms/elms/elms_core/workspace/settings/settings.json
+  - elms/elms/lms/workspace/lms/lms.json
+  - elms/elms/tests/test_access_model.py
+  - elms/elms/tests/test_roles_rbac.py
+  - elms/elms/tests/test_sso.py
+  - elms/elms/tests/test_sso_config.py
+  - elms/elms/tests/test_sso_mapping.py
+  - elms/elms/tests/test_workspaces.py
+  - elms/elms/tests/test_workspaces_runtime.py
+  - memory-bank/product/modules.md
+  - memory-bank/product/lms-best-practices.md
+verify:
+  - "PYTHONPATH=elms python3 -m unittest elms.tests.test_access_model"
+  - "PYTHONPATH=elms python3 -m unittest elms.tests.test_roles_rbac elms.tests.test_sso_config elms.tests.test_sso_mapping elms.tests.test_workspaces"
+  - "bench --site elms.local migrate"
+  - "bench --site elms.local run-tests --app elms --module elms.tests.test_access_model"
+tdd:
+  - "Add failing contracts for canonical role/profile/group names and Settings links before implementation"
+  - "Add runtime permission-manager and profile summary checks"
+deletes: []
+skills:
+  impl: []
+  design: []

@@ -81,10 +81,22 @@ def maybe_assign_sso_roles(doc, method: str | None = None) -> None:
     default_roles = get_default_sso_roles()
     target_roles = list(default_roles)
     mapping = get_mapping_registry().get_mapping(str(email).strip().lower())
+    mapped_profile = None
     if mapping and mapping.elms_roles:
         target_roles = list(mapping.elms_roles)
         if "Desk User" not in target_roles:
             target_roles.insert(0, "Desk User")
+    if mapping and mapping.role_profile:
+        mapped_profile = {
+            "ELMS Admin": "ELMS Admin Profile",
+            "ELMS Standard LMS": "ELMS Learner Profile",
+            "ELMS Operations": "ELMS Operations Profile",
+        }.get(mapping.role_profile, mapping.role_profile)
+        if hasattr(frappe, "db") and frappe.db.exists("Role Profile", mapped_profile):
+            target_roles = []
+            profile_doc = frappe.get_doc("Role Profile", mapped_profile)
+            target_roles.extend(role.role for role in profile_doc.roles)
+            doc.role_profile_name = mapped_profile
 
     if hasattr(frappe, "db") and hasattr(frappe.db, "exists"):
         for role in target_roles:
@@ -142,6 +154,8 @@ def maybe_assign_sso_roles(doc, method: str | None = None) -> None:
         else:
             for r in roles_to_add:
                 doc.append("roles", {"role": r})
+        if mapped_profile and hasattr(doc, "save"):
+            doc.save(ignore_permissions=True)
     finally:
         if flags:
             flags.in_sso_role_assignment = False

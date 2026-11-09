@@ -29,7 +29,7 @@ class TestSSOIdentityMapping(unittest.TestCase):
         self.assertIsNotNone(mapping_erokhin)
         self.assertEqual(mapping_erokhin.bitrix_id, "274")
         self.assertEqual(mapping_erokhin.full_name, "Ерохин Андрей")
-        self.assertEqual(mapping_erokhin.role_profile, "ELMS Admin")
+        self.assertEqual(mapping_erokhin.role_profile, "ELMS Admin Profile")
         self.assertIn("ELMS Admin", mapping_erokhin.elms_roles)
 
         # Evgeny Sokolov
@@ -38,7 +38,7 @@ class TestSSOIdentityMapping(unittest.TestCase):
         mapping_sokolov = self.registry.get_mapping("sokolovavs13@yandex.ru")
         self.assertIsNotNone(mapping_sokolov)
         self.assertEqual(mapping_sokolov.bitrix_id, "240")
-        self.assertIn("ELMS LMS User", mapping_sokolov.elms_roles)
+        self.assertIn("ELMS Learner", mapping_sokolov.elms_roles)
 
         # Irina Vidyakina
         target_vidyakina = self.registry.resolve_target_identity("ividakina002@gmail.com")
@@ -79,6 +79,19 @@ class TestSSOIdentityMapping(unittest.TestCase):
 
         self.assertNotIn("kc_idp_hint=", res["auth_url"])
         self.assertIn("login_hint=elms.test.one%40elms.local", res["auth_url"])
+
+
+    def test_password_mode_authorization_has_no_yandex_hint(self):
+        res = get_sso_authorization_url(
+            user_input="elms.test.admin@elms.local",
+            mode="password",
+        )
+        self.assertNotIn("kc_idp_hint=", res["auth_url"])
+        self.assertIn("login_hint=elms.test.admin%40elms.local", res["auth_url"])
+
+    def test_unsupported_mode_raises_error(self):
+        with self.assertRaises(Exception):
+            get_sso_authorization_url(user_input="test@test.ru", mode="invalid_mode")
 
 
 if __name__ == "__main__":

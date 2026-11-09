@@ -1,0 +1,314 @@
+.elms-course-studio {
+	--studio-ink: #0b1f33;
+	--studio-muted: #66727f;
+	--studio-line: #d5dce3;
+	--studio-surface: #ffffff;
+	--studio-paper: #f5f7fa;
+	--elms-action: #0d4cd3;
+	--studio-action: var(--elms-action);
+	--studio-action-soft: #eaf2ff;
+	font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+	color: var(--studio-ink);
+	background: var(--studio-paper);
+	min-height: calc(100vh - 60px);
+	padding: 24px;
+}
+
+.elms-course-studio-header,
+.elms-course-studio-toolbar,
+.elms-course-studio-actions,
+.elms-course-studio-item,
+.elms-course-studio-field-row {
+	display: flex;
+	align-items: center;
+}
+
+.elms-course-studio-header {
+	justify-content: space-between;
+	gap: 18px;
+	border-bottom: 1px solid var(--studio-line);
+	padding-bottom: 18px;
+	margin-bottom: 18px;
+}
+
+.elms-course-studio-heading h1,
+.elms-course-studio-heading p,
+.elms-course-studio-editor h2,
+.elms-course-studio-panel h3 {
+	margin: 0;
+}
+
+.elms-course-studio-heading h1 {
+	font-size: 24px;
+	line-height: 1.15;
+}
+
+.elms-course-studio-heading p,
+.elms-course-studio-muted,
+.elms-course-studio-description {
+	color: var(--studio-muted);
+}
+
+.elms-course-studio-heading p {
+	margin-top: 6px;
+}
+
+.elms-course-studio-actions,
+.elms-course-studio-toolbar {
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.elms-course-studio-grid {
+	display: grid;
+	grid-template-columns: minmax(225px, 270px) minmax(360px, 1fr) minmax(230px, 290px);
+	gap: 14px;
+	align-items: start;
+}
+
+.elms-course-studio-panel,
+.elms-course-studio-editor {
+	background: var(--studio-surface);
+	border: 1px solid var(--studio-line);
+	border-radius: 6px;
+}
+
+.elms-course-studio-panel {
+	padding: 16px;
+}
+
+.elms-course-studio-panel h3 {
+	font-size: 12px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--studio-muted);
+	margin-bottom: 12px;
+}
+
+.elms-course-studio-outline {
+	min-height: 440px;
+}
+
+.elms-course-studio-tree,
+.elms-course-studio-lessons {
+	display: grid;
+	gap: 4px;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+
+.elms-course-studio-item {
+	justify-content: space-between;
+	width: 100%;
+	gap: 5px;
+	border: 0;
+	border-left: 3px solid transparent;
+	background: transparent;
+	color: var(--studio-ink);
+	padding: 8px 7px;
+	text-align: left;
+	cursor: pointer;
+	border-radius: 3px;
+}
+
+.elms-course-studio-item:hover,
+.elms-course-studio-item:focus-visible,
+.elms-course-studio-item.is-selected {
+	background: var(--studio-action-soft);
+	border-left-color: var(--studio-action);
+	color: var(--studio-action);
+}
+
+.elms-course-studio-item span:first-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.elms-course-studio-lessons {
+	margin-left: 14px;
+	margin-bottom: 9px;
+}
+
+.elms-course-studio-lesson-item {
+	font-size: 13px;
+}
+
+.elms-course-studio-editor {
+	padding: 22px;
+	min-height: 440px;
+}
+
+.elms-course-studio-editor h2 {
+	font-size: 21px;
+	margin-bottom: 18px;
+}
+
+.elms-course-studio-form {
+	display: grid;
+	gap: 14px;
+}
+
+.elms-course-studio-form label {
+	display: grid;
+	gap: 5px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.elms-course-studio-form input,
+.elms-course-studio-form select,
+.elms-course-studio-form textarea {
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--studio-line);
+	border-radius: 4px;
+	padding: 9px 10px;
+	font: inherit;
+	color: var(--studio-ink);
+	background: #fff;
+}
+
+.elms-course-studio-form textarea {
+	min-height: 150px;
+	resize: vertical;
+}
+
+.elms-course-studio-form input:focus,
+.elms-course-studio-form select:focus,
+.elms-course-studio-form textarea:focus {
+	outline: 2px solid rgba(13, 76, 211, .22);
+	border-color: var(--studio-action);
+}
+
+.elms-course-studio-field-row {
+	gap: 12px;
+}
+
+.elms-course-studio-field-row > label {
+	flex: 1;
+}
+
+.elms-course-studio-check {
+	display: flex !important;
+	grid-template-columns: auto 1fr;
+	align-items: center;
+	gap: 8px !important;
+	font-weight: 400 !important;
+	padding-top: 25px;
+}
+
+.elms-course-studio-check input {
+	width: auto;
+}
+
+.elms-course-studio-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 4px 8px;
+	border-radius: 3px;
+	background: #eef2f5;
+	color: var(--studio-muted);
+}
+
+.elms-course-studio-status.is-dirty {
+	background: #fff4e5;
+	color: #b54708;
+}
+
+.elms-course-studio-status.is-published {
+	background: #eaf7f0;
+	color: #167a4a;
+}
+
+.elms-course-studio-empty {
+	padding: 28px 12px;
+	text-align: center;
+	color: var(--studio-muted);
+}
+
+.elms-course-studio-button {
+	border: 1px solid var(--studio-line);
+	border-radius: 4px;
+	background: var(--studio-surface);
+	color: var(--studio-ink);
+	padding: 8px 12px;
+	font: inherit;
+	cursor: pointer;
+}
+
+.elms-course-studio-button:hover,
+.elms-course-studio-button:focus-visible {
+	border-color: var(--studio-action);
+	color: var(--studio-action);
+}
+
+.elms-course-studio-button.is-primary {
+	border-color: var(--studio-action);
+	background: var(--studio-action);
+	color: #fff;
+}
+
+.elms-course-studio-button.is-danger {
+	color: #b42318;
+}
+
+.elms-course-studio-mini-actions {
+	display: flex;
+	gap: 4px;
+}
+
+.elms-course-studio-mini-actions .elms-course-studio-button {
+	padding: 3px 6px;
+	font-size: 12px;
+}
+
+.elms-course-studio-toolbar {
+	justify-content: space-between;
+	margin-bottom: 14px;
+}
+
+@media (max-width: 1050px) {
+	.elms-course-studio-grid {
+		grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+	}
+	.elms-course-studio-properties {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 720px) {
+	.elms-course-studio {
+		padding: 14px;
+	}
+	.elms-course-studio-header {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+	.elms-course-studio-grid {
+		grid-template-columns: 1fr;
+	}
+	.elms-course-studio-properties {
+		grid-column: auto;
+	}
+	.elms-course-studio-field-row {
+		align-items: stretch;
+		flex-direction: column;
+	}
+	.elms-course-studio-check {
+		padding-top: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.elms-course-studio *,
+	.elms-course-studio *::before,
+	.elms-course-studio *::after {
+		transition: none !important;
+		animation: none !important;
+	}
+}

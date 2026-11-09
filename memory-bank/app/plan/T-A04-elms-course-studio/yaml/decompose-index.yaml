@@ -1,0 +1,107 @@
+schema: epic-decompose-index/v1
+plan_id: T-A04-elms-course-studio
+level: L1
+sNN_cap: 1
+appetite:
+  timebox_days: 2
+  cut_list:
+  - AI or document import (outside this epic)
+  - Full quiz/question authoring inside the studio (existing quiz DocTypes remain
+    available)
+  - Real-time multi-author collaboration
+effort_probe:
+  outcomes:
+  - outcome: Course-first authoring studio backed by existing LMS DocTypes
+    hours_mid: 8.0
+    hours_range: 6-10
+    confidence: medium
+    notes: Mixed API, nested editor UI, workspace route, contract tests, and local
+      wire evidence
+  total_hours: 8.0
+  effort_hours_total: 8.0
+  effort_class: M
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 1
+  sNN_target: 1
+steps:
+- id: s01
+  file: s01-course-studio-vertical-slice.yaml
+  title: Course Studio vertical slice
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Methodologist opens one Course Studio surface instead of separate chapter
+    and lesson records
+- id: FR-002
+  step: s01
+  description: Studio edits course metadata and nested chapters/lessons in one payload;
+    server creates relationships
+- id: FR-003
+  step: s01
+  description: Server validates roles, parent ownership and safe deletion of lessons
+    with progress
+- id: FR-004
+  step: s01
+  description: Studio supports add, reorder, remove, draft save, learner preview,
+    publish state and quiz selection
+- id: US-001
+  step: s01
+  description: Methodologist opens one Course Studio instead of separate chapter and
+    lesson forms
+- id: US-002
+  step: s01
+  description: Methodologist saves ordered chapters and lessons from one outline action
+- id: US-003
+  step: s01
+  description: Methodologist adds, edits, reorders and removes outline elements
+- id: US-004
+  step: s01
+  description: Methodologist selects a quiz for a quiz lesson inside Studio
+- id: US-005
+  step: s01
+  description: Methodologist opens learner preview and sees publish state
+- id: US-006
+  step: s01
+  description: Learner continues to read the persisted course structure
+- id: AC-001
+  step: s01
+  description: Management API is authenticated, role-gated, validates parent ownership,
+    and returns nested editor data
+- id: AC-002
+  step: s01
+  description: Workspace and management surface route course creation/open actions
+    to Course Studio
+- id: AC-003
+  step: s01
+  description: A course with multiple chapters and lessons can be created and reloaded
+    with correct order and relationships
+- id: AC-004
+  step: s01
+  description: Learner-facing course structure and preview continue reading the persisted
+    nested records
+- id: AC-005
+  step: s01
+  description: Targeted backend, frontend syntax/contract, and local wire checks pass
+stages_coverage:
+- stage: Stage s01 course-studio-vertical-slice
+  step: s01
+outcome_map:
+- outcome: Course-first authoring studio backed by existing LMS DocTypes
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Separate authoring links and fragmented child-record authoring forms
+    target: Single Course Studio route with nested outline and editor
+    step: s01
+    policy: replace in-epic
+  items:
+  - symbol: Separate chapter and lesson entry points in LMS workspace
+    kind: A
+    replacement: Course Studio entry point
+    step: s01
+    policy: replace in-epic
+  sunset:
+  - Direct authoring navigation for ELMS Course Chapter and ELMS Course Lesson

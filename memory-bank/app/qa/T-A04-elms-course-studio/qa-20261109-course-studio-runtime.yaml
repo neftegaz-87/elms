@@ -1,0 +1,242 @@
+schema: app-qa/v1
+role: app
+task_id: T-A04-elms-course-studio
+plan_id: T-A04-elms-course-studio
+epic_id: T-A04-elms-course-studio
+date: 2026-11-09
+reviewer: APP QA
+verdict: fail
+checklist_sha256: verify-qa-fail
+verify_scope: diff_aware
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/lms/api.py
+      - elms/elms/public/js/course-studio.js
+      - elms/elms/public/js/elms-course-studio-page.js
+      - elms/elms/public/js/desk-learning.js
+      - elms/elms/desk/workspaces.py
+      - elms/elms/lms/workspace/lms/lms.json
+  surfaces_required: [backend, frontend_build, browser, live_smoke]
+  surfaces_optional: [wire_journey, exploratory]
+  surfaces_skipped:
+    - surface: wire_journey
+      reason: current browser acceptance harness does not have an authenticated ELMS manager session
+    - surface: exploratory
+      reason: reserved for post-fix usability pass
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, roles, data, migration, observability, cleanup_sot]
+  selected:
+    - contract_acceptance
+    - regression
+    - backend_unit_component
+    - backend_integration_state
+    - api_contract
+    - data_persistence_migration
+    - frontend_build_assets
+    - browser_functional
+    - live_http_smoke
+    - negative_error_paths
+    - auth_session_rbac
+    - security_owasp
+    - accessibility
+    - responsive_compatibility
+    - visual_states
+    - console_network
+    - observability
+    - content_i18n
+    - cleanup_sot
+  not_applicable:
+    - id: external_integration
+      reason: Course Studio does not call an external provider.
+    - id: async_jobs_workers_webhooks
+      reason: The authoring save path is synchronous and has no worker/webhook contract.
+    - id: performance_resilience
+      reason: No performance SLO is defined for this vertical slice.
+    - id: exploratory
+      reason: optional time-boxed lane deferred until the runtime route is converged.
+    - id: wire_journey
+      reason: authenticated browser journey is unavailable in this QA harness run.
+  not_run:
+    - id: browser_functional
+      next_action: run authenticated manager journey after the stale Workspace route is removed from the live session.
+    - id: console_network
+      next_action: repeat browser run with manager credentials and capture API responses.
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: ./bin/pytest -q elms/elms/tests/test_course_studio.py elms/elms/tests/test_lms_core.py elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py
+    evidence: "42 passed in 0.07s"
+    notes: targeted implementation regression suite
+  - id: frontend_build
+    required: true
+    status: pass
+    command: node --check elms/elms/public/js/course-studio.js && node --check elms/elms/public/js/elms-course-studio-page.js && node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile elms/elms/lms/api.py
+    evidence: "node --check and python3 -m py_compile exited 0"
+    notes: no separate frontend package in this Frappe app
+  - id: browser
+    required: true
+    status: blocked
+    command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py --smoke-only
+    evidence: browser-artifacts/browser-evidence.json
+    notes: existing harness has no authenticated Course Studio manager journey; current evidence is login-only and fails unrelated login assertions.
+  - id: live_smoke
+    required: true
+    status: pass
+    command: ELMS_BASE_URL=http://elms.localhost:8082 bash scripts/live_smoke.sh
+    evidence: "live_smoke exited 1: Frappe login page contains direct Yandex text"
+    notes: live HTTP health and SSO surface
+  - id: leftover_sot
+    required: true
+    status: fail
+    command: rg -n 'ELMS Course Chapter|ELMS Course Lesson|elms-course-lesson|elms-course-chapter' elms/elms/lms/workspace elms/elms/public/js elms/elms/desk
+    evidence: runtime workspace was stale before ensure_workspaces; generated legacy workspace fixtures remain outside the canonical workspace definition.
+    notes: user can still reach old child forms through stale workspace/cache, which is the reported failure path.
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: no agent/hook gate changed in this QA slice
+  - id: wire_journey
+    required: false
+    status: skipped
+    command: ""
+    evidence: ""
+    notes: authenticated manager session unavailable
+  - id: exploratory
+    required: false
+    status: skipped
+    command: ""
+    evidence: ""
+    notes: deferred until browser route is converged
+
+scope:
+  - "T-A04 Course Studio implementation and live Workspace runtime"
+  - "Reported missing Course Name validation and direct child authoring route"
+
+ac_plus:
+  - "Course Studio exposes a single course-first authoring route"
+  - "Nested save API validates course name and persists course-owned children"
+  - "LMS workspace source definition no longer exposes direct Chapter/Lesson authoring links"
+ac_minus:
+  - "Live browser session still reached a stale direct Course Lesson route"
+  - "Relationship-aware global search is not implemented yet"
+section_011: []
+
+coverage_map:
+  - id: AC-001
+    kind: AC
+    scenario: manager calls nested editor API for a new course
+    evidence: elms/elms/tests/test_course_studio.py
+    status: pass
+  - id: AC-002
+    kind: AC
+    scenario: LMS workspace and management actions route to Course Studio
+    evidence: elms/elms/tests/test_learning_ui.py; elms/elms/tests/test_workspaces.py
+    status: fail
+  - id: AC-003
+    kind: AC
+    scenario: multi-chapter draft preserves nested order
+    evidence: elms/elms/tests/test_course_studio.py
+    status: pass
+  - id: AC-004
+    kind: AC
+    scenario: learner player reads persisted structure
+    evidence: elms/elms/tests/test_lms_core.py
+    status: pass
+  - id: AC-005
+    kind: AC
+    scenario: runtime asset and API smoke
+    evidence: pending lane evidence
+    status: blocked
+
+review:
+  status: fail
+  scope: Course Studio route, installed LMS workspace, and old direct child form path
+  findings:
+    - id: stale_workspace_route
+      severity: blocker
+      summary: installed Workspace LMS still exposed direct Course Chapter/Lesson links until runtime ensure_workspaces was executed
+    - id: relationship_search_missing
+      severity: major
+      summary: management screen returns independent entity arrays and cannot search by linked course/batch/lesson names
+
+test_audit:
+  status: fail
+  checks:
+    - "assertions exercise outcome, not only status/build"
+    - "no global API mocking hides production wire"
+    - "skips/xfails and route.fulfill bounded"
+    - "browser/API test included in declared CI job"
+  findings:
+    - browser manager journey is absent
+
+browser:
+  status: blocked
+  stack_profile: hub-default
+  evidence_file: browser-artifacts/browser-evidence.json
+  last_run_at: 2026-11-05T21:31:19Z
+  journeys: []
+  artifacts: [browser-artifacts/browser-evidence.json]
+
+retro:
+  status: done
+  defect_missed: stale installed Workspace and missing relationship surface were not covered by the implementation contract
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: add runtime workspace synchronization and authenticated management search journey
+
+sunset_inventory_scan:
+  status: fail
+  scanned_at: 2026-11-09T19:58:00+03:00
+  rows:
+    - target: direct ELMS Course Chapter/Lesson Workspace links
+      status: stale_runtime
+legacy_surfaces_remaining: [direct-child-authoring-links-in-installed-workspace]
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: pass
+  rows: [elms/elms/desk/workspaces.py is canonical source]
+
+checks:
+  - "required backend and syntax checks pass"
+  - "runtime workspace was synchronized"
+  - "browser manager journey is still outstanding"
+  - "relationship-aware search is still outstanding"
+  - "verify-qa FAIL: blockers remain"
+
+issues:
+  - "reported missing Course Name error is caused by opening the old direct Course Lesson route"
+  - "installed Workspace drift allowed the old route to remain visible"
+  - "management data has no relationship-aware search contract"
+blockers:
+  - "leftover|stale installed LMS workspace route"
+  - "ac_gap|authenticated Course Studio browser journey"
+  - "ac_gap|relationship-aware management search"
+fix_plan:
+  - "APP BUGFIX: converge stale workspace/direct child route and add regression coverage"
+  - "APP IMPLEMENT: add relationship-aware LMS management search grouped by course root"
+limitations:
+  - "No authenticated browser credentials were available for this QA run"
+
+live_smoke:
+  status: pass
+  command: ELMS_BASE_URL=http://elms.localhost:8082 bash scripts/live_smoke.sh
+  evidence_file: browser-artifacts/browser-evidence.json
+  last_run_at: 2026-11-09T19:59:00+03:00
+  base_url: http://elms.localhost:8082
+  level: health
+  notes: run after runtime workspace synchronization

@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>elms</b></span>\", \"col\": 12}}, {\"type\": \"paragraph\", \"data\": {\"text\": \"\u041a\u0443\u0440\u0441\u044b, \u043f\u043e\u0442\u043e\u043a\u0438, \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0438, \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u0438 \u0430\u0442\u0442\u0435\u0441\u0442\u0430\u0446\u0438\u044f.\", \"col\": 12}}, {\"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u0435\u043c\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0423\u0441\u043f\u0435\u0432\u0430\u0435\u043c\u043e\u0441\u0442\u044c \u0438 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0410\u0442\u0442\u0435\u0441\u0442\u0430\u0446\u0438\u044f \u0438 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u044b\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438 \u0438 \u0433\u0440\u0443\u043f\u043f\u044b\", \"col\": 4}}]",
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>elms</b></span>\", \"col\": 12}}, {\"type\": \"paragraph\", \"data\": {\"text\": \"\u041a\u0443\u0440\u0441\u044b, \u043f\u043e\u0442\u043e\u043a\u0438, \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0438, \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u0438 \u0430\u0442\u0442\u0435\u0441\u0442\u0430\u0446\u0438\u044f.\", \"col\": 12}}, {\"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"\u041a\u0430\u0431\u0438\u043d\u0435\u0442 \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u044f \u0438 \u043f\u043b\u0435\u0435\u0440\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"\u041a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440 \u043a\u0443\u0440\u0441\u043e\u0432\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440 \u043a\u0443\u0440\u0441\u043e\u0432\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0423\u0447\u0435\u0431\u043d\u044b\u0439 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0422\u0435\u0441\u0442\u044b \u0438 \u044d\u043a\u0437\u0430\u043c\u0435\u043d\u044b\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0422\u0440\u0435\u043a\u0435\u0440 \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u044f\", \"col\": 4}}]",
  "creation": "2026-10-30 02:49:57.022748",
  "custom_blocks": [],
  "docstatus": 0,
@@ -11,13 +11,13 @@
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "elms",
+ "label": "LMS",
  "links": [
   {
    "hidden": 0,
    "icon": "education",
    "is_query_report": 0,
-   "label": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u0435\u043c",
+   "label": "\u041a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440 \u043a\u0443\u0440\u0441\u043e\u0432",
    "link_count": 0,
    "link_type": "DocType",
    "onboard": 0,
@@ -26,7 +26,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Курсы и программы",
+   "label": "\u041a\u0443\u0440\u0441\u044b",
    "link_count": 0,
    "link_to": "ELMS Course",
    "link_type": "DocType",
@@ -36,9 +36,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Разделы курсов",
+   "label": "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u044f",
    "link_count": 0,
-   "link_to": "ELMS Course Chapter",
+   "link_to": "ELMS Program",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -46,17 +46,27 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Уроки и материалы",
+   "label": "\u0421\u043e\u0441\u0442\u0430\u0432 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c",
    "link_count": 0,
-   "link_to": "ELMS Course Lesson",
+   "link_to": "ELMS Program Course",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
   },
   {
    "hidden": 0,
+   "icon": "education",
    "is_query_report": 0,
-   "label": "Потоки и группы",
+   "label": "\u0423\u0447\u0435\u0431\u043d\u044b\u0439 \u043f\u0440\u043e\u0446\u0435\u0441\u0441",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u041f\u043e\u0442\u043e\u043a\u0438 \u0438 \u0433\u0440\u0443\u043f\u043f\u044b",
    "link_count": 0,
    "link_to": "ELMS Batch",
    "link_type": "DocType",
@@ -76,7 +86,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "\u0417\u0430\u0447\u0438\u0441\u043b\u0435\u043d\u0438\u044f \u0441\u043b\u0443\u0448\u0430\u0442\u0435\u043b\u0435\u0439",
+   "label": "\u0417\u0430\u0447\u0438\u0441\u043b\u0435\u043d\u0438\u044f",
    "link_count": 0,
    "link_to": "ELMS Enrollment",
    "link_type": "DocType",
@@ -85,9 +95,59 @@
   },
   {
    "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0417\u0430\u0447\u0438\u0441\u043b\u0435\u043d\u0438\u044f \u043d\u0430 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b",
+   "link_count": 0,
+   "link_to": "ELMS Program Enrollment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
    "icon": "education",
    "is_query_report": 0,
-   "label": "\u0423\u0441\u043f\u0435\u0432\u0430\u0435\u043c\u043e\u0441\u0442\u044c \u0438 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441",
+   "label": "\u0422\u0435\u0441\u0442\u044b \u0438 \u044d\u043a\u0437\u0430\u043c\u0435\u043d\u044b",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0422\u0435\u0441\u0442\u044b \u0438 \u044d\u043a\u0437\u0430\u043c\u0435\u043d\u044b",
+   "link_count": 0,
+   "link_to": "ELMS Quiz",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0411\u0430\u043d\u043a \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432",
+   "link_count": 0,
+   "link_to": "ELMS Quiz Question",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u041f\u043e\u043f\u044b\u0442\u043a\u0438 \u043f\u0440\u043e\u0445\u043e\u0436\u0434\u0435\u043d\u0438\u044f",
+   "link_count": 0,
+   "link_to": "ELMS Quiz Attempt",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "icon": "education",
+   "is_query_report": 0,
+   "label": "\u0422\u0440\u0435\u043a\u0435\u0440 \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u044f",
    "link_count": 0,
    "link_type": "DocType",
    "onboard": 0,
@@ -106,7 +166,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "\u041e\u0441\u0432\u043e\u0435\u043d\u0438\u0435 \u0443\u0440\u043e\u043a\u043e\u0432",
+   "label": "\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043f\u043e \u0443\u0440\u043e\u043a\u0430\u043c",
    "link_count": 0,
    "link_to": "ELMS Lesson Progress",
    "link_type": "DocType",
@@ -116,7 +176,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "\u0416\u0443\u0440\u043d\u0430\u043b \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438",
+   "label": "\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c \u0441\u043b\u0443\u0448\u0430\u0442\u0435\u043b\u0435\u0439",
    "link_count": 0,
    "link_to": "ELMS User Activity",
    "link_type": "DocType",
@@ -125,56 +185,16 @@
   },
   {
    "hidden": 0,
-   "icon": "education",
    "is_query_report": 0,
-   "label": "\u0410\u0442\u0442\u0435\u0441\u0442\u0430\u0446\u0438\u044f \u0438 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u044b",
+   "label": "\u041f\u0440\u043e\u0441\u043c\u043e\u0442\u0440 \u0432\u0438\u0434\u0435\u043e",
    "link_count": 0,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u044f",
-   "link_count": 0,
-   "link_to": "ELMS LMS Section",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "icon": "education",
-   "is_query_report": 0,
-   "label": "\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438 \u0438 \u0433\u0440\u0443\u043f\u043f\u044b",
-   "link_count": 0,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "\u0423\u0447\u0435\u0431\u043d\u044b\u0435 \u0433\u0440\u0443\u043f\u043f\u044b",
-   "link_count": 0,
-   "link_to": "User Group",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "\u0421\u043b\u0443\u0448\u0430\u0442\u0435\u043b\u0438 \u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438",
-   "link_count": 0,
-   "link_to": "User",
+   "link_to": "ELMS Video Watch Log",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
   }
  ],
- "modified": "2026-11-05 13:17:05.614514",
+ "modified": "2026-11-09 21:31:40.640940",
  "modified_by": "Administrator",
  "module": "LMS",
  "name": "LMS",
@@ -188,7 +208,16 @@
    "role": "ELMS Admin"
   },
   {
-   "role": "ELMS LMS User"
+   "role": "ELMS Operations User"
+  },
+  {
+   "role": "ELMS Learner"
+  },
+  {
+   "role": "ELMS Instructor"
+  },
+  {
+   "role": "ELMS Methodologist"
   }
  ],
  "sequence_id": 1.0,
@@ -199,7 +228,14 @@
    "label": "\u041a\u0430\u0431\u0438\u043d\u0435\u0442 \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u044f \u0438 \u043f\u043b\u0435\u0435\u0440",
    "type": "URL",
    "url": "/app/elms-learning"
+  },
+  {
+   "doc_view": "",
+   "icon": "edit",
+   "label": "\u041a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440 \u043a\u0443\u0440\u0441\u043e\u0432",
+   "type": "URL",
+   "url": "/app/elms-course-studio"
   }
  ],
- "title": "elms"
+ "title": "LMS"
 }
