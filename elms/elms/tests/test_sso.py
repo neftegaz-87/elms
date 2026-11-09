@@ -286,6 +286,7 @@ class TestSSO(unittest.TestCase):
             reconcile_keycloak_user(user, {"groups": ["Administrators"]})
 
         self.assertIn("System Manager", user.get_roles())
+        self.assertIn("ELMS Admin", user.get_roles())
         self.assertTrue(user.saved)
 
     def setUp(self):
@@ -298,7 +299,7 @@ class TestSSO(unittest.TestCase):
             del frappe.conf[DEFAULT_SSO_ROLES_CONF_KEY]
 
     def test_assign_sso_roles_success(self):
-        """Test that default roles (Desk User, ELMS LMS User) are assigned to new Keycloak social user."""
+        """Test that default roles (Desk User, ELMS Learner) are assigned to new Keycloak social user."""
         user = FakeUserDoc(email="newuser@example.com", is_social=True)
 
         with patch.object(frappe, "db", create=True) as mock_db:
@@ -307,7 +308,7 @@ class TestSSO(unittest.TestCase):
 
         assigned_roles = user.get_roles()
         self.assertIn("Desk User", assigned_roles)
-        self.assertIn("ELMS LMS User", assigned_roles)
+        self.assertIn("ELMS Learner", assigned_roles)
         self.assertEqual(user.user_type, "System User")
         self.assertTrue(user.saved)
 
@@ -316,7 +317,7 @@ class TestSSO(unittest.TestCase):
         user = FakeUserDoc(email="newuser@example.com", is_social=True)
 
         def mock_exists(doctype, name):
-            if doctype == "Role" and name == "ELMS LMS User":
+            if doctype == "Role" and name == "ELMS Learner":
                 return False
             return True
 
@@ -324,7 +325,7 @@ class TestSSO(unittest.TestCase):
             mock_db.exists.side_effect = mock_exists
             with self.assertRaises(Exception) as ctx:
                 maybe_assign_sso_roles(user)
-            self.assertIn("ELMS LMS User", str(ctx.exception))
+            self.assertIn("ELMS Learner", str(ctx.exception))
             self.assertIn("does not exist", str(ctx.exception))
 
     def test_assign_sso_roles_ignores_non_social_user(self):
@@ -358,7 +359,7 @@ class TestSSO(unittest.TestCase):
         idps = [i for i in realm.get("identityProviders", []) if i.get("alias") == YANDEX_IDP_ALIAS]
         self.assertEqual(len(idps), 1, "Exactly one Yandex broker IdP must exist in Keycloak")
         yandex_idp = idps[0]
-        self.assertEqual(yandex_idp.get("providerId"), "oidc")
+        self.assertEqual(yandex_idp.get("providerId"), "yandex-oauth")
         self.assertEqual(yandex_idp.get("firstBrokerLoginFlowAlias"), "first broker login")
 
         # In Frappe, Social Login Key must use immutable sub as user_id_property
@@ -445,7 +446,7 @@ class TestSSO(unittest.TestCase):
         self.assertEqual(user.last_name, "Pushkin")
         self.assertEqual(user.get_social_login_userid("keycloak"), "kc-broker-sub-777")
         self.assertIn("Desk User", user.get_roles())
-        self.assertIn("ELMS LMS User", user.get_roles())
+        self.assertIn("ELMS Learner", user.get_roles())
         self.assertTrue(user.saved)
         # Ensure the provider linked is keycloak, never direct yandex
         self.assertIsNone(user.get_social_login_userid("yandex"))
@@ -473,7 +474,7 @@ class TestSSO(unittest.TestCase):
         self.assertEqual(linked_user.get_social_login_userid("keycloak"), "kc-broker-sub-888")
         self.assertIn("Instructor", linked_user.get_roles())
         self.assertIn("Desk User", linked_user.get_roles())
-        self.assertIn("ELMS LMS User", linked_user.get_roles())
+        self.assertIn("ELMS Learner", linked_user.get_roles())
         self.assertTrue(linked_user.saved)
 
     def test_jit_broker_login_unverified_email_fails_closed(self):
@@ -752,7 +753,7 @@ class TestSSO(unittest.TestCase):
         # Identity Provider is strictly Yandex via Keycloak broker
         yandex_idps = [i for i in realm.get("identityProviders", []) if i.get("alias") == "yandex"]
         self.assertEqual(len(yandex_idps), 1)
-        self.assertEqual(yandex_idps[0].get("providerId"), "oidc")
+        self.assertEqual(yandex_idps[0].get("providerId"), "yandex-oauth")
         self.assertEqual(yandex_idps[0].get("firstBrokerLoginFlowAlias"), "first broker login")
 
         # Client elms-frappe has strictly login_via_keycloak redirect URIs

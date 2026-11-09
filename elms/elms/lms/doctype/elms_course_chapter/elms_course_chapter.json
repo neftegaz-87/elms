@@ -68,14 +68,23 @@
    "write": 1
   },
   {
+   "create": 1,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS Methodologist",
+   "write": 1
+  },
+  {
    "create": 0,
    "delete": 0,
    "read": 1,
-   "role": "ELMS LMS User",
+   "role": "ELMS Learner",
    "write": 0
   }
  ],
  "sort_field": "sequence_id",
  "sort_order": "ASC",
- "states": []
+ "states": [],
+ "search_fields": "chapter_name, course",
+ "title_field": "chapter_name"
 }

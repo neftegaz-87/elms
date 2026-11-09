@@ -70,7 +70,7 @@
     {
       "alias": "yandex",
       "displayName": "Yandex 360",
-      "providerId": "oidc",
+      "providerId": "yandex-oauth",
       "enabled": true,
       "updateProfileFirstLoginMode": "on",
       "trustEmail": true,

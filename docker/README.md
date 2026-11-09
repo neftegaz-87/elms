@@ -23,7 +23,7 @@
    cp docker/.env.dev.example docker/.env.dev
    ```
 2. **Dev-only значения**: Используйте только synthetic значения из dev-контракта. Они не являются production credentials, не переносятся в `.env.prod` и не должны попадать в git.
-3. **Регистрация Redirect URI в Yandex**: Укажите redirect URI брокера Keycloak: `http://localhost:8480/realms/elms/broker/yandex/endpoint` (в dev) или `https://<auth-host>/realms/elms/broker/yandex/endpoint` (в prod).
+3. **Регистрация Redirect URI в Yandex**: Укажите redirect URI брокера Keycloak: `http://elms-keycloak.localhost:8480/realms/elms/broker/yandex/endpoint` (в dev) или `https://<auth-host>/realms/elms/broker/yandex/endpoint` (в prod). В приложении Яндекс также включите права `login:email` и `login:info`.
 4. **Запуск Compose**: Запустите сервисы и дождитесь выполнения `create-site` и импорта realm через `docker/keycloak/entrypoint.sh`:
    ```bash
    docker compose -f docker/compose.dev.yaml --env-file docker/.env.dev up -d
@@ -36,7 +36,7 @@
    make keycloak.seed
    ```
 5. **Вход через Keycloak**: Откройте `http://elms.localhost:8082/login`. Используется стандартная форма Frappe: отдельная кнопка Keycloak не показывается, её submit связан с Keycloak через `login-keycloak.js`. Для локальной проверки введите учетные данные Keycloak; для brokered-входа Keycloak предложит Yandex 360.
-6. **Проверка идентичности и ролей**: После callback убедитесь, что пользователь авторизован в Frappe Desk (`/app`), идентичность связана по `sub`, а роли по умолчанию (`Desk User`, `ELMS LMS User`) назначены автоматически.
+6. **Проверка идентичности и ролей**: После callback убедитесь, что пользователь авторизован в Frappe Desk (`/app`), идентичность связана по `sub`, а роли по умолчанию (`Desk User`, `ELMS Learner`) назначены автоматически.
 7. **Проверка отказа**: При недоступности Yandex brokered-вход должен завершаться явной ошибкой Keycloak; локальный обход SSO не является production-путём.
 8. **Обновление кэша при изменениях**: При изменении параметров Social Login Key или CSS-ассета выполните очистку кэша:
    ```bash
@@ -85,9 +85,9 @@
 
 1. Зарегистрируйте OAuth-приложение в кабинете разработчика Yandex:
    - Redirect URI приложения: `http://localhost:8480/realms/elms/broker/yandex/endpoint` (или внешний HTTPS адрес Keycloak).
-   - Запрашиваемые права: доступ к адресу электронной почты и базовой информации профиля.
+   - Запрашиваемые права: `login:email` и `login:info` (email и базовая информация профиля).
 2. Передайте `YANDEX_CLIENT_ID` и `YANDEX_CLIENT_SECRET` в конфигурацию окружения `docker/.env.dev`.
-3. В Keycloak realm `elms` брокер сконфигурирован как OIDC Identity Provider с алиасом `yandex` и сценарием первого входа `first broker login`.
+3. В Keycloak realm `elms` брокер сконфигурирован как встроенный ELMS OAuth 2.0 Identity Provider с алиасом `yandex` и сценарием первого входа `first broker login`. Используется OAuth 2.0, а не OIDC: Keycloak не добавляет неподдерживаемый Яндексом scope `openid`.
 
 ### Сетевая топология и взаимодействие хостов (Host Networking 8000/8080)
 
@@ -146,7 +146,7 @@ ELMS не использует тяжелые механизмы синхрон�
 1. Пользователь проходит аутентификацию в Yandex через брокер Keycloak.
 2. Keycloak создает локальную запись пользователя в realm `elms` и привязывает federated identity Yandex (`first broker login`).
 3. При возврате в Frappe создается локальный `User` на основе нормализованных OIDC-утверждений (`sub`, `email`, имя, фамилия).
-4. Хук `User.after_insert` (`elms.sso.roles.maybe_assign_sso_roles`) проверяет наличие обязательных ролей в базе данных и назначает роли по умолчанию (`Desk User`, `ELMS LMS User`) по принципу **fail-closed** (если роль отсутствует в системе — регистрация прерывается).
+4. Хук `User.after_insert` (`elms.sso.roles.maybe_assign_sso_roles`) проверяет наличие обязательных ролей в базе данных и назначает роли по умолчанию (`Desk User`, `ELMS Learner`) по принципу **fail-closed** (если роль отсутствует в системе — регистрация прерывается).
 
 ### Однонаправленная синхронизация (FR-014, AC+9, AC-7)
 
@@ -185,10 +185,10 @@ ELMS не использует тяжелые механизмы синхрон�
 
 | Ветка проверки | Входные параметры | Выполняемое действие | Конкретный результат (Outcome) | Статус |
 |---|---|---|---|---|
-| **Штатный JIT-вход (Happy Path)** | Yandex 360 активен | Вход через Keycloak -> выбор Yandex -> авторизация | **Keycloak:** создана учетная запись с привязкой identityProvider=yandex.<br>**Frappe:** создан User, назначены роли `Desk User` и `ELMS LMS User`. Открыта сессия Desk (`sid`, HTTP 200). | PASS |
+| **Штатный JIT-вход (Happy Path)** | Yandex 360 активен | Вход через Keycloak -> выбор Yandex -> авторизация | **Keycloak:** создана учетная запись с привязкой identityProvider=yandex.<br>**Frappe:** создан User, назначены роли `Desk User` и `ELMS Learner`. Открыта сессия Desk (`sid`, HTTP 200). | PASS |
 | **Сбой Yandex без локального пароля (Fail-Closed)** | Yandex 360 недоступен (5xx/timeout), нет пароля в Keycloak | Клик по кнопке Yandex на форме входа Keycloak | **Fail-Closed (BN-007):** Keycloak отображает ошибку внешнего провайдера. Редирект в Frappe не выполняется. Сессия в Frappe не создается. Доступ закрыт. | PASS |
 | **Сбой Yandex** | Yandex 360 недоступен | Попытка brokered-входа | **Fail-Closed:** Keycloak показывает ошибку внешнего провайдера; токен OIDC и сессия Frappe не создаются. | PASS |
-| **Отсутствие роли по умолчанию** | Роль `ELMS LMS User` отсутствует в БД Frappe | Прохождение OAuth-аутентификации | **Fail-Closed (BN-005):** Хук `maybe_assign_sso_roles` выбрасывает исключение `frappe.throw`. Создание пользователя отменяется, пользователь без роли не сохраняется. | PASS |
+| **Отсутствие роли по умолчанию** | Роль `ELMS Learner` отсутствует в БД Frappe | Прохождение OAuth-аутентификации | **Fail-Closed (BN-005):** Хук `maybe_assign_sso_roles` выбрасывает исключение `frappe.throw`. Создание пользователя отменяется, пользователь без роли не сохраняется. | PASS |
 
 ### Операторское восстановление
 
@@ -214,7 +214,10 @@ unauthorized/missing-render состояние и восстановите AppRo
 
 В корне репозитория настроен чистый `Makefile`, делегирующий выполнение в `scripts/docker-up.sh`:
 
-- `make local.up` — сборка и запуск dev-стека в фоновом режиме с автоматической синхронизацией create-site.
+- `make local.up` (или `make dev`) — сборка и запуск dev-стека в фоновом режиме с автоматической синхронизацией create-site.
+- `make local.restart` (или `make docker.restart`) — быстрый перезапуск сервисов приложения Frappe (backend, frontend, websocket, scheduler, queues) + миграция сайта и очистка кэша.
+- `make local.rebuild` (или `make docker.rebuild`) — пересборка образов и форсированное пересоздание контейнеров (`up -d --build --force-recreate`).
+- `make local.build` (или `make docker.build`) — сборка образов без немедленного перезапуска контейнеров.
 - `make local.down` — остановка контейнеров локального dev-стека.
 - `make local.ps` — вывод статуса работающих контейнеров.
 - `make local.logs` — просмотр последних логов сервисов.

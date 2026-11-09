@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "quiz_name",
+  "course",
+  "lesson",
+  "quiz_type",
+  "passing_percentage",
+  "time_limit_minutes",
+  "max_attempts",
+  "is_published",
+  "instructions"
+ ],
+ "fields": [
+  {"fieldname": "quiz_name", "fieldtype": "Data", "in_list_view": 1, "label": "Quiz Name", "reqd": 1},
+  {"fieldname": "course", "fieldtype": "Link", "in_list_view": 1, "label": "Course", "options": "ELMS Course", "reqd": 1},
+  {"fieldname": "lesson", "fieldtype": "Link", "in_list_view": 1, "label": "Lesson", "options": "ELMS Course Lesson"},
+  {"default": "Practice", "fieldname": "quiz_type", "fieldtype": "Select", "in_list_view": 1, "label": "Quiz Type", "options": "Practice\nAssessment"},
+  {"default": 80, "fieldname": "passing_percentage", "fieldtype": "Float", "label": "Passing Percentage"},
+  {"default": 20, "fieldname": "time_limit_minutes", "fieldtype": "Int", "label": "Time Limit (Minutes)"},
+  {"default": 0, "fieldname": "max_attempts", "fieldtype": "Int", "label": "Max Attempts (0 = Unlimited)"},
+  {"default": 1, "fieldname": "is_published", "fieldtype": "Check", "in_list_view": 1, "label": "Is Published"},
+  {"fieldname": "instructions", "fieldtype": "Small Text", "label": "Instructions"}
+ ],
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Quiz",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1},
+  {"create": 1, "delete": 0, "read": 1, "role": "ELMS Operations User", "write": 1},
+  {"create": 1, "delete": 0, "read": 1, "role": "ELMS Methodologist", "write": 1},
+  {"create": 0, "delete": 0, "read": 1, "role": "ELMS Instructor", "write": 0},
+  {"create": 0, "delete": 0, "read": 0, "role": "ELMS Learner", "write": 0}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "search_fields": "quiz_name, course, lesson, quiz_type",
+ "title_field": "quiz_name"
+}

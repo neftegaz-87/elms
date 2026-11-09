@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 import frappe
 from elms.sso.constants import (
     DEFAULT_KEYCLOAK_REALM,
+    ENV_KEYCLOAK_INTERNAL_URL,
     ENV_KEYCLOAK_PUBLIC_URL,
     KEYCLOAK_DEFAULT_REDIRECT_URL,
     KEYCLOAK_LOGIN_CONF_KEY,
@@ -57,6 +59,22 @@ def get_keycloak_public_realm_url(custom_base_url: str | None = None) -> str:
 
     # 3. Default dev URL
     return f"http://127.0.0.1:8480/realms/{DEFAULT_KEYCLOAK_REALM}"
+
+
+def get_keycloak_internal_realm_url() -> str | None:
+    """Resolve the server-side Keycloak realm URL when an internal route exists."""
+    base_url = (os.getenv(ENV_KEYCLOAK_INTERNAL_URL) or "").strip().rstrip("/")
+    if not base_url:
+        return None
+
+    parsed = urlparse(base_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError(f"{ENV_KEYCLOAK_INTERNAL_URL} must be an absolute HTTP(S) URL")
+
+    realm_suffix = f"/realms/{DEFAULT_KEYCLOAK_REALM}"
+    if base_url.endswith(realm_suffix):
+        return base_url
+    return f"{base_url}{realm_suffix}"
 
 
 def _get_conf_keycloak_credentials() -> dict[str, Any] | None:
@@ -152,15 +170,22 @@ def ensure_social_login_keys(
         doc = frappe.new_doc("Social Login Key")
         doc.provider_name = KEYCLOAK_PROVIDER_NAME
 
+    internal_realm_url = get_keycloak_internal_realm_url()
+    access_token_url = "/protocol/openid-connect/token"
+    api_endpoint = "/protocol/openid-connect/userinfo"
+    if internal_realm_url:
+        access_token_url = f"{internal_realm_url}{access_token_url}"
+        api_endpoint = f"{internal_realm_url}{api_endpoint}"
+
     doc_data = {
         "provider_name": KEYCLOAK_PROVIDER_NAME,
         "social_login_provider": KEYCLOAK_PROVIDER_NAME,
         "custom_base_url": 1,
         "base_url": realm_url,
         "authorize_url": "/protocol/openid-connect/auth",
-        "access_token_url": "/protocol/openid-connect/token",
+        "access_token_url": access_token_url,
         "redirect_url": KEYCLOAK_DEFAULT_REDIRECT_URL,
-        "api_endpoint": "/protocol/openid-connect/userinfo",
+        "api_endpoint": api_endpoint,
         "auth_url_data": json.dumps({"response_type": "code", "scope": "openid email profile"}),
         "user_id_property": "sub",
         "sign_ups": resolved_sign_ups,

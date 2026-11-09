@@ -1,0 +1,8 @@
+schema: epic-decompose-index/v1
+epic_id: T-A03-elms-access-model
+role: app
+next_phase: APP IMPLEMENT
+steps:
+  - step_id: s01
+    shard: steps/s01-access-model.yaml
+    status: done

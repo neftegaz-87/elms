@@ -29,6 +29,13 @@
    "read": 1,
    "role": "ELMS Admin",
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
   }
  ],
  "sort_field": "modified",

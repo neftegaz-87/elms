@@ -1,0 +1,35 @@
+{
+  "schema": "elms-app-runtime-verification/v1",
+  "status": "pass",
+  "live_evidence": true,
+  "evidence_type": "runtime-api-verification",
+  "timestamp": "2026-11-09T22:05:00+03:00",
+  "command": "./bin/pytest -q elms/elms/tests/test_course_studio.py elms/elms/tests/test_lms_core.py elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py && node --check elms/elms/public/js/course-studio.js && node --check elms/elms/public/js/elms-course-studio-page.js && node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile elms/elms/lms/api.py && docker compose -f docker/compose.dev.yaml exec -T backend bench --site elms.localhost execute elms.lms.api.get_learning_relationships --kwargs '{\"search\":\"Демо-поток 2026 · Стропальные работы\"}'",
+  "exit_code": 0,
+  "checks": [
+    "46 targeted tests passed",
+    "Course Studio and learning JavaScript syntax checks passed",
+    "LMS API Python compilation passed",
+    "live relationship query returned one grouped course root",
+    "relationship query returned program=1, batch=1, subscription=1, enrollment=4, chapter=2, lesson=4, quiz=1",
+    "relationship outline returned chapter=1 with lessons=2 and chapter=2 with lessons=2",
+    "authenticated browser created and reloaded a temporary Course Studio course with one chapter and one lesson",
+    "authenticated browser rendered multiple program memberships under one course root; temporary records were removed"
+  ],
+  "observations": {
+    "search": "Демо-поток 2026 · Стропальные работы",
+    "course": "Безопасные методы работ: стропальные операции",
+    "course_code": "DEMO-OIL-OT-STR-2026",
+    "group_count": 1,
+    "relationship_counts": {
+      "course": 1,
+      "program": 1,
+      "batch": 1,
+      "subscription": 1,
+      "enrollment": 4,
+      "chapter": 2,
+      "lesson": 4,
+      "quiz": 1
+    }
+  }
+}

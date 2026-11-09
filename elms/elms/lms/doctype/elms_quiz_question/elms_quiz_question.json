@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "quiz",
+  "question_text",
+  "sequence_id",
+  "question_type",
+  "options_json",
+  "points",
+  "topic",
+  "explanation"
+ ],
+ "fields": [
+  {"fieldname": "quiz", "fieldtype": "Link", "in_list_view": 1, "label": "Quiz", "options": "ELMS Quiz", "reqd": 1},
+  {"fieldname": "question_text", "fieldtype": "Text Editor", "in_list_view": 1, "label": "Question", "reqd": 1},
+  {"default": 1, "fieldname": "sequence_id", "fieldtype": "Int", "in_list_view": 1, "label": "Sequence"},
+  {"default": "Single Choice", "fieldname": "question_type", "fieldtype": "Select", "label": "Question Type", "options": "Single Choice\nMultiple Choice\nTrue/False"},
+  {"fieldname": "options_json", "fieldtype": "Long Text", "label": "Options JSON", "reqd": 1},
+  {"default": 1, "fieldname": "points", "fieldtype": "Int", "label": "Points"},
+  {"fieldname": "topic", "fieldtype": "Data", "in_list_view": 1, "label": "Topic"},
+  {"fieldname": "explanation", "fieldtype": "Small Text", "label": "Explanation (Practice)"}
+ ],
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Quiz Question",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1},
+  {"create": 1, "delete": 0, "read": 1, "role": "ELMS Operations User", "write": 1},
+  {"create": 1, "delete": 0, "read": 1, "role": "ELMS Methodologist", "write": 1},
+  {"create": 0, "delete": 0, "read": 0, "role": "ELMS Learner", "write": 0}
+ ],
+ "sort_field": "sequence_id",
+ "sort_order": "ASC",
+ "states": []
+}

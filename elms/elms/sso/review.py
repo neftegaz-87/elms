@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 import pickle
 import re
@@ -86,8 +87,14 @@ def get_desktop_page(page: str) -> dict[str, object]:
     """Return a workspace page without the review shortcut for hidden users."""
 
     from frappe.desk.desktop import get_desktop_page as get_standard_desktop_page
+    from elms.desk.workspaces import filter_workspace_for_user
 
     page_data = get_standard_desktop_page(page)
+    try:
+        page_name = json.loads(page).get("name")
+    except (TypeError, ValueError):
+        page_name = page
+    page_data = filter_workspace_for_user(page_data, page_name)
     if has_review_app_permission():
         return page_data
 

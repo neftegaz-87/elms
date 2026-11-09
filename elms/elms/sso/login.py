@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlencode, urljoin, urlparse
 
 import frappe
 if not hasattr(frappe, "whitelist"):
@@ -55,7 +55,6 @@ from elms.sso.constants import (
 )
 from elms.sso.ensure import get_keycloak_public_realm_url
 from elms.sso.mapping import get_mapping_registry
-from urllib.parse import urlencode
 
 KEYCLOAK_INTERNAL_URL_ENV = "KEYCLOAK_INTERNAL_URL"
 KEYCLOAK_INTERNAL_URL_DEFAULT = "http://keycloak:8080"
@@ -123,7 +122,6 @@ def authenticate_keycloak(username: str, password: str) -> dict[str, Any]:
     if not username or not password or len(password) > 512:
         raise KeycloakLoginError("Invalid login credentials")
 
-    # Resolve Bitrix source email / login to canonical Yandex / Keycloak identity
     target_username = get_mapping_registry().resolve_target_identity(username)
 
     client_id, client_secret = _get_keycloak_credentials()
@@ -159,7 +157,7 @@ def authenticate_keycloak(username: str, password: str) -> dict[str, Any]:
 
 
 def _raise_invalid_login() -> None:
-	frappe.throw(_("Invalid Login. Try again."), frappe.ValidationError)
+    frappe.throw(_("Invalid Login. Try again."), frappe.ValidationError)
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
@@ -201,14 +199,63 @@ def login_with_keycloak(usr: str | None = None, pwd: str | None = None) -> dict[
     return {"login_token": login_token}
 
 
-@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
-def get_sso_authorization_url(user_input: str | None = None, redirect_to: str | None = "/app") -> dict[str, str]:
-    """Return the OIDC broker authorization URL pointing directly to Yandex via Keycloak.
+def _local_keycloak_login_enabled() -> bool:
+    """Allow local Keycloak credentials only in an explicitly enabled dev stack."""
+    raw = os.getenv("ELMS_ALLOW_LOCAL_KEYCLOAK_LOGIN", "")
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
-    Resolves Bitrix source email to target Yandex email and attaches kc_idp_hint and login_hint.
+
+def _get_absolute_frappe_callback() -> str:
+    """Build the browser-facing OAuth callback accepted by Keycloak.
+
+    Frappe's OAuth endpoint is stored as a relative path in the realm manifest,
+    but the authorization request itself must contain an absolute URI.  Use
+    Frappe's canonical URL resolver first and keep an environment fallback for
+    workers where request/site context is not initialized yet.
     """
+    public_url = ""
     try:
-        client_id, _ = _get_keycloak_credentials()
+        from frappe.utils import get_url
+
+        public_url = str(get_url() or "").strip()
+    except Exception:
+        # During boot and isolated unit tests Frappe may not have local/site
+        # context.  FRAPPE_PUBLIC_URL is the explicit deployment contract.
+        public_url = ""
+
+    parsed_url = urlparse(public_url)
+    if not (parsed_url.scheme in {"http", "https"} and parsed_url.netloc):
+        public_url = (os.getenv("FRAPPE_PUBLIC_URL") or "").strip()
+
+    parsed_url = urlparse(public_url)
+    if not (parsed_url.scheme in {"http", "https"} and parsed_url.netloc):
+        # Keep the returned URI valid even for a context-less dev invocation.
+        # Real containers provide FRAPPE_PUBLIC_URL and never use this value.
+        public_url = "http://elms.localhost:8082"
+
+    return f"{public_url.rstrip('/')}/{KEYCLOAK_DEFAULT_REDIRECT_URL.lstrip('/')}"
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
+def get_sso_authorization_url(
+    user_input: str | None = None,
+    redirect_to: str | None = "/app",
+    mode: str | None = "yandex",
+) -> dict[str, str]:
+    """Return a Keycloak authorization URL for brokered or local dev login.
+
+    The normal mode always adds ``kc_idp_hint=yandex``. Frappe never receives
+    or forwards a password. Local Keycloak login is an explicit dev-only mode
+    for seeded test accounts and is rejected unless the dev flag is enabled.
+    """
+    resolved_mode = str(mode or "yandex").strip().lower()
+    if resolved_mode not in {"yandex", "password", "keycloak", "local"}:
+        frappe.throw(_("Unsupported SSO login mode."))
+    if resolved_mode == "local" and not _local_keycloak_login_enabled():
+        frappe.throw(_("Local Keycloak login is disabled."))
+
+    try:
+        client_id, _secret = _get_keycloak_credentials()
     except Exception:
         client_id = DEFAULT_KEYCLOAK_CLIENT_ID
 
@@ -219,9 +266,10 @@ def get_sso_authorization_url(user_input: str | None = None, redirect_to: str | 
         "client_id": client_id,
         "response_type": "code",
         "scope": "openid profile email",
-        "redirect_uri": KEYCLOAK_DEFAULT_REDIRECT_URL,
-        "kc_idp_hint": YANDEX_IDP_ALIAS,
+        "redirect_uri": _get_absolute_frappe_callback(),
     }
+    if resolved_mode == "yandex":
+        params["kc_idp_hint"] = YANDEX_IDP_ALIAS
     if target_identity and "@" in target_identity:
         params["login_hint"] = target_identity
     if create_oauth_state:

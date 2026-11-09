@@ -1,24 +1,34 @@
 (function () {
+	"use strict";
+
 	var loginEndpoint = "elms.sso.login.login_with_keycloak";
 	var loginTokenEndpoint = "/api/method/frappe.www.login.login_via_token";
 
 	function showInvalidLogin(form) {
 		login.set_invalid(__("Invalid Login. Try again."));
-		$(form).find(".btn-login").prop("disabled", false);
+		$(form).find(".btn-login").prop("disabled", false).text(__("Login"));
+	}
+
+	function labelYandexButton() {
+		$(".for-login .btn-keycloak").each(function () {
+			var icon = $(this).find("img.yandex-btn-icon").first().prop("outerHTML");
+			if (icon) {
+				$(this).html(icon + "<span>" + __("Войти через Яндекс") + "</span>");
+			}
+		});
 	}
 
 	function bindKeycloakLogin() {
 		var forms = $(".for-login .form-login");
-		if (!forms.length) {
-			return;
-		}
+		if (!forms.length) return;
 
 		forms.off("submit");
 		forms.on("submit.elmsKeycloak", function (event) {
 			event.preventDefault();
+
 			var form = this;
-			var username = frappe.utils.xss_sanitise(( $("#login_email").val() || "" ).trim());
-			var password = $("#login_password").val() || "";
+			var username = frappe.utils.xss_sanitise(( $(form).find("#login_email").val() || "" ).trim());
+			var password = $(form).find("#login_password").val() || "";
 			var submit = $(form).find(".btn-login");
 
 			if (!username || !password) {
@@ -36,7 +46,7 @@
 				freeze: true,
 				error: function () {
 					showInvalidLogin(form);
-				},
+				}
 			}).then(function (response) {
 				var loginToken = response && response.message && response.message.login_token;
 				if (!loginToken) {
@@ -51,6 +61,7 @@
 
 			return false;
 		});
+		labelYandexButton();
 	}
 
 	$(document).on("login_rendered", bindKeycloakLogin);

@@ -1,0 +1,26 @@
+{
+ "doctype": "Page",
+ "module": "LMS",
+ "name": "elms-learning",
+ "page_name": "elms-learning",
+ "roles": [
+  {
+   "role": "ELMS Admin"
+  },
+  {
+   "role": "ELMS Operations User"
+  },
+  {
+   "role": "ELMS Learner"
+  },
+  {
+   "role": "ELMS Instructor"
+  },
+  {
+   "role": "ELMS Methodologist"
+  }
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Кабинет обучения"
+}

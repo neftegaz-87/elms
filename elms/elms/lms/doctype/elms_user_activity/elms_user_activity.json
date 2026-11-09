@@ -83,7 +83,7 @@
    "create": 1,
    "delete": 0,
    "read": 1,
-   "role": "ELMS LMS User",
+   "role": "ELMS Learner",
    "write": 0
   }
  ],

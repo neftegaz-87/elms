@@ -113,6 +113,12 @@ class TestLMSCoreFlows(unittest.TestCase):
             "elms_lesson_progress",
             "elms_user_activity",
             "elms_video_watch_log",
+            "elms_quiz",
+            "elms_quiz_question",
+            "elms_quiz_attempt",
+            "elms_program",
+            "elms_program_course",
+            "elms_program_enrollment",
         ]
         for name in expected:
             dt_dir = base_dir / name
@@ -327,19 +333,76 @@ class TestLMSCoreFlows(unittest.TestCase):
                 lms_api.record_lesson_progress(enrollment="ENR-001", lesson_id="l1", time_spent_delta=30)
 
     def test_lms_workspace_navigation(self):
-        """FR-003 / TM-010: Verify Workspace LMS has cards for Batch, Subscription, Progress, and Section."""
+        """FR-003 / TM-010: The shared LMS workspace exposes the authoring surface."""
         lms_ws = next((item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "LMS"), None)
         self.assertIsNotNone(lms_ws)
-        links = lms_ws["links"]
+        link_to = [link[1] for link in lms_ws["links"]]
+        self.assertIn("ELMS Course", link_to)
+        self.assertNotIn("ELMS Course Chapter", link_to)
+        self.assertNotIn("ELMS Course Lesson", link_to)
+        self.assertIn("/app/elms-course-studio", [shortcut.get("url") for shortcut in lms_ws["shortcuts"]])
+        self.assertIn("ELMS Quiz", link_to)
+        self.assertIn("ELMS Quiz Question", link_to)
+        self.assertIn("ELMS Course Progress", link_to)
 
-        doctypes_linked = [link_to for _, link_to, _ in links]
-        self.assertIn("ELMS Batch", doctypes_linked)
-        self.assertIn("ELMS Subscription", doctypes_linked)
-        self.assertIn("ELMS Enrollment", doctypes_linked)
-        self.assertIn("ELMS Course Progress", doctypes_linked)
-        self.assertIn("ELMS Lesson Progress", doctypes_linked)
-        self.assertIn("ELMS User Activity", doctypes_linked)
-        self.assertIn("ELMS LMS Section", doctypes_linked)
+    def test_self_enrollment_requires_active_published_batch(self):
+        """A learner may self-enroll only into a published active course batch."""
+        frappe.session.user = "student@example.ru"
+        with patch.object(frappe.db, "exists", return_value=True), \
+             patch.object(frappe.db, "get_value", side_effect=[
+                 {"course": "COURSE-1", "status": "Active"},
+                 1,
+             ]), \
+             patch.object(lms_api, "enroll_learner", return_value={"enrollment": "ENR-1"}) as enroll, \
+             patch.object(lms_api, "_record_user_activity"):
+            result = lms_api.enroll_self("BATCH-1")
+
+        self.assertEqual(result["enrollment"], "ENR-1")
+        enroll.assert_called_once_with(user="student@example.ru", batch="BATCH-1")
+
+    def test_quiz_public_payload_hides_correct_answers(self):
+        """Learners receive option labels but never the answer key."""
+        payload = lms_api._quiz_public_questions([
+            {
+                "name": "Q-1",
+                "question_text": "Вопрос",
+                "sequence_id": 1,
+                "question_type": "Single Choice",
+                "options": [{"id": "A", "text": "Да", "correct": True}],
+                "points": 1,
+                "topic": "Безопасность",
+            }
+        ])
+        self.assertEqual(payload[0]["options"], [{"id": "A", "text": "Да"}])
+        self.assertNotIn("correct", payload[0]["options"][0])
+
+    def test_quiz_submission_is_graded_server_side(self):
+        """A submitted attempt is closed and scored from its server snapshot."""
+        attempt = FakeDoc(
+            "ELMS Quiz Attempt",
+            name="ATTEMPT-1",
+            quiz="QUIZ-1",
+            enrollment="ENR-1",
+            user="student@example.ru",
+            status="In Progress",
+            deadline_at=None,
+            snapshot_json=json.dumps([
+                {
+                    "name": "Q-1",
+                    "options": [{"id": "A", "correct": True}, {"id": "B", "correct": False}],
+                    "points": 1,
+                    "topic": "Безопасность",
+                }
+            ]),
+        )
+        with patch.object(frappe, "get_doc", return_value=attempt), \
+             patch.object(frappe.db, "get_value", side_effect=[80, "LESSON-1", "Practice"]), \
+             patch.object(lms_api, "_record_user_activity"):
+            result = lms_api.submit_quiz("ATTEMPT-1", json.dumps({"Q-1": ["B"]}))
+
+        self.assertEqual(result["status"], "Failed")
+        self.assertEqual(result["score_percentage"], 0.0)
+        self.assertEqual(attempt.answers_json, '{"Q-1": ["B"]}')
 
 
 if __name__ == "__main__":

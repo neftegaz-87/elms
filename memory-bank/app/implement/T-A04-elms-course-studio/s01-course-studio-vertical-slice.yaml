@@ -1,0 +1,82 @@
+schema: epic-implement/v1
+role: app
+step_id: s01
+plan_id: T-A04-elms-course-studio
+title: s01 — Course Studio vertical slice IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/app/plan/T-A04-elms-course-studio/yaml/steps/s01-course-studio-vertical-slice.yaml
+date: 2026-11-09
+
+skills_used:
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+done:
+  - Added nested editor read/save APIs over existing ELMS Course, Chapter, Lesson and Quiz records
+  - Added Course Studio route with outline, selected-item editor, reorder/remove controls, draft save, preview and publish state
+  - Routed LMS management course actions to Course Studio and hid direct chapter/lesson entry points
+  - Added role-filtered workspace shortcut and preserved learner-facing course structure
+  - Added backend, UI contract and workspace tests
+
+files:
+  - elms/elms/lms/api.py
+  - elms/elms/public/js/course-studio.js
+  - elms/elms/public/js/elms-course-studio-page.js
+  - elms/elms/public/css/course-studio.css
+  - elms/elms/lms/page/elms_course_studio/elms_course_studio.json
+  - elms/elms/hooks.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/tests/test_course_studio.py
+  - elms/elms/tests/test_learning_ui.py
+  - elms/elms/tests/test_workspaces.py
+  - elms/elms/tests/test_lms_core.py
+  - memory-bank/app/implement/T-A04-elms-course-studio/s01-course-studio-vertical-slice.yaml
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "LMS Workspace -> /app/elms-course-studio -> Course Studio page"
+    - "Management tab -> open/create course -> Course Studio route"
+    - "Course Studio -> get_course_editor_data/save_course_draft -> nested persisted outline"
+    - "Learner preview/player -> get_course_structure -> same persisted chapter/lesson records"
+  enforce_path: elms/elms/lms/api.py
+  dual_path_rg: "rg -n 'get_course_editor_data|save_course_draft|get_course_structure' elms/elms/lms/api.py elms/elms/public/js"
+  instruction_rg: "rg -n 'elms-course-studio|ELMS Course Chapter|ELMS Course Lesson' elms/elms/desk/workspaces.py elms/elms/public/js/desk-learning.js"
+  deny_old_proven: true
+
+tests:
+  - '`./bin/pytest -q elms/elms/tests/test_course_studio.py elms/elms/tests/test_lms_core.py elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py`'
+  - '`node --check elms/elms/public/js/course-studio.js`'
+  - '`node --check elms/elms/public/js/elms-course-studio-page.js`'
+  - '`node --check elms/elms/public/js/desk-learning.js`'
+  - '`python3 -m py_compile elms/elms/lms/api.py`'
+
+integration_check:
+  - '`docker compose -f docker/compose.dev.yaml exec -T backend bench --site elms.localhost execute elms.lms.api.get_course_editor_data --kwargs ''{"course":None}''`'
+
+checkpoints:
+  - id: cp1
+    criterion: Nested editor API contract and ownership validation pass
+    status: done
+    verify: ./bin/pytest -q elms/elms/tests/test_course_studio.py
+  - id: cp2
+    criterion: Course Studio route, assets and workspace integration pass contract tests
+    status: done
+    verify: ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py
+  - id: cp3
+    criterion: Existing LMS learner and progress contracts remain green
+    status: done
+    verify: ./bin/pytest -q elms/elms/tests/test_lms_core.py
+  - id: cp4
+    criterion: JavaScript and Python syntax checks pass
+    status: done
+    verify: node --check elms/elms/public/js/course-studio.js && node --check elms/elms/public/js/elms-course-studio-page.js && node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile elms/elms/lms/api.py
+  - id: cp5
+    criterion: Local assets and editor API are reachable from the running stack
+    status: done
+    verify: curl -sS -o /dev/null -w '%{http_code}' http://localhost:8082/assets/elms/js/course-studio.js

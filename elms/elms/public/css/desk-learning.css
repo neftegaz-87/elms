@@ -126,6 +126,239 @@
 	border-color: var(--elms-action);
 }
 
+.elms-catalog-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 20px;
+}
+
+.elms-catalog-card {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.elms-catalog-card h3 {
+	font-size: 18px;
+	line-height: 1.35;
+	margin: 0;
+}
+
+.elms-catalog-card p {
+	color: var(--elms-muted);
+	line-height: 1.5;
+	margin: 0;
+	min-height: 66px;
+}
+
+.elms-catalog-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	color: var(--elms-muted);
+	font-size: 12px;
+}
+
+.elms-program-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 20px;
+}
+
+.elms-program-card,
+.elms-program-course-row {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 20px;
+}
+
+.elms-program-card h3,
+.elms-program-course-row h3 {
+	margin: 8px 0;
+}
+
+.elms-program-card p {
+	color: var(--elms-muted);
+	line-height: 1.5;
+	min-height: 66px;
+}
+
+.elms-program-course-list {
+	display: grid;
+	gap: 12px;
+}
+
+.elms-preview-course-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 16px;
+}
+
+.elms-preview-course-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 9px;
+	padding: 18px;
+	text-align: left;
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	color: var(--elms-graphite);
+	cursor: pointer;
+}
+
+.elms-preview-course-card:hover,
+.elms-preview-course-card:focus-visible {
+	border-color: var(--elms-action);
+	box-shadow: 0 4px 12px rgba(11, 31, 51, 0.08);
+}
+
+.elms-preview-course-card strong {
+	font-size: 18px;
+}
+
+.elms-preview-course-card span:not(.elms-course-batch) {
+	color: var(--elms-muted);
+	line-height: 1.45;
+}
+
+.elms-preview-course-card small {
+	color: var(--elms-muted);
+}
+
+.elms-preview-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 14px;
+}
+
+.elms-preview-layout {
+	display: grid;
+	grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+	gap: 18px;
+	align-items: start;
+}
+
+.elms-preview-outline,
+.elms-preview-main {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 18px;
+}
+
+.elms-preview-outline {
+	display: grid;
+	gap: 6px;
+}
+
+.elms-preview-lesson-item {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 10px;
+	border: 0;
+	border-left: 3px solid transparent;
+	background: transparent;
+	color: var(--elms-graphite);
+	text-align: left;
+	cursor: pointer;
+}
+
+.elms-preview-lesson-item:hover,
+.elms-preview-lesson-item.active {
+	background: var(--elms-action-soft);
+	border-left-color: var(--elms-action);
+	color: var(--elms-action);
+}
+
+.elms-preview-lesson-item small {
+	color: var(--elms-muted);
+	white-space: nowrap;
+}
+
+.elms-preview-main h2 {
+	margin: 5px 0 8px;
+}
+
+.elms-preview-main h3 {
+	font-size: 22px;
+	margin: 6px 0 18px;
+}
+
+.elms-preview-description {
+	color: var(--elms-muted);
+	max-width: 720px;
+}
+
+@media (max-width: 720px) {
+	.elms-preview-layout {
+		grid-template-columns: 1fr;
+	}
+}
+
+.elms-program-course-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 20px;
+}
+
+.elms-quiz-pane {
+	margin-top: 22px;
+	padding-top: 18px;
+	border-top: 1px solid var(--elms-line);
+}
+
+.elms-quiz-intro,
+.elms-quiz-question {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-sm);
+	padding: 16px;
+}
+
+.elms-quiz-question {
+	margin: 0 0 14px;
+}
+
+.elms-quiz-question legend {
+	font-weight: 700;
+	padding: 0 6px;
+}
+
+.elms-quiz-options {
+	display: grid;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.elms-quiz-option {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	padding: 10px;
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-sm);
+	cursor: pointer;
+}
+
+.elms-quiz-option:hover {
+	background: var(--elms-action-soft);
+}
+
+.elms-quiz-meta {
+	color: var(--elms-muted);
+	margin-bottom: 14px;
+}
+
 .elms-course-header {
 	margin-bottom: 12px;
 }
@@ -586,10 +819,383 @@
 	white-space: nowrap;
 }
 
+.elms-course-builder-dialog .modal-dialog {
+	max-width: 980px;
+}
+
+.elms-course-builder-body {
+	display: grid;
+	grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+	gap: 22px;
+}
+
+.elms-course-builder-body .form-layout {
+	min-width: 0;
+}
+
+.elms-course-builder-preview {
+	align-self: start;
+	padding: 16px;
+	background: var(--elms-paper);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+}
+
+.elms-course-builder-card {
+	margin: 10px 0 14px;
+	padding: 18px;
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+}
+
+.elms-course-builder-card h3 {
+	margin: 10px 0 8px;
+	font-size: 18px;
+}
+
+.elms-course-builder-card p {
+	min-height: 48px;
+	margin: 0 0 16px;
+	color: var(--elms-muted);
+	line-height: 1.5;
+}
+
+.elms-course-builder-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	padding-top: 12px;
+	border-top: 1px solid var(--elms-line);
+	color: var(--elms-muted);
+	font-size: 12px;
+}
+
 .elms-admin-list-row small {
 	margin-top: 2px;
 	color: var(--elms-muted);
 	font-size: 11px;
+}
+
+.elms-relationship-search {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 16px;
+	margin-bottom: 16px;
+}
+
+.elms-relationship-search-head,
+.elms-relationship-root {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+.elms-relationship-search-head h3 {
+	margin: 0;
+	font-size: 16px;
+}
+
+.elms-relationship-search-head p {
+	margin: 4px 0 0;
+}
+
+.elms-relationship-search-count,
+.elms-relationship-counts span,
+.elms-relationship-type,
+.elms-relationship-match {
+	font-size: 11px;
+	color: var(--elms-muted);
+}
+
+.elms-relationship-search-controls {
+	display: grid;
+	grid-template-columns: minmax(220px, 1fr) 150px auto auto;
+	gap: 8px;
+	margin-top: 14px;
+}
+
+.elms-relationship-search-controls input,
+.elms-relationship-search-controls select {
+	min-height: 40px;
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-sm);
+	padding: 8px 10px;
+	background: var(--elms-paper);
+	color: var(--elms-graphite);
+}
+
+.elms-relationship-groups {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.elms-relationship-group {
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+	padding: 16px;
+}
+
+.elms-relationship-course {
+	display: block;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: var(--elms-graphite);
+	font-size: 18px;
+	font-weight: 700;
+	text-align: left;
+	cursor: pointer;
+}
+
+.elms-relationship-course:hover {
+	color: var(--elms-action);
+}
+
+.elms-relationship-root small {
+	display: block;
+	margin-top: 4px;
+	color: var(--elms-muted);
+	font-size: 12px;
+}
+
+.elms-relationship-counts {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 6px;
+}
+
+.elms-relationship-root-side {
+	display: grid;
+	justify-items: end;
+	gap: 8px;
+}
+
+.elms-relationship-create-batch {
+	width: auto;
+	padding: 6px 10px;
+}
+
+.elms-relationship-counts span,
+.elms-relationship-match {
+	padding: 4px 7px;
+	border: 1px solid var(--elms-line);
+	border-radius: 999px;
+	background: var(--elms-paper);
+}
+
+.elms-relationship-matches {
+	margin-top: 12px;
+	color: var(--elms-muted);
+	font-size: 12px;
+}
+
+.elms-relationship-context {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--elms-line);
+}
+
+.elms-relationship-context-label {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: .06em;
+	color: var(--elms-action);
+	text-transform: uppercase;
+}
+
+.elms-relationship-help {
+	margin: 10px 0 0;
+	color: var(--elms-muted);
+	font-size: 12px;
+}
+
+.elms-relationship-outline {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--elms-line);
+}
+
+.elms-relationship-outline-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	align-items: baseline;
+	margin-bottom: 8px;
+}
+
+.elms-relationship-outline-head h4 {
+	margin: 0;
+	font-size: 12px;
+	color: var(--elms-muted);
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.elms-relationship-outline-head span {
+	font-size: 11px;
+	color: var(--elms-muted);
+}
+
+.elms-relationship-tree {
+	display: grid;
+	gap: 8px;
+}
+
+.elms-relationship-tree-chapter-group {
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-sm);
+	background: var(--elms-paper);
+	padding: 8px 10px 8px 14px;
+}
+
+.elms-relationship-tree-chapter {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 10px;
+	width: 100%;
+	padding: 0 0 7px;
+	border: 0;
+	border-bottom: 1px solid var(--elms-line);
+	background: transparent;
+	text-align: left;
+	color: var(--elms-graphite);
+	cursor: pointer;
+}
+
+.elms-relationship-tree-chapter:hover {
+	color: var(--elms-action);
+}
+
+.elms-relationship-tree-chapter.is-static {
+	cursor: default;
+}
+
+.elms-relationship-tree-title {
+	font-weight: 700;
+	font-size: 13px;
+}
+
+.elms-relationship-tree-chapter small,
+.elms-relationship-tree-lesson small {
+	color: var(--elms-muted);
+	font-size: 11px;
+}
+
+.elms-relationship-tree-lessons {
+	display: grid;
+	gap: 3px;
+	padding: 5px 0 0 14px;
+	border-left: 2px solid var(--elms-action-soft);
+}
+
+.elms-relationship-tree-lesson {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 6px 0;
+	border: 0;
+	background: transparent;
+	text-align: left;
+	color: var(--elms-graphite);
+	cursor: pointer;
+}
+
+.elms-relationship-tree-lesson:hover {
+	color: var(--elms-action);
+}
+
+.elms-relationship-tree-lesson b,
+.elms-relationship-tree-lesson small {
+	display: block;
+}
+
+.elms-relationship-tree-lesson b {
+	font-size: 12px;
+}
+
+.elms-relationship-tree-empty {
+	padding: 8px 0 2px 14px;
+	color: var(--elms-muted);
+	font-size: 12px;
+}
+
+.elms-relationship-secondary {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.elms-relationship-secondary-group {
+	display: contents;
+}
+
+.elms-relationship-columns {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px;
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--elms-line);
+}
+
+.elms-relationship-column h4 {
+	margin: 0 0 6px;
+	font-size: 12px;
+	color: var(--elms-muted);
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.elms-relationship-column h4 span {
+	color: var(--elms-action);
+}
+
+.elms-relationship-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 7px 0;
+	border: 0;
+	border-bottom: 1px solid var(--elms-line);
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+	color: var(--elms-graphite);
+}
+
+.elms-relationship-row:hover {
+	color: var(--elms-action);
+}
+
+.elms-relationship-row b,
+.elms-relationship-row small {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.elms-relationship-row b {
+	font-size: 12px;
+}
+
+.elms-relationship-row small {
+	margin-top: 2px;
+	color: var(--elms-muted);
+	font-size: 10px;
+}
+
+.elms-relationship-empty {
+	margin-top: 12px;
 }
 
 .elms-row-status {
@@ -613,6 +1219,9 @@
 	.elms-player-container {
 		grid-template-columns: 1fr;
 	}
+	.elms-relationship-columns {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 	.elms-player-sidebar {
 		border-right: 0;
 		border-bottom: 1px solid var(--elms-line);
@@ -621,5 +1230,27 @@
 	.elms-learning-header {
 		align-items: stretch;
 		flex-direction: column;
+	}
+	.elms-course-builder-body {
+		display: block;
+	}
+	.elms-course-builder-preview {
+		margin-top: 18px;
+	}
+}
+
+@media (max-width: 640px) {
+	.elms-relationship-search-controls,
+	.elms-relationship-columns {
+		grid-template-columns: 1fr;
+	}
+	.elms-relationship-root {
+		flex-direction: column;
+	}
+	.elms-relationship-root-side {
+		justify-items: start;
+	}
+	.elms-relationship-counts {
+		justify-content: flex-start;
 	}
 }

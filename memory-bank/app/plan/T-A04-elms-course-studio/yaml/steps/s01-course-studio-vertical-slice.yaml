@@ -1,0 +1,179 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A04-elms-course-studio
+title: Course Studio vertical slice
+level: L1
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: false
+wire_complete_required: true
+
+goal: >-
+  Дать методисту один production-facing Course Studio для сборки курса от
+  management entrypoint до сохранённых chapter/lesson records, сохранив
+  learner-facing структуру и серверную авторизацию.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004]
+  us_ids: [US-001, US-002, US-003, US-004, US-005, US-006]
+  nouns: [Course Studio, ELMS Course, ELMS Course Chapter, ELMS Course Lesson, ELMS Quiz, nested outline, learner preview]
+  layout_paths:
+  - /app/elms-course-studio[/<course>]
+  - elms/elms/lms/api.py
+  - elms/elms/public/js/course-studio.js
+  - elms/elms/public/css/course-studio.css
+  ac_quotes:
+  - "Методист открывает один Course Studio вместо отдельных форм раздела и урока."
+  - "Курс с несколькими разделами и уроками создаётся и перезагружается с правильным порядком и связями."
+  - "Learner structure продолжает разрешаться из сохранённых записей."
+  - "Экран разделён на outline слева, редактор по центру и свойства/правила прохождения справа."
+  plan_jumps:
+  - memory-bank/app/plan/T-A04-elms-course-studio/md/plan.md:1-129
+  user_journey: >-
+    ELMS Methodologist opens LMS, chooses Course Studio, creates or opens a course,
+    adds chapters and lessons in one outline, edits the selected item, saves a
+    draft, previews it as a learner, and publishes it without opening child records.
+  api:
+    get_course_editor_data:
+      method: elms.lms.api.get_course_editor_data
+      input: course optional identifier
+      output: authenticated manager, course metadata, nested chapters/lessons, course quizzes
+      errors: Guest or non-manager 403; unknown course 404
+    save_course_draft:
+      method: elms.lms.api.save_course_draft
+      input: JSON payload with course, ordered chapters/lessons, optional quiz links and deletion lists
+      output: persisted course editor payload with server names and order
+      errors: Guest/non-manager 403; invalid parent/child or deletion with progress 400/404
+  roles:
+    allowed: ELMS Admin, ELMS Operations User, ELMS Methodologist, System Manager, Administrator
+    denied: Guest, ELMS Learner, unrelated authenticated users
+  persistence: >-
+    Keep ELMS Course, ELMS Course Chapter, ELMS Course Lesson and ELMS Quiz as
+    canonical records. The studio is a transactional facade over those DocTypes.
+  ui_contract:
+    route: /app/elms-course-studio[/<course>]
+    required: nested outline, selected-item editor, save, preview, publish state, keyboard-visible controls
+    layout: left nested outline, center selected-item editor, right properties and completion rules
+  done: >-
+    The methodologist can build and reopen a multi-chapter course from one route;
+    learner structure still resolves from the persisted records; no authoring
+    path requires manual child-record linking.
+
+context:
+  consumes:
+  - path: memory-bank/product/modules.md
+    reason: canonical LMS roles and DocTypes
+  - path: rules/elms-design.mdc
+    reason: scoped visual and accessibility contract
+  - path: elms/elms/lms/api.py
+    reason: existing learner structure and quiz/progress contracts
+  produces:
+  - path: elms/elms/lms/api.py
+    reason: nested Course Studio read/save boundary
+  - path: elms/elms/public/js/course-studio.js
+    reason: outline/editor interaction and persistence caller
+  plan_refs: [FR-001, FR-002, FR-003, FR-004, US-001, US-002, US-003, US-004, US-005, US-006, AC-001, AC-002, AC-003, AC-004, AC-005]
+  files:
+  - elms/elms/lms/api.py
+  - elms/elms/public/js/course-studio.js
+  - elms/elms/public/js/elms-course-studio-page.js
+  - elms/elms/public/css/course-studio.css
+  - elms/elms/lms/page/elms_course_studio/elms_course_studio.json
+  - elms/elms/hooks.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/tests/test_course_studio.py
+  - elms/elms/tests/test_learning_ui.py
+  - elms/elms/tests/test_workspaces.py
+  - elms/elms/tests/test_lms_core.py
+
+as_built:
+- Existing ELMS Course/Chapter/Lesson/Quiz DocTypes and learner get_course_structure path are canonical.
+- LMS management exposes separate child-record authoring actions instead of one course-first outline.
+
+delta:
+- Add Course Studio API facade, nested outline UI, route/assets and workspace/management cutover.
+- Prove server ownership validation, ordered persistence, learner continuity and direct-authoring sunset.
+
+files:
+- elms/elms/lms/api.py
+- elms/elms/public/js/course-studio.js
+- elms/elms/public/js/elms-course-studio-page.js
+- elms/elms/public/css/course-studio.css
+- elms/elms/lms/page/elms_course_studio/elms_course_studio.json
+- elms/elms/hooks.py
+- elms/elms/desk/workspaces.py
+- elms/elms/public/js/desk-learning.js
+- elms/elms/tests/test_course_studio.py
+- elms/elms/tests/test_learning_ui.py
+- elms/elms/tests/test_workspaces.py
+- memory-bank/app/implement/T-A04-elms-course-studio/s01-course-studio-vertical-slice.yaml
+
+deletes:
+- path: elms/elms/desk/workspaces.py
+  symbol: Direct ELMS Course Chapter and ELMS Course Lesson authoring links
+  replacement: Course Studio shortcut
+- path: elms/elms/public/js/desk-learning.js
+  symbol: Separate chapter/lesson management entry points
+  replacement: Course Studio route
+
+out_of_scope:
+- AI or document import; this slice only accepts structured course editor payloads.
+- Full quiz/question bank authoring; existing ELMS Quiz records remain available.
+- Real-time multi-author collaboration; single-author draft save is the contract.
+
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  design:
+  - .agents/skills/frontend-design/SKILL.md
+
+tdd:
+- Add API and UI contract assertions before implementation
+- Add nested save/ownership tests for the course draft endpoint
+- Implement endpoint, route, editor and workspace integration
+- Preserve learner get_course_structure contract
+
+verify:
+- ./bin/pytest -q elms/elms/tests/test_course_studio.py elms/elms/tests/test_lms_core.py
+- ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py
+- node --check elms/elms/public/js/course-studio.js
+- node --check elms/elms/public/js/elms-course-studio-page.js
+- node --check elms/elms/public/js/desk-learning.js
+- python3 -m py_compile elms/elms/lms/api.py
+- rg -n "get_course_editor_data|save_course_draft|elms-course-studio|course-studio" elms/elms/lms/api.py elms/elms/public/js elms/elms/hooks.py elms/elms/desk/workspaces.py
+
+checkpoints:
+- id: cp1
+  criterion: API returns nested course editor data and saves ordered child records with ownership validation
+  verify: ./bin/pytest -q elms/elms/tests/test_course_studio.py
+- id: cp2
+  criterion: Course Studio page and asset registration exist with the required route and controls
+  verify: ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py
+- id: cp3
+  criterion: Existing learner structure and LMS core contracts remain green
+  verify: ./bin/pytest -q elms/elms/tests/test_lms_core.py
+- id: cp4
+  criterion: JavaScript parses and production call sites point to the Course Studio route
+  verify: node --check elms/elms/public/js/course-studio.js && node --check elms/elms/public/js/elms-course-studio-page.js && node --check elms/elms/public/js/desk-learning.js
+- id: cp5
+  criterion: Mixed wire contract is present and old direct authoring route is no longer the primary management path
+  verify: rg -n "get_course_editor_data|save_course_draft|elms-course-studio" elms/elms/lms/api.py elms/elms/public/js elms/elms/hooks.py elms/elms/desk/workspaces.py
+
+wire_complete:
+  call_sites:
+  - "LMS Workspace -> Course Studio shortcut -> /app/elms-course-studio"
+  - "Management tab -> create/open course -> Course Studio"
+  - "Course Studio -> elms.lms.api.get_course_editor_data -> nested persisted outline"
+  - "Course Studio -> elms.lms.api.save_course_draft -> ELMS Course/Chapter/Lesson/Quiz"
+  - "Learner preview/player -> elms.lms.api.get_course_structure -> same persisted outline"
+  enforce_path: elms/elms/lms/api.py
+  dual_path_rg: rg -n "get_course_editor_data|save_course_draft|get_course_structure" elms/elms/lms/api.py elms/elms/public/js
+  instruction_rg: rg -n "elms-course-studio|ELMS Course Chapter|ELMS Course Lesson" elms/elms/desk/workspaces.py elms/elms/public/js/desk-learning.js
+  deny_old_proven: true

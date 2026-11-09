@@ -11,10 +11,19 @@ include $(DEV_HUB)/make/product.mk
 
 SHELL := /bin/bash
 
-.PHONY: local.up local.restart local.down local.ps local.logs docker.restart keycloak.seed dev prod prod.up prod.down prod.ps prod.logs prod.smoke prod.edge prod.edge.up prod.edge.down prod.edge.ps prod.edge.logs
+.PHONY: local.up local.restart local.down local.build local.rebuild local.ps local.logs docker.restart docker.build docker.rebuild keycloak.seed dev prod prod.up prod.down prod.ps prod.logs prod.smoke prod.edge prod.edge.up prod.edge.down prod.edge.ps prod.edge.logs
 
 local.up:
 	bash scripts/docker-up.sh dev up -d --build
+
+docker.build:
+	bash scripts/docker-up.sh dev build
+
+docker.rebuild:
+	bash scripts/docker-up.sh dev up -d --build --force-recreate
+
+local.build: docker.build
+local.rebuild: docker.rebuild
 
 docker.restart:
 	bash scripts/docker-up.sh dev restart backend websocket queue-short queue-long scheduler frontend
