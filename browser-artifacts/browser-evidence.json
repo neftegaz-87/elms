@@ -14,23 +14,23 @@
     },
     {
       "name": "login_heading_uses_elms_sdo_brand",
-      "status": "pass",
-      "observed": "Вход на сайт ELMS СДО"
+      "status": "fail",
+      "observed": "Вход на сайт elms"
     },
     {
       "name": "login_css_asset_linked",
       "status": "pass",
       "observed": [
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.2QTISRLA.css",
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.YC62BHI7.css",
         "http://elms.localhost:8082/assets/elms/css/login.css",
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.ICUQVWJB.css"
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.IS3VMNVF.css"
       ]
     },
     {
       "name": "linked_stylesheets_are_available",
       "status": "pass",
       "observed": {
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.2QTISRLA.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.YC62BHI7.css": {
           "status": 200,
           "content_type": "text/css"
         },
@@ -38,7 +38,7 @@
           "status": 200,
           "content_type": "text/css"
         },
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.ICUQVWJB.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.IS3VMNVF.css": {
           "status": 200,
           "content_type": "text/css"
         }
@@ -57,7 +57,7 @@
           "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
         },
         "card": {
-          "height": "362px",
+          "height": "421px",
           "borderRadius": "3px",
           "backgroundColor": "rgb(255, 255, 255)",
           "borderColor": "rgb(213, 220, 227)",
@@ -105,16 +105,37 @@
         "http://elms.localhost:8082/assets/frappe/dist/js/file_uploader.bundle.R2SJHSNK.js",
         "http://elms.localhost:8082/assets/frappe/dist/js/frappe-web.bundle.BNEBYLYP.js",
         "http://elms.localhost:8082/website_script.js",
-        "http://elms.localhost:8082/assets/elms/js/login-keycloak.js"
+        "http://elms.localhost:8082/assets/elms/js/login-keycloak.js?v=2"
       ]
     },
     {
       "name": "btn_keycloak_present",
-      "status": "fail"
+      "status": "pass"
     },
     {
       "name": "no_direct_yandex_button",
       "status": "pass"
+    },
+    {
+      "name": "btn_keycloak_href_public_url",
+      "status": "fail",
+      "href": "http://elms-keycloak.localhost:8480/realms/elms/protocol/openid-connect/auth?redirect_uri=http%3A%2F%2Felms.localhost%3A8082%2Fapi%2Fmethod%2Ffrappe.integrations.oauth2_logins.login_via_keycloak&state=a96f1017e45d9a0ad8b3f6e72517cdfd&response_type=code&scope=openid+email+profile&client_id=elms-frappe&kc_idp_hint=yandex"
+    },
+    {
+      "name": "btn_geometry_44px_3px",
+      "status": "pass",
+      "observed": {
+        "height": "44px",
+        "borderRadius": "3px"
+      }
+    },
+    {
+      "name": "btn_color_cobalt_action",
+      "status": "pass",
+      "observed": {
+        "backgroundColor": "rgb(13, 76, 211)",
+        "color": "rgb(255, 255, 255)"
+      }
     },
     {
       "name": "invalid_credentials_stay_on_login",
@@ -127,10 +148,11 @@
   ],
   "passed": false,
   "errors": [
-    "Expected exactly one .btn-keycloak button, found 0"
+    "Login heading is 'Вход на сайт elms', expected it to contain 'ELMS СДО'",
+    "Button href 'http://elms-keycloak.localhost:8480/realms/elms/protocol/openid-connect/auth?redirect_uri=http%3A%2F%2Felms.localhost%3A8082%2Fapi%2Fmethod%2Ffrappe.integrations.oauth2_logins.login_via_keycloak&state=a96f1017e45d9a0ad8b3f6e72517cdfd&response_type=code&scope=openid+email+profile&client_id=elms-frappe&kc_idp_hint=yandex' does not start with 'http://127.0.0.1:8480/realms/elms'"
   ],
   "stylesheet_statuses": {
-    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.2QTISRLA.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.YC62BHI7.css": {
       "status": 200,
       "content_type": "text/css"
     },
@@ -138,7 +160,7 @@
       "status": 200,
       "content_type": "text/css"
     },
-    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.ICUQVWJB.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.IS3VMNVF.css": {
       "status": 200,
       "content_type": "text/css"
     }
@@ -153,7 +175,7 @@
       "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
     },
     "card": {
-      "height": "362px",
+      "height": "421px",
       "borderRadius": "3px",
       "backgroundColor": "rgb(255, 255, 255)",
       "borderColor": "rgb(213, 220, 227)",
@@ -185,11 +207,19 @@
       "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
     }
   },
+  "computed_style": {
+    "height": "44px",
+    "borderRadius": "3px",
+    "backgroundColor": "rgb(13, 76, 211)",
+    "color": "rgb(255, 255, 255)",
+    "display": "inline-flex",
+    "minHeight": "44px"
+  },
   "screenshot": "/home/aero/PyProject/NEFTEGAZ/elms/browser-artifacts/login-page.png",
   "status": "fail",
   "evidence_type": "runtime_browser",
   "live_evidence": true,
-  "timestamp": "2026-11-05T09:49:09Z",
+  "timestamp": "2026-11-05T21:31:19Z",
   "command": "python3 scripts/run_browser_qa.py",
   "exit_code": 1
 }

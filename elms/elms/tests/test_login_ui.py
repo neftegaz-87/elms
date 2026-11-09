@@ -67,10 +67,10 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn("update_website_context", hooks_content)
         self.assertIn('"elms.install.update_website_context"', hooks_content)
         self.assertIn('context.get("for_test") == "login.html"', install_content)
-        self.assertIn('"app_name": "elms"', install_content)
+        self.assertIn('result["app_name"] = "elms"', install_content)
 
-    def test_update_website_context_hides_keycloak_provider_button(self):
-        """The login page uses the standard form without a separate Keycloak button."""
+    def test_update_website_context_brands_keycloak_as_yandex(self):
+        """The single broker button is presented as the Yandex sign-in action."""
         from elms.install import update_website_context
 
         context = {
@@ -85,9 +85,10 @@ class TestLoginUI(unittest.TestCase):
         }
         res = update_website_context(context)
         self.assertEqual(res.get("app_name"), "elms")
-        self.assertEqual(res.get("provider_logins"), [])
-        self.assertFalse(res.get("social_login"))
-        self.assertEqual(len(context["provider_logins"]), 1)
+        self.assertNotIn("provider_logins", res)
+        self.assertEqual(context["provider_logins"][0]["provider_name"], "Яндекс")
+        self.assertIn("kc_idp_hint=yandex", context["provider_logins"][0]["auth_url"])
+        self.assertIn("yandex.svg", context["provider_logins"][0]["icon"])
 
     def test_elms_desk_route_is_available_for_system_users(self):
         hooks_content = self.hooks_path.read_text(encoding="utf-8")
@@ -96,20 +97,18 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn('"name": "elms"', hooks_content)
         self.assertIn('"route": "/app"', hooks_content)
 
-    def test_login_js_uses_keycloak_authorization_code_flow(self):
-        """The browser redirects to Keycloak and never submits a password to Frappe."""
+    def test_login_js_submits_credentials_to_keycloak(self):
+        """The primary form sends credentials through the existing Keycloak bridge."""
         js = (REPO_ROOT / "elms/elms/public/js/login-keycloak.js").read_text(encoding="utf-8")
 
         self.assertIn('$(document).on("login_rendered"', js)
-        self.assertIn('"elms.sso.login.get_sso_authorization_url"', js)
-        self.assertIn('mode: mode', js)
-        self.assertIn('redirectToKeycloak(this, "yandex")', js)
-        self.assertIn('redirectToKeycloak(form, "local")', js)
-        self.assertIn('window.location.assign(authUrl)', js)
-        self.assertNotIn("login_with_keycloak", js)
-        self.assertNotIn("frappe.www.login.login_via_token", js)
-        self.assertNotIn("grant_type=password", js)
-        self.assertNotIn("btn-keycloak", js)
+        self.assertIn('"elms.sso.login.login_with_keycloak"', js)
+        self.assertIn("args: { usr: username, pwd: password }", js)
+        self.assertIn('"/api/method/frappe.www.login.login_via_token"', js)
+        self.assertIn("window.location.href", js)
+        self.assertNotIn("elms-sso-hint", js)
+        self.assertNotIn("Тестовый вход Keycloak", js)
+        self.assertNotIn("get_sso_authorization_url", js)
 
     def test_login_css_neftegaz_design_tokens(self):
         """login.css must contain scoped Neftegaz tokens (44px control, 3px radius, cobalt action, reduced-motion)."""
@@ -141,6 +140,9 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn("background-color: var(--elms-login-action, #0d4cd3) !important;", css)
         self.assertIn("background: var(--elms-login-action-hover, #0a3fb0) !important;", css)
         self.assertIn("background-color: var(--elms-login-action-hover, #0a3fb0) !important;", css)
+        self.assertIn("padding-left: 40px !important", css)
+        self.assertIn("padding-right: 64px !important", css)
+        self.assertIn("top: 50%", css)
 
     def test_login_css_styles_the_full_frappe_login_surface(self):
         """The Neftegaz visual language applies to the complete login surface, not only SSO."""
@@ -167,28 +169,34 @@ class TestLoginUI(unittest.TestCase):
         ):
             self.assertIn(token, css, f"Missing Neftegaz login token: {token}")
 
-    def test_rendered_login_mock_html_has_no_keycloak_button(self):
-        """Rendered login page HTML contract: no separate Keycloak provider button."""
+    def test_rendered_login_mock_html_has_yandex_provider_button(self):
+        """Rendered login page HTML contract: one Yandex broker button is available."""
         sample_html = """
         <div class="for-login">
             <div class="page-card">
                 <div class="page-card-head"><h4>Вход в elms</h4></div>
-                <form class="form-signin form-login"></form>
+                <form class="form-signin form-login">
+                    <input id="login_email"><input id="login_password">
+                    <button class="btn-login">Войти</button>
+                    <a class="btn-login-option btn-keycloak" href="http://127.0.0.1:8480/realms/elms/auth?kc_idp_hint=yandex">
+                        <img src="/assets/elms/images/yandex.svg" alt="Яндекс">Войти через Яндекс
+                    </a>
+                </form>
             </div>
         </div>
         """
         parser = LoginButtonParser()
         parser.feed(sample_html)
 
-        self.assertEqual(len(parser.keycloak_buttons), 0, "Must not render a separate .btn-keycloak button")
-        self.assertEqual(len(parser.yandex_buttons), 0, "Must not render any direct Yandex button")
+        self.assertEqual(len(parser.keycloak_buttons), 1)
+        self.assertEqual(len(parser.yandex_buttons), 1)
 
-    def test_login_page_renders_no_keycloak_button(self):
-        """Verify HTML parser detects that the separate Keycloak button is absent."""
-        html = '<div class="for-login"><form class="form-signin form-login"></form></div>'
+    def test_login_page_renders_yandex_button(self):
+        """Verify HTML parser detects the single Yandex broker button."""
+        html = '<div class="for-login"><a class="btn-login-option btn-keycloak" href="/auth?kc_idp_hint=yandex">Войти через Яндекс</a></div>'
         parser = LoginButtonParser()
         parser.feed(html)
-        self.assertEqual(len(parser.keycloak_buttons), 0)
+        self.assertEqual(len(parser.keycloak_buttons), 1)
 
     def test_login_page_has_no_yandex_provider(self):
         """Verify HTML parser rejects direct Yandex provider button."""
@@ -236,10 +244,10 @@ class TestAcceptanceCriteriaEvidence(unittest.TestCase):
         idps = realm.get("identityProviders", [])
         yandex_idps = [i for i in idps if i.get("alias") == "yandex"]
         self.assertEqual(len(yandex_idps), 1, "Yandex identity provider broker must exist in realm-elms.json")
-        self.assertEqual(yandex_idps[0].get("providerId"), "oidc")
+        self.assertEqual(yandex_idps[0].get("providerId"), "yandex-oauth")
 
         client = next(client for client in realm["clients"] if client.get("clientId") == "elms-frappe")
-        self.assertFalse(client.get("directAccessGrantsEnabled"), "Frappe must not use the password grant")
+        self.assertTrue(client.get("directAccessGrantsEnabled"), "Keycloak password login requires the password grant")
 
     def test_ac_005_fail_closed_config(self):
         """AC-005: Fail closed on missing credentials."""
@@ -248,7 +256,7 @@ class TestAcceptanceCriteriaEvidence(unittest.TestCase):
             SsoSettings.from_env({"ELMS_SSO_REQUIRE": "1", "KEYCLOAK_CLIENT_ID": "elms-frappe"})
 
     def test_ac_007_rbac_default_roles(self):
-        """AC-007: Default SSO roles are Desk User and ELMS LMS User."""
+        """AC-007: Default SSO roles are Desk User and ELMS Learner."""
         from elms.sso.settings import SsoSettings
         settings = SsoSettings.from_env({})
-        self.assertEqual(settings.elms_sso_default_roles, ["Desk User", "ELMS LMS User"])
+        self.assertEqual(settings.elms_sso_default_roles, ["Desk User", "ELMS Learner"])

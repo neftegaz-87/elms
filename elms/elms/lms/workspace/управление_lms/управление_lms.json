@@ -1,0 +1,130 @@
+{
+ "charts": [],
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>elms</b></span>\", \"col\": 12}}, {\"type\": \"paragraph\", \"data\": {\"text\": \"\u0421\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u043a\u0443\u0440\u0441\u043e\u0432, \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c, \u0440\u0430\u0437\u0434\u0435\u043b\u043e\u0432, \u0443\u0440\u043e\u043a\u043e\u0432 \u0438 \u0442\u0435\u0441\u0442\u043e\u0432.\", \"col\": 12}}, {\"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041a\u0430\u0442\u0430\u043b\u043e\u0433 \u0438 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0410\u0442\u0442\u0435\u0441\u0442\u0430\u0446\u0438\u044f\", \"col\": 4}}]",
+ "creation": "2026-11-06 00:04:09.892309",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 1,
+ "icon": "education",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 LMS",
+ "links": [
+  {
+   "hidden": 0,
+   "icon": "education",
+   "is_query_report": 0,
+   "label": "\u041a\u0430\u0442\u0430\u043b\u043e\u0433 \u0438 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u041a\u0443\u0440\u0441\u044b \u0438 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b",
+   "link_count": 0,
+   "link_to": "ELMS Course",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Learning paths / \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b",
+   "link_count": 0,
+   "link_to": "ELMS Program",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u041a\u0443\u0440\u0441\u044b \u0432 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430\u0445",
+   "link_count": 0,
+   "link_to": "ELMS Program Course",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0420\u0430\u0437\u0434\u0435\u043b\u044b \u043a\u0443\u0440\u0441\u043e\u0432",
+   "link_count": 0,
+   "link_to": "ELMS Course Chapter",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0423\u0440\u043e\u043a\u0438 \u0438 \u043c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u044b",
+   "link_count": 0,
+   "link_to": "ELMS Course Lesson",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "icon": "education",
+   "is_query_report": 0,
+   "label": "\u0410\u0442\u0442\u0435\u0441\u0442\u0430\u0446\u0438\u044f",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0422\u0435\u0441\u0442\u044b \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0437\u043d\u0430\u043d\u0438\u0439",
+   "link_count": 0,
+   "link_to": "ELMS Quiz",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0411\u0430\u043d\u043a \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432",
+   "link_count": 0,
+   "link_to": "ELMS Quiz Question",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-06 00:14:30.853535",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 LMS",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "ELMS Admin"
+  },
+  {
+   "role": "ELMS Operations User"
+  },
+  {
+   "role": "ELMS Methodologist"
+  }
+ ],
+ "sequence_id": 2.0,
+ "shortcuts": [],
+ "title": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 LMS"
+}

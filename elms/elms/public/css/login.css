@@ -69,6 +69,7 @@ body[data-path="login"] {
   --elms-login-soft-action: #eaf2ff;
   --elms-login-control-line: #c5ced8;
   --elms-login-control-line-hover: #8a9aab;
+  --icon-stroke: var(--elms-login-muted, #66727f);
   --elms-login-radius: 3px;
   --elms-login-control-height: 44px;
   --elms-login-font: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
@@ -221,13 +222,35 @@ body[data-path="login"] .login-content.page-card .form-control::placeholder {
 }
 
 body[data-path="login"] .login-content.page-card .field-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
   color: var(--elms-login-muted, #66727f);
 }
 
-body[data-path="login"] .login-content.page-card .toggle-password {
+body[data-path="login"] .login-content.page-card .email-field input,
+body[data-path="login"] .login-content.page-card .password-field input {
+  padding-left: 40px !important;
+}
+
+body[data-path="login"] .login-content.page-card .password-field input {
+  padding-right: 64px !important;
+}
+
+body[data-path="login"] .for-login .login-content.page-card .page-card-body .password-field .toggle-password {
   color: var(--elms-login-muted, #66727f) !important;
   font-family: var(--elms-login-font) !important;
   font-size: 12px;
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  z-index: 2;
+  transform: translateY(-50%);
+  cursor: pointer;
 }
 
 body[data-path="login"] .login-content.page-card .forgot-password-message {
@@ -389,6 +412,13 @@ body[data-path="login"] a.btn-keycloak,
   box-shadow: 0 1px 2px rgba(13, 76, 211, 0.28);
   transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
   cursor: pointer;
+}
+
+body[data-path="login"] .btn-keycloak .yandex-btn-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  flex: 0 0 20px;
 }
 
 body[data-path="login"] .page-card .page-card-body .btn-login-option.btn-keycloak:hover,

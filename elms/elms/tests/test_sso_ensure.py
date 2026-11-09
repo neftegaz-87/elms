@@ -1,6 +1,7 @@
 """Unit tests for idempotent Keycloak-only Social Login Key ensure module."""
 
 import json
+import os
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -184,6 +185,28 @@ class TestSSOEnsure(unittest.TestCase):
         name2 = ensure_social_login_keys()
         self.assertEqual(name1, name2)
         self.assertEqual(len(self.db_store), 1)
+
+    def test_ensure_social_login_keys_uses_internal_server_urls(self):
+        """Server-side OAuth calls use the container route, while authorize stays public."""
+        from elms.sso.ensure import ensure_social_login_keys
+
+        frappe.conf[KEYCLOAK_LOGIN_CONF_KEY] = {
+            "client_id": "test-client",
+            "client_secret": "test-secret",
+        }
+
+        with patch.dict(os.environ, {"KEYCLOAK_INTERNAL_URL": "http://keycloak:8080"}, clear=False):
+            ensure_social_login_keys()
+
+        doc = self.db_store["keycloak"]
+        self.assertEqual(
+            doc.access_token_url,
+            "http://keycloak:8080/realms/elms/protocol/openid-connect/token",
+        )
+        self.assertEqual(
+            doc.api_endpoint,
+            "http://keycloak:8080/realms/elms/protocol/openid-connect/userinfo",
+        )
 
     def test_ensure_social_login_keys_disabled_without_conf(self):
         """Test that missing conf credentials sets enable_social_login to 0 (BN-001 / TM-001)."""

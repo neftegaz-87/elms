@@ -32,6 +32,12 @@ Operations + LMS на Frappe Framework, app `elms`. Не CRM и не ERPNext.
 - Тесты: `FrappeTestCase` / bench `run-tests --app elms`.
 - UI: scoped CSS app `elms`; не CRM Playwright runtime из hub AGENTS.
 
+## Git Flow и ветки
+
+- **Ветка для работы (включая GSTACK): `sokol`**. Любой агент или разработчик работает строго в ветке `sokol`.
+- **Запрещено плодить ветки под задачи**: gstack и агенты не должны создавать отдельные ветки на каждую фичу.
+- **Порядок слияния (Git Flow)**: доработки ведутся в `sokol` → мерджатся в `dev` → после стабилизации мерджатся в `main`.
+
 ## Workflow
 
 Ролевые команды (`BACK` / `FRONT` / `APP` / …) — как в hub `AGENTS.md`.  

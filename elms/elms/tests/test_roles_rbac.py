@@ -10,9 +10,12 @@ from elms.install import (
     ELMS_OPERATIONS_USER_ROLE,
     ELMS_REVIEW_SECTION_DOCTYPE,
     ELMS_LMS_SECTION_DOCTYPE,
-    ELMS_LMS_USER_ROLE,
+    ELMS_LEARNER_ROLE,
+    ELMS_INSTRUCTOR_ROLE,
+    ELMS_METHODOLOGIST_ROLE,
     ELMS_ROLES,
     ELMS_SETTINGS_SECTION_DOCTYPE,
+    DESK_PAGE_DOCTYPE,
     SECTION_DOCPERM_MATRIX,
     SECTION_DOCTYPES,
     ensure_roles,
@@ -69,7 +72,8 @@ TEST_USERS_ROLES: dict[str, list[str]] = {
     "Administrator": ["Administrator", "System Manager"],
     "admin_user@elms.local": [ELMS_ADMIN_ROLE],
     "operations_user@elms.local": [ELMS_OPERATIONS_USER_ROLE],
-    "lms_user@elms.local": [ELMS_LMS_USER_ROLE],
+    "lms_user@elms.local": [ELMS_LEARNER_ROLE],
+    "system_manager@elms.local": ["System Manager"],
     "Guest": ["Guest"],
 }
 
@@ -96,15 +100,16 @@ class TestRolesRBACSeed(unittest.TestCase):
     def test_roles_constants_defined(self):
         self.assertEqual(ELMS_ADMIN_ROLE, "ELMS Admin")
         self.assertEqual(ELMS_OPERATIONS_USER_ROLE, "ELMS Operations User")
-        self.assertEqual(ELMS_LMS_USER_ROLE, "ELMS LMS User")
+        self.assertEqual(ELMS_LEARNER_ROLE, "ELMS Learner")
         self.assertEqual(
             ELMS_ROLES,
-            ("ELMS Admin", "ELMS Operations User", "ELMS LMS User"),
+            ("ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist"),
         )
         self.assertEqual(ELMS_OPERATIONS_SECTION_DOCTYPE, "ELMS Operations Section")
         self.assertEqual(ELMS_REVIEW_SECTION_DOCTYPE, "ELMS Review Section")
         self.assertEqual(ELMS_LMS_SECTION_DOCTYPE, "ELMS LMS Section")
         self.assertEqual(ELMS_SETTINGS_SECTION_DOCTYPE, "ELMS Settings Section")
+        self.assertEqual(DESK_PAGE_DOCTYPE, "Page")
         self.assertEqual(
             SECTION_DOCTYPES,
             (
@@ -115,7 +120,7 @@ class TestRolesRBACSeed(unittest.TestCase):
             ),
         )
 
-    def test_ensure_roles_creates_all_three_roles(self):
+    def test_ensure_roles_creates_all_product_roles(self):
         existing_roles = set()
 
         def fake_exists(doctype, name):
@@ -146,12 +151,12 @@ class TestRolesRBACSeed(unittest.TestCase):
 
         self.assertEqual(
             set(created_docs),
-            {"ELMS Admin", "ELMS Operations User", "ELMS LMS User"},
+            {"ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist"},
         )
         self.assertTrue(all(fake_exists("Role", r) for r in ELMS_ROLES))
 
     def test_ensure_roles_idempotent_no_duplicate_error(self):
-        existing_roles = {"ELMS Admin", "ELMS Operations User", "ELMS LMS User"}
+        existing_roles = {"ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist"}
 
         def fake_exists(doctype, name):
             if doctype == "Role":
@@ -248,6 +253,16 @@ class TestRolesRBACDocPermMatrix(unittest.TestCase):
         self.assertFalse(frappe.has_permission(ELMS_SETTINGS_SECTION_DOCTYPE, "read", user=lms_user))
         self.assertFalse(frappe.has_permission(ELMS_SETTINGS_SECTION_DOCTYPE, "write", user=lms_user))
 
+    def test_system_manager_can_open_settings_workspace(self):
+        system_manager = "system_manager@elms.local"
+        frappe.set_user(system_manager)
+
+        for ptype in ("read", "write", "create", "delete"):
+            self.assertTrue(
+                frappe.has_permission(ELMS_SETTINGS_SECTION_DOCTYPE, ptype, user=system_manager),
+                f"System Manager must have {ptype} on {ELMS_SETTINGS_SECTION_DOCTYPE}",
+            )
+
     def test_guest_denied_all_sections(self):
         """US-004, BN-003, TM-003, AC-6: Guest denied read and write on all sections."""
         guest_user = "Guest"
@@ -323,10 +338,10 @@ class TestRolesRBACDocPermMatrix(unittest.TestCase):
             frappe, "new_doc", side_effect=fake_new_doc
         ), patch.object(frappe, "get_doc", side_effect=fake_get_doc):
             ensure_section_perms()
-            self.assertEqual(len(custom_perms_db), 8)
+            self.assertEqual(len(custom_perms_db), 9)
 
             ensure_section_perms()
-            self.assertEqual(len(custom_perms_db), 8)
+            self.assertEqual(len(custom_perms_db), 9)
 
     def test_ensure_section_perms_fails_closed_when_db_absent(self):
         """AC-6, AC--1: ensure_section_perms must fail closed when db is absent."""

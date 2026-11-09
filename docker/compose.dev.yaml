@@ -256,7 +256,10 @@ services:
       retries: 10
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0.5
+    image: ${KEYCLOAK_IMAGE:-elms-keycloak}:${KEYCLOAK_TAG:-dev}
+    build:
+      context: ./keycloak
+      dockerfile: Dockerfile
     restart: unless-stopped
     command:
       - start-dev

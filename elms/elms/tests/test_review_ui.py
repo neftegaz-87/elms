@@ -24,25 +24,10 @@ class TestReviewUI(unittest.TestCase):
         self.assertIn('frappe.set_route(reviewPageName)', self.js)
         self.assertNotIn("window.location.assign(reviewHref)", self.js)
 
-    def test_review_surface_is_sized_inside_the_main_desk_column(self):
+    def test_review_surface_is_not_added_to_the_lms_desk_navigation(self):
         self.assertIn("app_include_css", self.hooks)
-        self.assertIn("/assets/elms/css/desk-review.css", self.hooks)
-        self.assertIn(".elms-review-page .layout-main-section", self.css)
-        self.assertIn(".elms-review-page-main", self.css)
-        self.assertIn(".elms-review-shell", self.css)
-        self.assertIn('body[data-route="elms-review"] #body', self.css)
-        review_page_rule = self.css.split(".elms-review-page {", 1)[1].split("}", 1)[0]
-        self.assertIn("display: block;", review_page_rule)
-        self.assertNotIn("display: block !important", review_page_rule)
-        self.assertIn("position: fixed", self.css)
-        self.assertIn("left: var(--ds-desk-rail-width, 0px)", self.css)
-        self.assertIn(".elms-review-page .page-head", self.css)
-        self.assertIn("display: none", self.css)
-        self.assertIn("overflow: hidden", self.css)
-        self.assertIn("min-height: 0", self.css)
-        self.assertNotIn("min-height: 640px", self.css)
-        self.assertIn(".elms-review-page .elms-review-frame", self.css)
-        self.assertIn('frame.setAttribute("scrolling", "no")', self.js)
+        self.assertNotIn("/assets/elms/css/desk-review.css", self.hooks)
+        self.assertNotIn("/assets/elms/js/desk-review.js", self.hooks)
 
     def test_review_visibility_is_part_of_the_boot_and_workspace_contract(self):
         self.assertIn("extend_bootinfo", self.hooks)
@@ -52,9 +37,7 @@ class TestReviewUI(unittest.TestCase):
 
     def test_apps_screen_has_logos_and_permission_gated_review_card(self):
         self.assertIn('"logo": "/assets/elms/images/nftgz-favicon.svg"', self.hooks)
-        self.assertIn('"title": "Сверка заявки"', self.hooks)
-        self.assertIn('"route": "/app/review"', self.hooks)
-        self.assertIn('"has_permission": "elms.sso.review.has_review_app_permission"', self.hooks)
+        self.assertNotIn('"route": "/app/review"', self.hooks)
 
 
 if __name__ == "__main__":

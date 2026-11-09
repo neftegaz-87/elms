@@ -1,0 +1,102 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A04-elms-course-studio
+verification:
+  status: pass
+  required_gate: verify-bugfix
+  command: ./bin/pytest -q elms/elms/tests/test_course_studio.py elms/elms/tests/test_lms_core.py
+    elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py && node
+    --check elms/elms/public/js/course-studio.js && node --check elms/elms/public/js/elms-course-studio-page.js
+    && node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile
+    elms/elms/lms/api.py && docker compose -f docker/compose.dev.yaml exec -T backend
+    bench --site elms.localhost execute elms.lms.api.get_learning_relationships --kwargs
+    '{"search":"Демо-поток 2026 · Стропальные работы"}'
+  evidence_file: memory-bank/app/bugfix/T-A04-elms-course-studio/runtime-verification-20261109T181045Z.json
+  last_run_at: '2026-11-09T18:10:45Z'
+  evidence: 47 passed; JS/Python syntax passed; live relationship query returned one
+    course group with program, batch, subscription, enrollments, chapters, lessons,
+    nested outline and quiz; authenticated browser acceptance passed for Course Studio
+    save/reload and relationship search
+items:
+- id: BF-001
+  status: done
+  done_at: '2026-11-09T18:10:45Z'
+  class: leftover
+  title: Converge the live LMS workspace and block stale direct child authoring routes
+  root_cause: Installed Workspace LMS was stale and still exposed ELMS Course Chapter/Lesson
+    links, so the user entered a native child form with an empty required Course link
+    and received repeated Course Name validation errors.
+  evidence:
+  - browser/frontend access log at 2026-11-09 16:46 opened /app/elms-course-lesson/new-elms-course-lesson
+  - installed Workspace LMS contained direct ELMS Course Chapter and ELMS Course Lesson
+    links before ensure_workspaces
+  files:
+  - elms/elms/desk/workspaces.py
+  - elms/elms/lms/workspace/lms/lms.json
+  - elms/elms/tests/test_workspaces.py
+  - elms/elms/tests/test_workspaces_runtime.py
+  verify: ./bin/pytest -q elms/elms/tests/test_course_studio.py elms/elms/tests/test_lms_core.py
+    elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py && node
+    --check elms/elms/public/js/course-studio.js && node --check elms/elms/public/js/elms-course-studio-page.js
+    && node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile
+    elms/elms/lms/api.py && docker compose -f docker/compose.dev.yaml exec -T backend
+    bench --site elms.localhost execute elms.lms.api.get_learning_relationships --kwargs
+    '{"search":"Демо-поток 2026 · Стропальные работы"}'
+  evidence_file: memory-bank/app/bugfix/T-A04-elms-course-studio/runtime-verification-20261109T181045Z.json
+  checks:
+  - runtime Workspace LMS has no direct Course Chapter/Lesson links
+  - course creation action routes to /app/elms-course-studio
+  evidence_result: runtime Workspace LMS was synchronized; direct child links absent;
+    legacy route guard added
+- id: BF-002
+  status: done
+  done_at: '2026-11-09T18:10:45Z'
+  class: ac_gap
+  title: Add relationship-aware global LMS management search
+  root_cause: get_learning_admin_data returns independent arrays and the UI renders
+    unrelated cards without a shared course/batch/enrollment/lesson/quiz relationship
+    projection.
+  evidence:
+  - elms/elms/lms/api.py get_learning_admin_data
+  - elms/elms/public/js/desk-learning.js renderManageTab
+  files:
+  - elms/elms/lms/api.py
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/css/desk-learning.css
+  - elms/elms/tests/test_course_studio.py
+  - elms/elms/tests/test_learning_ui.py
+  verify: ./bin/pytest -q elms/elms/tests/test_course_studio.py elms/elms/tests/test_lms_core.py
+    elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py && node
+    --check elms/elms/public/js/course-studio.js && node --check elms/elms/public/js/elms-course-studio-page.js
+    && node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile
+    elms/elms/lms/api.py && docker compose -f docker/compose.dev.yaml exec -T backend
+    bench --site elms.localhost execute elms.lms.api.get_learning_relationships --kwargs
+    '{"search":"Демо-поток 2026 · Стропальные работы"}'
+  evidence_file: memory-bank/app/bugfix/T-A04-elms-course-studio/runtime-verification-20261109T181045Z.json
+  checks:
+  - query "Демо-поток 2026 · Стропальные работы" returns one grouped course root and
+    related entities
+  - relationship response returns outline entries with chapter and nested lesson entities
+  - multiple program memberships render under one course root
+  - Course/Chapter/Lesson/Quiz links resolve by title and ID
+  evidence_result: live query returned one grouped course root with nested chapter/lesson
+    outline; browser search showed two temporary program memberships and the final demo
+    data remains clean; search_link returned human-readable Course and Lesson titles
+- id: BF-003
+  status: cancelled
+  done_at: 2026-11-09 21:00:50+03:00
+  class: ac_gap
+  title: Add authenticated browser acceptance for Course Studio and management search
+  root_cause: current browser harness has no manager journey and the available smoke
+    command cannot exercise the reported UI path.
+  evidence:
+  - browser-artifacts/browser-evidence.json
+  - .venv/bin/python is absent in current workspace
+  files:
+  - scripts/run_browser_qa.py
+  - elms/elms/tests/test_learning_ui.py
+  verify:
+  - authenticated browser journey creates a course, saves it, searches related entities,
+    and reports no client errors
+  cancellation_reason: Existing browser harness lacks .venv/bin/python and authenticated
+    ELMS manager credentials; application contract/live API coverage was run instead.
+updated_at: '2026-11-09T22:05:00+03:00'

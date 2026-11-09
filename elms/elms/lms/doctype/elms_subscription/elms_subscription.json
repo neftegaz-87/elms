@@ -109,11 +109,13 @@
    "create": 0,
    "delete": 0,
    "read": 1,
-   "role": "ELMS LMS User",
+   "role": "ELMS Learner",
    "write": 0
   }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "search_fields": "company_name, inn, course, contract_number, status",
+ "title_field": "contract_number"
 }

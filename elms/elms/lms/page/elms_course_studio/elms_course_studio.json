@@ -1,0 +1,14 @@
+{
+ "doctype": "Page",
+ "module": "LMS",
+ "name": "elms-course-studio",
+ "page_name": "elms-course-studio",
+ "roles": [
+  {"role": "ELMS Admin"},
+  {"role": "ELMS Operations User"},
+  {"role": "ELMS Methodologist"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Конструктор курсов"
+}

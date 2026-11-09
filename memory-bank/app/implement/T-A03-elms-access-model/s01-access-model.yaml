@@ -1,0 +1,17 @@
+schema: implement-step/v1
+epic_id: T-A03-elms-access-model
+step_id: s01
+role: app
+status: done
+contract:
+  outcome: "Понятная и рабочая модель ролей, профилей, групп и ограничений в Settings"
+  wire_complete_required: true
+changes:
+  - "Canonical learner role is ELMS Learner with legacy migration"
+  - "Seeded role profiles and organizational groups"
+  - "Exposed native Permission Manager to ELMS Admin through an authorization bridge"
+  - "Added profile/role/group explanations and User Permission navigation"
+verification:
+  backend: "PASS: bench run-tests --app elms --module elms.tests.test_access_model; targeted Python suite 88 tests OK"
+  frontend: "PASS: bench build --app elms"
+  wire: "PASS: live migration seeded profiles/groups/page access; Settings contains Page permission-manager and User Permission"

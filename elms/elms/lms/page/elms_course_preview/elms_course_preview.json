@@ -1,0 +1,23 @@
+{
+ "doctype": "Page",
+ "module": "LMS",
+ "name": "elms-course-preview",
+ "page_name": "elms-course-preview",
+ "roles": [
+  {
+   "role": "ELMS Admin"
+  },
+  {
+   "role": "ELMS Operations User"
+  },
+  {
+   "role": "ELMS Instructor"
+  },
+  {
+   "role": "ELMS Methodologist"
+  }
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Предпросмотр курсов"
+}
