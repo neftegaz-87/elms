@@ -9,22 +9,23 @@
 		$(form).find(".btn-login").prop("disabled", false).text(__("Login"));
 	}
 
-	function labelYandexButton() {
-		$(".for-login .btn-keycloak").each(function () {
-			var icon = $(this).find("img.yandex-btn-icon").first().prop("outerHTML");
-			if (icon) {
-				$(this).html(icon + "<span>" + __("Войти через Яндекс") + "</span>");
-			}
-		});
+	function hideSocialChrome() {
+		$(".for-login .social-logins, .for-login .login-divider, .for-login .btn-keycloak, .for-login .btn-login-with-email-link").hide();
 	}
 
 	function bindKeycloakLogin() {
-		var forms = $(".for-login .form-login");
+		hideSocialChrome();
+
+		var forms = $(".for-login form.form-login");
+		if (!forms.length) {
+			forms = $(".for-login .form-login");
+		}
 		if (!forms.length) return;
 
-		forms.off("submit");
+		forms.off("submit.elmsKeycloak");
 		forms.on("submit.elmsKeycloak", function (event) {
 			event.preventDefault();
+			event.stopImmediatePropagation();
 
 			var form = this;
 			var username = frappe.utils.xss_sanitise(( $(form).find("#login_email").val() || "" ).trim());
@@ -61,8 +62,17 @@
 
 			return false;
 		});
-		labelYandexButton();
+	}
+
+	function tryBind() {
+		if ($(".for-login .form-login").length) {
+			bindKeycloakLogin();
+		}
 	}
 
 	$(document).on("login_rendered", bindKeycloakLogin);
+	$(tryBind);
+	$(window).on("load", tryBind);
+	setTimeout(tryBind, 0);
+	setTimeout(tryBind, 250);
 })();

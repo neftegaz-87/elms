@@ -17,8 +17,6 @@ from elms.sso.constants import (
     ENV_KEYCLOAK_CLIENT_ID,
     ENV_KEYCLOAK_CLIENT_SECRET,
     ENV_KEYCLOAK_PUBLIC_URL,
-    ENV_YANDEX_CLIENT_ID,
-    ENV_YANDEX_CLIENT_SECRET,
     KEYCLOAK_LOGIN_CONF_KEY,
 )
 
@@ -45,12 +43,10 @@ def parse_roles_list(raw_roles: Any) -> list[str]:
 class SsoSettings(BaseSettings):
     """Typed SSO environment settings with fail-closed validation.
 
-    Covers all contract environment variables:
+    Covers the Keycloak-only contract environment variables:
     - KEYCLOAK_CLIENT_ID
     - KEYCLOAK_CLIENT_SECRET
     - KEYCLOAK_PUBLIC_URL
-    - YANDEX_CLIENT_ID
-    - YANDEX_CLIENT_SECRET
     - ELMS_SSO_DEFAULT_ROLES
     - ELMS_SSO_REQUIRE
     """
@@ -66,17 +62,13 @@ class SsoSettings(BaseSettings):
         default=None, alias=ENV_KEYCLOAK_CLIENT_SECRET
     )
     keycloak_public_url: str | None = Field(default=None, alias=ENV_KEYCLOAK_PUBLIC_URL)
-    yandex_client_id: str | None = Field(default=None, alias=ENV_YANDEX_CLIENT_ID)
-    yandex_client_secret: SecretStr | None = Field(
-        default=None, alias=ENV_YANDEX_CLIENT_SECRET
-    )
     elms_sso_default_roles: list[str] | str = Field(
         default_factory=lambda: list(DEFAULT_SSO_ROLES),
         alias=ENV_ELMS_SSO_DEFAULT_ROLES,
     )
     elms_sso_require: bool | str = Field(default=False, alias=ENV_ELMS_SSO_REQUIRE)
 
-    @field_validator("keycloak_client_id", "yandex_client_id", mode="before")
+    @field_validator("keycloak_client_id", mode="before")
     @classmethod
     def _validate_str(cls, value: Any) -> str | None:
         if value is None:
@@ -84,7 +76,7 @@ class SsoSettings(BaseSettings):
         cleaned = str(value).strip()
         return cleaned if cleaned else None
 
-    @field_validator("keycloak_client_secret", "yandex_client_secret", mode="before")
+    @field_validator("keycloak_client_secret", mode="before")
     @classmethod
     def _validate_secret(cls, value: Any) -> SecretStr | None:
         if value is None:
@@ -151,8 +143,6 @@ class SsoSettings(BaseSettings):
             keycloak_client_id=env.get(ENV_KEYCLOAK_CLIENT_ID) or env.get("keycloak_client_id"),
             keycloak_client_secret=env.get(ENV_KEYCLOAK_CLIENT_SECRET) or env.get("keycloak_client_secret"),
             keycloak_public_url=env.get(ENV_KEYCLOAK_PUBLIC_URL) or env.get("keycloak_public_url"),
-            yandex_client_id=env.get(ENV_YANDEX_CLIENT_ID) or env.get("yandex_client_id"),
-            yandex_client_secret=env.get(ENV_YANDEX_CLIENT_SECRET) or env.get("yandex_client_secret"),
             elms_sso_default_roles=roles_val,
             elms_sso_require=env.get(ENV_ELMS_SSO_REQUIRE) or env.get("elms_sso_require") or False,
         )

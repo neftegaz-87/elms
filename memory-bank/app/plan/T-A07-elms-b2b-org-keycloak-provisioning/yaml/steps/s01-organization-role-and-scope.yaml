@@ -1,0 +1,149 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: Organization, Company Admin role and organization scope
+level: L2
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: no
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Создать реальную границу организации: ELMS Organization, membership,
+  Company Admin profile и User Permission, чтобы администратор мог назначить
+  представителя компании, а Company Admin не мог читать чужую org.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002]
+  nfr_ids: [NFR-004]
+  us_ids: [US-001, US-004]
+  ac_ids: [AC-001]
+  nouns:
+  - ELMS Organization
+  - ELMS Organization Member
+  - ELMS Company Admin
+  - ELMS Company Admin Profile
+  - User Permission
+  - assign_company_admin
+  layout_paths:
+  - elms/elms/elms_core/doctype/elms_organization/
+  - elms/elms/elms_core/doctype/elms_organization_member/
+  - elms/elms/access/api.py
+  - elms/elms/install.py
+  - elms/elms/permissions.py
+  - elms/elms/tests/test_access_model.py
+  - elms/elms/tests/test_roles_rbac.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:135-169
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:189-220
+  ac_quotes:
+  - "AC-001: Admin creates an Organization and assigns a Company Admin with a matching User Permission scope."
+  user_journey: >-
+    Admin opens the Organization form, saves company identity fields and assigns
+    a Frappe user as Company Admin. The server creates the role profile,
+    membership and matching User Permission; cross-org reads fail closed.
+  api:
+    create_organization:
+      method: elms.access.api.create_organization
+      input: name, inn, optional ogrn/kpp/status
+      output: organization name
+      errors: ValidationError, PermissionError
+    assign_company_admin:
+      method: elms.access.api.assign_company_admin
+      input: user, organization
+      output: user, organization, role_profile
+      errors: PermissionError, DoesNotExist, ValidationError
+  roles:
+    admin: ELMS Admin
+    company_admin: ELMS Company Admin
+    denied: Guest, ELMS Learner without explicit membership
+  persistence: >-
+    Organization is a first-class DocType. Membership is explicit and its
+    save/delete path reconciles User Permission allow=ELMS Organization.
+  done: >-
+    DocTypes, seed roles/profile, server permission checks and tests prove that
+    organization scope is enforced independently of the Desk UI.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md
+    reason: FR-001/FR-002 and ownership contract
+  - path: memory-bank/product/modules.md
+    reason: canonical ELMS roles and User Permission rule
+  - path: elms/elms/install.py
+    reason: existing role/profile and permission seed
+  - path: elms/elms/permissions.py
+    reason: existing access summaries and workspace links
+  produces:
+  - path: elms/elms/elms_core/doctype/elms_organization/
+    reason: organization identity and status
+  - path: elms/elms/elms_core/doctype/elms_organization_member/
+    reason: explicit membership and org ownership
+  - path: elms/elms/access/api.py
+    reason: server-side organization and Company Admin operations
+  - path: elms/elms/install.py
+    reason: role/profile and DocPerm seed
+  - path: elms/elms/tests/test_access_model.py
+    reason: organization scope and permission contract tests
+  plan_refs: [FR-001, FR-002, NFR-004, US-001, US-004, AC-001]
+
+as_built:
+- elms/elms/install.py — existing ELMS roles/profiles do not include Company Admin or Organization.
+- elms/elms/lms/doctype/elms_batch — organization is currently a free-text course-flow attribute.
+
+delta:
+- Add Organization and membership DocTypes with server-side User Permission reconciliation.
+- Add Company Admin role/profile, organization creation and assignment API with cross-org denial.
+
+files:
+  - elms/elms/access/__init__.py
+  - elms/elms/access/api.py
+  - elms/elms/elms_core/doctype/elms_organization/__init__.py
+  - elms/elms/elms_core/doctype/elms_organization/elms_organization.json
+  - elms/elms/elms_core/doctype/elms_organization/elms_organization.py
+  - elms/elms/elms_core/doctype/elms_organization_member/__init__.py
+  - elms/elms/elms_core/doctype/elms_organization_member/elms_organization_member.json
+  - elms/elms/elms_core/doctype/elms_organization_member/elms_organization_member.py
+  - elms/elms/install.py
+  - elms/elms/permissions.py
+  - elms/elms/tests/test_access_model.py
+  - elms/elms/tests/test_roles_rbac.py
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s01-organization-role-and-scope.yaml
+deletes: []
+out_of_scope:
+  - Subscription quota enforcement
+  - Company progress cabinet
+  - Bitrix application forms
+skills:
+    code_surface: backend
+    impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+tdd:
+  - Add failing DocType, role/profile and create/assign/cross-org permission tests.
+  - Implement server operations and User Permission reconciliation.
+  - Run targeted backend and role regression tests.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_access_model.py -k 'organization or company_admin or permission'
+  - ./bin/pytest -q elms/elms/tests/test_roles_rbac.py -k 'role or profile'
+  - python3 -m py_compile elms/elms/access/api.py elms/elms/elms_core/doctype/elms_organization/elms_organization.py elms/elms/elms_core/doctype/elms_organization_member/elms_organization_member.py
+  - rg -n 'ELMS Organization|ELMS Company Admin|User Permission|assign_company_admin' elms/elms/access elms/elms/install.py
+checkpoints:
+  - id: cp1
+    criterion: Organization and membership schemas exist with validation and User Permission scope.
+    verify: ./bin/pytest -q elms/elms/tests/test_access_model.py -k 'organization or company_admin or permission'
+  - id: cp2
+    criterion: Admin/Company Admin role profiles and cross-org denial are enforced server-side.
+    verify: ./bin/pytest -q elms/elms/tests/test_access_model.py -k 'organization or company_admin or permission'
+wire_complete:
+  call_sites:
+  - "Organization Form -> create_organization -> ELMS Organization"
+  - "Assign Company Admin -> assign_company_admin -> membership + User Permission"
+  enforce_path: elms/elms/access/api.py
+  dual_path_rg: 'rg -n "organization|ELMS Organization" elms/elms/access elms/elms/install.py'
+  instruction_rg: 'rg -n "UI-only|ui.only|filter.*organization" elms/elms/access elms/elms/tests'
+  deny_old_proven: true

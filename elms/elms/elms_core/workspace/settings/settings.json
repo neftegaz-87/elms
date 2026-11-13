@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>elms</b></span>\", \"col\": 12}}, {\"type\": \"paragraph\", \"data\": {\"text\": \"\u041a\u0442\u043e \u0432\u0445\u043e\u0434\u0438\u0442 \u0432 \u0441\u0438\u0441\u0442\u0435\u043c\u0443, \u0447\u0442\u043e \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043d\u043e \u0440\u043e\u043b\u044f\u043c \u0438 \u043a\u0430\u043a\u0438\u0435 \u0437\u0430\u043f\u0438\u0441\u0438 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044e.\", \"col\": 12}}, {\"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 elms\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438 \u0438 \u0434\u043e\u0441\u0442\u0443\u043f\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0414\u043e\u0441\u0442\u0443\u043f \u0438 \u0440\u043e\u043b\u0438\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0414\u043e\u0441\u0442\u0443\u043f \u0438 \u0437\u0430\u043f\u0438\u0441\u0438\", \"col\": 4}}]",
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>elms</b></span>\", \"col\": 12}}, {\"type\": \"paragraph\", \"data\": {\"text\": \"\u041a\u0442\u043e \u0432\u0445\u043e\u0434\u0438\u0442 \u0432 \u0441\u0438\u0441\u0442\u0435\u043c\u0443, \u0447\u0442\u043e \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043d\u043e \u0440\u043e\u043b\u044f\u043c \u0438 \u043a\u0430\u043a\u0438\u0435 \u0437\u0430\u043f\u0438\u0441\u0438 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044e.\", \"col\": 12}}, {\"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 elms\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438 \u0438 \u0434\u043e\u0441\u0442\u0443\u043f\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0414\u043e\u0441\u0442\u0443\u043f \u0438 \u0440\u043e\u043b\u0438\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0414\u043e\u0441\u0442\u0443\u043f \u0438 \u0437\u0430\u043f\u0438\u0441\u0438\", \"col\": 4}}]",
  "creation": "2026-10-30 02:49:57.082595",
  "custom_blocks": [],
  "docstatus": 0,
@@ -29,6 +29,26 @@
    "label": "\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043a",
    "link_count": 0,
    "link_to": "ELMS Settings Section",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "icon": "setting",
+   "is_query_report": 0,
+   "label": "\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0410\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442 \u0437\u043d\u0430\u043d\u0438\u0439 \u0438 \u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440 LLM",
+   "link_count": 0,
+   "link_to": "ELMS Integration Settings",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -124,7 +144,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-09 21:31:41.296203",
+ "modified": "2026-11-13 11:44:26.182556",
  "modified_by": "Administrator",
  "module": "ELMS Core",
  "name": "Settings",

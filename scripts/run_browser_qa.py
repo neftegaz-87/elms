@@ -218,18 +218,26 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                 results["passed"] = False
                 results["errors"].append("login-keycloak.js is not linked on the login page")
 
-            # 7. Check Keycloak button (exactly one)
+            # 7. Password form is the sole Keycloak path; OAuth Keycloak button must be absent
             keycloak_buttons = page.query_selector_all(".btn-keycloak")
-            has_single_btn = len(keycloak_buttons) == 1
+            visible_keycloak = []
+            for btn in keycloak_buttons:
+                try:
+                    if btn.is_visible():
+                        visible_keycloak.append(btn)
+                except Exception:
+                    visible_keycloak.append(btn)
+            has_no_oauth_btn = len(visible_keycloak) == 0
             check_btn = {
-                "name": "btn_keycloak_present",
-                "status": "pass" if has_single_btn else "fail",
+                "name": "btn_keycloak_absent",
+                "status": "pass" if has_no_oauth_btn else "fail",
+                "observed": len(visible_keycloak),
             }
             results["checks"].append(check_btn)
-            if not has_single_btn:
+            if not has_no_oauth_btn:
                 results["passed"] = False
                 results["errors"].append(
-                    f"Expected exactly one .btn-keycloak button, found {len(keycloak_buttons)}"
+                    f"Expected no visible .btn-keycloak button, found {len(visible_keycloak)}"
                 )
 
             # Check no Yandex button
@@ -244,25 +252,8 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                 results["passed"] = False
                 results["errors"].append("Direct Yandex button found on login page, forbidden")
 
-            if keycloak_buttons:
-                btn = keycloak_buttons[0]
-                href = btn.get_attribute("href") or ""
-                valid_prefix = "http://127.0.0.1:8480/realms/elms"
-                no_container_host = "keycloak:8080" not in href
-                starts_correctly = href.startswith(valid_prefix)
-                check_href = {
-                    "name": "btn_keycloak_href_public_url",
-                    "status": "pass" if (starts_correctly and no_container_host) else "fail",
-                    "href": href,
-                }
-                results["checks"].append(check_href)
-                if not starts_correctly:
-                    results["passed"] = False
-                    results["errors"].append(f"Button href '{href}' does not start with '{valid_prefix}'")
-                if not no_container_host:
-                    results["passed"] = False
-                    results["errors"].append("Button href contains internal hostname keycloak:8080")
-
+            login_btn_el = page.query_selector(".for-login .btn-login")
+            if login_btn_el:
                 computed = page.evaluate(
                     """(el) => {
                         const s = window.getComputedStyle(el);
@@ -275,14 +266,12 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                             minHeight: s.minHeight
                         };
                     }""",
-                    btn,
+                    login_btn_el,
                 )
                 results["computed_style"] = computed
 
-                # Geometry: height 44px, radius 3px
                 height_ok = computed.get("height") == "44px"
                 radius_ok = computed.get("borderRadius") == "3px"
-                # Color: cobalt #0d4cd3 = rgb(13, 76, 211)
                 bg_ok = computed.get("backgroundColor") in ("rgb(13, 76, 211)", "#0d4cd3")
 
                 check_geom = {

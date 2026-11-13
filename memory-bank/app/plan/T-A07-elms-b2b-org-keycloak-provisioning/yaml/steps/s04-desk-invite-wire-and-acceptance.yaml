@@ -1,0 +1,137 @@
+schema: epic-decompose/v1
+role: app
+step_id: s04
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: Desk organization/invite UI and mixed wire acceptance
+level: L2
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Дать Admin и Company Admin понятный Desk-путь к Organization и invite через
+  реальные Frappe API, показать явные permission/error states и доказать wire
+  journey invite -> Keycloak password setup -> Keycloak-only login.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-005, FR-006]
+  us_ids: [US-001, US-002, US-003, US-004, US-005]
+  ac_ids: [AC-005, AC-006]
+  nouns:
+  - Settings/Operations Organization entry
+  - Company Admin invite form
+  - organization members
+  - permission error state
+  - wire journey
+  layout_paths:
+  - elms/elms/desk/workspaces.py
+  - elms/elms/public/js/desk-access.js
+  - elms/elms/public/css/desk-access.css
+  - elms/elms/tests/test_access_ui.py
+  - scripts/live_smoke.sh
+  plan_jumps:
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:189-220
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:224-238
+  ac_quotes:
+  - "AC-005: The real Desk journey reaches the Organization and invite API with role-aware success and denial states."
+  - "AC-006: The invite-to-password-to-login wire journey reaches Keycloak password setup and Keycloak-only ELMS login without a Yandex control."
+  api:
+    ui_calls:
+    - elms.access.api.create_organization
+    - elms.access.api.assign_company_admin
+    - elms.access.api.invite_org_user
+    roles:
+      admin: create organization, assign Company Admin, invite
+      company_admin: invite own organization only
+      denied: Guest, Learner, cross-org target
+  persistence: >-
+    UI is a caller only; all scope and role enforcement remains in Frappe
+    whitelist methods. No client-side organization filter is treated as security.
+  done: >-
+    Desk assets parse, workspace links are present, real method names are wired,
+    browser/live/wire evidence covers happy and denial journeys, and no Yandex
+    control is rendered.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md
+    reason: UI journeys and mixed QA charter
+  - path: elms/elms/desk/workspaces.py
+    reason: existing ELMS workspace cards and links
+  - path: elms/elms/public/js/desk-learning.js
+    reason: neighboring Desk API/UI conventions (do not merge unrelated A06 work)
+  - path: rules/elms-design.mdc
+    reason: ELMS Desk visual canon
+  produces:
+  - path: elms/elms/desk/workspaces.py
+    reason: Organization/invite workspace entry
+  - path: elms/elms/public/js/desk-access.js
+    reason: role-aware organization and invite surface
+  - path: elms/elms/public/css/desk-access.css
+    reason: scoped states and controls
+  - path: elms/elms/tests/test_access_ui.py
+    reason: UI/API call-site contract tests
+  - path: memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s04-desk-invite-wire-and-acceptance.yaml
+    reason: implement evidence contract
+  plan_refs: [FR-001, FR-002, FR-003, FR-005, FR-006, US-001, US-002, US-003, US-004, US-005, AC-005, AC-006]
+
+as_built:
+- elms/elms/desk/workspaces.py — existing workspace has role/access links but no Organization/invite surface.
+- elms/elms/public/ — existing Desk assets do not expose the B2B invite journey.
+
+delta:
+- Add scoped Desk Organization/membership/invite UI using real access whitelist methods.
+- Add mixed browser/wire acceptance for invite, password setup and Keycloak-only login.
+
+files:
+  - elms/elms/desk/workspaces.py
+  - elms/elms/hooks.py
+  - elms/elms/public/js/desk-access.js
+  - elms/elms/public/css/desk-access.css
+  - elms/elms/tests/test_access_ui.py
+  - elms/elms/tests/test_workspaces.py
+  - scripts/live_smoke.sh
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s04-desk-invite-wire-and-acceptance.yaml
+deletes: []
+out_of_scope:
+  - Marketing/public application forms
+  - Company progress dashboards
+skills:
+    code_surface: ui
+    impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/frontend-design/SKILL.md
+    - .agents/skills/frontend-testing/SKILL.md
+    - .agents/skills/playwright-best-practices/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+    design:
+    - .agents/skills/frontend-design/SKILL.md
+tdd:
+  - Add failing UI call-site and role/error-state assertions.
+  - Implement scoped Desk surface against real access whitelist methods.
+  - Run backend/UI syntax, browser, wire and live smoke lanes.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py
+  - node --check elms/elms/public/js/desk-access.js
+  - python3 -m py_compile elms/elms/desk/workspaces.py
+  - rg -n 'create_organization|assign_company_admin|invite_org_user|Company Admin|ELMS Organization' elms/elms/public/js/desk-access.js elms/elms/desk/workspaces.py
+checkpoints:
+  - id: cp1
+    criterion: Workspace and Desk surface call real access methods and expose explicit denial/error states.
+    verify: ./bin/pytest -q elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py
+  - id: cp2
+    criterion: JS parses and no client-only scope or Yandex login control remains.
+    verify: node --check elms/elms/public/js/desk-access.js
+wire_complete:
+  call_sites:
+  - "Settings/Operations workspace -> Organization form -> create_organization"
+  - "Organization members -> invite form -> invite_org_user -> success/error state"
+  - "Invite email -> Keycloak password setup -> Keycloak-only ELMS login"
+  enforce_path: elms/elms/access/api.py
+  dual_path_rg: 'rg -n "frappe.call|create_organization|assign_company_admin|invite_org_user" elms/elms/public/js/desk-access.js'
+  instruction_rg: 'rg -n "filter.*organization|kc_idp_hint=yandex|Login.*Yandex" elms/elms/public/js elms/elms/desk'
+  deny_old_proven: true

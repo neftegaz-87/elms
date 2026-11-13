@@ -69,8 +69,8 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn('context.get("for_test") == "login.html"', install_content)
         self.assertIn('result["app_name"] = "elms"', install_content)
 
-    def test_update_website_context_brands_keycloak_as_yandex(self):
-        """The single broker button is presented as the Yandex sign-in action."""
+    def test_update_website_context_hides_social_keycloak_button(self):
+        """Login page keeps only the password form; Keycloak OAuth button is cleared."""
         from elms.install import update_website_context
 
         context = {
@@ -82,13 +82,17 @@ class TestLoginUI(unittest.TestCase):
                     "auth_url": "http://127.0.0.1:8480/realms/elms/protocol/openid-connect/auth",
                 }
             ],
+            "social_login": True,
+            "login_with_email_link": 1,
         }
         res = update_website_context(context)
         self.assertEqual(res.get("app_name"), "elms")
-        self.assertNotIn("provider_logins", res)
-        self.assertEqual(context["provider_logins"][0]["provider_name"], "Яндекс")
-        self.assertIn("kc_idp_hint=yandex", context["provider_logins"][0]["auth_url"])
-        self.assertIn("yandex.svg", context["provider_logins"][0]["icon"])
+        self.assertEqual(res.get("provider_logins"), [])
+        self.assertEqual(res.get("social_login"), False)
+        self.assertEqual(res.get("login_with_email_link"), 0)
+        self.assertEqual(context.get("provider_logins"), [])
+        self.assertEqual(context.get("social_login"), False)
+        self.assertEqual(context.get("login_with_email_link"), 0)
 
     def test_elms_desk_route_is_available_for_system_users(self):
         hooks_content = self.hooks_path.read_text(encoding="utf-8")
@@ -102,6 +106,7 @@ class TestLoginUI(unittest.TestCase):
         js = (REPO_ROOT / "elms/elms/public/js/login-keycloak.js").read_text(encoding="utf-8")
 
         self.assertIn('$(document).on("login_rendered"', js)
+        self.assertIn("hideSocialChrome", js)
         self.assertIn('"elms.sso.login.login_with_keycloak"', js)
         self.assertIn("args: { usr: username, pwd: password }", js)
         self.assertIn('"/api/method/frappe.www.login.login_via_token"', js)
@@ -169,8 +174,8 @@ class TestLoginUI(unittest.TestCase):
         ):
             self.assertIn(token, css, f"Missing Neftegaz login token: {token}")
 
-    def test_rendered_login_mock_html_has_yandex_provider_button(self):
-        """Rendered login page HTML contract: one Yandex broker button is available."""
+    def test_rendered_login_mock_html_has_no_keycloak_provider_button(self):
+        """Rendered login page HTML contract: password form only, no OAuth Keycloak button."""
         sample_html = """
         <div class="for-login">
             <div class="page-card">
@@ -178,9 +183,6 @@ class TestLoginUI(unittest.TestCase):
                 <form class="form-signin form-login">
                     <input id="login_email"><input id="login_password">
                     <button class="btn-login">Войти</button>
-                    <a class="btn-login-option btn-keycloak" href="http://127.0.0.1:8480/realms/elms/auth?kc_idp_hint=yandex">
-                        <img src="/assets/elms/images/yandex.svg" alt="Яндекс">Войти через Яндекс
-                    </a>
                 </form>
             </div>
         </div>
@@ -188,15 +190,16 @@ class TestLoginUI(unittest.TestCase):
         parser = LoginButtonParser()
         parser.feed(sample_html)
 
-        self.assertEqual(len(parser.keycloak_buttons), 1)
-        self.assertEqual(len(parser.yandex_buttons), 1)
+        self.assertEqual(len(parser.keycloak_buttons), 0)
+        self.assertEqual(len(parser.yandex_buttons), 0)
 
-    def test_login_page_renders_yandex_button(self):
-        """Verify HTML parser detects the single Yandex broker button."""
-        html = '<div class="for-login"><a class="btn-login-option btn-keycloak" href="/auth?kc_idp_hint=yandex">Войти через Яндекс</a></div>'
+    def test_login_page_parser_detects_keycloak_button_when_present(self):
+        """Parser still detects a Keycloak button if one leaks into HTML."""
+        html = '<div class="for-login"><a class="btn-login-option btn-keycloak" href="/auth">Войти через Keycloak</a></div>'
         parser = LoginButtonParser()
         parser.feed(html)
         self.assertEqual(len(parser.keycloak_buttons), 1)
+        self.assertEqual(len(parser.yandex_buttons), 0)
 
     def test_login_page_has_no_yandex_provider(self):
         """Verify HTML parser rejects direct Yandex provider button."""
@@ -236,15 +239,13 @@ class TestAcceptanceCriteriaEvidence(unittest.TestCase):
             "The purged fallback user must not be present in the production realm",
         )
 
-    def test_ac_004_yandex_broker_flow(self):
-        """AC-004: Yandex broker flow through Keycloak broker without direct Frappe call."""
+    def test_ac_004_keycloak_only_realm(self):
+        """AC-004: Realm has no external broker and keeps password login enabled."""
         import json
         with (REPO_ROOT / "docker/keycloak/realm-elms.json").open("r", encoding="utf-8") as f:
             realm = json.load(f)
-        idps = realm.get("identityProviders", [])
-        yandex_idps = [i for i in idps if i.get("alias") == "yandex"]
-        self.assertEqual(len(yandex_idps), 1, "Yandex identity provider broker must exist in realm-elms.json")
-        self.assertEqual(yandex_idps[0].get("providerId"), "yandex-oauth")
+        self.assertEqual(realm.get("identityProviders"), [])
+        self.assertEqual(realm.get("identityProviderMappers"), [])
 
         client = next(client for client in realm["clients"] if client.get("clientId") == "elms-frappe")
         self.assertTrue(client.get("directAccessGrantsEnabled"), "Keycloak password login requires the password grant")

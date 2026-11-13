@@ -58,6 +58,19 @@ class TestCourseStudio(unittest.TestCase):
             with self.assertRaises(frappe.ValidationError):
                 lms_api.get_learning_relationships(entity_type="not-a-lms-entity")
 
+    def test_course_categories_are_returned_for_the_studio_selector(self):
+        with (
+            patch.object(lms_api, "_require_learning_manager", return_value="methodologist@example.ru"),
+            patch.object(
+                frappe,
+                "get_all",
+                return_value=[{"name": "Охрана труда", "category_name": "Охрана труда", "description": ""}],
+            ),
+        ):
+            result = lms_api.get_course_categories()
+
+        self.assertEqual(result["categories"][0]["category_name"], "Охрана труда")
+
     def test_relationship_search_returns_programs_and_lessons_under_their_chapter(self):
         course = [{"name": "COURSE-1", "course_name": "Стропальные работы", "course_code": "STR-2026"}]
         batches = []
@@ -160,6 +173,7 @@ class TestCourseStudio(unittest.TestCase):
         with (
             patch.object(lms_api, "_require_learning_manager", return_value="methodologist@example.ru"),
             patch.object(lms_api, "_save_doc", side_effect=save_doc),
+            patch.object(lms_api, "_unlink_lesson_quiz", return_value=None),
             patch.object(lms_api, "get_course_editor_data", return_value={"course": {"name": "ELMS Course-1"}}),
         ):
             result = lms_api.save_course_draft(json.dumps(payload))
@@ -171,6 +185,213 @@ class TestCourseStudio(unittest.TestCase):
         self.assertEqual(saved[2][2]["chapter"], "ELMS Course Chapter-2")
         self.assertEqual(saved[3][2]["sequence_id"], 2)
         self.assertEqual(saved[4][2]["sequence_id"], 2)
+
+    def test_editor_data_embeds_quiz_draft_with_question_variants(self):
+        course = {
+            "name": "COURSE-1",
+            "course_name": "Безопасность",
+            "course_code": "SAFE-1",
+            "category": "Охрана труда",
+            "academic_hours": 40,
+            "is_published": 0,
+            "passing_percentage": 80,
+            "short_description": "Курс",
+            "description": "Цели",
+        }
+        chapters = [{"name": "CH-1", "chapter_name": "Контроль", "sequence_id": 1, "description": ""}]
+        lessons = [{
+            "name": "LESSON-Q",
+            "lesson_name": "Контрольная",
+            "chapter": "CH-1",
+            "sequence_id": 1,
+            "content_type": "Quiz",
+            "duration_minutes": 20,
+            "minimum_time_seconds": 0,
+            "is_mandatory": 1,
+            "video_url": "",
+            "body": "",
+        }]
+        quizzes = [{
+            "name": "QUIZ-1",
+            "quiz_name": "Тренировка",
+            "lesson": "LESSON-Q",
+            "quiz_type": "Practice",
+            "passing_percentage": 70,
+            "time_limit_minutes": 15,
+            "max_attempts": 0,
+            "is_published": 1,
+            "instructions": "Инструкция",
+        }]
+        questions = [
+            {
+                "name": "Q1",
+                "quiz": "QUIZ-1",
+                "question_text": "Один ответ",
+                "sequence_id": 1,
+                "question_type": "Single Choice",
+                "options_json": json.dumps([
+                    {"id": "A", "text": "Да", "correct": True},
+                    {"id": "B", "text": "Нет", "correct": False},
+                ], ensure_ascii=False),
+                "points": 1,
+                "topic": "Тема",
+                "explanation": "Потому что",
+            },
+            {
+                "name": "Q2",
+                "quiz": "QUIZ-1",
+                "question_text": "Несколько",
+                "sequence_id": 2,
+                "question_type": "Multiple Choice",
+                "options_json": json.dumps([
+                    {"id": "A", "text": "A", "correct": True},
+                    {"id": "B", "text": "B", "correct": True},
+                    {"id": "C", "text": "C", "correct": False},
+                ], ensure_ascii=False),
+                "points": 2,
+                "topic": "Тема",
+                "explanation": "",
+            },
+            {
+                "name": "Q3",
+                "quiz": "QUIZ-1",
+                "question_text": "Верно или нет",
+                "sequence_id": 3,
+                "question_type": "True/False",
+                "options_json": json.dumps([
+                    {"id": "A", "text": "Верно", "correct": True},
+                    {"id": "B", "text": "Неверно", "correct": False},
+                ], ensure_ascii=False),
+                "points": 1,
+                "topic": "Тема",
+                "explanation": "",
+            },
+        ]
+
+        with (
+            patch.object(lms_api, "_require_learning_manager", return_value="methodologist@example.ru"),
+            patch.object(frappe.db, "exists", return_value=True),
+            patch.object(frappe, "get_doc", return_value=course),
+            patch.object(frappe, "get_all", side_effect=[chapters, lessons, quizzes, questions]),
+        ):
+            result = lms_api.get_course_editor_data("COURSE-1")
+
+        draft = result["chapters"][0]["lessons"][0]["quiz_draft"]
+        self.assertEqual(draft["quiz_type"], "Practice")
+        self.assertEqual([q["question_type"] for q in draft["questions"]], [
+            "Single Choice", "Multiple Choice", "True/False",
+        ])
+        self.assertTrue(draft["questions"][1]["options"][0]["correct"])
+        self.assertTrue(draft["questions"][1]["options"][1]["correct"])
+
+    def test_save_draft_persists_inline_quiz_with_all_question_types(self):
+        payload = {
+            "course": {"course_name": "Курс с тестом", "course_code": "Q-1"},
+            "chapters": [{
+                "chapter_name": "Раздел",
+                "lessons": [{
+                    "lesson_name": "Контроль знаний",
+                    "content_type": "Quiz",
+                    "quiz_draft": {
+                        "quiz_name": "Конструкторный тест",
+                        "quiz_type": "Assessment",
+                        "passing_percentage": 80,
+                        "time_limit_minutes": 10,
+                        "max_attempts": 1,
+                        "is_published": 1,
+                        "instructions": "Ответьте на все вопросы",
+                        "questions": [
+                            {
+                                "question_text": "Один",
+                                "question_type": "Single Choice",
+                                "points": 1,
+                                "options": [
+                                    {"id": "A", "text": "Верный", "correct": True},
+                                    {"id": "B", "text": "Нет", "correct": False},
+                                ],
+                            },
+                            {
+                                "question_text": "Несколько",
+                                "question_type": "Multiple Choice",
+                                "points": 2,
+                                "options": [
+                                    {"id": "A", "text": "A", "correct": True},
+                                    {"id": "B", "text": "B", "correct": True},
+                                    {"id": "C", "text": "C", "correct": False},
+                                ],
+                            },
+                            {
+                                "question_text": "Утверждение",
+                                "question_type": "True/False",
+                                "points": 1,
+                                "options": [
+                                    {"id": "A", "text": "Верно", "correct": True},
+                                    {"id": "B", "text": "Неверно", "correct": False},
+                                ],
+                            },
+                        ],
+                        "deleted_questions": [],
+                    },
+                }],
+            }],
+        }
+        saved = []
+
+        def save_doc(doctype, name, values):
+            saved.append((doctype, name, dict(values)))
+            return {"name": f"{doctype}-{len(saved)}", **values}
+
+        with (
+            patch.object(lms_api, "_require_learning_manager", return_value="methodologist@example.ru"),
+            patch.object(lms_api, "_save_doc", side_effect=save_doc),
+            patch.object(frappe, "get_all", return_value=[]),
+            patch.object(lms_api, "get_course_editor_data", return_value={"course": {"name": "COURSE-Q"}}),
+        ):
+            lms_api.save_course_draft(payload)
+
+        quiz_saves = [row for row in saved if row[0] == "ELMS Quiz"]
+        question_saves = [row for row in saved if row[0] == "ELMS Quiz Question"]
+        self.assertEqual(len(quiz_saves), 1)
+        self.assertEqual(quiz_saves[0][2]["quiz_type"], "Assessment")
+        self.assertEqual(quiz_saves[0][2]["lesson"], "ELMS Course Lesson-3")
+        self.assertEqual(len(question_saves), 3)
+        self.assertEqual(
+            [row[2]["question_type"] for row in question_saves],
+            ["Single Choice", "Multiple Choice", "True/False"],
+        )
+        multi_options = json.loads(question_saves[1][2]["options_json"])
+        self.assertEqual([option["correct"] for option in multi_options], [True, True, False])
+
+    def test_save_draft_rejects_quiz_without_correct_option(self):
+        payload = {
+            "course": {"course_name": "Курс", "course_code": "BAD"},
+            "chapters": [{
+                "chapter_name": "Раздел",
+                "lessons": [{
+                    "lesson_name": "Тест",
+                    "content_type": "Quiz",
+                    "quiz_draft": {
+                        "quiz_name": "Битый",
+                        "quiz_type": "Practice",
+                        "questions": [{
+                            "question_text": "Без верного",
+                            "question_type": "Single Choice",
+                            "options": [
+                                {"id": "A", "text": "A", "correct": False},
+                                {"id": "B", "text": "B", "correct": False},
+                            ],
+                        }],
+                    },
+                }],
+            }],
+        }
+
+        with (
+            patch.object(lms_api, "_require_learning_manager", return_value="methodologist@example.ru"),
+            patch.object(lms_api, "_save_doc", side_effect=lambda doctype, name, values: {"name": f"{doctype}-1", **values}),
+        ):
+            with self.assertRaises(frappe.ValidationError):
+                lms_api.save_course_draft(payload)
 
     def test_save_draft_rejects_child_from_another_course(self):
         payload = {

@@ -1,0 +1,83 @@
+schema: epic-implement/v1
+role: app
+step_id: s03
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+task_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: s03 — Keycloak-only realm, Yandex sunset and legacy-user migration IMPLEMENT
+level: L2
+status: in_progress
+date: 2026-11-13
+decompose_ref: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/yaml/steps/s03-keycloak-only-yandex-sunset-and-migration.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+files:
+  - docker/keycloak/realm-elms.json
+  - elms/elms/access/api.py
+  - elms/elms/sso/constants.py
+  - elms/elms/sso/ensure.py
+  - elms/elms/sso/login.py
+  - elms/elms/sso/settings.py
+  - elms/elms/install.py
+  - elms/elms/public/js/login-keycloak.js
+  - scripts/live_smoke.sh
+  - scripts/infra/vault_preflight.sh
+  - elms/elms/tests/test_sso.py
+  - elms/elms/tests/test_sso_config.py
+  - elms/elms/tests/test_login_ui.py
+  - docs/reports/sso-browser-api-trace.json
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s03-keycloak-only-yandex-sunset-and-migration.yaml
+
+deletes: []
+
+done:
+  - "Realm seed contains no external identity provider or mapper and enables local password reset actions."
+  - "Frappe login and authorization URL are Keycloak-only and no longer add a broker hint."
+  - "migrate_yandex_users supports admin-only dry-run/apply, idempotent upsert, UPDATE_PASSWORD and post-success link replacement."
+  - "Live smoke and Vault preflight contracts no longer require legacy external IdP credentials or broker reachability."
+
+wire_complete:
+  call_sites:
+    - "Operator migration -> migrate_yandex_users -> Keycloak upsert + UPDATE_PASSWORD -> local Keycloak social link"
+    - "ELMS login -> Keycloak local password/OIDC callback -> Frappe session"
+  enforce_path: elms/elms/access/api.py and elms/elms/sso/
+  dual_path_rg: 'rg -n -i "yandex|kc_idp_hint" docker/keycloak elms/elms/sso elms/elms/public/js scripts'
+  instruction_rg: 'rg -n -i "yandex.*(enabled|happy|broker)|dual.*idp|Yandex.*login" docker/keycloak elms/elms scripts'
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_sso.py elms/elms/tests/test_sso_config.py elms/elms/tests/test_login_ui.py"
+  - "python3 -m json.tool docker/keycloak/realm-elms.json >/dev/null"
+  - "bash -n scripts/live_smoke.sh scripts/infra/vault_preflight.sh"
+  - "rg -n -i 'yandex|kc_idp_hint' docker/keycloak/realm-elms.json elms/elms/public/js/login-keycloak.js scripts/live_smoke.sh"
+
+integration_check:
+  - "Realm and Frappe login expose only local Keycloak authentication; no Yandex IdP or hint is enabled."
+  - "Migration refuses non-admin callers, supports dry-run, and changes a legacy social link only after Keycloak action succeeds."
+  - "Callback/JIT reconciliation remains keyed by immutable Keycloak subject and verified email."
+
+checkpoints:
+  - id: cp1
+    criterion: Realm seed and login route contain no enabled external IdP or hint.
+    status: done
+    evidence: "Targeted login/realm contract => 16 passed."
+    verify: "./bin/pytest -q elms/elms/tests/test_login_ui.py -k 'keycloak or realm or login'"
+  - id: cp2
+    criterion: Legacy migration sets local Keycloak password required action and is idempotent.
+    status: done
+    evidence: "Targeted migration/callback/local-Keycloak contract => 6 passed, 28 deselected."
+    verify: "./bin/pytest -q elms/elms/tests/test_sso.py -k 'migrat or callback or local_keycloak'"
+
+resume_from: cp2
+verification_results:
+  - "./bin/pytest -q elms/elms/tests/test_sso.py elms/elms/tests/test_sso_config.py elms/elms/tests/test_login_ui.py => PASS (61 passed)"
+  - "./bin/pytest -q elms/elms/tests/test_login_ui.py -k 'keycloak or realm or login' => PASS (16 passed)"
+  - "./bin/pytest -q elms/elms/tests/test_sso.py -k 'migrat or callback or local_keycloak' => PASS (6 passed, 28 deselected)"
+  - "python3 -m json.tool docker/keycloak/realm-elms.json >/dev/null => PASS"
+  - "bash -n scripts/live_smoke.sh scripts/infra/vault_preflight.sh => PASS"
+  - "python3 -m py_compile elms/elms/access/api.py elms/elms/sso/constants.py elms/elms/sso/ensure.py elms/elms/sso/login.py elms/elms/sso/settings.py elms/elms/install.py => PASS"
+  - "rg -n -i 'yandex|kc_idp_hint' docker/keycloak/realm-elms.json elms/elms/public/js/login-keycloak.js scripts/live_smoke.sh => PASS (only negative assertions in smoke script)"

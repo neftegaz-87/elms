@@ -1,0 +1,29 @@
+{
+ "actions": [],
+ "autoname": "field:organization_name",
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["organization_name", "inn", "ogrn", "kpp", "status"],
+ "fields": [
+  {"fieldname": "organization_name", "fieldtype": "Data", "in_list_view": 1, "label": "Organization Name", "reqd": 1, "unique": 1},
+  {"fieldname": "inn", "fieldtype": "Data", "in_list_view": 1, "in_standard_filter": 1, "label": "ИНН", "reqd": 1, "unique": 1},
+  {"fieldname": "ogrn", "fieldtype": "Data", "label": "ОГРН"},
+  {"fieldname": "kpp", "fieldtype": "Data", "label": "КПП"},
+  {"default": "Active", "fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "label": "Status", "options": "Active\nInactive", "reqd": 1}
+ ],
+ "links": [],
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Organization",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 0, "delete": 0, "read": 1, "role": "ELMS Company Admin", "write": 0},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "organization_name"
+}

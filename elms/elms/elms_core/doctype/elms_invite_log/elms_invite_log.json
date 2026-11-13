@@ -1,0 +1,29 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["email", "organization", "invited_by", "keycloak_user_id", "status", "error_message"],
+ "fields": [
+  {"fieldname": "email", "fieldtype": "Data", "in_list_view": 1, "label": "Email", "reqd": 1},
+  {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
+  {"fieldname": "invited_by", "fieldtype": "Link", "label": "Invited By", "options": "User", "reqd": 1},
+  {"fieldname": "keycloak_user_id", "fieldtype": "Data", "label": "Keycloak User ID"},
+  {"fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "label": "Status", "options": "Pending\nInvited\nFailed", "reqd": 1},
+  {"fieldname": "error_message", "fieldtype": "Small Text", "label": "Error Message"}
+ ],
+ "links": [],
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Invite Log",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 0, "delete": 0, "read": 1, "role": "ELMS Company Admin", "write": 0},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

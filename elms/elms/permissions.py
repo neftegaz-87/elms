@@ -46,6 +46,7 @@ if not hasattr(frappe, "whitelist"):
 
 ELMS_ADMIN_ROLE = "ELMS Admin"
 ELMS_LEARNER_ROLE = "ELMS Learner"
+ELMS_COMPANY_ADMIN_ROLE = "ELMS Company Admin"
 LEGACY_LEARNER_ROLE = "ELMS " + "LMS User"  # legacy migration only
 
 ROLE_PROFILES: dict[str, tuple[str, ...]] = {
@@ -54,6 +55,7 @@ ROLE_PROFILES: dict[str, tuple[str, ...]] = {
     "ELMS Methodologist Profile": ("Desk User", "ELMS Methodologist"),
     "ELMS Operations Profile": ("Desk User", "ELMS Operations User"),
     "ELMS Admin Profile": ("Desk User", ELMS_ADMIN_ROLE),
+    "ELMS Company Admin Profile": ("Desk User", ELMS_COMPANY_ADMIN_ROLE),
 }
 
 ROLE_DESCRIPTIONS: dict[str, str] = {
@@ -64,6 +66,7 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     "ELMS Methodologist": "Методист: создание программ, курсов, уроков и банка вопросов.",
     "Desk User": "Техническая роль Frappe для входа в Desk; сама по себе не задаёт бизнес-права ELMS.",
     "System Manager": "Технический администратор Frappe: системные настройки и полная матрица прав.",
+    ELMS_COMPANY_ADMIN_ROLE: "Представитель компании: приглашает сотрудников только в своей организации.",
 }
 
 GROUP_POLICIES: dict[str, tuple[str, str]] = {

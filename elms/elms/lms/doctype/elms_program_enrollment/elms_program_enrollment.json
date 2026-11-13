@@ -30,5 +30,8 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "search_fields": "program, user, current_course, status",
+ "show_title_field_in_link": 1,
+ "title_field": "program",
  "states": []
 }

@@ -16,11 +16,9 @@ class TestSSOConfiguration(unittest.TestCase):
             DEFAULT_SSO_ROLES_CONF_KEY,
             KEYCLOAK_LOGIN_CONF_KEY,
             KEYCLOAK_PROVIDER_NAME,
-            YANDEX_IDP_ALIAS,
         )
 
         self.assertEqual(KEYCLOAK_PROVIDER_NAME, "Keycloak")
-        self.assertEqual(YANDEX_IDP_ALIAS, "yandex")
         self.assertEqual(KEYCLOAK_LOGIN_CONF_KEY, "keycloak_login")
         self.assertEqual(DEFAULT_SSO_ROLES, ("Desk User", "ELMS Learner"))
         self.assertEqual(DEFAULT_SSO_ROLES_CONF_KEY, "elms_sso_default_roles")
@@ -92,23 +90,15 @@ class TestSSOConfiguration(unittest.TestCase):
             parsed = urlparse(uri.replace("/*", "/placeholder"))
             self.assertTrue(parsed.scheme and parsed.netloc, f"Invalid redirect URI: {uri}")
 
-    def test_keycloak_yandex_broker_structure(self):
-        """Test that Keycloak realm configures Yandex only as an OIDC broker with first-broker-login."""
+    def test_keycloak_realm_has_no_external_identity_providers(self):
+        """Keycloak-only realm has no external identity-provider or mapper definitions."""
         realm_path = "docker/keycloak/realm-elms.json"
         with open(realm_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        idps = data.get("identityProviders", [])
-        yandex_idps = [i for i in idps if i.get("alias") == "yandex"]
-        self.assertEqual(len(yandex_idps), 1, "Yandex identity provider must exist in realm-elms.json")
-        yandex = yandex_idps[0]
-
-        self.assertEqual(yandex.get("providerId"), "yandex-oauth")
-        self.assertEqual(yandex.get("firstBrokerLoginFlowAlias"), "first broker login")
-        self.assertTrue(yandex.get("trustEmail"))
-        self.assertTrue(yandex.get("enabled"))
-        self.assertEqual(yandex.get("config", {}).get("defaultScope"), "login:email login:info")
-        self.assertNotIn("openid", yandex.get("config", {}).get("defaultScope", ""))
+        self.assertEqual(data.get("identityProviders"), [])
+        self.assertEqual(data.get("identityProviderMappers"), [])
+        self.assertTrue(data.get("resetPasswordAllowed"))
 
     def test_dev_test_users_use_environment_backed_passwords(self):
         """The local verification accounts must be Keycloak-only and never carry passwords in git."""
@@ -148,8 +138,6 @@ class TestSSOConfiguration(unittest.TestCase):
         test_env = {
             "KEYCLOAK_CLIENT_ID": "test-keycloak-id",
             "KEYCLOAK_CLIENT_SECRET": "test-keycloak-secret",
-            "YANDEX_CLIENT_ID": "test-yandex-id",
-            "YANDEX_CLIENT_SECRET": "test-yandex-secret",
             "ELMS_SSO_DEFAULT_ROLES": "Custom Role, Desk User",
         }
         cfg = sso_conf.build_sso_site_config(test_env)
@@ -211,16 +199,14 @@ if __name__ == "__main__":
 
 
 class TestSsoSettingsContract(unittest.TestCase):
-    def test_sso_settings_validates_all_seven_contract_variables(self):
-        """FR-004: Validate all 7 contract env variables with typed SsoSettings adapter."""
+    def test_sso_settings_validates_keycloak_only_contract_variables(self):
+        """FR-004: Validate the Keycloak-only environment contract."""
         from elms.sso.settings import SsoSettings
 
         env = {
             "KEYCLOAK_CLIENT_ID": "elms-frappe",
             "KEYCLOAK_CLIENT_SECRET": "secret123",
             "KEYCLOAK_PUBLIC_URL": "http://127.0.0.1:8480",
-            "YANDEX_CLIENT_ID": "yandex-id",
-            "YANDEX_CLIENT_SECRET": "yandex-secret",
             "ELMS_SSO_DEFAULT_ROLES": "Desk User, ELMS Learner",
             "ELMS_SSO_REQUIRE": "1",
         }
@@ -228,8 +214,6 @@ class TestSsoSettingsContract(unittest.TestCase):
         self.assertEqual(settings.keycloak_client_id, "elms-frappe")
         self.assertEqual(settings.keycloak_client_secret.get_secret_value(), "secret123")
         self.assertEqual(settings.keycloak_public_url, "http://127.0.0.1:8480")
-        self.assertEqual(settings.yandex_client_id, "yandex-id")
-        self.assertEqual(settings.yandex_client_secret.get_secret_value(), "yandex-secret")
         self.assertEqual(settings.elms_sso_default_roles, ["Desk User", "ELMS Learner"])
         self.assertTrue(settings.elms_sso_require)
 
@@ -256,45 +240,21 @@ class TestSsoSettingsContract(unittest.TestCase):
                 keycloak_public_url="http://keycloak:8080",
             )
 
-    def test_keycloak_entrypoint_credential_branches(self):
-        """Test entrypoint Yandex credential branch logic using shell simulation."""
+    def test_keycloak_entrypoint_does_not_require_legacy_idp_credentials(self):
+        """Keycloak bootstrap succeeds without legacy external IdP credentials."""
         import subprocess
 
-        # Branch 1: both empty -> exit 0 (disables broker)
+        entrypoint = open("docker/keycloak/entrypoint.sh", encoding="utf-8").read()
+        self.assertNotIn("YANDEX", entrypoint)
+
+        clean_env = {key: value for key, value in os.environ.items() if not key.startswith("YANDEX_")}
         res1 = subprocess.run(
             ["sh", "docker/keycloak/entrypoint.sh", "--dry-run"],
-            env={**os.environ, "YANDEX_CLIENT_ID": "", "YANDEX_CLIENT_SECRET": ""},
+            env=clean_env,
             capture_output=True,
             text=True,
         )
-        self.assertEqual(res1.returncode, 0, f"Both empty should succeed: {res1.stderr}")
-
-        # Branch 2: partial (ID only) -> exit 1
-        res2 = subprocess.run(
-            ["sh", "docker/keycloak/entrypoint.sh", "--dry-run"],
-            env={**os.environ, "YANDEX_CLIENT_ID": "some-id", "YANDEX_CLIENT_SECRET": ""},
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(res2.returncode, 1, "Partial credentials must exit non-zero")
-
-        # Branch 3: partial (SECRET only) -> exit 1
-        res3 = subprocess.run(
-            ["sh", "docker/keycloak/entrypoint.sh", "--dry-run"],
-            env={**os.environ, "YANDEX_CLIENT_ID": "", "YANDEX_CLIENT_SECRET": "some-sec"},
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(res3.returncode, 1, "Partial credentials must exit non-zero")
-
-        # Branch 4: both present -> exit 0 (enables broker)
-        res4 = subprocess.run(
-            ["sh", "docker/keycloak/entrypoint.sh", "--dry-run"],
-            env={**os.environ, "YANDEX_CLIENT_ID": "some-id", "YANDEX_CLIENT_SECRET": "some-sec"},
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(res4.returncode, 0, f"Both present should succeed: {res4.stderr}")
+        self.assertEqual(res1.returncode, 0, f"Keycloak-only bootstrap should succeed: {res1.stderr}")
 
         partial_test_users = subprocess.run(
             ["sh", "docker/keycloak/entrypoint.sh", "--dry-run"],

@@ -24,6 +24,7 @@ x-backend: &backend
   volumes: *app_volumes
   extra_hosts:
     - "${SITE_NAME:-elms.localhost}:host-gateway"
+    - "host.docker.internal:host-gateway"
   depends_on:
     configurator:
       condition: service_completed_successfully

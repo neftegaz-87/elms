@@ -37,6 +37,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         ),
         "links": (
             ("Конструктор курсов", "ELMS Course", "Курсы"),
+            ("Конструктор курсов", "ELMS Course Category", "Категории курсов"),
             ("Конструктор курсов", "ELMS Program", "Программы обучения"),
             ("Конструктор курсов", "ELMS Program Course", "Состав программ"),
             ("Учебный процесс", "ELMS Batch", "Потоки и группы"),
@@ -77,15 +78,16 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "sequence_id": 3,
         "roles": ("ELMS Admin", "System Manager"),
         "content": "Кто входит в систему, что разрешено ролям и какие записи доступны пользователю.",
-        "links": (
-            ("Настройки elms", "ELMS Settings Section", "Состояние настроек"),
-            ("Пользователи и доступ", "User", "Пользователи"),
-            ("Пользователи и доступ", "Role", "Роли"),
-            ("Пользователи и доступ", "permission-manager", "Матрица прав ролей"),
-            ("Доступ и роли", "Role Profile", "Профили ролей"),
-            ("Доступ и роли", "User Group", "Группы пользователей"),
-            ("Доступ и записи", "User Permission", "Ограничения пользователей"),
-        ),
+		"links": (
+			("Настройки elms", "ELMS Settings Section", "Состояние настроек"),
+			("Интеграции", "ELMS Integration Settings", "Ассистент знаний и провайдер LLM"),
+			("Пользователи и доступ", "User", "Пользователи"),
+			("Пользователи и доступ", "Role", "Роли"),
+			("Пользователи и доступ", "permission-manager", "Матрица прав ролей"),
+			("Доступ и роли", "Role Profile", "Профили ролей"),
+			("Доступ и роли", "User Group", "Группы пользователей"),
+			("Доступ и записи", "User Permission", "Ограничения пользователей"),
+		),
     },
 )
 
@@ -103,6 +105,7 @@ OBSOLETE_ELMS_WORKSPACES: tuple[str, ...] = ("Управление LMS", "Operat
 LMS_AUTHORING_LINKS = frozenset(
     {
         "ELMS Course",
+        "ELMS Course Category",
         "ELMS Program",
         "ELMS Program Course",
     }

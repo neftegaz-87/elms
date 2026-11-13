@@ -8,7 +8,7 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": true,
   "roles": {
@@ -66,64 +66,8 @@
       "path": "/Employees"
     }
   ],
-  "identityProviders": [
-    {
-      "alias": "yandex",
-      "displayName": "Yandex 360",
-      "providerId": "yandex-oauth",
-      "enabled": true,
-      "updateProfileFirstLoginMode": "on",
-      "trustEmail": true,
-      "storeToken": false,
-      "addReadTokenRoleOnCreate": false,
-      "authenticateByDefault": false,
-      "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "first broker login",
-      "config": {
-        "clientId": "${env.YANDEX_CLIENT_ID:}",
-        "clientSecret": "${env.YANDEX_CLIENT_SECRET:}",
-        "authorizationUrl": "https://oauth.yandex.ru/authorize",
-        "tokenUrl": "https://oauth.yandex.ru/token",
-        "userInfoUrl": "https://login.yandex.ru/info",
-        "defaultScope": "login:email login:info",
-        "syncMode": "IMPORT",
-        "validateSignature": "false",
-        "useJwksUrl": "false"
-      }
-    }
-  ],
-  "identityProviderMappers": [
-    {
-      "name": "yandex-email-mapper",
-      "identityProviderAlias": "yandex",
-      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "claim": "default_email",
-        "user.attribute": "email"
-      }
-    },
-    {
-      "name": "yandex-first-name-mapper",
-      "identityProviderAlias": "yandex",
-      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "claim": "first_name",
-        "user.attribute": "firstName"
-      }
-    },
-    {
-      "name": "yandex-last-name-mapper",
-      "identityProviderAlias": "yandex",
-      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "claim": "last_name",
-        "user.attribute": "lastName"
-      }
-    }
-  ],
+  "identityProviders": [],
+  "identityProviderMappers": [],
   "clients": [
     {
       "clientId": "elms-frappe",

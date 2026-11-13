@@ -18,7 +18,6 @@ from elms.sso.constants import (
     DEFAULT_SSO_ROLES,
     DEFAULT_SSO_ROLES_CONF_KEY,
     KEYCLOAK_PROVIDER_NAME,
-    YANDEX_IDP_ALIAS,
 )
 from elms.sso.roles import (
     get_default_sso_roles,
@@ -132,7 +131,7 @@ def simulate_keycloak_broker_login(
 ) -> FakeUserDoc:
     """Simulate Frappe processing a Keycloak JIT broker login callback (AC-6).
 
-    Validates OIDC userinfo claims received from Keycloak broker (e.g. Yandex 360),
+    Validates OIDC userinfo claims received from the Keycloak realm,
     links or creates a Frappe User document with immutable sub identity,
     and runs the after_insert role assignment hook fail-closed.
     """
@@ -175,27 +174,15 @@ def simulate_keycloak_auth_flow(
     userinfo: dict | None = None,
     existing_user: FakeUserDoc | None = None,
 ) -> FakeUserDoc:
-    """Simulate the Keycloak authentication flow with a Yandex broker (AC-7).
-
-    - If auth_method is 'yandex_broker' and Yandex is down (yandex_online=False),
-      fails closed with ConnectionError / IdP outage exception.
-    - If auth_method is 'local_credential', the removed local fallback is rejected
-      regardless of Yandex IdP availability.
-    """
-    if auth_method == "yandex_broker":
-        if not yandex_online:
-            frappe.throw("Yandex IdP is unreachable: external identity provider outage (HTTP 503).")
+    """Simulate the Keycloak-only authentication flow (AC-7)."""
+    if auth_method in {"keycloak", "local_credential"}:
         if userinfo is None:
             userinfo = {
-                "sub": "kc-broker-yandex-sub-1",
+                "sub": "kc-local-sub-1",
                 "email": "user@elms.school",
                 "email_verified": True,
-                "broker_provider": "yandex",
             }
         return simulate_keycloak_broker_login(userinfo, existing_user=existing_user)
-
-    if auth_method == "local_credential":
-        frappe.throw("Local Keycloak fallback is disabled; authentication requires the Yandex broker.")
 
     frappe.throw(f"Unknown auth method: {auth_method}")
 
@@ -349,18 +336,14 @@ class TestSSO(unittest.TestCase):
                 maybe_assign_sso_roles(user_no_email)
             self.assertIn("verified email", str(ctx.exception).lower())
 
-    def test_first_broker_login_provisions_keycloak_and_frappe_identity_contract(self):
-        """Test JIT broker identity contract: Yandex as Keycloak IdP, user_id_property=sub, no direct Yandex row."""
+    def test_keycloak_callback_provisions_frappe_identity_contract(self):
+        """Test Keycloak callback identity contract: no broker, user_id_property=sub."""
         realm_path = "docker/keycloak/realm-elms.json"
         self.assertTrue(os.path.exists(realm_path), "realm-elms.json must exist")
         with open(realm_path, "r", encoding="utf-8") as f:
             realm = json.load(f)
 
-        idps = [i for i in realm.get("identityProviders", []) if i.get("alias") == YANDEX_IDP_ALIAS]
-        self.assertEqual(len(idps), 1, "Exactly one Yandex broker IdP must exist in Keycloak")
-        yandex_idp = idps[0]
-        self.assertEqual(yandex_idp.get("providerId"), "yandex-oauth")
-        self.assertEqual(yandex_idp.get("firstBrokerLoginFlowAlias"), "first broker login")
+        self.assertEqual(realm.get("identityProviders"), [])
 
         # In Frappe, Social Login Key must use immutable sub as user_id_property
         from elms.sso.ensure import ensure_social_login_keys
@@ -412,17 +395,70 @@ class TestSSO(unittest.TestCase):
             "User after_insert must route to maybe_assign_sso_roles",
         )
 
-    def test_no_direct_yandex_social_login_key(self):
-        """Test that no direct Yandex Social Login Key or provider is registered in Frappe."""
-        from elms.sso.constants import YANDEX_IDP_ALIAS
-        self.assertEqual(YANDEX_IDP_ALIAS, "yandex")
-        # Ensure constants do not expose a direct provider
+    def test_no_legacy_external_social_login_constant(self):
+        """Test that no legacy external IdP provider constant is registered."""
         import elms.sso.constants as consts
         for attr in dir(consts):
             self.assertFalse(
-                attr.startswith("YANDEX_PROVIDER") or attr.startswith("YANDEX_SOCIAL"),
-                f"Direct Yandex provider constant found: {attr}",
+                attr.startswith("YANDEX_PROVIDER") or attr.startswith("YANDEX_SOCIAL") or attr.startswith("YANDEX_IDP"),
+                f"Legacy external provider constant found: {attr}",
             )
+
+    def test_legacy_identity_dry_run_does_not_call_keycloak(self):
+        """Dry-run inventory must not require Keycloak credentials or mutate links."""
+        from elms.access import api as access_api
+
+        legacy_row = SimpleNamespace(provider="Yandex", userid="legacy-sub")
+        user_doc = SimpleNamespace(
+            name="legacy@example.com",
+            email="legacy@example.com",
+            first_name="Legacy",
+            last_name="User",
+            social_logins=[legacy_row],
+            flags=SimpleNamespace(ignore_permissions=False),
+        )
+
+        with patch.object(frappe, "session", SimpleNamespace(user="Administrator")), \
+            patch.object(frappe, "get_roles", return_value=["ELMS Admin"]), \
+            patch.object(frappe, "get_all", return_value=[{"name": user_doc.name, "email": user_doc.email}], create=True), \
+            patch.object(frappe, "get_doc", return_value=user_doc, create=True), \
+            patch.object(access_api, "_get_keycloak_client", side_effect=AssertionError("dry-run must not connect")):
+            planned = access_api.migrate_yandex_users(dry_run=True)
+
+        self.assertEqual(planned["planned"], 1)
+        self.assertEqual(legacy_row.provider, "Yandex")
+
+    def test_legacy_identity_migration_is_dry_run_safe_and_idempotent(self):
+        """Legacy broker links are planned first and replaced only after Keycloak action succeeds."""
+        from elms.access import api as access_api
+
+        legacy_row = SimpleNamespace(provider="Yandex", userid="legacy-sub")
+        user_doc = SimpleNamespace(
+            name="legacy@example.com",
+            email="legacy@example.com",
+            first_name="Legacy",
+            last_name="User",
+            social_logins=[legacy_row],
+            flags=SimpleNamespace(ignore_permissions=False),
+            save=MagicMock(),
+        )
+        client = MagicMock()
+        client.upsert_user.return_value = "kc-legacy-1"
+
+        with patch.object(frappe, "session", SimpleNamespace(user="Administrator")), \
+            patch.object(frappe, "get_roles", return_value=["ELMS Admin"]), \
+            patch.object(frappe, "get_all", return_value=[{"name": user_doc.name, "email": user_doc.email}], create=True), \
+            patch.object(frappe, "get_doc", return_value=user_doc, create=True), \
+            patch.object(access_api, "_get_keycloak_client", return_value=client):
+            planned = access_api.migrate_yandex_users(dry_run=True)
+            self.assertEqual(planned["planned"], 1)
+            self.assertEqual(legacy_row.provider, "Yandex")
+            migrated = access_api.migrate_yandex_users(dry_run=False)
+
+        self.assertEqual(migrated["migrated"], 1)
+        self.assertEqual(legacy_row.provider, "keycloak")
+        self.assertEqual(legacy_row.userid, "kc-legacy-1")
+        client.send_password_setup.assert_called_once_with("kc-legacy-1")
 
     def test_jit_broker_login_creates_new_user_with_roles_and_social_link(self):
         """Test JIT broker login creates new Frappe user and assigns default roles from mock Keycloak response (AC-6)."""
@@ -507,30 +543,26 @@ class TestSSO(unittest.TestCase):
 
 
 
-    def test_local_keycloak_fallback_fails_closed_during_yandex_outage(self):
-        """Test local Keycloak fallback is rejected when Yandex IdP is unavailable (AC-7, BN-008, TM-010)."""
+    def test_local_keycloak_login_remains_available_without_external_idp(self):
+        """Keycloak local credentials do not depend on an external IdP (AC-7)."""
+        with patch.object(frappe, "db", create=True) as mock_db:
+            mock_db.exists.return_value = True
+            user = simulate_keycloak_auth_flow(auth_method="local_credential", yandex_online=False)
+        self.assertEqual(user.get_social_login_userid("keycloak"), "kc-local-sub-1")
+
+    def test_removed_external_broker_route_fails_closed(self):
+        """A removed external broker method is not accepted by the Keycloak-only flow."""
         with patch.object(frappe, "db", create=True) as mock_db:
             mock_db.exists.return_value = True
             with self.assertRaises(Exception) as ctx:
                 simulate_keycloak_auth_flow(
-                    auth_method="local_credential",
+                    auth_method="legacy_broker",
                     yandex_online=False,
                 )
-        self.assertIn("local keycloak fallback is disabled", str(ctx.exception).lower())
+            self.assertIn("unknown auth method", str(ctx.exception).lower())
 
-    def test_yandex_broker_login_fails_closed_during_outage(self):
-        """Test Yandex broker login attempt fails closed when Yandex IdP is in outage (AC-7, BN-007, TM-009)."""
-        with patch.object(frappe, "db", create=True) as mock_db:
-            mock_db.exists.return_value = True
-            with self.assertRaises(Exception) as ctx:
-                simulate_keycloak_auth_flow(
-                    auth_method="yandex_broker",
-                    yandex_online=False,
-                )
-            self.assertIn("yandex idp is unreachable", str(ctx.exception).lower())
-
-    def test_local_keycloak_fallback_does_not_link_existing_admin_during_outage(self):
-        """Test local Keycloak fallback cannot link an existing account during Yandex outage (AC-7)."""
+    def test_local_keycloak_login_links_existing_admin(self):
+        """Keycloak callback can link an existing account by verified email."""
         existing_admin = FakeUserDoc(email="admin.teacher@elms.school", is_social=False)
         existing_admin.roles = [{"role": "System Manager"}, {"role": "Instructor"}]
 
@@ -543,19 +575,17 @@ class TestSSO(unittest.TestCase):
 
         with patch.object(frappe, "db", create=True) as mock_db:
             mock_db.exists.return_value = True
-            with self.assertRaises(Exception) as ctx:
-                simulate_keycloak_auth_flow(
-                    auth_method="local_credential",
-                    yandex_online=False,
-                    userinfo=local_admin_claims,
-                    existing_user=existing_admin,
-                )
+            linked = simulate_keycloak_auth_flow(
+                auth_method="local_credential",
+                yandex_online=False,
+                userinfo=local_admin_claims,
+                existing_user=existing_admin,
+            )
 
-        self.assertIn("local keycloak fallback is disabled", str(ctx.exception).lower())
-        self.assertIsNone(existing_admin.get_social_login_userid("keycloak"))
+        self.assertEqual(linked.get_social_login_userid("keycloak"), "kc-local-admin-sub-999")
         self.assertIn("System Manager", existing_admin.get_roles())
         self.assertIn("Instructor", existing_admin.get_roles())
-        self.assertFalse(existing_admin.saved)
+        self.assertTrue(existing_admin.saved)
 
     def test_local_keycloak_fallback_user_is_absent_from_realm(self):
         """The purged local fallback user is absent from the Keycloak realm definition."""
@@ -654,10 +684,7 @@ class TestSSO(unittest.TestCase):
             contract.get("keycloak_authorization_path"),
             "/realms/elms/protocol/openid-connect/auth",
         )
-        self.assertEqual(
-            contract.get("keycloak_yandex_broker_path"),
-            "/realms/elms/broker/yandex/endpoint",
-        )
+        self.assertNotIn("keycloak_yandex_broker_path", contract)
 
         if data.get("status") == "blocked":
             self.assertIs(data.get("live_evidence"), False)
@@ -672,12 +699,7 @@ class TestSSO(unittest.TestCase):
         raw_http = data.get("raw_http", {})
         self.assertEqual(
             set(raw_http),
-            {
-                "keycloak_discovery",
-                "frappe_login_page",
-                "keycloak_authorization",
-                "keycloak_yandex_broker",
-            },
+            {"keycloak_discovery", "frappe_login_page", "keycloak_authorization"},
         )
         for response in raw_http.values():
             self.assertTrue(response.get("headers"), "runtime evidence must retain raw response headers")
@@ -712,14 +734,6 @@ class TestSSO(unittest.TestCase):
         self.assertEqual(j1a.get("url"), loc)
         self.assertIn(j1a.get("response", {}).get("status_code"), {200, 302})
 
-        self.assertIn("JRN-SSO-001B", journeys, "JRN-SSO-001B broker endpoint journey must exist")
-        j1b = journeys["JRN-SSO-001B"]
-        self.assertEqual(j1b.get("status"), "pass")
-        self.assertTrue(
-            j1b.get("url", "").startswith(f"{keycloak_base_url}/realms/elms/broker/yandex/endpoint"),
-            "URL must terminate at Keycloak broker endpoint",
-        )
-        self.assertIn(j1b.get("response", {}).get("status_code"), {200, 302, 400, 502})
 
     def test_ac_plus_2_frappe_oauth_redirect_generates_302_to_keycloak(self):
         """Test Frappe OAuth initiation strictly redirects to Keycloak auth endpoint with OIDC params (AC+2)."""
@@ -744,17 +758,14 @@ class TestSSO(unittest.TestCase):
         self.assertIn("forbidden", str(ctx.exception).lower())
         self.assertIn("broker termination", str(ctx.exception).lower())
 
-    def test_ac_plus_2_keycloak_broker_realm_contract(self):
-        """Test that realm config registers Yandex IdP broker and Frappe login_via_keycloak redirect URI (AC+2)."""
+    def test_ac_plus_2_keycloak_only_realm_contract(self):
+        """Test that realm has no external IdP and keeps the Frappe callback URI (AC+2)."""
         realm_path = "docker/keycloak/realm-elms.json"
         with open(realm_path, "r", encoding="utf-8") as f:
             realm = json.load(f)
 
-        # Identity Provider is strictly Yandex via Keycloak broker
-        yandex_idps = [i for i in realm.get("identityProviders", []) if i.get("alias") == "yandex"]
-        self.assertEqual(len(yandex_idps), 1)
-        self.assertEqual(yandex_idps[0].get("providerId"), "yandex-oauth")
-        self.assertEqual(yandex_idps[0].get("firstBrokerLoginFlowAlias"), "first broker login")
+        self.assertEqual(realm.get("identityProviders"), [])
+        self.assertEqual(realm.get("identityProviderMappers"), [])
 
         # Client elms-frappe has strictly login_via_keycloak redirect URIs
         frappe_clients = [c for c in realm.get("clients", []) if c.get("clientId") == "elms-frappe"]
@@ -824,7 +835,7 @@ class TestReviewHandoff(unittest.TestCase):
 
         with patch.object(frappe, "session", SimpleNamespace(user="review-user@example.com")), patch.object(
             frappe, "db", SimpleNamespace(get_value=MagicMock(return_value=1)), create=True
-        ), patch.object(frappe, "has_permission", return_value=False) as has_permission:
+        ), patch.object(frappe, "has_permission", return_value=False, create=True) as has_permission:
             self.assertFalse(review.has_review_app_permission())
             has_permission.assert_called_once_with(
                 "ELMS Review Section",
@@ -834,7 +845,7 @@ class TestReviewHandoff(unittest.TestCase):
 
         with patch.object(frappe, "session", SimpleNamespace(user="review-user@example.com")), patch.object(
             frappe, "db", SimpleNamespace(get_value=MagicMock(return_value=1)), create=True
-        ), patch.object(frappe, "has_permission", return_value=True):
+        ), patch.object(frappe, "has_permission", return_value=True, create=True):
             self.assertTrue(review.has_review_app_permission())
 
     def test_hidden_user_does_not_receive_review_shortcut(self):

@@ -17,6 +17,10 @@
 		currentStructure: null,
 		quiz: null,
 		quizAttempt: null,
+		quizError: null,
+		quizSaving: false,
+		profile: null,
+		profileError: null,
 		courses: [],
 		catalog: [],
 		programs: [],
@@ -25,7 +29,7 @@
 		relationshipSearch: "",
 		relationshipType: "",
 		activities: [],
-		admin: { can_manage: false, courses: [], batches: [], subscriptions: [], enrollments: [], quizzes: [], programs: [], users: [] }
+		admin: { can_manage: false, can_view_learner_profile: false, courses: [], batches: [], subscriptions: [], enrollments: [], quizzes: [], programs: [], users: [] }
 	};
 
 	function esc(value) {
@@ -49,12 +53,17 @@
 			method: method,
 			args: args || {},
 			callback: function (response) {
-				if (response && response.message) callback(response.message);
+				if (response && response.message) callback(response.message, null);
+				else if (callback) callback(null, { message: "Пустой ответ сервера" });
 			},
-			error: function () {
-				if (callback) callback(null);
+			error: function (error) {
+				if (callback) callback(null, error || { message: "Не удалось выполнить запрос" });
 			}
 		});
+	}
+
+	function apiErrorMessage(error) {
+		return (error && (error.message || error.exception)) || "Не удалось выполнить запрос. Повторите попытку.";
 	}
 
 	function registerPage() {
@@ -105,16 +114,18 @@
 		call("elms.lms.api.get_learning_admin_data", {}, function (admin) {
 			if (!admin) return;
 			state.admin = admin;
-			if (state.admin.can_manage) {
+			if (state.admin.can_manage || state.admin.can_view_learner_profile) {
 				var managerTab = state.root && state.root.querySelector(".elms-manager-tab");
 				if (managerTab) managerTab.hidden = false;
 			}
-				renderAll();
-			});
-		call("elms.lms.api.get_learning_relationships", {}, function (relationships) {
-			if (!relationships) return;
-			state.relationshipGroups = relationships.groups || [];
 			renderAll();
+			if (state.admin.can_manage || state.admin.can_view_learner_profile) {
+				call("elms.lms.api.get_learning_relationships", {}, function (relationships) {
+					if (!relationships) return;
+					state.relationshipGroups = relationships.groups || [];
+					renderAll();
+				});
+			}
 		});
 		call("elms.lms.api.get_course_catalog", {}, function (catalog) {
 			if (!catalog) return;
@@ -132,8 +143,8 @@
 		container.innerHTML = [
 			'<div class="elms-learning-shell">',
 			'  <div class="elms-learning-header"><div><h1 class="elms-learning-title"><span>elms</span><span class="elms-learning-badge">Обучение</span></h1><div class="elms-learning-subtitle">Курсы, потоки, зачисления, прогресс и контроль освоения в одном рабочем месте</div></div><button class="elms-btn-secondary" id="elms-refresh-btn">Обновить данные</button></div>',
-				'  <div class="elms-learning-tabs"><button class="elms-tab-btn active" data-tab="courses">Мои курсы</button><button class="elms-tab-btn" data-tab="catalog">Каталог курсов</button><button class="elms-tab-btn" data-tab="programs">Программы</button><button class="elms-tab-btn" data-tab="player">Учебный плеер</button><button class="elms-tab-btn" data-tab="progress">Прогресс и аттестация</button><button class="elms-tab-btn" data-tab="activity">Журнал активности</button><button class="elms-tab-btn elms-manager-tab" data-tab="manage" hidden>Управление обучением</button></div>',
-				'  <div id="elms-tab-courses" class="elms-tab-pane active"></div><div id="elms-tab-catalog" class="elms-tab-pane"></div><div id="elms-tab-programs" class="elms-tab-pane"></div><div id="elms-tab-player" class="elms-tab-pane"></div><div id="elms-tab-progress" class="elms-tab-pane"></div><div id="elms-tab-activity" class="elms-tab-pane"></div><div id="elms-tab-manage" class="elms-tab-pane"></div>',
+			'  <div class="elms-learning-tabs"><button class="elms-tab-btn active" data-tab="courses">Мои курсы</button><button class="elms-tab-btn" data-tab="catalog">Каталог курсов</button><button class="elms-tab-btn" data-tab="programs">Программы</button><button class="elms-tab-btn" data-tab="player">Учебный плеер</button><button class="elms-tab-btn" data-tab="progress">Прогресс и аттестация</button><button class="elms-tab-btn" data-tab="activity">Журнал активности</button><button class="elms-tab-btn elms-manager-tab" data-tab="manage" hidden>Управление обучением</button></div>',
+			'  <div id="elms-tab-courses" class="elms-tab-pane active"></div><div id="elms-tab-catalog" class="elms-tab-pane"></div><div id="elms-tab-programs" class="elms-tab-pane"></div><div id="elms-tab-player" class="elms-tab-pane"></div><div id="elms-tab-progress" class="elms-tab-pane"></div><div id="elms-tab-activity" class="elms-tab-pane"></div><div id="elms-tab-manage" class="elms-tab-pane"></div>',
 			'</div>'
 		].join("");
 
@@ -275,10 +286,15 @@
 		state.currentStructure = null;
 		state.quiz = null;
 		state.quizAttempt = null;
+		state.quizError = null;
 		switchTab("player");
 		if (!course || !course.course) { renderPlayerTab(); return; }
-		call("elms.lms.api.get_course_structure", { course: course.course, enrollment: enrollment }, function (structure) {
-			if (!structure) return;
+		call("elms.lms.api.get_course_structure", { course: course.course, enrollment: enrollment }, function (structure, error) {
+			if (!structure) {
+				state.quizError = apiErrorMessage(error);
+				renderPlayerTab();
+				return;
+			}
 			state.currentStructure = structure;
 			var lessons = flattenLessons(structure);
 			var next = lessons.filter(function (lesson) { return !(lesson.progress && Number(lesson.progress.is_completed)); })[0] || lessons[0];
@@ -298,7 +314,7 @@
 	function renderPlayerTab() {
 		var pane = state.root && state.root.querySelector("#elms-tab-player");
 		if (!pane) return;
-		if (!state.currentStructure) { pane.innerHTML = '<div class="elms-empty-state"><div class="elms-empty-icon">▶</div><h3>Выберите курс</h3><p>Откройте курс на вкладке «Мои курсы», чтобы загрузить его программу и начать обучение.</p></div>'; return; }
+		if (!state.currentStructure) { pane.innerHTML = '<div class="elms-empty-state"><div class="elms-empty-icon">▶</div><h3>Выберите курс</h3><p>Откройте курс на вкладке «Мои курсы», чтобы загрузить его программу и начать обучение.</p>' + (state.quizError ? '<div class="elms-error-state">' + esc(state.quizError) + '</div>' : '') + '</div>'; return; }
 		var lessons = flattenLessons(state.currentStructure);
 		if (!lessons.length) { pane.innerHTML = '<div class="elms-empty-state"><h3>Программа ещё не заполнена</h3><p>Методист должен добавить разделы и уроки курса.</p></div>'; return; }
 		var selected = lessons.filter(function (lesson) { return lesson.name === state.currentLesson; })[0] || lessons[0];
@@ -329,6 +345,18 @@
 	function renderQuizPane(pane, lesson) {
 		var quizPane = pane.querySelector("#elms-quiz-pane");
 		if (!quizPane) return;
+		if (state.quizError) {
+			quizPane.innerHTML = '<div class="elms-error-state"><b>Тест недоступен</b><p>' + esc(state.quizError) + '</p><button class="elms-btn-secondary" id="elms-retry-quiz-btn">Повторить</button></div>';
+			var retry = quizPane.querySelector("#elms-retry-quiz-btn");
+			if (retry) retry.addEventListener("click", function () { state.quizError = null; startQuiz(lesson.name); });
+			return;
+		}
+		if (state.quizAttempt && state.quizAttempt.status && state.quizAttempt.status !== "In Progress" && state.quizAttempt.results) {
+			quizPane.innerHTML = '<div class="elms-quiz-result"><b>Результат теста</b><p>Статус: <strong>' + esc(state.quizAttempt.status) + '</strong> · Балл: <strong>' + esc(state.quizAttempt.score_percentage || 0) + '%</strong></p><p>Отвечено: ' + esc(state.quizAttempt.answered_questions || 0) + ' из ' + esc(state.quizAttempt.total_questions || 0) + '</p><button class="elms-btn-secondary" id="elms-quiz-retry-view-btn">Вернуться к уроку</button></div>';
+			var resultBack = quizPane.querySelector("#elms-quiz-retry-view-btn");
+			if (resultBack) resultBack.addEventListener("click", function () { state.quizAttempt = null; renderPlayerTab(); });
+			return;
+		}
 		if (!state.quizAttempt) {
 			quizPane.innerHTML = '<div class="elms-quiz-intro"><b>Контроль знаний</b><p>Результат проверяется сервером. Для прохождения теста нажмите кнопку ниже.</p><button id="elms-start-quiz-btn" class="elms-btn-action">Начать тест</button></div>';
 			var start = quizPane.querySelector("#elms-start-quiz-btn");
@@ -336,23 +364,52 @@
 			return;
 		}
 		var questions = state.quizAttempt.questions || [];
+		var savedAnswers = state.quizAttempt.answers || {};
 		var cards = questions.map(function (question, index) {
 			var inputType = question.question_type === "Multiple Choice" ? "checkbox" : "radio";
 			var options = (question.options || []).map(function (option) {
-				return '<label class="elms-quiz-option"><input type="' + inputType + '" name="quiz-' + esc(question.name) + '" data-question="' + esc(question.name) + '" value="' + esc(option.id) + '"><span>' + esc(option.text) + '</span></label>';
+				var checked = (savedAnswers[question.name] || []).indexOf(String(option.id)) !== -1;
+				return '<label class="elms-quiz-option"><input type="' + inputType + '" name="quiz-' + esc(question.name) + '" data-question="' + esc(question.name) + '" value="' + esc(option.id) + '"' + (checked ? ' checked' : '') + '><span>' + esc(option.text) + '</span></label>';
 			}).join("");
 			return '<fieldset class="elms-quiz-question"><legend>' + (index + 1) + '. ' + esc(question.question_text) + '</legend><div class="elms-quiz-options">' + options + '</div></fieldset>';
 		}).join("");
-		quizPane.innerHTML = '<form id="elms-quiz-form"><div class="elms-quiz-meta">Проходной балл: <b>' + esc(state.quizAttempt.passing_percentage) + '%</b></div>' + cards + '<button class="elms-btn-action" type="submit">Отправить ответы</button></form>';
+		quizPane.innerHTML = '<form id="elms-quiz-form"><div class="elms-quiz-meta"><span>Отвечено: <b id="elms-quiz-counter">' + esc(state.quizAttempt.answered_questions || 0) + ' из ' + esc(state.quizAttempt.total_questions || questions.length) + '</b></span><span>Проходной балл: <b>' + esc(state.quizAttempt.passing_percentage) + '%</b></span></div>' + cards + '<div class="elms-quiz-actions"><button class="elms-btn-secondary" id="elms-save-quiz-btn" type="button">Сохранить прогресс</button><button class="elms-btn-action" type="submit">Отправить ответы</button></div><div id="elms-quiz-status" class="elms-muted" aria-live="polite">' + (state.quizAttempt.resumed ? 'Продолжить тест: активная попытка восстановлена.' : '') + '</div></form>';
 		var form = quizPane.querySelector("#elms-quiz-form");
 		if (form) form.addEventListener("submit", function (event) { event.preventDefault(); submitQuiz(form); });
+		if (form) form.querySelectorAll("input").forEach(function (input) { input.addEventListener("change", function () { updateQuizCounter(form, questions.length); }); });
+		var save = quizPane.querySelector("#elms-save-quiz-btn");
+		if (save) save.addEventListener("click", function () { saveQuizProgress(form); });
+	}
+
+	function collectQuizAnswers(form) {
+		var answers = {};
+		form.querySelectorAll("input:checked").forEach(function (input) {
+			var question = input.getAttribute("data-question");
+			if (!answers[question]) answers[question] = [];
+			answers[question].push(input.value);
+		});
+		return answers;
+	}
+
+	function updateQuizCounter(form, total) {
+		var answers = collectQuizAnswers(form);
+		var count = Object.keys(answers).filter(function (key) { return answers[key].length; }).length;
+		var counter = form.querySelector("#elms-quiz-counter");
+		if (counter) counter.textContent = count + " из " + total;
 	}
 
 	function startQuiz(lessonId) {
-		call("elms.lms.api.get_lesson_quiz", { lesson_id: lessonId, enrollment: state.currentEnrollment }, function (quiz) {
-			if (!quiz || !quiz.quiz) return;
-			call("elms.lms.api.start_quiz", { quiz: quiz.quiz.name, enrollment: state.currentEnrollment }, function (attempt) {
-				if (!attempt) return;
+		state.quizError = null;
+		call("elms.lms.api.get_lesson_quiz", { lesson_id: lessonId, enrollment: state.currentEnrollment }, function (quiz, error) {
+			if (!quiz || !quiz.quiz) { state.quizError = apiErrorMessage(error); renderPlayerTab(); return; }
+			if (quiz.attempt) {
+				state.quiz = quiz;
+				state.quizAttempt = quiz.attempt;
+				renderPlayerTab();
+				return;
+			}
+			call("elms.lms.api.start_quiz", { quiz: quiz.quiz.name, enrollment: state.currentEnrollment }, function (attempt, startError) {
+				if (!attempt) { state.quizError = apiErrorMessage(startError); renderPlayerTab(); return; }
 				state.quiz = quiz;
 				state.quizAttempt = attempt;
 				renderPlayerTab();
@@ -360,28 +417,40 @@
 		});
 	}
 
-	function submitQuiz(form) {
-		var answers = {};
-		form.querySelectorAll("input:checked").forEach(function (input) {
-			var question = input.getAttribute("data-question");
-			if (!answers[question]) answers[question] = [];
-			answers[question].push(input.value);
+	function saveQuizProgress(form) {
+		if (!state.quizAttempt || state.quizSaving) return;
+		state.quizSaving = true;
+		var status = form.querySelector("#elms-quiz-status");
+		if (status) status.textContent = "Сохраняем…";
+		call("elms.lms.api.save_quiz_progress", { attempt: state.quizAttempt.attempt, answers: JSON.stringify(collectQuizAnswers(form)) }, function (result, error) {
+			state.quizSaving = false;
+			if (!result) { if (status) status.textContent = apiErrorMessage(error); return; }
+			state.quizAttempt.answers = result.answers || {};
+			state.quizAttempt.answered_questions = result.answered_questions;
+			state.quizAttempt.total_questions = result.total_questions;
+			if (status) status.textContent = "Прогресс сохранён · " + result.answered_questions + " из " + result.total_questions;
 		});
-		call("elms.lms.api.submit_quiz", { attempt: state.quizAttempt.attempt, answers: JSON.stringify(answers) }, function (result) {
-			if (!result) return;
+	}
+
+	function submitQuiz(form) {
+		call("elms.lms.api.submit_quiz", { attempt: state.quizAttempt.attempt, answers: JSON.stringify(collectQuizAnswers(form)) }, function (result, error) {
+			if (!result) { var status = form.querySelector("#elms-quiz-status"); if (status) status.textContent = apiErrorMessage(error); return; }
 			frappe.show_alert({ message: result.passed ? "Тест пройден" : "Тест не пройден", indicator: result.passed ? "green" : "orange" });
-			state.quizAttempt = null;
+			state.quizAttempt = result;
+			state.quizAttempt.questions = (state.quiz && state.quiz.questions) || [];
 			loadData();
-			if (result.passed) openPlayer(state.currentEnrollment);
-			else renderPlayerTab();
+			renderPlayerTab();
 		});
 	}
 
 	function renderProgressTab() {
 		var pane = state.root && state.root.querySelector("#elms-tab-progress");
 		if (!pane) return;
-		var rows = state.courses.map(function (course) { return '<tr><td><b>' + esc(course.course_name || "Курс") + '</b><div class="elms-table-subtitle">' + esc(course.batch_name || course.batch) + '</div></td><td>' + esc(course.completed_lessons) + '/' + esc(course.total_lessons) + '</td><td><b>' + esc(course.progress_percentage || 0) + '%</b></td><td><span class="elms-status-pill ' + (Number(course.exam_eligible) ? 'success' : 'warning') + '">' + (Number(course.exam_eligible) ? 'Допуск открыт' : 'Не завершено') + '</span></td></tr>'; }).join("");
-		pane.innerHTML = '<div class="elms-table-container"><div class="elms-section-intro"><div><div class="elms-kicker">КОНТРОЛЬ ОСВОЕНИЯ</div><h2>Прогресс по программам</h2><p>Допуск рассчитывается сервером по обязательным урокам курса. Правила итоговой аттестации должны быть закреплены в программе и локальных документах организации.</p></div></div><table class="elms-audit-table"><thead><tr><th>Программа / поток</th><th>Уроки</th><th>Прогресс</th><th>Статус</th></tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="elms-muted">Нет данных для отображения</td></tr>') + '</tbody></table></div>';
+		var rows = state.courses.map(function (course) {
+			var attempts = (course.quiz_attempts || []).map(function (attempt) { return '<div class="elms-progress-quiz">Тест: ' + esc(attempt.status || "—") + ' · ' + esc(attempt.answered_questions || 0) + '/' + esc(attempt.total_questions || 0) + ' вопросов · ' + esc(attempt.score_percentage || 0) + '%</div>'; }).join("");
+			return '<tr><td><b>' + esc(course.course_name || "Курс") + '</b><div class="elms-table-subtitle">' + esc(course.batch_name || course.batch) + '</div></td><td>' + esc(course.completed_lessons) + '/' + esc(course.total_lessons) + '</td><td><b>' + esc(course.progress_percentage || 0) + '%</b><div class="elms-table-subtitle">Время: ' + esc(formatTime(course.time_spent_seconds || 0)) + '</div></td><td><span class="elms-status-pill ' + (Number(course.exam_eligible) ? 'success' : 'warning') + '">' + (Number(course.exam_eligible) ? 'Допуск открыт' : 'Не завершено') + '</span>' + attempts + '</td></tr>';
+		}).join("");
+		pane.innerHTML = '<div class="elms-table-container"><div class="elms-section-intro"><div><div class="elms-kicker">КОНТРОЛЬ ОСВОЕНИЯ</div><h2>Прогресс по программам</h2><p>Процент, уроки, время и состояние тестов рассчитываются сервером.</p></div></div><table class="elms-audit-table"><thead><tr><th>Программа / поток</th><th>Уроки</th><th>Прогресс и время</th><th>Статус и тесты</th></tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="elms-muted">Нет данных для отображения</td></tr>') + '</tbody></table></div>';
 	}
 
 	function renderActivityTab() {
@@ -391,10 +460,39 @@
 		pane.innerHTML = '<div class="elms-table-container"><div class="elms-section-intro"><div><div class="elms-kicker">АУДИТ УЧЕБНОГО ПРОЦЕССА</div><h2>Моя активность</h2><p>Журнал показывает сохранённые события текущего пользователя. Доступ к нему ограничен серверными правами.</p></div></div><table class="elms-audit-table"><thead><tr><th>Время</th><th>Событие</th><th>Объект</th><th>IP</th></tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="elms-muted">Событий пока нет</td></tr>') + '</tbody></table></div>';
 	}
 
+	function renderLearnerProfile() {
+		if (state.profileError) return '<section class="elms-error-state elms-learner-profile"><b>Профиль недоступен</b><p>' + esc(state.profileError) + '</p></section>';
+		if (!state.profile) return '';
+		var profile = state.profile;
+		var summary = profile.summary || {};
+		var current = (profile.current_courses || []).map(function (course) {
+			return '<tr><td><b>' + esc(course.course_name) + '</b><div class="elms-table-subtitle">' + esc(course.batch_name) + '</div></td><td>' + esc(course.progress_percentage || 0) + '%</td><td>' + esc(course.completed_lessons || 0) + '/' + esc(course.total_lessons || 0) + '</td><td>' + esc(course.status || "—") + '</td></tr>';
+		}).join("");
+		var years = (profile.history_by_year || []).map(function (year) {
+			var courses = (year.courses || []).map(function (course) { return '<li>' + esc(course.course_name) + ' · ' + esc(course.status) + ' · ' + esc(course.progress_percentage || 0) + '%</li>'; }).join("");
+			var programs = (year.programs || []).map(function (program) { return '<li>' + esc(program.program_name) + ' · ' + esc(program.status) + ' · ' + esc(program.progress_percentage || 0) + '%</li>'; }).join("");
+			var events = (year.events || []).slice(0, 8).map(function (event) { return '<li>' + esc(event.date) + ' · ' + esc(event.activity_type) + '</li>'; }).join("");
+			return '<article class="elms-history-year"><h4>' + esc(year.year) + '</h4><div class="elms-history-columns"><div><b>Курсы</b><ul>' + (courses || '<li>Нет записей</li>') + '</ul></div><div><b>Программы</b><ul>' + (programs || '<li>Нет записей</li>') + '</ul></div><div><b>События</b><ul>' + (events || '<li>Нет активности</li>') + '</ul></div></div></article>';
+		}).join("");
+		return '<section class="elms-learner-profile"><div class="elms-profile-head"><div><div class="elms-kicker">ПРОФИЛЬ СЛУШАТЕЛЯ</div><h3>' + esc(profile.user.full_name || profile.user.name) + '</h3><p>' + esc(profile.user.email || profile.user.name) + ' · Последняя активность: ' + esc(summary.last_activity_at || "нет данных") + ' · Последний вход: ' + esc(summary.last_login_at || "нет данных") + '</p></div><button class="elms-link-btn" data-action="close-learner-profile">Закрыть</button></div><div class="elms-profile-summary"><span>Курсов: <b>' + esc(summary.courses || 0) + '</b></span><span>Завершено: <b>' + esc(summary.completed_courses || 0) + '</b></span><span>Программ: <b>' + esc(summary.programs || 0) + '</b></span></div><h4>Текущие курсы</h4><table class="elms-audit-table"><thead><tr><th>Курс</th><th>Прогресс</th><th>Уроки</th><th>Статус</th></tr></thead><tbody>' + (current || '<tr><td colspan="4" class="elms-muted">Активных курсов нет</td></tr>') + '</tbody></table><h4>История обучения по годам</h4><div class="elms-history-years">' + (years || '<div class="elms-empty-state">История обучения пока пуста.</div>') + '</div></section>';
+	}
+
+	function openLearnerProfile(user) {
+		state.profile = null;
+		state.profileError = null;
+		renderManageTab();
+		call("elms.lms.api.get_learner_profile", { user: user }, function (profile, error) {
+			if (!profile) state.profileError = apiErrorMessage(error);
+			else state.profile = profile;
+			renderManageTab();
+		});
+	}
+
 	function renderManageTab() {
 		var pane = state.root && state.root.querySelector("#elms-tab-manage");
-		if (!pane || !state.admin.can_manage) return;
-		pane.innerHTML = ['<div class="elms-section-intro"><div><div class="elms-kicker">МЕТОДИЧЕСКИЙ КОНТУР</div><h2>Управление обучением</h2><p>Ищите по названию потока, курса, урока, теста или слушателя. Результаты собраны вокруг курса и показывают все связи.</p></div><div class="elms-action-row"><button class="elms-btn-action" data-action="course-new">Создать курс</button><button class="elms-btn-secondary" data-action="program-new">Создать программу</button><button class="elms-btn-secondary" data-action="batch-new">Создать поток</button><button class="elms-btn-secondary" data-action="quiz-new">Создать тест</button><button class="elms-btn-secondary" data-action="enroll">Оформить зачисление</button></div></div>', relationshipSearchPanel(), renderRelationshipGroups(), '<div class="elms-admin-hint"><b>Поток</b> — это календарная группа слушателей одного курса с датами, куратором и организацией-заказчиком. Создайте курс, затем поток, после этого оформляйте зачисления. Программы остаются отдельным маршрутом из курсов.</div>'].join("");
+		if (!pane || (!state.admin.can_manage && !state.admin.can_view_learner_profile)) return;
+		var actionRow = state.admin.can_manage ? '<div class="elms-action-row"><button class="elms-btn-action" data-action="course-new">Создать курс</button><button class="elms-btn-secondary" data-action="program-new">Создать программу</button><button class="elms-btn-secondary" data-action="batch-new">Создать поток</button><button class="elms-btn-secondary" data-action="quiz-new">Создать тест</button><button class="elms-btn-secondary" data-action="enroll">Оформить зачисление</button></div>' : '<span class="elms-status-pill success">Доступ к профилям по DocPerm</span>';
+		pane.innerHTML = [renderLearnerProfile(), '<div class="elms-section-intro"><div><div class="elms-kicker">МЕТОДИЧЕСКИЙ КОНТУР</div><h2>Управление обучением</h2><p>Ищите по названию потока, курса, урока, теста или слушателя. Результаты собраны вокруг курса и показывают все связи.</p></div>' + actionRow + '</div>', relationshipSearchPanel(), renderRelationshipGroups(), '<div class="elms-admin-hint"><b>Поток</b> — это календарная группа слушателей одного курса с датами, куратором и организацией-заказчиком. Нажмите на слушателя для просмотра прогресса и истории.</div>'].join("");
 		bindActions(pane);
 		var search = pane.querySelector("[data-relationship-search]");
 		if (search) search.addEventListener("keydown", function (event) { if (event.key === "Enter") searchRelationships(pane); });
@@ -435,7 +533,7 @@
 		return '<div class="elms-relationship-groups">' + state.relationshipGroups.map(function (group) {
 			var course = group.course || {};
 			var matches = (group.matches || []).map(function (item) { return '<span class="elms-relationship-match">' + esc(relationshipEntityLabel(item.type)) + ': ' + esc(item.title) + '</span>'; }).join("");
-			return '<article class="elms-relationship-group"><div class="elms-relationship-root"><div><div class="elms-kicker">КУРС</div><button class="elms-relationship-course" data-action="open-related" data-doctype="ELMS Course" data-name="' + esc(course.name) + '">' + esc(course.course_name || course.name) + '</button><small>' + esc(course.course_code || course.category || course.name) + '</small></div><div class="elms-relationship-root-side"><button class="elms-btn-secondary elms-relationship-create-batch" data-action="batch-for-course" data-course="' + esc(course.name) + '">Создать поток для курса</button><div class="elms-relationship-counts"><span>' + esc(group.counts.program || 0) + ' программ</span><span>' + esc(group.counts.batch || 0) + ' потоков</span><span>' + esc(group.counts.chapter || 0) + ' раздела</span><span>' + esc(group.counts.lesson || 0) + ' уроков</span><span>' + esc(group.counts.quiz || 0) + ' тестов</span><span>' + esc(group.counts.enrollment || 0) + ' зачислений</span></div></div></div>' + (matches ? '<div class="elms-relationship-matches">Найдено: ' + matches + '</div>' : '') + '<div class="elms-relationship-context"><div class="elms-relationship-context-label">Маршрут и поток</div><div class="elms-relationship-columns">' + relationshipEntityList("Программы курса", group.programs || []) + relationshipEntityList("Потоки курса", group.batches || []) + '</div><p class="elms-relationship-help">Программа задаёт порядок курсов. Поток задаёт календарь и слушателей. Здесь показаны все программы, в состав которых входит курс этого потока.</p></div>' + relationshipOutline(group.outline || []) + '<div class="elms-relationship-columns elms-relationship-secondary"><div class="elms-relationship-secondary-group">' + relationshipEntityList("Тесты", group.quizzes || []) + relationshipEntityList("Подписки", group.subscriptions || []) + '</div><div class="elms-relationship-secondary-group">' + relationshipEntityList("Зачисления", group.enrollments || []) + '</div></div></article>';
+			return '<article class="elms-relationship-group"><div class="elms-relationship-root"><div><div class="elms-kicker">КУРС</div><button class="elms-relationship-course" data-action="open-related" data-doctype="ELMS Course" data-name="' + esc(course.name) + '">' + esc(course.course_name || course.name) + '</button><small>' + esc(course.course_code || course.category || course.name) + '</small></div><div class="elms-relationship-root-side"><button class="elms-btn-secondary elms-relationship-create-batch" data-action="batch-for-course" data-course="' + esc(course.name) + '">Создать поток для курса</button><div class="elms-relationship-counts"><span>' + esc(group.counts.program || 0) + ' программ</span><span>' + esc(group.counts.batch || 0) + ' потоков</span><span>' + esc(group.counts.chapter || 0) + ' раздела</span><span>' + esc(group.counts.lesson || 0) + ' уроков</span><span>' + esc(group.counts.quiz || 0) + ' тестов</span><span>' + esc(group.counts.enrollment || 0) + ' зачислений</span><span>' + esc(group.counts.user || 0) + ' слушателей</span></div></div></div>' + (matches ? '<div class="elms-relationship-matches">Найдено: ' + matches + '</div>' : '') + '<div class="elms-relationship-context"><div class="elms-relationship-context-label">Маршрут и поток</div><div class="elms-relationship-columns">' + relationshipEntityList("Программы курса", group.programs || []) + relationshipEntityList("Потоки курса", group.batches || []) + relationshipEntityList("Слушатели", group.users || []) + '</div><p class="elms-relationship-help">Нажмите на слушателя, чтобы открыть его прогресс и историю обучения.</p></div>' + relationshipOutline(group.outline || []) + '<div class="elms-relationship-columns elms-relationship-secondary"><div class="elms-relationship-secondary-group">' + relationshipEntityList("Тесты", group.quizzes || []) + relationshipEntityList("Подписки", group.subscriptions || []) + '</div><div class="elms-relationship-secondary-group">' + relationshipEntityList("Зачисления", group.enrollments || []) + '</div></div></article>';
 		}).join("") + '</div>';
 	}
 
@@ -466,8 +564,10 @@
 				}
 				if (action === "open-related") {
 					if (element.getAttribute("data-doctype") === "ELMS Course") openCourseStudio(element.getAttribute("data-name"));
+					else if (element.getAttribute("data-doctype") === "User") openLearnerProfile(element.getAttribute("data-name"));
 					else openForm(element.getAttribute("data-doctype"), element.getAttribute("data-name"));
 				}
+				if (action === "close-learner-profile") { state.profile = null; state.profileError = null; renderManageTab(); }
 				if (action === "relationship-search") searchRelationships(container || state.root);
 				if (action === "relationship-clear") {
 					state.relationshipSearch = "";

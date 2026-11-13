@@ -51,7 +51,6 @@ from elms.sso.constants import (
     DEFAULT_KEYCLOAK_REALM,
     KEYCLOAK_DEFAULT_REDIRECT_URL,
     KEYCLOAK_LOGIN_CONF_KEY,
-    YANDEX_IDP_ALIAS,
 )
 from elms.sso.ensure import get_keycloak_public_realm_url
 from elms.sso.mapping import get_mapping_registry
@@ -240,16 +239,11 @@ def _get_absolute_frappe_callback() -> str:
 def get_sso_authorization_url(
     user_input: str | None = None,
     redirect_to: str | None = "/app",
-    mode: str | None = "yandex",
+    mode: str | None = "keycloak",
 ) -> dict[str, str]:
-    """Return a Keycloak authorization URL for brokered or local dev login.
-
-    The normal mode always adds ``kc_idp_hint=yandex``. Frappe never receives
-    or forwards a password. Local Keycloak login is an explicit dev-only mode
-    for seeded test accounts and is rejected unless the dev flag is enabled.
-    """
-    resolved_mode = str(mode or "yandex").strip().lower()
-    if resolved_mode not in {"yandex", "password", "keycloak", "local"}:
+    """Return a Keycloak authorization URL without a broker-specific hint."""
+    resolved_mode = str(mode or "keycloak").strip().lower()
+    if resolved_mode not in {"password", "keycloak", "local"}:
         frappe.throw(_("Unsupported SSO login mode."))
     if resolved_mode == "local" and not _local_keycloak_login_enabled():
         frappe.throw(_("Local Keycloak login is disabled."))
@@ -268,8 +262,6 @@ def get_sso_authorization_url(
         "scope": "openid profile email",
         "redirect_uri": _get_absolute_frappe_callback(),
     }
-    if resolved_mode == "yandex":
-        params["kc_idp_hint"] = YANDEX_IDP_ALIAS
     if target_identity and "@" in target_identity:
         params["login_hint"] = target_identity
     if create_oauth_state:

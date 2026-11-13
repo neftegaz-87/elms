@@ -1,6 +1,21 @@
 version: roadmap-queue/v2
 role: back
 queue:
+- id: T-B11
+  epic_id: T-B11-elms-host-local-logs-read-contract
+  kind: feature
+  plan: plan/T-B11-elms-host-local-logs-read-contract/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
+- id: T-B10
+  epic_id: T-B10-elms-offline-registry-bundle
+  kind: feature
+  plan: plan/T-B10-elms-offline-registry-bundle/md/plan.md
+  batch: elms-production
+  deps:
+  - T-B05
+  - T-B08
 - id: T-B09
   epic_id: T-B09-elms-caddy-edge-cutover
   kind: feature
@@ -83,7 +98,9 @@ batches:
     note: Входящий вебхук в BITRIX_REST_WEBHOOK_URL. Не секрет доски. План plan/T-B04-bitrix-rest-client/md/plan.md.
       Constitution — md/prompt.md.
   elms-production:
-    title: ELMS production (контейнеры, Vault, backup, delivery и edge)
+    title: ELMS production (контейнеры, Vault, backup, delivery, edge, offline bundle, host-local logs)
     note: Инфраструктура адаптирована под Frappe + MariaDB + Redis + Keycloak. Сервис
       сверки заявок остаётся отдельным first-party runtime и подключается через ELMS_REVIEW_URL/handoff
-      contract; его FastAPI-стек в ELMS не копируется.
+      contract; его FastAPI-стек в ELMS не копируется. Offline registry bundle — отдельный
+      delivery profile без Vault в составе продукта (T-B10). Логи остаются на хосте ELMS;
+      чтение с ops-машины репо observability (T-B11); ship-to-central Loki FORBIDDEN.

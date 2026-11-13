@@ -5,6 +5,7 @@
  "engine": "InnoDB",
  "field_order": [
   "enrollment",
+  "course_name",
   "user",
   "progress_percentage",
   "total_lessons",
@@ -21,6 +22,14 @@
    "label": "Enrollment",
    "options": "ELMS Enrollment",
    "reqd": 1
+  },
+  {
+   "fetch_from": "enrollment.course_name",
+   "fieldname": "course_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Course Name",
+   "read_only": 1
   },
   {
    "fieldname": "user",
@@ -70,8 +79,13 @@
    "label": "Completion Date"
   }
  ],
- "links": [],
- "modified": "2026-11-05 12:00:00.000000",
+ "links": [
+  {
+   "link_doctype": "ELMS Lesson Progress",
+   "link_fieldname": "course_progress"
+  }
+ ],
+ "modified": "2026-11-13 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "LMS",
  "name": "ELMS Course Progress",
@@ -108,5 +122,8 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "search_fields": "enrollment, user",
+ "show_title_field_in_link": 1,
+ "title_field": "course_name",
  "states": []
 }

@@ -41,6 +41,7 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "show_title_field_in_link": 1,
  "states": [],
  "search_fields": "quiz_name, course, lesson, quiz_type",
  "title_field": "quiz_name"

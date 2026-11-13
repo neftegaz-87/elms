@@ -1,7 +1,7 @@
 """Whitelist API endpoints and domain services for the ELMS LMS module."""
 
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 import frappe
 
@@ -40,6 +40,18 @@ def _now_datetime():
         return frappe.utils.now_datetime()
     from datetime import datetime
     return datetime.now().isoformat()
+
+
+def _deadline_from(started_at: Any, minutes: int) -> Optional[Any]:
+    """Return a deadline while tolerating the string value used by test shims."""
+    if not minutes:
+        return None
+    if isinstance(started_at, str):
+        try:
+            started_at = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return started_at + timedelta(minutes=minutes)
 
 
 def _get_current_user() -> str:
@@ -91,6 +103,24 @@ def _require_learning_manager() -> str:
             _("Learning management requires ELMS Admin or ELMS Operations User role"),
             frappe.PermissionError,
         )
+    return user
+
+
+def _can_view_learner_profile(user: Optional[str] = None) -> bool:
+    """Return whether DocPerm grants the configured learner-inspection capability."""
+    check_user = user or _get_current_user()
+    if _is_learning_manager(check_user):
+        return True
+    return all(
+        _source_readable(doctype, check_user)
+        for doctype in ("ELMS Enrollment", "ELMS Course Progress", "ELMS Lesson Progress")
+    )
+
+
+def _require_relationship_viewer() -> str:
+    user = _require_authenticated()
+    if not (_is_learning_manager(user) or _can_view_learner_profile(user)):
+        frappe.throw(_("LMS relationship inspection requires configured read permissions"), frappe.PermissionError)
     return user
 
 
@@ -225,6 +255,225 @@ def _assert_editor_child(doctype: str, name: Optional[str], course: str) -> None
         frappe.throw(_("{0} does not belong to this course").format(doctype), frappe.ValidationError)
 
 
+QUESTION_TYPES = ("Single Choice", "Multiple Choice", "True/False")
+QUIZ_TYPES = ("Practice", "Assessment")
+
+
+def _editor_quiz_draft(quiz: Dict[str, Any], questions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {
+        "name": quiz.get("name"),
+        "quiz_name": quiz.get("quiz_name") or "",
+        "quiz_type": quiz.get("quiz_type") or "Practice",
+        "passing_percentage": quiz.get("passing_percentage"),
+        "time_limit_minutes": quiz.get("time_limit_minutes"),
+        "max_attempts": quiz.get("max_attempts"),
+        "is_published": quiz.get("is_published"),
+        "instructions": quiz.get("instructions") or "",
+        "questions": [
+            {
+                "name": question.get("name"),
+                "question_text": question.get("question_text") or "",
+                "question_type": question.get("question_type") or "Single Choice",
+                "points": question.get("points"),
+                "topic": question.get("topic") or "",
+                "explanation": question.get("explanation") or "",
+                "options": [
+                    {
+                        "id": option.get("id"),
+                        "text": option.get("text"),
+                        "correct": bool(option.get("correct")),
+                    }
+                    for option in question.get("options") or []
+                ],
+            }
+            for question in questions
+        ],
+        "deleted_questions": [],
+    }
+
+
+def _normalize_editor_options(question_type: str, options: Any, question_label: str) -> List[Dict[str, Any]]:
+    if not isinstance(options, list) or not options:
+        frappe.throw(_("Question {0} requires answer options").format(question_label), frappe.ValidationError)
+    normalized: List[Dict[str, Any]] = []
+    option_ids: set[str] = set()
+    for index, option in enumerate(options):
+        if not isinstance(option, dict):
+            frappe.throw(_("Question {0} has invalid options").format(question_label), frappe.ValidationError)
+        option_id = str(option.get("id") or "").strip() or chr(ord("A") + index)
+        option_text = str(option.get("text") or "").strip()
+        if not option_text:
+            frappe.throw(_("Question {0} has an empty option").format(question_label), frappe.ValidationError)
+        if option_id in option_ids:
+            frappe.throw(_("Question {0} has duplicate option ids").format(question_label), frappe.ValidationError)
+        option_ids.add(option_id)
+        normalized.append(
+            {
+                "id": option_id,
+                "text": option_text,
+                "correct": bool(option.get("correct")),
+            }
+        )
+    correct_count = sum(1 for option in normalized if option["correct"])
+    if correct_count < 1:
+        frappe.throw(_("Question {0} needs at least one correct option").format(question_label), frappe.ValidationError)
+    if question_type != "Multiple Choice" and correct_count > 1:
+        frappe.throw(
+            _("Question {0} accepts only one correct option").format(question_label),
+            frappe.ValidationError,
+        )
+    if question_type == "True/False" and len(normalized) != 2:
+        frappe.throw(_("True/False question {0} must have exactly two options").format(question_label), frappe.ValidationError)
+    return normalized
+
+
+def _normalize_editor_quiz_draft(draft: Any, lesson_name: str) -> Dict[str, Any]:
+    if not isinstance(draft, dict):
+        frappe.throw(_("Quiz draft for lesson {0} must be an object").format(lesson_name), frappe.ValidationError)
+    quiz_type = str(draft.get("quiz_type") or "Practice").strip()
+    if quiz_type not in QUIZ_TYPES:
+        frappe.throw(_("Unsupported quiz type for lesson {0}").format(lesson_name), frappe.ValidationError)
+    quiz_name = str(draft.get("quiz_name") or lesson_name or "").strip()
+    if not quiz_name:
+        frappe.throw(_("Quiz name is required for lesson {0}").format(lesson_name), frappe.ValidationError)
+    questions = draft.get("questions") or []
+    if not isinstance(questions, list) or not questions:
+        frappe.throw(_("Quiz for lesson {0} must contain at least one question").format(lesson_name), frappe.ValidationError)
+    normalized_questions: List[Dict[str, Any]] = []
+    for index, question in enumerate(questions, start=1):
+        if not isinstance(question, dict):
+            frappe.throw(_("Each quiz question must be an object"), frappe.ValidationError)
+        question_type = str(question.get("question_type") or "Single Choice").strip()
+        if question_type not in QUESTION_TYPES:
+            frappe.throw(_("Unsupported question type in lesson {0}").format(lesson_name), frappe.ValidationError)
+        question_text = str(question.get("question_text") or "").strip()
+        if not question_text:
+            frappe.throw(_("Question text is required in lesson {0}").format(lesson_name), frappe.ValidationError)
+        label = f"{lesson_name}#{index}"
+        normalized_questions.append(
+            {
+                "name": question.get("name"),
+                "question_text": question_text,
+                "sequence_id": index,
+                "question_type": question_type,
+                "points": max(1, _as_int(question.get("points"), 1)),
+                "topic": str(question.get("topic") or "").strip() or "Общие вопросы",
+                "explanation": str(question.get("explanation") or "").strip(),
+                "options": _normalize_editor_options(question_type, question.get("options"), label),
+            }
+        )
+    deleted = draft.get("deleted_questions") or []
+    if not isinstance(deleted, list):
+        frappe.throw(_("deleted_questions must be a list"), frappe.ValidationError)
+    return {
+        "name": draft.get("name"),
+        "quiz_name": quiz_name,
+        "quiz_type": quiz_type,
+        "passing_percentage": max(0, min(100, _as_float(draft.get("passing_percentage"), 80))),
+        "time_limit_minutes": max(0, _as_int(draft.get("time_limit_minutes"), 20)),
+        "max_attempts": max(0, _as_int(draft.get("max_attempts"), 0)),
+        "is_published": 1 if str(draft.get("is_published", 1)).lower() in ("1", "true", "yes", "on") else 0,
+        "instructions": str(draft.get("instructions") or "").strip(),
+        "questions": normalized_questions,
+        "deleted_questions": [str(item) for item in deleted if item],
+    }
+
+
+def _assert_editor_question(name: Optional[str], quiz: str) -> None:
+    if not name:
+        return
+    if not frappe.db.exists("ELMS Quiz Question", name):
+        frappe.throw(_("ELMS Quiz Question {0} not found").format(name), frappe.DoesNotExistError)
+    owner = frappe.db.get_value("ELMS Quiz Question", name, "quiz")
+    if owner != quiz:
+        frappe.throw(_("Question does not belong to this quiz"), frappe.ValidationError)
+
+
+def _delete_editor_quiz(quiz: str, course: str) -> None:
+    _assert_editor_child("ELMS Quiz", quiz, course)
+    if frappe.db.exists("ELMS Quiz Attempt", {"quiz": quiz}):
+        frappe.throw(
+            _("A quiz with recorded attempts cannot be removed"),
+            frappe.ValidationError,
+        )
+    for question_name in frappe.get_all(
+        "ELMS Quiz Question",
+        filters={"quiz": quiz},
+        pluck="name",
+    ):
+        frappe.delete_doc("ELMS Quiz Question", question_name, ignore_permissions=True)
+    frappe.delete_doc("ELMS Quiz", quiz, ignore_permissions=True)
+
+
+def _save_editor_quiz(course_name: str, lesson_name: str, draft: Dict[str, Any]) -> str:
+    quiz_id = draft.get("name")
+    _assert_editor_child("ELMS Quiz", quiz_id, course_name)
+    quiz_record = _save_doc(
+        "ELMS Quiz",
+        quiz_id,
+        {
+            "quiz_name": draft["quiz_name"],
+            "course": course_name,
+            "lesson": lesson_name,
+            "quiz_type": draft["quiz_type"],
+            "passing_percentage": draft["passing_percentage"],
+            "time_limit_minutes": draft["time_limit_minutes"],
+            "max_attempts": draft["max_attempts"],
+            "is_published": draft["is_published"],
+            "instructions": draft["instructions"],
+        },
+    )
+    quiz_name = quiz_record.get("name")
+    if not quiz_name:
+        frappe.throw(_("Quiz could not be saved"), frappe.ValidationError)
+    kept_questions: set[str] = set()
+    for question in draft["questions"]:
+        question_id = question.get("name")
+        _assert_editor_question(question_id, quiz_name)
+        question_record = _save_doc(
+            "ELMS Quiz Question",
+            question_id,
+            {
+                "quiz": quiz_name,
+                "question_text": question["question_text"],
+                "sequence_id": question["sequence_id"],
+                "question_type": question["question_type"],
+                "options_json": json.dumps(question["options"], ensure_ascii=False),
+                "points": question["points"],
+                "topic": question["topic"],
+                "explanation": question["explanation"],
+            },
+        )
+        if question_record.get("name"):
+            kept_questions.add(str(question_record["name"]))
+    for question_id in draft["deleted_questions"]:
+        _assert_editor_question(question_id, quiz_name)
+        if question_id in kept_questions:
+            continue
+        frappe.delete_doc("ELMS Quiz Question", question_id, ignore_permissions=True)
+    existing = frappe.get_all(
+        "ELMS Quiz Question",
+        filters={"quiz": quiz_name},
+        fields=["name"],
+    )
+    for row in existing:
+        if row.get("name") not in kept_questions:
+            frappe.delete_doc("ELMS Quiz Question", row["name"], ignore_permissions=True)
+    return str(quiz_name)
+
+
+def _unlink_lesson_quiz(course_name: str, lesson_name: str) -> None:
+    for quiz_name in frappe.get_all(
+        "ELMS Quiz",
+        filters={"course": course_name, "lesson": lesson_name},
+        pluck="name",
+    ):
+        if frappe.db.exists("ELMS Quiz Attempt", {"quiz": quiz_name}):
+            _save_doc("ELMS Quiz", quiz_name, {"lesson": ""})
+        else:
+            _delete_editor_quiz(quiz_name, course_name)
+
+
 def _delete_editor_child(doctype: str, name: str, course: str) -> None:
     _assert_editor_child(doctype, name, course)
     if doctype == "ELMS Course Lesson" and frappe.db.exists(
@@ -234,6 +483,8 @@ def _delete_editor_child(doctype: str, name: str, course: str) -> None:
             _("A lesson with recorded progress cannot be removed"),
             frappe.ValidationError,
         )
+    if doctype == "ELMS Course Lesson":
+        _unlink_lesson_quiz(course, name)
     doc = frappe.get_doc(doctype, name)
     if hasattr(doc, "delete"):
         doc.delete()
@@ -267,12 +518,45 @@ def get_course_editor_data(course: Optional[str] = None) -> Dict[str, Any]:
     quizzes = frappe.get_all(
         "ELMS Quiz",
         filters={"course": course},
-        fields=["name", "quiz_name", "lesson", "quiz_type", "passing_percentage", "is_published"],
+        fields=[
+            "name", "quiz_name", "lesson", "quiz_type", "passing_percentage",
+            "time_limit_minutes", "max_attempts", "is_published", "instructions",
+        ],
         order_by="modified desc, name asc",
     )
-    quiz_by_lesson = {quiz.get("lesson"): quiz.get("name") for quiz in quizzes if quiz.get("lesson")}
+    quiz_questions: Dict[str, List[Dict[str, Any]]] = {quiz.get("name"): [] for quiz in quizzes}
+    if quizzes:
+        for question in frappe.get_all(
+            "ELMS Quiz Question",
+            filters={"quiz": ["in", [quiz.get("name") for quiz in quizzes]]},
+            fields=[
+                "name", "quiz", "question_text", "sequence_id", "question_type",
+                "options_json", "points", "topic", "explanation",
+            ],
+            order_by="sequence_id asc, name asc",
+        ):
+            options = _json_value(question.get("options_json"), [])
+            if not isinstance(options, list):
+                options = []
+            question["options"] = [
+                {
+                    "id": str(option.get("id") or "").strip(),
+                    "text": str(option.get("text") or "").strip(),
+                    "correct": bool(option.get("correct")),
+                }
+                for option in options
+                if isinstance(option, dict)
+            ]
+            quiz_questions.setdefault(question.get("quiz"), []).append(question)
+    quiz_by_lesson = {quiz.get("lesson"): quiz for quiz in quizzes if quiz.get("lesson")}
     for lesson in lessons:
-        lesson["quiz"] = quiz_by_lesson.get(lesson.get("name"))
+        quiz = quiz_by_lesson.get(lesson.get("name"))
+        if quiz:
+            lesson["quiz"] = quiz.get("name")
+            lesson["quiz_draft"] = _editor_quiz_draft(quiz, quiz_questions.get(quiz.get("name"), []))
+        else:
+            lesson["quiz"] = None
+            lesson["quiz_draft"] = None
 
     chapter_data = []
     for chapter in chapters:
@@ -297,7 +581,28 @@ def get_course_editor_data(course: Optional[str] = None) -> Dict[str, Any]:
     return {
         "course": _doc_data(course_doc, _editor_course_fields()),
         "chapters": chapter_data,
-        "quizzes": quizzes,
+        "quizzes": [
+            {
+                **quiz,
+                "questions": quiz_questions.get(quiz.get("name"), []),
+            }
+            for quiz in quizzes
+        ],
+    }
+
+
+@frappe.whitelist()
+def get_course_categories() -> Dict[str, Any]:
+    """Return active editable categories for the Course Studio selector."""
+    _require_learning_manager()
+    return {
+        "categories": frappe.get_all(
+            "ELMS Course Category",
+            filters={"is_active": 1},
+            fields=["name", "category_name", "description"],
+            order_by="category_name asc",
+            limit_page_length=500,
+        )
     }
 
 
@@ -360,6 +665,9 @@ def save_course_draft(payload: Any) -> Dict[str, Any]:
                 frappe.throw(_("Each lesson must be an object"), frappe.ValidationError)
             lesson_id = lesson_values.get("name")
             _assert_editor_child("ELMS Course Lesson", lesson_id, course_name)
+            content_type = str(lesson_values.get("content_type") or "Article").strip() or "Article"
+            if content_type not in ("Article", "Video", "Quiz"):
+                frappe.throw(_("Unsupported lesson content type"), frappe.ValidationError)
             lesson_record = _save_doc(
                 "ELMS Course Lesson",
                 lesson_id,
@@ -368,7 +676,7 @@ def save_course_draft(payload: Any) -> Dict[str, Any]:
                     "course": course_name,
                     "chapter": chapter_name,
                     "sequence_id": lesson_index,
-                    "content_type": lesson_values.get("content_type") or "Article",
+                    "content_type": content_type,
                     "duration_minutes": max(0, _as_int(lesson_values.get("duration_minutes"), 15)),
                     "minimum_time_seconds": max(0, _as_int(lesson_values.get("minimum_time_seconds"), 180)),
                     "is_mandatory": 1 if str(lesson_values.get("is_mandatory", 1)).lower() in ("1", "true", "yes", "on") else 0,
@@ -377,14 +685,15 @@ def save_course_draft(payload: Any) -> Dict[str, Any]:
                 },
             )
             saved_lessons += 1
-            quiz_name = lesson_values.get("quiz")
-            if quiz_name:
-                if not frappe.db.exists("ELMS Quiz", quiz_name):
-                    frappe.throw(_("Quiz {0} not found").format(quiz_name), frappe.DoesNotExistError)
-                quiz_course = frappe.db.get_value("ELMS Quiz", quiz_name, "course")
-                if quiz_course != course_name:
-                    frappe.throw(_("Quiz does not belong to this course"), frappe.ValidationError)
-                _save_doc("ELMS Quiz", quiz_name, {"course": course_name, "lesson": lesson_record.get("name")})
+            lesson_name = lesson_record.get("name")
+            if content_type == "Quiz":
+                quiz_draft = _normalize_editor_quiz_draft(
+                    lesson_values.get("quiz_draft"),
+                    str(lesson_values.get("lesson_name") or lesson_name),
+                )
+                _save_editor_quiz(course_name, lesson_name, quiz_draft)
+            elif lesson_name:
+                _unlink_lesson_quiz(course_name, lesson_name)
 
     if course_values.get("is_published") and saved_lessons == 0:
         frappe.throw(_("A published course must contain at least one lesson"), frappe.ValidationError)
@@ -704,7 +1013,13 @@ def get_learning_admin_data() -> Dict[str, Any]:
     """Return catalogue and operational queues for the manager tab."""
     user = _require_authenticated()
     manager = _is_learning_manager(user)
-    result: Dict[str, Any] = {"authenticated": True, "user": user, "can_manage": manager}
+    can_view_profile = _can_view_learner_profile(user)
+    result: Dict[str, Any] = {
+        "authenticated": True,
+        "user": user,
+        "can_manage": manager,
+        "can_view_learner_profile": can_view_profile,
+    }
     if not manager:
         return result
 
@@ -772,7 +1087,7 @@ def get_learning_relationships(
     user: str = "",
 ) -> Dict[str, Any]:
     """Return LMS records grouped by their course root and searchable by relationship labels."""
-    _require_learning_manager()
+    _require_relationship_viewer()
     courses = frappe.get_all(
         "ELMS Course",
         fields=["name", "course_name", "course_code", "category", "academic_hours", "is_published"],
@@ -881,6 +1196,23 @@ def get_learning_relationships(
             )
             for row in related_enrollments
         ]
+        user_entities = []
+        seen_users = set()
+        for row in related_enrollments:
+            user_name = row.get("user")
+            if not user_name or user_name in seen_users:
+                continue
+            seen_users.add(user_name)
+            user_row = user_by_name.get(user_name, {"name": user_name})
+            user_entities.append(
+                entity(
+                    "user",
+                    "User",
+                    user_row,
+                    user_row.get("full_name") or user_row.get("name"),
+                    user_row.get("email") or row.get("status"),
+                )
+            )
         chapter_entities = [
             entity(
                 "chapter",
@@ -973,6 +1305,7 @@ def get_learning_relationships(
             "chapter": chapter_entities,
             "lesson": lesson_entities,
             "quiz": quiz_entities,
+            "user": user_entities,
         }
         matches = [
             item
@@ -1000,6 +1333,7 @@ def get_learning_relationships(
             "batches": batch_entities,
             "subscriptions": subscription_entities,
             "enrollments": enrollment_entities,
+            "users": user_entities,
             "chapters": chapter_entities,
             "lessons": lesson_entities,
             "outline": outline,
@@ -1053,13 +1387,31 @@ def _quiz_questions(quiz: str) -> List[Dict[str, Any]]:
         options = _json_value(question.get("options_json"), [])
         if not isinstance(options, list) or not options:
             frappe.throw(_("Question {0} has invalid options").format(question.get("name")), frappe.ValidationError)
+        option_ids = set()
+        normalized_options = []
+        for option in options:
+            if not isinstance(option, dict):
+                frappe.throw(_("Question {0} has invalid options").format(question.get("name")), frappe.ValidationError)
+            option_id = str(option.get("id") or "").strip()
+            option_text = str(option.get("text") or "").strip()
+            if not option_id or not option_text or option_id in option_ids:
+                frappe.throw(_("Question {0} has invalid options").format(question.get("name")), frappe.ValidationError)
+            option_ids.add(option_id)
+            normalized_options.append({
+                "id": option_id,
+                "text": option_text,
+                "correct": bool(option.get("correct")),
+            })
+        question_type = question.get("question_type") or "Single Choice"
+        if question_type not in ("Single Choice", "Multiple Choice", "True/False"):
+            frappe.throw(_("Question {0} has unsupported question type").format(question.get("name")), frappe.ValidationError)
         normalized.append(
             {
                 "name": question.get("name"),
                 "question_text": question.get("question_text"),
                 "sequence_id": question.get("sequence_id"),
-                "question_type": question.get("question_type") or "Single Choice",
-                "options": options,
+                "question_type": question_type,
+                "options": normalized_options,
                 "points": max(1, _as_int(question.get("points"), 1)),
                 "topic": question.get("topic") or "Общие вопросы",
                 "explanation": question.get("explanation") or "",
@@ -1086,6 +1438,73 @@ def _quiz_public_questions(questions: List[Dict[str, Any]]) -> List[Dict[str, An
         }
         for question in questions
     ]
+
+
+def _attempt_answers(attempt: Any) -> Dict[str, List[str]]:
+    answers = _json_value(getattr(attempt, "answers_json", None), {})
+    if not isinstance(answers, dict):
+        return {}
+    return {
+        str(question): [str(option) for option in values]
+        for question, values in answers.items()
+        if isinstance(values, list)
+    }
+
+
+def _validated_answers(questions: List[Dict[str, Any]], answers: Any) -> Dict[str, List[str]]:
+    submitted = _json_value(answers, {})
+    if not isinstance(submitted, dict):
+        frappe.throw(_("Answers must be a JSON object"), frappe.ValidationError)
+
+    question_by_name = {str(question.get("name")): question for question in questions}
+    unknown_questions = set(str(key) for key in submitted) - set(question_by_name)
+    if unknown_questions:
+        frappe.throw(
+            _("Unknown quiz question: {0}").format(sorted(unknown_questions)[0]),
+            frappe.ValidationError,
+        )
+
+    normalized: Dict[str, List[str]] = {}
+    for question_name, raw_answer in submitted.items():
+        question_name = str(question_name)
+        question = question_by_name[question_name]
+        values = raw_answer if isinstance(raw_answer, list) else [raw_answer]
+        values = [str(value).strip() for value in values if value is not None and str(value).strip()]
+        if len(values) != len(set(values)):
+            frappe.throw(_("Duplicate options for question {0}").format(question_name), frappe.ValidationError)
+        if question.get("question_type") != "Multiple Choice" and len(values) > 1:
+            frappe.throw(_("Question {0} accepts one option").format(question_name), frappe.ValidationError)
+        allowed = {str(option.get("id")) for option in question.get("options", [])}
+        invalid = [value for value in values if value not in allowed]
+        if invalid:
+            frappe.throw(
+                _("Invalid option {0} for question {1}").format(invalid[0], question_name),
+                frappe.ValidationError,
+            )
+        normalized[question_name] = values
+    return normalized
+
+
+def _attempt_payload(attempt: Any, questions: List[Dict[str, Any]], resumed: bool = False) -> Dict[str, Any]:
+    answers = _attempt_answers(attempt)
+    total_questions = len(questions)
+    answered_questions = sum(1 for question in questions if answers.get(str(question.get("name"))))
+    percentage = round((answered_questions / total_questions) * 100, 2) if total_questions else 0.0
+    return {
+        "attempt": attempt.name,
+        "quiz": getattr(attempt, "quiz", None),
+        "status": getattr(attempt, "status", "In Progress"),
+        "quiz_type": frappe.db.get_value("ELMS Quiz", getattr(attempt, "quiz", None), "quiz_type"),
+        "passing_percentage": frappe.db.get_value("ELMS Quiz", getattr(attempt, "quiz", None), "passing_percentage"),
+        "deadline_at": getattr(attempt, "deadline_at", None),
+        "questions": _quiz_public_questions(questions),
+        "answers": answers,
+        "answered_questions": answered_questions,
+        "total_questions": total_questions,
+        "progress_percentage": percentage,
+        "resumed": bool(resumed),
+        "last_saved_at": getattr(attempt, "last_saved_at", None),
+    }
 
 
 def _require_enrollment_access(enrollment: str, user: str) -> Dict[str, Any]:
@@ -1132,12 +1551,21 @@ def get_lesson_quiz(lesson_id: str, enrollment: str) -> Dict[str, Any]:
         frappe.throw(_("Published quiz for this lesson was not found"), frappe.DoesNotExistError)
     quiz_data = _quiz_for_learner(quiz, enrollment, user)
     questions = _quiz_questions(quiz)
+    active_attempt = frappe.db.get_value(
+        "ELMS Quiz Attempt",
+        {"quiz": quiz, "enrollment": enrollment, "status": "In Progress"},
+        "name",
+    )
+    attempt = None
+    if active_attempt:
+        attempt = frappe.get_doc("ELMS Quiz Attempt", active_attempt)
     return {
         "quiz": {key: quiz_data.get(key) for key in (
             "name", "quiz_name", "quiz_type", "passing_percentage", "time_limit_minutes",
             "max_attempts", "instructions",
         )},
         "questions": _quiz_public_questions(questions),
+        "attempt": _attempt_payload(attempt, _json_value(attempt.snapshot_json, questions), True) if attempt else None,
     }
 
 
@@ -1153,7 +1581,12 @@ def start_quiz(quiz: str, enrollment: str) -> Dict[str, Any]:
         "name",
     )
     if active_attempt:
-        frappe.throw(_("An attempt is already in progress"), frappe.ValidationError)
+        attempt = frappe.get_doc("ELMS Quiz Attempt", active_attempt)
+        snapshot = _json_value(attempt.snapshot_json, [])
+        if not isinstance(snapshot, list) or not snapshot:
+            frappe.throw(_("The active quiz attempt has no valid question snapshot"), frappe.ValidationError)
+        _record_user_activity(user, "Quiz Resume", "ELMS Quiz Attempt", attempt.name)
+        return _attempt_payload(attempt, snapshot, True)
 
     statuses = ["In Progress", "Passed", "Failed"]
     used_attempts = len(
@@ -1169,7 +1602,7 @@ def start_quiz(quiz: str, enrollment: str) -> Dict[str, Any]:
 
     started_at = _now_datetime()
     time_limit = max(0, _as_int(quiz_data.get("time_limit_minutes"), 0))
-    deadline_at = started_at + timedelta(minutes=time_limit) if time_limit else None
+    deadline_at = _deadline_from(started_at, time_limit)
     attempt = frappe.new_doc("ELMS Quiz Attempt")
     attempt.quiz = quiz
     attempt.enrollment = enrollment
@@ -1180,16 +1613,80 @@ def start_quiz(quiz: str, enrollment: str) -> Dict[str, Any]:
     attempt.deadline_at = deadline_at
     attempt.answers_json = "{}"
     attempt.snapshot_json = json.dumps(questions, ensure_ascii=False)
+    attempt.answered_questions = 0
+    attempt.total_questions = len(questions)
+    attempt.progress_percentage = 0.0
+    attempt.last_saved_at = started_at
     attempt.flags.ignore_permissions = True
     attempt.insert()
     _record_user_activity(user, "Quiz Start", "ELMS Quiz Attempt", attempt.name)
+    payload = _attempt_payload(attempt, questions)
+    payload["quiz"] = quiz_data.get("quiz_name")
+    payload["resumed"] = False
+    return payload
+
+
+def _assert_attempt_access(attempt: Any, user: str) -> None:
+    if getattr(attempt, "user", None) != user and not _is_learning_manager(user):
+        frappe.throw(_("Access denied"), frappe.PermissionError)
+    if getattr(attempt, "status", None) != "In Progress":
+        frappe.throw(_("This attempt is already closed"), frappe.ValidationError)
+
+
+def _attempt_questions(attempt: Any) -> List[Dict[str, Any]]:
+    questions = _json_value(getattr(attempt, "snapshot_json", None), [])
+    if not isinstance(questions, list) or not questions:
+        frappe.throw(_("The quiz attempt has no valid question snapshot"), frappe.ValidationError)
+    return questions
+
+
+def _is_deadline_expired(deadline_at: Any) -> bool:
+    if not deadline_at:
+        return False
+    now = _now_datetime()
+    try:
+        if isinstance(deadline_at, str):
+            deadline_at = datetime.fromisoformat(deadline_at.replace("Z", "+00:00"))
+        if isinstance(now, str):
+            now = datetime.fromisoformat(now.replace("Z", "+00:00"))
+        return now > deadline_at
+    except (TypeError, ValueError):
+        return False
+
+
+@frappe.whitelist()
+def save_quiz_progress(attempt: str, answers: Any) -> Dict[str, Any]:
+    """Persist a validated draft without grading or closing the attempt."""
+    user = _require_authenticated()
+    attempt_doc = frappe.get_doc("ELMS Quiz Attempt", attempt)
+    _assert_attempt_access(attempt_doc, user)
+    if _is_deadline_expired(getattr(attempt_doc, "deadline_at", None)):
+        attempt_doc.status = "Abandoned"
+        attempt_doc.failure_reason = _("Time limit exceeded")
+        attempt_doc.flags.ignore_permissions = True
+        attempt_doc.save()
+        frappe.throw(_("Quiz time limit exceeded"), frappe.ValidationError)
+    questions = _attempt_questions(attempt_doc)
+    normalized = _validated_answers(questions, answers)
+    answered_questions = sum(1 for question in questions if normalized.get(str(question.get("name"))))
+    total_questions = len(questions)
+    saved_at = _now_datetime()
+    attempt_doc.answers_json = json.dumps(normalized, ensure_ascii=False)
+    attempt_doc.answered_questions = answered_questions
+    attempt_doc.total_questions = total_questions
+    attempt_doc.progress_percentage = round((answered_questions / total_questions) * 100, 2) if total_questions else 0.0
+    attempt_doc.last_saved_at = saved_at
+    attempt_doc.flags.ignore_permissions = True
+    attempt_doc.save()
+    _record_user_activity(user, "Quiz Draft Save", "ELMS Quiz Attempt", attempt_doc.name)
     return {
-        "attempt": attempt.name,
-        "quiz": quiz_data.get("quiz_name"),
-        "quiz_type": quiz_data.get("quiz_type"),
-        "passing_percentage": quiz_data.get("passing_percentage"),
-        "deadline_at": deadline_at,
-        "questions": _quiz_public_questions(questions),
+        "attempt": attempt_doc.name,
+        "status": attempt_doc.status,
+        "answers": normalized,
+        "answered_questions": answered_questions,
+        "total_questions": total_questions,
+        "progress_percentage": attempt_doc.progress_percentage,
+        "last_saved_at": saved_at,
     }
 
 
@@ -1218,6 +1715,11 @@ def _complete_quiz_lesson(enrollment: str, lesson_id: str, user: str) -> Dict[st
     progress = frappe.get_doc("ELMS Lesson Progress", progress_name) if progress_name else frappe.new_doc("ELMS Lesson Progress")
     progress.course_progress = course_progress_name
     progress.lesson_id = lesson_id
+    progress.user = user
+    progress.course_name = frappe.db.get_value("ELMS Course Progress", course_progress_name, "course_name") or ""
+    if frappe.db.exists("ELMS Course Lesson", lesson_id):
+        progress.lesson = lesson_id
+        progress.lesson_name = frappe.db.get_value("ELMS Course Lesson", lesson_id, "lesson_name") or ""
     progress.is_completed = 1
     progress.last_heartbeat_at = _now_datetime()
     progress.flags.ignore_permissions = True
@@ -1229,29 +1731,27 @@ def _complete_quiz_lesson(enrollment: str, lesson_id: str, user: str) -> Dict[st
 
 
 @frappe.whitelist()
-def submit_quiz(attempt: str, answers: Any) -> Dict[str, Any]:
+def submit_quiz(attempt: str, answers: Any = None) -> Dict[str, Any]:
     """Grade an attempt on the server and complete its lesson when passed."""
     user = _require_authenticated()
     attempt_doc = frappe.get_doc("ELMS Quiz Attempt", attempt)
-    if attempt_doc.user != user and not _is_learning_manager(user):
-        frappe.throw(_("Access denied"), frappe.PermissionError)
-    if attempt_doc.status != "In Progress":
-        frappe.throw(_("This attempt is already closed"), frappe.ValidationError)
-    if attempt_doc.deadline_at and _now_datetime() > attempt_doc.deadline_at:
+    _assert_attempt_access(attempt_doc, user)
+    if _is_deadline_expired(getattr(attempt_doc, "deadline_at", None)):
         attempt_doc.status = "Abandoned"
         attempt_doc.failure_reason = _("Time limit exceeded")
         attempt_doc.flags.ignore_permissions = True
         attempt_doc.save()
         frappe.throw(_("Quiz time limit exceeded"), frappe.ValidationError)
 
-    questions = _json_value(attempt_doc.snapshot_json, [])
-    submitted = _json_value(answers, {})
-    if not isinstance(submitted, dict):
-        frappe.throw(_("Answers must be a JSON object"), frappe.ValidationError)
+    questions = _attempt_questions(attempt_doc)
+    submitted = _validated_answers(questions, answers if answers is not None else _attempt_answers(attempt_doc))
 
     total_points = sum(max(1, _as_int(question.get("points"), 1)) for question in questions)
     earned_points = 0
     results = []
+    passing = _as_float(frappe.db.get_value("ELMS Quiz", attempt_doc.quiz, "passing_percentage"), 80)
+    quiz_lesson = frappe.db.get_value("ELMS Quiz", attempt_doc.quiz, "lesson")
+    quiz_type = frappe.db.get_value("ELMS Quiz", attempt_doc.quiz, "quiz_type")
     for question in questions:
         expected = sorted(
             str(option.get("id"))
@@ -1264,39 +1764,46 @@ def submit_quiz(attempt: str, answers: Any) -> Dict[str, Any]:
         correct = bool(expected) and provided == expected
         if correct:
             earned_points += max(1, _as_int(question.get("points"), 1))
-        results.append({
+        result = {
             "question": question.get("name"),
             "topic": question.get("topic") or "Общие вопросы",
             "correct": correct,
             "answered": bool(provided),
-        })
+        }
+        if quiz_type == "Practice" and correct:
+            result["explanation"] = question.get("explanation") or ""
+        results.append(result)
 
     score = round((earned_points / total_points) * 100, 2) if total_points else 0.0
-    passing = _as_float(frappe.db.get_value("ELMS Quiz", attempt_doc.quiz, "passing_percentage"), 80)
     passed = score >= passing
-    quiz_lesson = frappe.db.get_value("ELMS Quiz", attempt_doc.quiz, "lesson")
     attempt_doc.answers_json = json.dumps(submitted, ensure_ascii=False)
     attempt_doc.result_json = json.dumps(results, ensure_ascii=False)
     attempt_doc.score_percentage = score
     attempt_doc.passed = 1 if passed else 0
     attempt_doc.status = "Passed" if passed else "Failed"
     attempt_doc.submitted_at = _now_datetime()
+    attempt_doc.answered_questions = sum(1 for result in results if result["answered"])
+    attempt_doc.total_questions = len(questions)
+    attempt_doc.progress_percentage = 100.0 if questions else 0.0
+    attempt_doc.last_saved_at = attempt_doc.submitted_at
     attempt_doc.flags.ignore_permissions = True
     attempt_doc.save()
     progress = None
     if passed and quiz_lesson:
         progress = _complete_quiz_lesson(attempt_doc.enrollment, quiz_lesson, user)
     _record_user_activity(user, "Quiz Submit", "ELMS Quiz Attempt", attempt_doc.name)
-    quiz_type = frappe.db.get_value("ELMS Quiz", attempt_doc.quiz, "quiz_type")
     client_results = results
     if quiz_type == "Assessment":
-        client_results = [{"topic": result["topic"]} for result in results if not result["correct"]]
+        client_results = [{"topic": result["topic"], "answered": result["answered"]} for result in results]
     return {
         "attempt": attempt_doc.name,
         "status": attempt_doc.status,
         "score_percentage": score,
         "passing_percentage": passing,
         "passed": 1 if passed else 0,
+        "answered_questions": attempt_doc.answered_questions,
+        "total_questions": attempt_doc.total_questions,
+        "progress_percentage": attempt_doc.progress_percentage,
         "results": client_results,
         "course_progress": progress,
     }
@@ -1661,6 +2168,12 @@ def record_lesson_progress(
         lp.time_spent_seconds = 0
         lp.is_completed = 0
 
+    lp.user = enr_user
+    lp.course_name = frappe.db.get_value("ELMS Course Progress", course_progress_name, "course_name") or ""
+    if lesson_course is not None:
+        lp.lesson = lesson_id
+        lp.lesson_name = frappe.db.get_value("ELMS Course Lesson", lesson_id, "lesson_name") or ""
+
     lp.time_spent_seconds = int(lp.time_spent_seconds or 0) + time_delta
     minimum_time = 0
     if lesson_course is not None:
@@ -1706,7 +2219,7 @@ def calculate_course_progress(course_progress: str) -> Dict[str, Any]:
     lesson_progresses = frappe.get_all(
         "ELMS Lesson Progress",
         filters={"course_progress": course_progress},
-        fields=["is_completed", "time_spent_seconds"],
+        fields=["lesson_id", "is_completed", "time_spent_seconds"],
     )
 
     # Once an enrollment is tied to a real course, count the course syllabus,
@@ -1836,9 +2349,16 @@ def get_learner_dashboard() -> Dict[str, Any]:
         progress_info = frappe.db.get_value(
             "ELMS Course Progress",
             {"enrollment": enr.name},
-            ["name", "progress_percentage", "total_lessons", "completed_lessons", "exam_eligible"],
+            ["name", "progress_percentage", "total_lessons", "completed_lessons", "total_time_spent_seconds", "exam_eligible"],
             as_dict=True,
         ) or {}
+        attempts = frappe.get_all(
+            "ELMS Quiz Attempt",
+            filters={"enrollment": enr.name},
+            fields=["name", "quiz", "status", "score_percentage", "answered_questions", "total_questions", "progress_percentage", "submitted_at", "last_saved_at"],
+            order_by="modified desc",
+            limit_page_length=50,
+        )
 
         courses_data.append({
             "enrollment": enr.name,
@@ -1850,7 +2370,9 @@ def get_learner_dashboard() -> Dict[str, Any]:
             "progress_percentage": progress_info.get("progress_percentage", 0.0),
             "completed_lessons": progress_info.get("completed_lessons", 0),
             "total_lessons": progress_info.get("total_lessons", 0),
+            "time_spent_seconds": progress_info.get("total_time_spent_seconds", 0),
             "exam_eligible": progress_info.get("exam_eligible", 0),
+            "quiz_attempts": attempts,
         })
 
     activities = frappe.get_all(
@@ -1860,6 +2382,11 @@ def get_learner_dashboard() -> Dict[str, Any]:
         order_by="timestamp desc",
         limit_page_length=50,
     )
+    last_activity_at = activities[0].get("timestamp") if activities else None
+    last_login_at = next(
+        (item.get("timestamp") for item in activities if str(item.get("activity_type") or "").casefold() == "login"),
+        None,
+    )
 
     return {
         "authenticated": True,
@@ -1867,4 +2394,180 @@ def get_learner_dashboard() -> Dict[str, Any]:
         "active_enrollments_count": len(courses_data),
         "courses": courses_data,
         "activities": activities,
+        "last_activity_at": last_activity_at,
+        "last_login_at": last_login_at,
+    }
+
+
+def _source_readable(doctype: str, user: str) -> bool:
+    """Use Frappe DocPerm as the configurable gate for cross-user inspection."""
+    checker = getattr(frappe, "has_permission", None)
+    if not callable(checker):
+        return False
+    try:
+        return bool(checker(doctype, ptype="read", user=user))
+    except TypeError:
+        return bool(checker(doctype, "read", None, user))
+
+
+def _profile_year(value: Any) -> Optional[int]:
+    text = str(value or "")
+    try:
+        return int(text[:4]) if len(text) >= 4 else None
+    except ValueError:
+        return None
+
+
+def _history_bucket(history: Dict[int, Dict[str, Any]], value: Any) -> Dict[str, Any]:
+    year = _profile_year(value) or _profile_year(_today())
+    if year not in history:
+        history[year] = {"year": year, "programs": [], "courses": [], "events": []}
+    return history[year]
+
+
+def _course_label(course: Optional[str], fallback: Optional[str] = None) -> str:
+    if course:
+        label = frappe.db.get_value("ELMS Course", course, "course_name")
+        if label:
+            return label
+    return fallback or course or "Курс без названия"
+
+
+@frappe.whitelist()
+def get_learner_profile(user: Optional[str] = None) -> Dict[str, Any]:
+    """Return a permission-aware learner record, progress projection and yearly history."""
+    viewer = _require_authenticated()
+    target = user or viewer
+    if not frappe.db.exists("User", target):
+        frappe.throw(_("User {0} not found").format(target), frappe.DoesNotExistError)
+
+    if target != viewer:
+        required_sources = (
+            "ELMS Enrollment",
+            "ELMS Course Progress",
+            "ELMS Lesson Progress",
+            "ELMS Program Enrollment",
+            "ELMS Quiz Attempt",
+            "ELMS User Activity",
+        )
+        if not all(_source_readable(doctype, viewer) for doctype in required_sources):
+            _record_user_activity(viewer, "Learner Profile Denied", "User", target)
+            frappe.throw(_("You do not have permission to inspect this learner"), frappe.PermissionError)
+
+    user_data = frappe.db.get_value("User", target, ["name", "full_name", "email"], as_dict=True) or {}
+    enrollments = frappe.get_all(
+        "ELMS Enrollment",
+        filters={"user": target},
+        fields=["name", "batch", "course", "program_enrollment", "enrollment_date", "status", "modified"],
+        order_by="enrollment_date desc, modified desc",
+        limit_page_length=500,
+    )
+    program_enrollments = frappe.get_all(
+        "ELMS Program Enrollment",
+        filters={"user": target},
+        fields=["name", "program", "enrollment_date", "status", "progress_percentage", "total_courses", "completed_courses", "current_course", "modified"],
+        order_by="enrollment_date desc, modified desc",
+        limit_page_length=200,
+    )
+    activities = frappe.get_all(
+        "ELMS User Activity",
+        filters={"user": target},
+        fields=["name", "activity_type", "reference_doctype", "reference_name", "timestamp"],
+        order_by="timestamp desc",
+        limit_page_length=200,
+    )
+    history: Dict[int, Dict[str, Any]] = {}
+    current_courses = []
+
+    for enrollment in enrollments:
+        course = enrollment.get("course")
+        batch = frappe.db.get_value(
+            "ELMS Batch", enrollment.get("batch"), ["batch_name", "course"], as_dict=True
+        ) or {}
+        course = course or batch.get("course")
+        course_progress = frappe.db.get_value(
+            "ELMS Course Progress",
+            {"enrollment": enrollment.get("name")},
+            ["name", "progress_percentage", "total_lessons", "completed_lessons", "total_time_spent_seconds", "exam_eligible", "completion_date"],
+            as_dict=True,
+        ) or {}
+        attempts = frappe.get_all(
+            "ELMS Quiz Attempt",
+            filters={"enrollment": enrollment.get("name")},
+            fields=["name", "quiz", "status", "score_percentage", "answered_questions", "total_questions", "progress_percentage", "submitted_at", "last_saved_at"],
+            order_by="modified desc",
+            limit_page_length=100,
+        )
+        course_item = {
+            "enrollment": enrollment.get("name"),
+            "course": course,
+            "course_name": _course_label(course, batch.get("batch_name")),
+            "batch": enrollment.get("batch"),
+            "batch_name": batch.get("batch_name") or enrollment.get("batch"),
+            "status": enrollment.get("status"),
+            "enrollment_date": enrollment.get("enrollment_date"),
+            "progress_percentage": course_progress.get("progress_percentage", 0.0),
+            "completed_lessons": course_progress.get("completed_lessons", 0),
+            "total_lessons": course_progress.get("total_lessons", 0),
+            "time_spent_seconds": course_progress.get("total_time_spent_seconds", 0),
+            "exam_eligible": course_progress.get("exam_eligible", 0),
+            "completion_date": course_progress.get("completion_date"),
+            "quiz_attempts": attempts,
+        }
+        if enrollment.get("status") == "Active":
+            current_courses.append(course_item)
+        bucket = _history_bucket(history, enrollment.get("enrollment_date"))
+        bucket["courses"].append(course_item)
+
+    programs = []
+    for program_enrollment in program_enrollments:
+        program = frappe.db.get_value(
+            "ELMS Program", program_enrollment.get("program"), ["program_name", "program_code"], as_dict=True
+        ) or {}
+        program_item = {
+            "program_enrollment": program_enrollment.get("name"),
+            "program": program_enrollment.get("program"),
+            "program_name": program.get("program_name") or program_enrollment.get("program"),
+            "program_code": program.get("program_code"),
+            "status": program_enrollment.get("status"),
+            "enrollment_date": program_enrollment.get("enrollment_date"),
+            "progress_percentage": program_enrollment.get("progress_percentage", 0.0),
+            "completed_courses": program_enrollment.get("completed_courses", 0),
+            "total_courses": program_enrollment.get("total_courses", 0),
+            "current_course": program_enrollment.get("current_course"),
+        }
+        programs.append(program_item)
+        _history_bucket(history, program_enrollment.get("enrollment_date"))["programs"].append(program_item)
+
+    for activity in activities:
+        _history_bucket(history, activity.get("timestamp"))["events"].append({
+            "date": activity.get("timestamp"),
+            "activity_type": activity.get("activity_type"),
+            "reference_doctype": activity.get("reference_doctype"),
+            "reference_name": activity.get("reference_name"),
+        })
+
+    history_by_year = [history[year] for year in sorted(history, reverse=True)]
+    last_activity_at = activities[0].get("timestamp") if activities else None
+    last_login_at = next(
+        (item.get("timestamp") for item in activities if str(item.get("activity_type") or "").casefold() == "login"),
+        None,
+    )
+    return {
+        "user": {
+            "name": user_data.get("name") or target,
+            "full_name": user_data.get("full_name") or target,
+            "email": user_data.get("email") or target,
+        },
+        "summary": {
+            "courses": len(enrollments),
+            "completed_courses": sum(1 for item in enrollments if item.get("status") == "Completed"),
+            "programs": len(programs),
+            "last_activity_at": last_activity_at,
+            "last_login_at": last_login_at,
+        },
+        "current_courses": current_courses,
+        "programs": programs,
+        "history_by_year": history_by_year,
+        "activity": activities,
     }

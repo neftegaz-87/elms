@@ -1,5 +1,6 @@
 """Tests for ELMS Learning Desk page, player surface, and anti-cheat telemetry."""
 
+import json
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,7 @@ class TestLearningUI(unittest.TestCase):
         self.studio_page_js_path = self.root / "elms" / "public" / "js" / "elms-course-studio-page.js"
         self.studio_css_path = self.root / "elms" / "public" / "css" / "course-studio.css"
         self.course_doctype_path = self.root / "elms" / "lms" / "doctype" / "elms_course" / "elms_course.json"
+        self.category_doctype_path = self.root / "elms" / "lms" / "doctype" / "elms_course_category" / "elms_course_category.json"
         self.chapter_doctype_path = self.root / "elms" / "lms" / "doctype" / "elms_course_chapter" / "elms_course_chapter.json"
         self.lesson_doctype_path = self.root / "elms" / "lms" / "doctype" / "elms_course_lesson" / "elms_course_lesson.json"
         self.page_json_path = self.root / "elms" / "lms" / "page" / "elms_learning" / "elms_learning.json"
@@ -33,6 +35,8 @@ class TestLearningUI(unittest.TestCase):
         content = self.hooks_path.read_text(encoding="utf-8")
         self.assertIn("desk-learning.css", content)
         self.assertIn("desk-learning.js", content)
+        self.assertIn("desk-assistant.css", content)
+        self.assertIn("desk-assistant.js", content)
         self.assertIn('"elms-learning": "public/js/elms-learning-page.js"', content)
         self.assertIn('"elms-course-preview": "public/js/elms-course-preview-page.js"', content)
         self.assertIn('"elms-course-studio": "public/js/elms-course-studio-page.js"', content)
@@ -77,11 +81,14 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn('frappe.require("/assets/elms/js/course-studio.js", start)', page_js)
         self.assertNotIn('course-studio.js?v=1', page_js)
         self.assertIn("elms.lms.api.get_course_editor_data", studio_js)
+        self.assertIn("elms.lms.api.get_course_categories", studio_js)
         self.assertIn("elms.lms.api.save_course_draft", studio_js)
         self.assertIn("Предпросмотр", studio_js)
         self.assertIn("Сохранить черновик", studio_js)
         self.assertIn("+ Раздел", studio_js)
         self.assertIn("+ Урок", studio_js)
+        self.assertIn("+ Добавить категорию", studio_js)
+        self.assertIn("ELMS Course Category", studio_js)
         self.assertIn("state.selected = { type: type, id: id || null };\n\t\trender();", studio_js)
         self.assertIn("var title = state.course.course_name || \"Новый курс\";", studio_js)
 
@@ -109,13 +116,19 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn('elms.lms.api.enroll_self', js)
         self.assertIn('elms.lms.api.get_lesson_quiz', js)
         self.assertIn('elms.lms.api.start_quiz', js)
+        self.assertIn('elms.lms.api.save_quiz_progress', js)
         self.assertIn('elms.lms.api.submit_quiz', js)
+        self.assertIn('elms.lms.api.get_learner_profile', js)
         self.assertIn('elms.lms.api.get_program_catalog', js)
         self.assertIn('elms.lms.api.enroll_program', js)
         self.assertIn('Программы обучения', js)
         self.assertIn('Записаться на курс', js)
         self.assertIn('Каталог курсов', js)
         self.assertIn('Начать тест', js)
+        self.assertIn('Сохранить прогресс', js)
+        self.assertIn('Отвечено:', js)
+        self.assertIn('История обучения по годам', js)
+        self.assertIn('close-learner-profile', js)
         self.assertIn('Создать тест', js)
         self.assertIn('Управление обучением', js)
         self.assertIn('Создать курс', js)
@@ -133,6 +146,9 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn('window.addEventListener("focus"', js)
         self.assertIn('heartbeatInterval', js)
         self.assertIn('Поиск по связям', js)
+        self.assertNotIn('data-elms-platform-assistant', js)
+        self.assertNotIn('elms.ai.api.', js)
+        self.assertNotIn('elms-assistant-fab', js)
         self.assertIn('relationshipOutline', js)
         self.assertIn('Курс → разделы → уроки', js)
         self.assertIn('Программы курса', js)
@@ -145,6 +161,9 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn(".elms-catalog-grid", css)
         self.assertIn(".elms-catalog-card", css)
         self.assertIn(".elms-quiz-question", css)
+        self.assertIn(".elms-quiz-actions", css)
+        self.assertIn(".elms-learner-profile", css)
+        self.assertIn(".elms-history-year", css)
         self.assertIn(".elms-program-card", css)
 
     def test_learning_css_relationship_surface(self):
@@ -152,6 +171,8 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn(".elms-relationship-search", css)
         self.assertIn(".elms-relationship-group", css)
         self.assertIn(".elms-relationship-columns", css)
+        self.assertNotIn(".elms-assistant-panel", css)
+        self.assertNotIn("[data-elms-assistant]", css)
 
     def test_learning_css_course_preview_surface(self):
         css = self.css_path.read_text(encoding="utf-8")
@@ -177,6 +198,62 @@ class TestLearningUI(unittest.TestCase):
             self.assertIn(f'"title_field": "{title_field}"', content)
             self.assertIn('"search_fields":', content)
 
+    def test_lms_relationship_links_use_human_titles(self):
+        doctype_dir = self.root / "elms" / "lms" / "doctype"
+        title_doctypes = (
+            "elms_course",
+            "elms_course_chapter",
+            "elms_course_lesson",
+            "elms_program",
+            "elms_quiz",
+            "elms_batch",
+            "elms_subscription",
+            "elms_course_category",
+            "elms_program_course",
+            "elms_enrollment",
+            "elms_program_enrollment",
+            "elms_course_progress",
+            "elms_lesson_progress",
+            "elms_quiz_attempt",
+        )
+        for name in title_doctypes:
+            manifest = json.loads((doctype_dir / name / f"{name}.json").read_text(encoding="utf-8"))
+            self.assertTrue(manifest.get("title_field"), name)
+            self.assertEqual(manifest.get("show_title_field_in_link"), 1, name)
+
+    def test_lesson_progress_exposes_learner_and_course_in_list(self):
+        path = self.root / "elms" / "lms" / "doctype" / "elms_lesson_progress" / "elms_lesson_progress.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        fields = {field["fieldname"]: field for field in manifest["fields"]}
+        self.assertEqual(fields["user"]["options"], "User")
+        self.assertEqual(fields["user"]["fetch_from"], "course_progress.user")
+        self.assertEqual(fields["user"]["in_list_view"], 1)
+        self.assertEqual(fields["course_name"]["fetch_from"], "course_progress.course_name")
+        self.assertEqual(fields["course_name"]["in_list_view"], 1)
+        self.assertIn("user", manifest.get("search_fields", ""))
+        self.assertIn("course_name", manifest.get("search_fields", ""))
+
+    def test_course_progress_links_to_lesson_progress(self):
+        path = self.root / "elms" / "lms" / "doctype" / "elms_course_progress" / "elms_course_progress.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        links = manifest.get("links") or []
+        self.assertTrue(
+            any(
+                link.get("link_doctype") == "ELMS Lesson Progress"
+                and link.get("link_fieldname") == "course_progress"
+                for link in links
+            )
+        )
+
+    def test_course_category_is_an_editable_lms_entity(self):
+        self.assertTrue(self.category_doctype_path.is_file())
+        category = self.category_doctype_path.read_text(encoding="utf-8")
+        course = self.course_doctype_path.read_text(encoding="utf-8")
+        self.assertIn('"name": "ELMS Course Category"', category)
+        self.assertIn('"title_field": "category_name"', category)
+        self.assertIn('"fieldtype": "Link"', course)
+        self.assertIn('"options": "ELMS Course Category"', course)
+
     def test_lms_workspace_exposes_learning_cabinet_shortcut(self):
         """Workspace LMS must provide shortcut to /app/elms-learning."""
         from elms.desk.workspaces import ELMS_WORKSPACE_DEFINITIONS
@@ -192,6 +269,7 @@ class TestLearningUI(unittest.TestCase):
         lms_ws = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "LMS")
         link_to = [link[1] for link in lms_ws["links"]]
         self.assertIn("ELMS Course", link_to)
+        self.assertIn("ELMS Course Category", link_to)
         self.assertNotIn("ELMS Course Chapter", link_to)
         self.assertNotIn("ELMS Course Lesson", link_to)
         self.assertIn("/app/elms-course-studio", [item.get("url") for item in lms_ws.get("shortcuts", ())])
@@ -208,6 +286,7 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn("User", link_to)
         self.assertIn("Role", link_to)
         self.assertIn("Role Profile", link_to)
+        self.assertIn("ELMS Integration Settings", link_to)
 
 
 if __name__ == "__main__":

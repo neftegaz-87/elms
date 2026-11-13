@@ -282,8 +282,8 @@ class TestLMSCoreFlows(unittest.TestCase):
 
             # Case 1: 1 out of 2 completed (50%) -> exam_eligible=0
             mock_get_all.return_value = [
-                {"is_completed": 1, "time_spent_seconds": 100},
-                {"is_completed": 0, "time_spent_seconds": 50},
+                {"lesson_id": "l1", "is_completed": 1, "time_spent_seconds": 100},
+                {"lesson_id": "l2", "is_completed": 0, "time_spent_seconds": 50},
             ]
             res1 = lms_api.calculate_course_progress("CP-MATH")
             self.assertEqual(res1["progress_percentage"], 50.0)
@@ -291,12 +291,55 @@ class TestLMSCoreFlows(unittest.TestCase):
 
             # Case 2: 2 out of 2 completed (100%) -> exam_eligible=1
             mock_get_all.return_value = [
-                {"is_completed": 1, "time_spent_seconds": 100},
-                {"is_completed": 1, "time_spent_seconds": 120},
+                {"lesson_id": "l1", "is_completed": 1, "time_spent_seconds": 100},
+                {"lesson_id": "l2", "is_completed": 1, "time_spent_seconds": 120},
             ]
             res2 = lms_api.calculate_course_progress("CP-MATH")
             self.assertEqual(res2["progress_percentage"], 100.0)
             self.assertEqual(res2["exam_eligible"], 1)
+
+    def test_lms_course_progress_calculation_matches_syllabus_by_lesson_id(self):
+        """Syllabus path must key lesson progress by lesson_id, not drop completed rows."""
+        cp_doc = FakeDoc(
+            "ELMS Course Progress",
+            name="CP-SYL",
+            enrollment="ENR-SYL",
+            total_lessons=0,
+            completed_lessons=0,
+            progress_percentage=0.0,
+            exam_eligible=0,
+        )
+
+        def get_all_side_effect(doctype, *args, **kwargs):
+            if doctype == "ELMS Lesson Progress":
+                fields = kwargs.get("fields") or []
+                self.assertIn("lesson_id", fields)
+                return [
+                    {"lesson_id": "LESSON-1", "is_completed": 1, "time_spent_seconds": 40},
+                    {"lesson_id": "LESSON-2", "is_completed": 0, "time_spent_seconds": 10},
+                ]
+            if doctype == "ELMS Course Lesson":
+                return [{"name": "LESSON-1"}, {"name": "LESSON-2"}]
+            return []
+
+        def get_value_side_effect(doctype, name, field=None, *args, **kwargs):
+            if doctype == "ELMS Enrollment" and field == "course":
+                return "COURSE-1"
+            if doctype == "ELMS Enrollment" and field == "batch":
+                return None
+            if doctype == "ELMS Course" and field == "name":
+                return "COURSE-1"
+            return None
+
+        with patch.object(frappe.db, "exists", return_value=True), \
+             patch.object(frappe, "get_doc", return_value=cp_doc), \
+             patch.object(frappe, "get_all", side_effect=get_all_side_effect), \
+             patch.object(frappe.db, "get_value", side_effect=get_value_side_effect):
+            res = lms_api.calculate_course_progress("CP-SYL")
+            self.assertEqual(res["total_lessons"], 2)
+            self.assertEqual(res["completed_lessons"], 1)
+            self.assertEqual(res["progress_percentage"], 50.0)
+            self.assertEqual(res["exam_eligible"], 0)
 
     def test_lms_user_activity_telemetry(self):
         """US-LMS-007 / TM-008: 152-FZ immutable activity telemetry record."""
@@ -375,6 +418,156 @@ class TestLMSCoreFlows(unittest.TestCase):
         ])
         self.assertEqual(payload[0]["options"], [{"id": "A", "text": "Да"}])
         self.assertNotIn("correct", payload[0]["options"][0])
+
+    def test_quiz_options_reject_duplicate_or_empty_values(self):
+        """Published quiz questions must have stable, non-empty option contracts."""
+        with patch.object(
+            frappe,
+            "get_all",
+            return_value=[{
+                "name": "Q-INVALID",
+                "question_text": "Вопрос",
+                "sequence_id": 1,
+                "question_type": "Single Choice",
+                "options_json": json.dumps([
+                    {"id": "A", "text": "Да"},
+                    {"id": "A", "text": "Повтор"},
+                ]),
+                "points": 1,
+            }],
+        ):
+            with self.assertRaises(frappe.ValidationError):
+                lms_api._quiz_questions("QUIZ-INVALID")
+
+    def test_quiz_draft_save_persists_answers_and_counters(self):
+        """A learner can save a partial attempt without grading it."""
+        attempt = FakeDoc(
+            "ELMS Quiz Attempt",
+            name="ATTEMPT-DRAFT",
+            quiz="QUIZ-1",
+            user="student@example.ru",
+            status="In Progress",
+            deadline_at=None,
+            snapshot_json=json.dumps([
+                {
+                    "name": "Q-1",
+                    "question_type": "Single Choice",
+                    "options": [{"id": "A", "text": "Да", "correct": True}],
+                },
+                {
+                    "name": "Q-2",
+                    "question_type": "Multiple Choice",
+                    "options": [{"id": "B", "text": "Б", "correct": False}],
+                },
+            ]),
+        )
+        with patch.object(frappe, "get_doc", return_value=attempt), \
+             patch.object(lms_api, "_record_user_activity"), \
+             patch.object(lms_api, "_now_datetime", return_value="2026-11-12 14:30:00"):
+            result = lms_api.save_quiz_progress("ATTEMPT-DRAFT", json.dumps({"Q-1": ["A"]}))
+
+        self.assertEqual(result["answered_questions"], 1)
+        self.assertEqual(result["total_questions"], 2)
+        self.assertEqual(result["progress_percentage"], 50.0)
+        self.assertEqual(json.loads(attempt.answers_json), {"Q-1": ["A"]})
+        self.assertEqual(attempt.status, "In Progress")
+
+    def test_start_quiz_resumes_existing_active_attempt(self):
+        """Starting the same quiz again returns the saved attempt instead of duplicating it."""
+        attempt = FakeDoc(
+            "ELMS Quiz Attempt",
+            name="ATTEMPT-RESUME",
+            quiz="QUIZ-1",
+            enrollment="ENR-1",
+            user="student@example.ru",
+            status="In Progress",
+            deadline_at=None,
+            answers_json=json.dumps({"Q-1": ["A"]}),
+            snapshot_json=json.dumps([{
+                "name": "Q-1",
+                "question_text": "Вопрос",
+                "sequence_id": 1,
+                "question_type": "Single Choice",
+                "options": [{"id": "A", "text": "Да", "correct": True}],
+                "points": 1,
+                "topic": "Общие вопросы",
+            }]),
+        )
+        with patch.object(lms_api, "_quiz_for_learner", return_value={"quiz_name": "Тест", "quiz_type": "Practice"}), \
+             patch.object(lms_api, "_quiz_questions", return_value=json.loads(attempt.snapshot_json)), \
+             patch.object(frappe.db, "get_value", return_value="ATTEMPT-RESUME"), \
+             patch.object(frappe, "get_doc", return_value=attempt), \
+             patch.object(lms_api, "_record_user_activity"):
+            result = lms_api.start_quiz("QUIZ-1", "ENR-1")
+
+        self.assertTrue(result["resumed"])
+        self.assertEqual(result["attempt"], "ATTEMPT-RESUME")
+        self.assertEqual(result["answered_questions"], 1)
+
+    def test_quiz_invalid_option_is_rejected_before_save(self):
+        """Draft persistence cannot introduce option ids outside the frozen snapshot."""
+        attempt = FakeDoc(
+            "ELMS Quiz Attempt",
+            name="ATTEMPT-INVALID",
+            quiz="QUIZ-1",
+            user="student@example.ru",
+            status="In Progress",
+            deadline_at=None,
+            snapshot_json=json.dumps([{
+                "name": "Q-1",
+                "question_type": "Single Choice",
+                "options": [{"id": "A", "text": "Да", "correct": True}],
+            }]),
+        )
+        with patch.object(frappe, "get_doc", return_value=attempt):
+            with self.assertRaises(frappe.ValidationError):
+                lms_api.save_quiz_progress("ATTEMPT-INVALID", json.dumps({"Q-1": ["WRONG"]}))
+
+    def test_learner_profile_denies_cross_user_without_source_read_permissions(self):
+        """Cross-user history is fail-closed and returns no partial profile."""
+        with patch.object(frappe.db, "exists", return_value=True), \
+             patch.object(frappe, "has_permission", return_value=False, create=True), \
+             patch.object(lms_api, "_record_user_activity"):
+            with self.assertRaises(frappe.PermissionError):
+                lms_api.get_learner_profile("other@example.ru")
+
+    def test_learner_profile_groups_courses_programs_and_activity_by_year(self):
+        """Self profile exposes the canonical LMS learning history projection."""
+        def get_value(doctype, name, field, **kwargs):
+            if doctype == "User":
+                return {"name": "student@example.ru", "full_name": "Иван Слушатель", "email": "student@example.ru"}
+            if doctype == "ELMS Batch":
+                return {"batch_name": "Поток 2026", "course": "COURSE-1"}
+            if doctype == "ELMS Course":
+                return "Охрана труда"
+            if doctype == "ELMS Course Progress":
+                return {"name": "CP-1", "progress_percentage": 50, "total_lessons": 4, "completed_lessons": 2, "total_time_spent_seconds": 900, "exam_eligible": 0, "completion_date": None}
+            if doctype == "ELMS Program":
+                return {"program_name": "Вводная программа", "program_code": "P-1"}
+            return None
+
+        def get_all(doctype, **kwargs):
+            if doctype == "ELMS Enrollment":
+                return [{"name": "ENR-1", "batch": "BATCH-1", "course": "COURSE-1", "program_enrollment": "PE-1", "enrollment_date": "2026-02-01", "status": "Active", "modified": "2026-02-01"}]
+            if doctype == "ELMS Program Enrollment":
+                return [{"name": "PE-1", "program": "PROGRAM-1", "enrollment_date": "2026-01-15", "status": "Active", "progress_percentage": 25, "total_courses": 2, "completed_courses": 0, "current_course": "COURSE-1", "modified": "2026-01-15"}]
+            if doctype == "ELMS User Activity":
+                return [{"name": "ACT-1", "activity_type": "Login", "reference_doctype": "User", "reference_name": "student@example.ru", "timestamp": "2026-02-02 10:00:00"}]
+            if doctype == "ELMS Quiz Attempt":
+                return []
+            return []
+
+        with patch.object(frappe.db, "exists", return_value=True), \
+             patch.object(frappe.db, "get_value", side_effect=get_value), \
+             patch.object(frappe, "get_all", side_effect=get_all):
+            result = lms_api.get_learner_profile()
+
+        self.assertEqual(result["user"]["full_name"], "Иван Слушатель")
+        self.assertEqual(result["summary"]["last_login_at"], "2026-02-02 10:00:00")
+        self.assertEqual(result["history_by_year"][0]["year"], 2026)
+        self.assertEqual(len(result["history_by_year"][0]["courses"]), 1)
+        self.assertEqual(len(result["history_by_year"][0]["programs"]), 1)
+        self.assertEqual(len(result["history_by_year"][0]["events"]), 1)
 
     def test_quiz_submission_is_graded_server_side(self):
         """A submitted attempt is closed and scored from its server snapshot."""

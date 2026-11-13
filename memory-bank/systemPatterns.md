@@ -18,9 +18,9 @@
 ## 3. Central Identity Broker Pattern (SSO & RBAC)
 
 - **Принцип:** Строгое разделение плоскости аутентификации/идентичности (Identity Plane) и плоскости авторизации/прав (Application Authorization Plane):
-  - **Keycloak (Identity Broker):** центральный брокер идентичности, управляющий жизненным циклом пользователей и федерацией внешних провайдеров. Внешний Identity Provider Yandex 360 регистрируется как brokered OIDC IdP внутри Keycloak с точкой терминации `/realms/elms/broker/yandex/endpoint`.
-  - **Frappe (Application Plane):** доверяет аутентификации Keycloak через единственный Social Login Key `Keycloak` с каноническим redirect `/api/method/frappe.integrations.oauth2_logins.login_via_keycloak`. Прямой Social Login Key Yandex или параллельные OAuth-модули в Frappe строго запрещены.
-  - **Конфигурация и секреты:** Frappe `site_config` содержит только `keycloak_login` (`client_id`, `client_secret`). Секреты внешнего IdP Yandex передаются только в контейнер Keycloak. Git tracking свободен от открытых секретов.
+  - **Keycloak (Identity Plane):** единственный IdP целевого контура (логин/пароль, invite). Frappe доверяет только Keycloak через Social Login Key `Keycloak` и `/api/method/frappe.integrations.oauth2_logins.login_via_keycloak`.
+  - **Целевое решение (2026-11-13):** Yandex как SSO IdP **снимается** с контура; as-built broker Yandex — legacy к purge (не расширять). Прямой Social Login Key Yandex в Frappe по-прежнему запрещён.
+  - **Конфигурация и секреты:** Frappe `site_config` содержит только `keycloak_login` (`client_id`, `client_secret`). Git tracking свободен от открытых секретов.
   - **Conf Gating:** Включение Social Login Key (`enable_social_login = 1`) происходит только при наличии действительных учетных данных в `site_config`.
   - **Just-in-Time (JIT) Provisioning:** Пользователи создаются в Frappe строго в момент первого успешного входа через Keycloak брокер (`first broker login`), сопоставляясь по неизменяемому `sub` и верифицированному email. Массовый импорт каталога запрещён.
   - **Fail-Closed Role Assignment Hook:** Хук `User.after_insert` (`elms.sso.roles.maybe_assign_sso_roles`) гарантированно присваивает новому SSO-пользователю роли `Desk User` и `ELMS Learner`. Если хотя бы одна из ролей отсутствует в базе данных, операция выбрасывает `frappe.throw`, откатывая транзакцию и предотвращая появление учетных записей без прав.
@@ -49,7 +49,16 @@
 - **Fail-Closed & No-Silent-Fallback:** Любой сбой создания роли или назначения прав генерирует исключение (`frappe.throw`), предотвращая запуск системы в полунастроенном состоянии. Использование `try/except: pass`, тихий возврат при отсутствии подключения к БД или пропуск при отсутствии DocType / Custom DocPerm запрещены и контролируются fail-closed исключениями.
 - **Сохранение платформенных ролей:** Системные роли Frappe (`Administrator`, `System Manager`) не блокируются и сохраняют административный доступ.
 
-## 6. Isolated External REST Integration Pattern (Bitrix24 REST Client)
+## 6. Closed External Integrations Boundary
+
+- **Канон:** [`memory-bank/architecture/integrations.md`](architecture/integrations.md).
+- **ELMS как операционный хаб:** внутренний учёт + документооборот + заявки + автоподачи в Минтруд и ФИС ФРДО; ручные швы as-is (в т.ч. Bitrix→Минтруд вручную) в целевой модели запрещены как штатный процесс.
+- **Внешний периметр:** Bitrix24 (переходный sync) · СДО «Прометей» (миграция/cutover) · Минтруд · Олимпокс · ФИС ФРДО.
+- **ОНАТО:** донор логики автоподачи в ФРДО; логика **копируется внутрь ELMS**; внешний ОНАТО не остаётся sole runtime после wire-complete.
+- **SoT:** ELMS владеет учётом, ДО, snapshots и статусами подач; внешние системы — приёмники/источники по контракту.
+- **DENY:** live dual-SoT с Прометеем; штатный ручной Bitrix→Минтруд; сдача ОТ в ФИС ФРДО; dual path «ELMS + внешний ОНАТО» после переноса; интеграция без wire+enforce.
+
+## 6a. Isolated External REST Integration Pattern (Bitrix24 REST Client)
 
 - **Single Dedicated Transport:** Единственная точка входа и транспортный модуль `scripts/bitrix/rest_client.py` (`post_json`, `WebhookEndpoint`, `CallArgs`, `RestEnvelope`, `BitrixRestError`), выполняющий валидацию конечных точек и вызовы JSON POST без дублирования HTTP-клиентов и внешних тяжелых зависимостей (стандартная библиотека `urllib.request` + Pydantic-границы).
 - **Credential Isolation & No Silent Fallback:** Строгое разделение прав доступа. Ключ доски задач (`BITRIX_WEBHOOK_URL`) и ключ REST API (`BITRIX_REST_WEBHOOK_URL`) изолированы. Отсутствие или пустое значение `BITRIX_REST_WEBHOOK_URL` приводит к немедленному выходу с кодом 2 без попытки использовать ключ доски или выполнять сетевые запросы (fail-closed, AC-3, BN-001, BN-002).
@@ -93,9 +102,9 @@
 - **Verified execution:** Wrapper под `deploy.lock` принимает только validated complete pair, matching Compose hash, fresh verified backup и exact Vault `PASS` evidence; затем выполняет fixed Compose config/pull/up `--wait`/health/internal-smoke sequence и атомарно records `current.json` только после успеха.
 - **Reversible pair state:** Forced health failure leaves the verified predecessor current; rollback consumes one predecessor manifest and restores the complete backend/frontend/application pair without deleting state volumes. Release, rollback and failure evidence/status expose only redacted status-level data. Real GHCR credentials, protected approval, SSH values and production execution remain operator gates.
 
-## 11. Observability Client (ship logs to central)
+## 11. Observability Host (logs stay local; center reads)
 
-- **Принцип:** ELMS — клиент внешнего центра мониторинга. Центр (Grafana/Loki/Prometheus) живёт в отдельном проекте/сервере; ELMS только подключается и отправляет логи.
-- **Контракт:** структурированный JSON в stdout → Vector или Grafana Alloy → центральный Loki.
-- **FORBIDDEN в ELMS SoT:** поднимать Loki/Grafana/Prometheus как локальное хранилище вместо центра.
-- **Канон:** `memory-bank/decisions/observability-stack.md` (принято 2026-11-01; агент ещё не as-built).
+- **Принцип:** ELMS хранит логи на своём хосте. Ops-машина из репо `observability` **читает** их по запросу (SSH/туннель); постоянно на центр логи **не** пушатся.
+- **Контракт:** структурированный JSON в stdout/stderr → docker json-file/journald с ротацией; опционально Dozzle только на `127.0.0.1`.
+- **FORBIDDEN в ELMS SoT:** Loki/Grafana/Prometheus; Vector/Alloy/Fluent Bit с remote sink; публичный UI логов.
+- **Канон:** `memory-bank/decisions/observability-stack.md` (пересмотр 2026-11-12; supersedes ship-to-central).

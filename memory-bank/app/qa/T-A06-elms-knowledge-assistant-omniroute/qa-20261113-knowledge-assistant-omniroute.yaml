@@ -1,0 +1,236 @@
+schema: app-qa/v1
+role: app
+task_id: T-A06-elms-knowledge-assistant-omniroute
+plan_id: T-A06-elms-knowledge-assistant-omniroute
+epic_id: T-A06-elms-knowledge-assistant-omniroute
+date: '2026-11-13'
+reviewer: APP QA
+verdict: pass
+checklist_sha256: bad9644930a8e7eece05a3b53be226160241ff6d0850fe9be2516a7ac8183668
+verify_scope: diff_aware
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/elms_core/doctype/elms_integration_settings/
+      - elms/elms/ai/omniroute.py
+      - elms/elms/ai/context.py
+      - elms/elms/ai/api.py
+      - elms/elms/desk/workspaces.py
+      - elms/elms/elms_core/workspace/settings/settings.json
+      - elms/elms/public/js/desk-learning.js
+      - elms/elms/public/css/desk-learning.css
+      - elms/elms/hooks.py
+      - elms/elms/tests/test_ai_assistant.py
+      - elms/elms/tests/test_learning_ui.py
+      - elms/elms/tests/test_workspaces.py
+  surfaces_required: [backend, frontend_build, browser, live_smoke, leftover_sot, behavior_smoke, wire_journey]
+  surfaces_optional: [exploratory]
+  surfaces_skipped:
+    - surface: exploratory
+      reason: "No seeded OmniRoute API key in Integration Settings; disabled fail-closed + LMS path covered."
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, auth, roles, external_integration, security, brownfield]
+  selected:
+    - id: contract_acceptance
+      name: Contract and acceptance criteria tests
+      evidence: "Integration Settings schema/RBAC, get_models/ask, assistant UI wire assertions"
+    - id: regression
+      name: Changed behavior and prior-defect regression tests
+      evidence: "full pytest 174 passed after session-pollution fix in AI tests"
+    - id: backend_unit_component
+      name: Backend unit and component tests
+      evidence: "test_ai_assistant.py — 13 passed within full suite"
+    - id: backend_integration_state
+      name: Backend integration and state tests
+      evidence: "bench migrate installs Single; live get settings + disabled ask"
+    - id: api_contract
+      name: API contract, schema, status, and error tests
+      evidence: "get_models/ask 417 disabled with correlation_id; LMS relationships 200"
+    - id: frontend_build_assets
+      name: Frontend build, type, lint, and asset delivery tests
+      evidence: "node --check desk-learning.js; CSS assistant panel selectors present"
+    - id: browser_functional
+      name: Browser functional user-flow tests
+      evidence: "Playwright assistant button/panel + disabled status"
+    - id: wire_journey
+      name: Real UI-to-API wire journey tests
+      evidence: "UI get_models 417; LMS admin/catalog/dashboard/relationships 200"
+    - id: live_http_smoke
+      name: Live HTTP smoke tests
+      evidence: "authenticated curl/API smoke for assistant + LMS"
+    - id: negative_error_paths
+      name: Negative, validation, denial, timeout, and recovery tests
+      evidence: "Learner deny, unknown model, disabled config, empty URL/key validate"
+    - id: auth_session_rbac
+      name: Authentication, session, authorization, and role tests
+      evidence: "chat roles allowlist; Methodologist not in Settings write perms"
+    - id: security_owasp
+      name: Security and OWASP spot-check tests
+      evidence: "Password field; key not returned on settings GET; no client-side key"
+    - id: accessibility
+      name: Accessibility and keyboard interaction tests
+      evidence: "assistant control is a labeled button in search controls"
+    - id: responsive_compatibility
+      name: Responsive, viewport, browser, and compatibility tests
+      evidence: "CSS grid adds assistant column; mobile rule collapses controls to 1fr"
+    - id: visual_states
+      name: Visual states, layout, styling, and asset-cascade tests
+      evidence: "assistant panel/error states present; screenshot saved"
+    - id: console_network
+      name: Browser console, network, and client-error tests
+      evidence: "captured elms.ai.api.get_models 417 and LMS APIs 200"
+    - id: observability
+      name: Logging, metrics, tracing, and failure-observability tests
+      evidence: "correlation_id on disabled/config errors"
+    - id: content_i18n
+      name: Content, localization, formatting, and empty-state tests
+      evidence: "RU labels Ассистент / Ассистент знаний; Base URL + API Key fields"
+    - id: external_integration
+      name: Real external integration and provider tests
+      evidence: "OpenAI-compatible client paths /models and /chat/completions; OmniRoute host up but key not configured — disabled path is the ship mode"
+    - id: cleanup_sot
+      name: Cleanup and single source-of-truth enforcement tests
+      evidence: "leftover_sot: no site_config dual-path, no FAB, no prod OmniRoute hard-dep"
+  not_applicable:
+    - id: data_persistence_migration
+      reason: "No Chat DocType; Single schema migrated once without historical data migration contract."
+    - id: async_jobs_workers_webhooks
+      reason: "Assistant path is synchronous whitelist HTTP."
+    - id: performance_resilience
+      reason: "No performance SLO in T-A06 appetite."
+    - id: exploratory
+      reason: "Optional; no live provider key configured for generative chat exploration."
+  not_run: []
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: "./bin/pytest -q --tb=line"
+    evidence: "174 passed, 9 skipped"
+    notes: "Includes test_ai_assistant + learning/workspaces regression"
+  - id: frontend_build
+    required: true
+    status: pass
+    command: "node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile elms/elms/ai/omniroute.py elms/elms/ai/context.py elms/elms/ai/api.py"
+    evidence: "all syntax checks EXIT:0"
+    notes: "Frappe Desk assets; no separate npm frontend bundle"
+  - id: browser
+    required: true
+    status: pass
+    command: "authenticated Playwright against http://elms.localhost:8082/app/elms-learning"
+    evidence: "assistant button/panel; disabled fail-closed UI; screenshot browser-artifacts/elms-assistant-qa-20261113.png"
+    notes: "generic scripts/run_browser_qa.py login harness remains SSO-scoped and was not used as T-A06 gate"
+  - id: live_smoke
+    required: true
+    status: pass
+    command: "authenticated Administrator API smoke for elms.ai.api.get_models/ask + elms.lms.api.get_learning_relationships + Integration Settings GET"
+    evidence: "AI 417 disabled+correlation_id; LMS 200; settings 200 without password echo"
+    notes: "scripts/live_smoke.sh still fails on unrelated Yandex login AC--1 (pre-existing)"
+  - id: leftover_sot
+    required: true
+    status: pass
+    command: "rg site_config/FAB/prod omniroute scans"
+    evidence: "no site_config dual-path in ai modules; no FAB entry; compose.prod.yaml has no OmniRoute hard-dep"
+    notes: ""
+  - id: behavior_smoke
+    required: true
+    status: pass
+    command: "enabled=0 ask HALT + LMS relationships still 200"
+    evidence: "live disabled path + browser panel error with correlation_id"
+    notes: ""
+  - id: wire_journey
+    required: true
+    status: pass
+    command: "Settings link + relationship-search assistant -> get_models"
+    evidence: "workspaces/Settings link present; Playwright captured get_models; LMS APIs 200"
+    notes: ""
+  - id: exploratory
+    required: false
+    status: skipped
+    command: ""
+    evidence: ""
+    notes: "No provider API key configured in Integration Settings"
+
+scope:
+  - "T-A06 knowledge assistant + Integration Settings OpenAI-compatible provider (URL + API key)"
+  - "OmniRoute is one compatible provider, not a hard product dependency"
+
+ac_plus:
+  - "Admin can open ELMS Integration Settings Single with Base URL + API Key fields"
+  - "Desk staff sees Ассистент in relationship-search controls and opens chat panel"
+  - "Disabled integration fails closed with correlation_id while LMS search keeps working"
+  - "No site_config dual-path and no floating FAB"
+ac_minus: []
+section_011: []
+
+coverage_map:
+  - id: FR-001
+    kind: FR
+    scenario: "Integration Settings Single + Settings workspace link"
+    evidence: "DocType migrated; workspaces + settings.json link"
+    status: pass
+  - id: FR-002
+    kind: FR
+    scenario: "OpenAI-compatible client from Settings SoT only"
+    evidence: "omniroute.py load_config/list_models/complete + unit tests"
+    status: pass
+  - id: FR-003
+    kind: FR
+    scenario: "Grounded context assembler"
+    evidence: "context pack includes DocTypes and whitelist methods"
+    status: pass
+  - id: FR-004
+    kind: FR
+    scenario: "get_models/ask RBAC and sources"
+    evidence: "unit + live disabled/config errors"
+    status: pass
+  - id: FR-005
+    kind: FR
+    scenario: "Assistant button and panel in relationship search"
+    evidence: "Playwright button/panel; UI contract tests"
+    status: pass
+  - id: FR-006
+    kind: FR
+    scenario: "Optional fail-closed; no prod hard-dep"
+    evidence: "live disabled path; compose.prod scan"
+    status: pass
+  - id: AC-wire
+    kind: AC
+    scenario: "Settings save path and chat wire"
+    evidence: "settings GET live; UI calls get_models"
+    status: pass
+
+review:
+  status: pass
+  scope: "T-A06 Integration Settings, OpenAI-compatible client, Desk assistant wire"
+  findings: []
+
+test_audit:
+  status: pass
+  checks:
+    - "assertions cover disabled fail-closed, RBAC, allowlist and UI wire"
+    - "no dual-path site_config fallback"
+    - "live evidence uses real Frappe HTTP, not ASGI mocks"
+  findings: []
+
+browser:
+  status: pass
+  evidence: "browser-artifacts/elms-assistant-qa-20261113.png"
+  notes: "Authenticated Desk journey for assistant entry and disabled state"
+
+retro:
+  status: pass
+  notes: "Provider-agnostic URL+key labels shipped; OmniRoute remains compatible default example."
+
+issues: []
+blockers: []

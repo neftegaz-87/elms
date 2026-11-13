@@ -10,7 +10,7 @@
 			if (window.elmsLearningPage) {
 				start();
 			} else {
-				frappe.require("/assets/elms/js/desk-learning.js?v=3", start);
+				frappe.require("/assets/elms/js/desk-learning.js", start);
 			}
 		};
 })();

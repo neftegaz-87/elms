@@ -1,7 +1,7 @@
 # Технический контекст
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-11-01 (observability stack decision); 2026-10-31 (T-B08 QA PASS & context sync; T-B07 QA PASS & context sync; T-B06 QA PASS & context sync; T-B05 QA PASS & context sync; T-A01 APP QA PASS; T-B04 QA PASS; T-B03 re-QA PASS & context sync)
+**Обновлено:** 2026-11-12 (observability: logs stay local / center reads); 2026-11-01 (observability stack decision); 2026-10-31 (T-B08 QA PASS & context sync; T-B07 QA PASS & context sync; T-B06 QA PASS & context sync; T-B05 QA PASS & context sync; T-A01 APP QA PASS; T-B04 QA PASS; T-B03 re-QA PASS & context sync)
 
 ## Стек
 
@@ -12,7 +12,7 @@
 - **Production boundary:** Vault/Vault Agent render gate, внутренние сети без host-портов, health/readiness, restart/security/resource policy и release image tag+digest проверяются до promotion. Production static secrets имеют единственный источник — KV v2 через authenticated Vault Agent render; local/env/dev fallback запрещён.
 - Keycloak 24 (+ Postgres `keycloak-db`) в compose topology
 - Desk UI (stock); SSO через единый Social Login Key + Keycloak broker (Yandex 360 OIDC IdP)
-- **Observability (клиент ELMS):** ELMS подключается к **внешнему** центральному серверу (**Grafana + Loki + Prometheus**, агент **Alloy/Vector**) и скидывает туда JSON-логи. Центр и его compose — отдельный проект; в ELMS SoT — только агент + контракт отправки. Канон: [`decisions/observability-stack.md`](decisions/observability-stack.md).
+- **Observability (хост ELMS):** логи остаются на машине ELMS (JSON stdout + ротация). Центр — отдельный sibling-репо `observability` (`~/PyProject/observability`): метрики/алерты с ops-машины, **чтение** логов по SSH/туннелю. Ship-to-central Loki / Vector remote sink — **FORBIDDEN**. Канон: [`decisions/observability-stack.md`](decisions/observability-stack.md).
 
 ## Frappe documentation (offline SoT for API/how-to)
 
@@ -151,7 +151,7 @@ elms/                    # repo root
 20. Vault static-secret boundary (`T-B06`): production использует pinned integrated-Raft Vault на private Compose-only listener и authenticated AppRole/Vault Agent render. KV v2 policy `elms-agent` read-only и ограничена заявленными backend/Keycloak paths; MariaDB и Keycloak DB получают password files, Frappe/Keycloak/review/Yandex runtime получают rendered files. Sealed, unavailable, unauthorized или incomplete render блокирует promotion non-zero; root-token runtime, direct credential interpolation, public `8200`, local fallback и secret-value diagnostics запрещены. OAuth/session state остаётся writable application-owned state вне read-only Vault boundary.
 21. Backup and disposable recovery boundary (`T-B07`): ELMS публикует полный non-secret state manifest для `sites`, logs, MariaDB, Keycloak PostgreSQL, Redis queue, Vault Raft и Caddy data/config; review-service application state остаётся во владении его repository и не дублируется. Backup выполняется client-side encrypted в off-host restic/S3-compatible repository, а promotion принимает только семантически verified evidence после backup и repository check с RPO 24h (возраст последнего успеха не более 24 часов). Недостаточная capacity блокирует upload/target creation до действия; автоматические prune/delete/volume removal запрещены. `restore-preflight` разрешает только явно отмеченный disposable target, отклоняет active volume/project, symlink и небезопасные/неотмеченные targets; redacted rehearsal contract покрывает RTO 4h для MariaDB, Keycloak PostgreSQL, Vault Raft и Caddy. External repository, credentials, custody, operations owner, target capacity и measured production RTO остаются operator gates.
 22. Immutable CI release and pair rollback boundary (`T-B08`): contract/Compose/policy/secret, Frappe/app и browser gates завершаются до GHCR build/push; commit-SHA image refs и captured digests проходят non-secret manifest validation с Compose hash, smoke status и rollback verification. Protected production handoff требует GitHub Environment approval, explicit non-development target/root/wrapper и known-host-pinned SSH. Единственный state-changing wrapper под lock выполняет fixed digest-pinned Compose config/pull/up/health/internal-smoke sequence после semantic backup/Vault evidence; `current.json` записывается атомарно только после успеха. Forced health failure сохраняет predecessor, rollback применяет полный backend/frontend/application pair и не удаляет state volumes; status/evidence redacted. Реальный GHCR, SSH, protected approval и production deploy/rollback остаются operator gates.
-23. Observability client boundary (2026-11-01, decision-only): ELMS не владеет центром; обязан писать JSON-логи и через Vector/Alloy пушить на центральный Loki выбранного стека (Grafana + Loki + Prometheus). Loki/Grafana как SoT внутри ELMS compose запрещены. Детали: `memory-bank/decisions/observability-stack.md`.
+23. Observability host-local logs (2026-11-12, supersedes 2026-11-01 ship-to-central): ELMS пишет JSON в stdout с ротацией; центр (`observability`) читает логи по запросу и держит только health/metrics/alerts. Loki/Grafana/Prometheus и remote log ship в ELMS compose запрещены. Детали: `memory-bank/decisions/observability-stack.md`. Эпик выравнивания: `T-B11-elms-host-local-logs-read-contract`.
 
 ## Board actors (Bitrix)
 
@@ -213,6 +213,8 @@ elms/                    # repo root
    - Формат файла: `ОГРН-КПП-год-номер.xlsx`, до 3000 строк на пакет, валидация СНИЛС по алгоритму СФР, код ОКСМ.
    - Подписание пакета УКЭП оператора (КриптоАРМ / ViPNet PKI Client).
    - Неизменяемые снимки документов (`snapshot`) при выдаче; дубликаты отдельными связанными записями.
+   - Автоподача в ФИС ФРДО — **логика ОНАТО внутри ELMS** (порт; внешний ОНАТО не sole runtime) — [`architecture/integrations.md`](architecture/integrations.md).
+2a. **Операционный контур ELMS:** единый учёт + ДО + заявки + автоподачи (Минтруд, ФРДО); устранение ручных стыков Прометей/Bitrix/Минтруд. Периметр: Bitrix24 · Прометей (миграция) · Минтруд · Олимпокс · ФИС ФРДО · ОНАТО как донор логики — [`architecture/integrations.md`](architecture/integrations.md).
 3. **Охрана труда (ПП РФ № 2464):** [`memory-bank/compliance/ot-exam-attempts.md`](compliance/ot-exam-attempts.md)
    - Разграничение тренировочных тестов (самопроверка, без ограничений) и официальных проверок знаний (1 попытка на назначение, протокол комиссии).
    - 9 обязательных полей протокола (п. 92); состав комиссии не менее 3 человек.

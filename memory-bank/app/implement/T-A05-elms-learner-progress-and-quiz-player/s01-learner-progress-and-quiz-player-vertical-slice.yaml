@@ -1,0 +1,83 @@
+schema: epic-implement/v1
+role: app
+step_id: s01
+plan_id: T-A05-elms-learner-progress-and-quiz-player
+task_id: T-A05-elms-learner-progress-and-quiz-player
+title: s01 — Learner progress inspector and resumable quiz vertical slice IMPLEMENT
+level: L2
+status: in_progress
+date: 2026-11-12
+decompose_ref: memory-bank/app/plan/T-A05-elms-learner-progress-and-quiz-player/yaml/steps/s01-learner-progress-and-quiz-player-vertical-slice.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+files:
+  - elms/elms/lms/api.py
+  - elms/elms/lms/doctype/elms_quiz_attempt/elms_quiz_attempt.json
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/css/desk-learning.css
+  - elms/elms/tests/test_lms_core.py
+  - elms/elms/tests/test_learning_ui.py
+
+deletes: []
+
+done:
+  - "Safe quiz option validation rejects empty/duplicate ids; public payload omits correct keys."
+  - "Active quiz attempts resume idempotently; draft answers, counters, score/status and last-save timestamp persist."
+  - "Dashboard and get_learner_profile project course/program/activity history, last activity/login and calendar years with DocPerm-gated cross-user access."
+  - "Quiz player renders all supported option controls, restores saved answers, saves drafts, shows answered/total and safe result/error states."
+  - "Management relationship results expose clickable learners that open get_learner_profile history by year."
+
+wire_complete:
+  call_sites:
+    - "get_lesson_quiz -> start_quiz/resume -> sanitized option cards"
+    - "player save -> save_quiz_progress -> ELMS Quiz Attempt draft counters"
+    - "player submit -> submit_quiz -> server score/status -> course progress refresh"
+    - "management learner search -> get_learner_profile -> profile/history by year"
+  enforce_path: elms/elms/lms/api.py
+  dual_path_rg: rg -n "start_quiz|save_quiz_progress|submit_quiz|get_learner_profile|get_learner_dashboard" elms/elms/lms/api.py elms/elms/public/js/desk-learning.js
+  instruction_rg: rg -n "correct|answer_key|history_by_year|learner profile|data-action=\"learner" elms/elms/lms/api.py elms/elms/public/js/desk-learning.js
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'quiz or attempt or option or learner_profile or history or activity'"
+  - "./bin/pytest -q elms/elms/tests/test_learning_ui.py -k 'learning or quiz or progress or profile'"
+  - "node --check elms/elms/public/js/desk-learning.js"
+  - "python3 -m py_compile elms/elms/lms/api.py"
+  - "rg -n 'save_quiz_progress|get_learner_profile|answered_questions|history_by_year|Продолжить тест|Введено' elms/elms/lms/api.py elms/elms/public/js/desk-learning.js elms/elms/public/css/desk-learning.css"
+
+integration_check:
+  - "Published quiz lessons return sanitized option cards; one active attempt is resumed and draft answers/counters survive a later start."
+  - "Learner dashboard and permission-aware profile aggregate course/program progress, activity, last login and history_by_year from canonical LMS records."
+  - "Management learner results call get_learner_profile through the real desk page; denial and backend failures render visible error states."
+
+checkpoints:
+  - id: cp1
+    criterion: "Quiz options are validated and draft answers/counters persist across resume without duplicate attempts."
+    status: done
+    evidence: "./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'quiz or attempt or option' => 6 passed; draft/resume/invalid-option assertions are green."
+    verify: "./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'quiz or attempt or option'"
+  - id: cp2
+    criterion: "Learner profile/history aggregates canonical LMS sources by year and enforces self/target permissions."
+    status: done
+    evidence: "./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'learner_profile or history or isolation or activity' => 4 passed; self history and denied cross-user checks are green."
+    verify: "./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'learner_profile or history or isolation or activity'"
+  - id: cp3
+    criterion: "Player renders options, save/resume/counters/results and management opens profile/history through real API call-sites."
+    status: done
+    evidence: "./bin/pytest -q elms/elms/tests/test_learning_ui.py -k 'learning or quiz or progress or profile' => 18 passed."
+    verify: "./bin/pytest -q elms/elms/tests/test_learning_ui.py -k 'learning or quiz or progress or profile'"
+  - id: cp4
+    criterion: "Production JS/Python parse and wire/legacy scans prove the mixed boundary has no final-only or UI-only path."
+    status: done
+    evidence: "node --check and python3 -m py_compile exit 0; wire scan contains save_quiz_progress/get_learner_profile/answered_questions/history_by_year and no active-attempt rejection."
+    verify: "node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile elms/elms/lms/api.py"
+
+resume_from: cp1

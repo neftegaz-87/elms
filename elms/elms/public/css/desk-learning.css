@@ -318,7 +318,8 @@
 }
 
 .elms-quiz-intro,
-.elms-quiz-question {
+.elms-quiz-question,
+.elms-quiz-result {
 	background: var(--elms-surface);
 	border: 1px solid var(--elms-line);
 	border-radius: var(--elms-radius-sm);
@@ -357,6 +358,94 @@
 .elms-quiz-meta {
 	color: var(--elms-muted);
 	margin-bottom: 14px;
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.elms-quiz-actions,
+.elms-profile-head,
+.elms-profile-summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.elms-quiz-actions {
+	margin-top: 16px;
+	flex-wrap: wrap;
+}
+
+.elms-error-state {
+	margin-top: 12px;
+	padding: 12px;
+	border: 1px solid #e0a8a8;
+	border-radius: var(--elms-radius-sm);
+	background: #fff4f4;
+	color: #8f2525;
+}
+
+.elms-learner-profile {
+	margin-bottom: 20px;
+	padding: 20px;
+	background: var(--elms-surface);
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-md);
+}
+
+.elms-profile-head h3 {
+	margin: 4px 0;
+}
+
+.elms-profile-head p {
+	margin: 0;
+	color: var(--elms-muted);
+}
+
+.elms-profile-summary {
+	justify-content: flex-start;
+	margin: 18px 0;
+	flex-wrap: wrap;
+}
+
+.elms-profile-summary span {
+	padding: 8px 12px;
+	background: var(--elms-action-soft);
+	border-radius: var(--elms-radius-sm);
+}
+
+.elms-history-years {
+	display: grid;
+	gap: 12px;
+}
+
+.elms-history-year {
+	padding: 14px;
+	border: 1px solid var(--elms-line);
+	border-radius: var(--elms-radius-sm);
+}
+
+.elms-history-year h4 {
+	margin: 0 0 10px;
+}
+
+.elms-history-columns {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.elms-history-columns ul {
+	margin: 6px 0 0;
+	padding-left: 18px;
+	color: var(--elms-muted);
+}
+
+.elms-progress-quiz {
+	margin-top: 6px;
+	font-size: 12px;
+	color: var(--elms-muted);
 }
 
 .elms-course-header {
@@ -1240,6 +1329,13 @@
 }
 
 @media (max-width: 640px) {
+	.elms-learning-tabs {
+		flex-wrap: wrap;
+	}
+	.elms-tab-btn {
+		flex: 1 1 auto;
+		padding-inline: 10px;
+	}
 	.elms-relationship-search-controls,
 	.elms-relationship-columns {
 		grid-template-columns: 1fr;

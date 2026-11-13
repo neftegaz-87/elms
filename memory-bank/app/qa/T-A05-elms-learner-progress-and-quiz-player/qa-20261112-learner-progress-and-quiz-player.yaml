@@ -1,0 +1,299 @@
+schema: app-qa/v1
+role: app
+task_id: T-A05-elms-learner-progress-and-quiz-player
+plan_id: T-A05-elms-learner-progress-and-quiz-player
+epic_id: T-A05-elms-learner-progress-and-quiz-player
+date: '2026-11-12'
+reviewer: APP QA
+verdict: pass
+checklist_sha256: fda6866497ae6755d1ee610294d319d0a0f09d782b0ec415e3cc0663790c0b85
+verify_scope: diff_aware
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/lms/api.py
+      - elms/elms/install.py
+      - elms/elms/lms/doctype/elms_quiz_attempt/elms_quiz_attempt.json
+      - elms/elms/public/js/desk-learning.js
+      - elms/elms/public/css/desk-learning.css
+      - elms/elms/tests/test_lms_core.py
+      - elms/elms/tests/test_learning_ui.py
+  surfaces_required: [backend, frontend_build, browser, live_smoke]
+  surfaces_optional: [wire_journey, exploratory]
+  surfaces_skipped:
+    - surface: wire_journey
+      reason: "Targeted authenticated browser run covered the dashboard/profile API wire; no seeded quiz enrollment exists for a full answer-save journey."
+    - surface: exploratory
+      reason: "No seeded learner/course/quiz data is available on the dev site."
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, auth, roles, data, migration, security, observability]
+  selected:
+    - id: contract_acceptance
+      name: Contract and acceptance criteria tests
+      evidence: "targeted quiz/profile/UI suites and authenticated route checks"
+    - id: regression
+      name: Changed behavior and prior-defect regression tests
+      evidence: "quiz/profile regressions plus original answered_questions SQL failure reproduced before migration and absent after migration"
+    - id: backend_unit_component
+      name: Backend unit and component tests
+      evidence: "test_lms_core.py — 9 passed"
+    - id: backend_integration_state
+      name: Backend integration and state tests
+      evidence: "bench execute dashboard/profile and live authenticated API responses"
+    - id: api_contract
+      name: API contract, schema, status, and error tests
+      evidence: "dashboard/profile HTTP 200 for Administrator; Guest dashboard remains denied"
+    - id: data_persistence_migration
+      name: Data persistence, migration, idempotency, and rollback tests
+      evidence: "bench --site elms.localhost migrate — EXIT:0 twice; four attempt columns present"
+    - id: negative_error_paths
+      name: Negative, validation, denial, timeout, and recovery tests
+      evidence: "access-model denial tests pass; invalid quiz option and guest isolation covered by targeted suite"
+    - id: auth_session_rbac
+      name: Authentication, session, authorization, and role tests
+      evidence: "authenticated browser/API session and access-model tests — 4 passed, 3 skipped"
+    - id: security_owasp
+      name: Security and OWASP spot-check tests
+      evidence: "safe quiz payload/permission-gated learner profile assertions"
+    - id: frontend_build_assets
+      name: Frontend build, type, lint, and asset delivery tests
+      evidence: "node --check, python3 -m py_compile, and live learning assets loaded"
+    - id: browser_functional
+      name: Browser functional user-flow tests
+      evidence: "authenticated Playwright route smoke: learning route 200, dashboard API 200, no error state"
+    - id: wire_journey
+      name: Real UI-to-API wire journey tests
+      evidence: "Playwright captured get_learner_dashboard/get_learning_admin_data/get_course_catalog/get_learning_relationships/get_program_catalog all 200"
+    - id: live_http_smoke
+      name: Live HTTP smoke tests
+      evidence: "authenticated HTTP dashboard/profile requests returned 200"
+    - id: accessibility
+      name: Accessibility and keyboard interaction tests
+      evidence: "Playwright role/name assertions found the course and progress tab controls"
+    - id: responsive_compatibility
+      name: Responsive, viewport, browser, and compatibility tests
+      evidence: "Playwright 375px viewport smoke — no horizontal overflow after tab wrapping fix"
+    - id: visual_states
+      name: Visual states, layout, styling, and asset-cascade tests
+      evidence: "learning route rendered without error state"
+    - id: console_network
+      name: Browser console, network, and client-error tests
+      evidence: "all captured learning API responses were HTTP 200; unrelated socket.io Unauthorized remains"
+    - id: observability
+      name: Logging, metrics, tracing, and failure-observability tests
+      evidence: "server error path no longer emits answered_questions SQL exception after migration"
+    - id: content_i18n
+      name: Content, localization, formatting, and empty-state tests
+      evidence: "empty dashboard rendered for Administrator without error"
+  not_applicable:
+    - id: external_integration
+      reason: "Learner progress and quiz persistence do not call an external provider."
+    - id: async_jobs_workers_webhooks
+      reason: "The tested progress and quiz paths are synchronous."
+    - id: performance_resilience
+      reason: "No performance SLO is defined for this vertical slice."
+    - id: cleanup_sot
+      reason: "No legacy owner or sunset path is changed by T-A05."
+    - id: exploratory
+      reason: "Optional lane deferred because the dev site has no seeded learner/course/quiz dataset."
+  not_run: []
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: "./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'quiz or attempt or option or learner_profile or history or activity' && ./bin/pytest -q elms/elms/tests/test_learning_ui.py -k 'learning or quiz or progress or profile'"
+    evidence: "9 backend contract tests passed; 18 UI contract tests passed"
+    notes: "access-model regression: 4 passed, 3 skipped"
+  - id: frontend_build
+    required: true
+    status: pass
+    command: "node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile elms/elms/install.py elms/elms/lms/api.py"
+    evidence: "all syntax checks exited 0"
+    notes: "Frappe app has no separate npm frontend bundle"
+  - id: browser
+    required: true
+    status: pass
+    command: "authenticated Playwright smoke against http://elms.localhost:8082/app/elms-learning"
+    evidence: "route 200; learning API calls 200; dashboard/progress panes present; no .elms-error-state"
+    notes: "generic login-only harness has unrelated pre-existing heading/Keycloak-host assertions"
+  - id: live_smoke
+    required: true
+    status: pass
+    command: "authenticated curl smoke for get_learner_dashboard and get_learner_profile"
+    evidence: "both endpoints returned HTTP 200; original answered_questions SQL error absent"
+    notes: "generic SSO live_smoke remains outside T-A05 and reports existing Yandex markup assertion"
+  - id: leftover_sot
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: "No sunset/deletion contract in T-A05"
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: "No agent dispatcher changed"
+  - id: wire_journey
+    required: false
+    status: pass
+    command: "authenticated Playwright response capture"
+    evidence: "all five learning API calls returned 200"
+    notes: "No seeded quiz enrollment for answer-save journey"
+  - id: exploratory
+    required: false
+    status: skipped
+    command: ""
+    evidence: ""
+    notes: "No seeded learner/course/quiz dataset"
+
+scope:
+  - "T-A05 learner progress inspector and resumable quiz vertical slice"
+  - "Migration hook repair for existing empty User Group rows required to complete schema migration"
+
+ac_plus:
+  - "Quiz attempt schema migrates and dashboard/profile no longer fail on answered_questions SELECT"
+  - "Authenticated learning route loads dashboard and progress panes through real API calls"
+  - "Learner profile endpoint returns current courses, programs, activity and yearly history shape"
+  - "Quiz answer/options, resume, counters and permission tests remain green"
+ac_minus: []
+section_011: []
+
+coverage_map:
+  - id: AC-001
+    kind: AC
+    scenario: "Existing site migrates quiz attempt fields and reruns idempotently"
+    evidence: "bench migrate EXIT:0 twice; answered_questions/total_questions/progress_percentage/last_saved_at present"
+    status: pass
+  - id: AC-002
+    kind: AC
+    scenario: "Learner dashboard loads from the real learning route"
+    evidence: "authenticated Playwright route and API response capture"
+    status: pass
+  - id: AC-003
+    kind: AC
+    scenario: "Learner profile returns history and permission-aware data"
+    evidence: "HTTP get_learner_profile Administrator response 200; access-model denial tests pass"
+    status: pass
+  - id: AC-004
+    kind: AC
+    scenario: "Quiz options and progress counters are safe and resumable"
+    evidence: "test_lms_core.py quiz/attempt/option tests — 6 passed within targeted suite"
+    status: pass
+  - id: AC-005
+    kind: AC
+    scenario: "The authenticated learning route renders course and progress panes through the real API"
+    evidence: "Playwright route 200; all learning API calls 200; no learning error state"
+    status: pass
+  - id: AC-006
+    kind: AC
+    scenario: "Learning tabs remain within the viewport on a 375px screen"
+    evidence: "Playwright mobile smoke reports mobile_horizontal_overflow=False"
+    status: pass
+  - id: AC-007
+    kind: AC
+    scenario: "Cross-user profile denial and safe quiz payload behavior remain enforced"
+    evidence: "test_access_model.py and targeted quiz option/permission tests pass"
+    status: pass
+  - id: AC--001
+    kind: negative
+    scenario: "Authenticated dashboard/profile path does not emit the original answered_questions SQL error"
+    evidence: "HTTP dashboard/profile 200 after migration; live schema contains all four fields"
+    status: pass
+  - id: BN-001
+    kind: boundary
+    scenario: "Live route uses migrated schema rather than a UI-only fallback"
+    evidence: "bench migrate EXIT:0 and MariaDB SHOW COLUMNS output in runtime evidence"
+    status: pass
+  - id: BN-002
+    kind: boundary
+    scenario: "Unrelated login/SSO findings stay separated from the learner-progress verdict"
+    evidence: "issues section records generic login harness findings without T-A05 blockers"
+    status: pass
+  - id: PB-001
+    kind: prior_blocker
+    scenario: "Prior answered_questions SELECT blocker is closed"
+    evidence: "original route error absent after schema migration"
+    status: pass
+  - id: PB-002
+    kind: prior_blocker
+    scenario: "Migration hook completes with pre-existing empty User Group rows"
+    evidence: "ignore_mandatory guard and repeated bench migrate EXIT:0"
+    status: pass
+
+review:
+  status: pass
+  scope: "T-A05 API, quiz attempt schema, learning UI, live migration and authenticated route"
+  findings: []
+
+test_audit:
+  status: pass
+  checks:
+    - "assertions exercise response content and state, not only status/build"
+    - "no global API mocking hides the production wire"
+    - "negative permission and guest paths remain covered"
+    - "migration is verified against the live MariaDB schema"
+  findings: []
+
+browser:
+  status: pass
+  stack_profile: hub-default
+  evidence_file: "memory-bank/app/qa/T-A05-elms-learner-progress-and-quiz-player/evidence-20261112-runtime.md"
+  last_run_at: "2026-11-12T18:50:00+03:00"
+  journeys:
+    - "login session -> /app/elms-learning -> dashboard/profile API wire"
+  artifacts: []
+
+retro:
+  status: done
+  defect_missed: "Migration hook used save() on empty mandatory User Group child tables; live route caught it after schema migration."
+  redundant_gate: "none"
+  flaky_test: "none"
+  next_cycle_change: "Seed a learner/course/quiz fixture for full browser answer-save/resume acceptance."
+
+sunset_inventory_scan:
+  status: n/a
+  scanned_at: ""
+  rows: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: n/a
+  rows: []
+
+checks:
+  - "schema migration completes successfully"
+  - "original answered_questions SQL exception is absent from authenticated dashboard/profile calls"
+  - "targeted backend, UI, syntax and authenticated browser checks pass"
+  - "generic login/SSO smoke has unrelated pre-existing failures and is not used as T-A05 verdict"
+
+issues:
+  - "Generic login browser smoke still expects ELMS СДО heading but live heading is Вход на сайт elms."
+  - "Generic login browser smoke expects 127.0.0.1:8480 while live Keycloak link uses elms-keycloak.localhost:8480."
+  - "Generic live_smoke rejects existing Yandex markup on the login page."
+  - "Browser console reports an unrelated socket.io Unauthorized/Not Found error outside the learning API calls."
+blockers: []
+fix_plan:
+  - "Handle login/SSO smoke findings in the owning login UI/SSO task, outside T-A05."
+limitations:
+  - "No seeded learner/course/quiz records on the dev site; full browser answer-save/resume was covered by contract tests, not live data."
+
+live_smoke:
+  status: pass
+  command: "authenticated curl smoke for dashboard/profile"
+  evidence_file: "memory-bank/app/qa/T-A05-elms-learner-progress-and-quiz-player/evidence-20261112-runtime.md"
+  last_run_at: "2026-11-12T18:49:15+03:00"
+  base_url: "http://elms.localhost:8082"
+  level: feature
+  notes: "Generic SSO smoke is intentionally tracked as an unrelated limitation."

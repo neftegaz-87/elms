@@ -5,8 +5,11 @@
  "engine": "InnoDB",
  "field_order": [
   "course_progress",
+  "user",
+  "course_name",
   "lesson_id",
   "lesson",
+  "lesson_name",
   "is_completed",
   "time_spent_seconds",
   "last_heartbeat_at"
@@ -15,24 +18,52 @@
   {
    "fieldname": "course_progress",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "in_list_view": 0,
+   "in_standard_filter": 1,
    "label": "Course Progress",
    "options": "ELMS Course Progress",
    "reqd": 1
   },
   {
-   "fieldname": "lesson_id",
+   "fetch_from": "course_progress.user",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Learner",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "course_progress.course_name",
+   "fieldname": "course_name",
    "fieldtype": "Data",
    "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Course Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "lesson_id",
+   "fieldtype": "Data",
+   "in_list_view": 0,
    "label": "Lesson Identifier",
    "reqd": 1
   },
   {
    "fieldname": "lesson",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "in_list_view": 0,
    "label": "Course Lesson",
    "options": "ELMS Course Lesson"
+  },
+  {
+   "fetch_from": "lesson.lesson_name",
+   "fieldname": "lesson_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Lesson Name",
+   "read_only": 1
   },
   {
    "default": 0,
@@ -55,7 +86,7 @@
   }
  ],
  "links": [],
- "modified": "2026-11-05 12:00:00.000000",
+ "modified": "2026-11-13 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "LMS",
  "name": "ELMS Lesson Progress",
@@ -92,5 +123,8 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "search_fields": "course_progress, user, course_name, lesson, lesson_id, lesson_name",
+ "show_title_field_in_link": 1,
+ "title_field": "lesson_name",
  "states": []
 }

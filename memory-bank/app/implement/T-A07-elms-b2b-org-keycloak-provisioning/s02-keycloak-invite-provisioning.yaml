@@ -1,0 +1,72 @@
+schema: epic-implement/v1
+role: app
+step_id: s02
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+task_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: s02 — Typed Keycloak Admin client and idempotent invite provisioning IMPLEMENT
+level: L2
+status: completed
+date: 2026-11-13
+decompose_ref: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/yaml/steps/s02-keycloak-invite-provisioning.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+files:
+  - elms/elms/access/keycloak.py
+  - elms/elms/access/api.py
+  - elms/elms/elms_core/doctype/elms_invite_log/__init__.py
+  - elms/elms/elms_core/doctype/elms_invite_log/elms_invite_log.json
+  - elms/elms/elms_core/doctype/elms_invite_log/elms_invite_log.py
+  - elms/elms/hooks.py
+  - elms/elms/tests/test_access_invite.py
+  - elms/elms/tests/test_keycloak_admin.py
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s02-keycloak-invite-provisioning.yaml
+
+deletes: []
+
+done:
+  - "Typed server-only Keycloak Admin client handles token, user upsert and UPDATE_PASSWORD action email with bounded requests."
+  - "invite_org_user checks caller/org membership and reports success only after Keycloak provisioning succeeds."
+  - "Re-invite is idempotent by email; provider failures raise KeycloakProvisionError and compensate local state."
+  - "Invite audit records contain organization/status/actor but never a password or client secret."
+
+wire_complete:
+  call_sites:
+    - "Company Admin invite form -> invite_org_user -> Frappe User + Keycloak user"
+    - "Keycloak user -> execute-actions-email UPDATE_PASSWORD -> invite result"
+  enforce_path: elms/elms/access/api.py
+  dual_path_rg: rg -n "invite_org_user|KeycloakAdmin|UPDATE_PASSWORD" elms/elms/access elms/elms/hooks.py
+  instruction_rg: rg -n "password.*return|client_secret.*log|Frappe.*only" elms/elms/access elms/elms/tests
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_keycloak_admin.py"
+  - "python3 -m py_compile elms/elms/access/keycloak.py elms/elms/access/api.py"
+  - "rg -n 'invite_org_user|UPDATE_PASSWORD|KeycloakProvisionError|client_secret|password' elms/elms/access elms/elms/tests/test_access_invite.py"
+
+integration_check:
+  - "Invite success requires both durable Frappe state and a Keycloak user/action-email response."
+  - "Provider configuration is server-only and missing credentials fail closed."
+  - "Audit payload is secret-safe and can support re-invite/recovery operations."
+
+checkpoints:
+  - id: cp1
+    criterion: Keycloak Admin client obtains token and handles status/timeout without secret leakage.
+    status: done
+    evidence: "Targeted Keycloak Admin API contract => 3 tests passed, including token, user upsert and execute-actions URL contract."
+    verify: "./bin/pytest -q elms/elms/tests/test_keycloak_admin.py"
+  - id: cp2
+    criterion: Invite is idempotent, sends password action and compensates on provider failure.
+    status: done
+    evidence: "Targeted invite contract => 2 tests passed, covering Keycloak-backed result without password and local compensation on provider failure."
+    verify: "./bin/pytest -q elms/elms/tests/test_access_invite.py"
+
+resume_from: cp2
+verification_results:
+  - "./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_keycloak_admin.py => PASS (5 passed)"
+  - "python3 -m py_compile elms/elms/access/keycloak.py elms/elms/access/api.py => PASS"
+  - "rg -n 'invite_org_user|UPDATE_PASSWORD|KeycloakProvisionError|client_secret|password' elms/elms/access elms/elms/tests/test_access_invite.py => PASS"

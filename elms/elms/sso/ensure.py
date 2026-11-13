@@ -15,7 +15,6 @@ from elms.sso.constants import (
     KEYCLOAK_DEFAULT_REDIRECT_URL,
     KEYCLOAK_LOGIN_CONF_KEY,
     KEYCLOAK_PROVIDER_NAME,
-    YANDEX_IDP_ALIAS,
 )
 
 
@@ -87,11 +86,8 @@ def _get_conf_keycloak_credentials() -> dict[str, Any] | None:
 
 
 def _purge_forbidden_direct_idp_providers() -> None:
-    """Ensure no direct external IdP (such as Yandex) Social Login Key exists.
-
-    Yandex belongs strictly inside Keycloak as an OIDC broker (FR-004, SC-001).
-    """
-    forbidden_aliases = [YANDEX_IDP_ALIAS, YANDEX_IDP_ALIAS.capitalize()]
+    """Ensure no legacy external IdP Social Login Key remains in Frappe."""
+    forbidden_aliases = ["Yandex", "yandex"]
     for alias in forbidden_aliases:
         if hasattr(frappe, "db") and frappe.db and hasattr(frappe.db, "exists"):
             if frappe.db.exists("Social Login Key", alias):
@@ -117,7 +113,7 @@ def ensure_social_login_keys(
     """Idempotently configure exactly one Social Login Key for Keycloak.
 
     - Exposes only Keycloak to Frappe login (FR-003, FR-010, US-001).
-    - Removes any direct Yandex Social Login Key if present (SC-001).
+    - Removes any legacy direct external Social Login Key if present (SC-001).
     - Uses exact canonical Frappe redirect URL: login_via_keycloak (AC-2).
     - Gates enable_social_login strictly on credentials presence in frappe.conf (SC-002, BN-001).
     - Sets user_id_property to 'sub' for immutable subject identity.

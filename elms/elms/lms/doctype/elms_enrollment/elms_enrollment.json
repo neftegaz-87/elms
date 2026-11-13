@@ -7,6 +7,7 @@
   "user",
   "batch",
   "course",
+  "course_name",
   "program_enrollment",
   "subscription",
   "enrollment_date",
@@ -32,10 +33,18 @@
   {
    "fieldname": "course",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "in_list_view": 0,
    "in_standard_filter": 1,
    "label": "Course",
    "options": "ELMS Course"
+  },
+  {
+   "fetch_from": "course.course_name",
+   "fieldname": "course_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Course Name",
+   "read_only": 1
   },
   {
    "fieldname": "program_enrollment",
@@ -105,5 +114,8 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "search_fields": "user, batch, course, program_enrollment, subscription, status",
+ "show_title_field_in_link": 1,
+ "title_field": "course_name",
  "states": []
 }

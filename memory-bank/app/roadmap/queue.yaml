@@ -1,6 +1,31 @@
 version: roadmap-queue/v2
 role: app
-queue: []
+queue:
+- id: T-A07
+  epic_id: T-A07-elms-b2b-org-keycloak-provisioning
+  kind: feature
+  plan: plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md
+  batch: elms-b2b-access
+  deps:
+  - T-B02
+  - T-B03
+  - T-A01
+- id: T-A08
+  epic_id: T-A08-elms-application-forms-bitrix-status
+  kind: feature
+  plan: plan/T-A08-elms-application-forms-bitrix-status/md/plan.md
+  batch: elms-b2b-access
+  deps:
+  - T-A07
+  - T-B04
+- id: T-A09
+  epic_id: T-A09-elms-company-admin-cabinet
+  kind: feature
+  plan: plan/T-A09-elms-company-admin-cabinet/md/plan.md
+  batch: elms-b2b-access
+  deps:
+  - T-A07
+  - T-A05
 done:
 - id: T-A01
   epic_id: T-A01-elms-keycloak-login-ui
@@ -18,6 +43,21 @@ done:
   deps:
   - T-B02
   - T-F01
+- id: T-A05
+  epic_id: T-A05-elms-learner-progress-and-quiz-player
+  kind: feature
+  plan: plan/T-A05-elms-learner-progress-and-quiz-player/md/plan.md
+  batch: elms-learner-progress
+  deps:
+  - T-A02
+- id: T-A06
+  epic_id: T-A06-elms-knowledge-assistant-omniroute
+  kind: feature
+  plan: plan/T-A06-elms-knowledge-assistant-omniroute/md/plan.md
+  batch: elms-knowledge-assistant
+  deps:
+  - T-A02
+  - T-A03
 batches:
   elms-auth-surface:
     title: ELMS Keycloak login surface and brokered SSO journey
@@ -29,3 +69,17 @@ batches:
       (Subscription), зачисления (Enrollment), прогресс курса и уроков (Progress),
       трекинг активности (Activity, Video Log), обновление навигации Workspace LMS
       в Desk и стыковка с требованиями РФ (ФИС ФРДО, ПП 2464, 152-ФЗ).
+  elms-learner-progress:
+    title: Прогресс слушателя и прохождение тестов в LMS
+    note: >-
+      Один mixed APP-срез: варианты ответа и возобновляемые quiz attempts для
+      слушателя плюс role/DocPerm-controlled просмотр прогресса и истории выбранного
+      слушателя по программам, курсам, урокам, действиям и календарным годам.
+  elms-knowledge-assistant:
+    title: Ассистент знаний ELMS и настройки интеграций
+    note: Отдельное окно ELMS Integration Settings (Base URL + API Key для любого
+      OpenAI-compatible провайдера, включая OmniRoute), grounded Desk-чат у поиска по
+      связям, optional/fail-closed без RAG и без hard-dep в prod.
+  elms-b2b-access:
+    title: B2B доступ, заявки и кабинет администратора компании
+    note: Keycloak/org provisioning, Bitrix application status and company admin cabinet.

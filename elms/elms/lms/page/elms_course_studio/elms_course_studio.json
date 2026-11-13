@@ -4,6 +4,7 @@
  "name": "elms-course-studio",
  "page_name": "elms-course-studio",
  "roles": [
+  {"role": "System Manager"},
   {"role": "ELMS Admin"},
   {"role": "ELMS Operations User"},
   {"role": "ELMS Methodologist"}

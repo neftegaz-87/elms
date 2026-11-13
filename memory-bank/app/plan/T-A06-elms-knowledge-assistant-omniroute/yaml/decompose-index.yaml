@@ -1,0 +1,110 @@
+schema: epic-decompose-index/v1
+plan_id: T-A06-elms-knowledge-assistant-omniroute
+level: L2
+sNN_cap: 1
+appetite:
+  timebox_days: 3
+  cut_list:
+  - RAG / embeddings / vector DB
+  - Learner tutoring / generative course content
+  - Floating FAB assistant
+  - Chat DocType / server prompt archive
+  - OmniRoute hard-dep in compose.prod.yaml
+  - OpenAPI export as primary deliverable
+  - LangGraph / agent framework
+effort_probe:
+  outcomes:
+  - outcome: Integration Settings Form + grounded Desk assistant via OmniRoute
+    hours_mid: 12.0
+    hours_range: 10-16
+    confidence: medium
+    notes: Single DocType, OmniRoute client, context pack, whitelist API, desk-learning
+      panel, Workspace link, targeted tests and wire evidence
+  total_hours: 12.0
+  effort_hours_total: 12.0
+  effort_class: M
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 1
+  sNN_target: 1
+steps:
+- id: s01
+  file: s01-knowledge-assistant-vertical-slice.yaml
+  title: Knowledge assistant and Integration Settings vertical slice
+  next_phase: APP QA
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Single ELMS Integration Settings Form and Settings Workspace link
+- id: FR-002
+  step: s01
+  description: Server-only OmniRoute client from Integration Settings SoT
+- id: FR-003
+  step: s01
+  description: Context assembler from DocType JSON + whitelist + REST cheat sheet
+- id: FR-004
+  step: s01
+  description: Whitelist get_models and ask with RBAC and grounded sources
+- id: FR-005
+  step: s01
+  description: Assistant button in relationship-search controls and chat panel
+- id: FR-006
+  step: s01
+  description: Optional fail-closed when disabled or misconfigured; LMS unaffected
+- id: US-001
+  step: s01
+  description: Admin saves Integration Settings Form
+- id: US-002
+  step: s01
+  description: Desk staff opens assistant from relationship search
+- id: US-003
+  step: s01
+  description: Model picker from live OmniRoute allowlist
+- id: US-004
+  step: s01
+  description: Grounded answer with sources
+- id: US-005
+  step: s01
+  description: Disabled integration fail-closed while LMS works
+- id: US-006
+  step: s01
+  description: sessionStorage history without Chat DocType
+- id: AC-wire
+  step: s01
+  description: Settings save to chat sources wire journey
+- id: NFR-timeout
+  step: s01
+  description: Explicit OmniRoute timeouts and correlation ids on AI errors
+- id: NFR-secret
+  step: s01
+  description: Password key not returned to non-admin clients; not logged
+- id: NFR-airgap
+  step: s01
+  description: enabled=0 is valid delivery mode without LLM
+stages_coverage:
+- stage: Stage s01 knowledge-assistant-vertical-slice
+  step: s01
+outcome_map:
+- outcome: Integration Settings Form + grounded Desk assistant via OmniRoute
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Missing Integration Settings window and ad-hoc site_config OmniRoute ideas
+    target: Sole ELMS Integration Settings Single + relationship-search assistant
+    step: s01
+    policy: replace in-epic
+  items:
+  - symbol: site_config OmniRoute dual-path config
+    kind: C
+    replacement: ELMS Integration Settings Single only
+    step: s01
+    policy: replace in-epic
+  - symbol: Floating FAB / global navbar assistant entry
+    kind: B
+    replacement: Button in .elms-relationship-search-controls
+    step: s01
+    policy: deny in-epic
+  sunset:
+  - Manual site_config-only OmniRoute configuration as product path
+  - Floating FAB assistant as product entry

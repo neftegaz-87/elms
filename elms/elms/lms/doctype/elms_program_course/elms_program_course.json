@@ -26,5 +26,8 @@
  ],
  "sort_field": "sequence_id",
  "sort_order": "ASC",
+ "search_fields": "program, course, sequence_id",
+ "show_title_field_in_link": 1,
+ "title_field": "course",
  "states": []
 }

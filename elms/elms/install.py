@@ -10,6 +10,7 @@ ELMS_LEARNER_ROLE: str = "ELMS Learner"
 LEGACY_LEARNER_ROLE: str = "ELMS " + "LMS User"  # legacy migration only; never use for new access assignments
 ELMS_INSTRUCTOR_ROLE: str = "ELMS Instructor"
 ELMS_METHODOLOGIST_ROLE: str = "ELMS Methodologist"
+ELMS_COMPANY_ADMIN_ROLE: str = "ELMS Company Admin"
 
 ELMS_ROLES: tuple[str, ...] = (
     ELMS_ADMIN_ROLE,
@@ -17,6 +18,7 @@ ELMS_ROLES: tuple[str, ...] = (
     ELMS_LEARNER_ROLE,
     ELMS_INSTRUCTOR_ROLE,
     ELMS_METHODOLOGIST_ROLE,
+    ELMS_COMPANY_ADMIN_ROLE,
 )
 
 ELMS_OPERATIONS_SECTION_DOCTYPE: str = "ELMS Operations Section"
@@ -24,6 +26,15 @@ ELMS_REVIEW_SECTION_DOCTYPE: str = "ELMS Review Section"
 ELMS_LMS_SECTION_DOCTYPE: str = "ELMS LMS Section"
 ELMS_SETTINGS_SECTION_DOCTYPE: str = "ELMS Settings Section"
 DESK_PAGE_DOCTYPE: str = "Page"
+
+DEFAULT_COURSE_CATEGORIES: tuple[str, ...] = (
+    "Охрана труда (ПП РФ № 2464)",
+    "Промышленная безопасность (Ростехнадзор)",
+    "Повышение квалификации (ДПО)",
+    "Профессиональная переподготовка",
+    "Корпоративный курс",
+    "Электробезопасность",
+)
 
 SECTION_DOCTYPES: tuple[str, ...] = (
     ELMS_OPERATIONS_SECTION_DOCTYPE,
@@ -73,15 +84,14 @@ def update_website_context(context: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {"favicon": icon_url}
     if context.get("for_test") == "login.html":
         result["app_name"] = "elms"
-        providers = context.get("provider_logins") or []
-        yandex_icon = '<img src="/assets/elms/images/yandex.svg" alt="Яндекс" class="yandex-btn-icon mr-2">'
-        for p in providers:
-            if p.get("name") == "keycloak":
-                p["provider_name"] = "Яндекс"
-                p["icon"] = yandex_icon
-                if "kc_idp_hint=" not in p.get("auth_url", ""):
-                    sep = "&" if "?" in p.get("auth_url", "") else "?"
-                    p["auth_url"] = f"{p['auth_url']}{sep}kc_idp_hint=yandex"
+        # Sole login path is the email/password form → Keycloak ROPC via login-keycloak.js.
+        # Social Login Key stays enabled for callback/linking; the OAuth button is not shown.
+        context["provider_logins"] = []
+        context["social_login"] = False
+        context["login_with_email_link"] = 0
+        result["provider_logins"] = []
+        result["social_login"] = False
+        result["login_with_email_link"] = 0
     return result
 
 
@@ -133,6 +143,7 @@ ROLE_PROFILES: dict[str, tuple[str, ...]] = {
     "ELMS Methodologist Profile": ("Desk User", ELMS_METHODOLOGIST_ROLE),
     "ELMS Operations Profile": ("Desk User", ELMS_OPERATIONS_USER_ROLE),
     "ELMS Admin Profile": ("Desk User", ELMS_ADMIN_ROLE),
+    "ELMS Company Admin Profile": ("Desk User", ELMS_COMPANY_ADMIN_ROLE),
 }
 
 GROUP_POLICIES: dict[str, tuple[str, str]] = {
@@ -165,6 +176,115 @@ def ensure_role_profiles() -> None:
             doc.insert()
         else:
             doc.save()
+
+
+def ensure_course_categories() -> None:
+    """Seed editable course categories and preserve values from existing courses."""
+    if not frappe.db.exists("DocType", "ELMS Course Category"):
+        frappe.throw("Required DocType 'ELMS Course Category' not found for ensure_course_categories.")
+
+    category_names = set(DEFAULT_COURSE_CATEGORIES)
+    for row in frappe.get_all("ELMS Course", fields=["category"], limit_page_length=5000):
+        value = str(row.get("category") or "").strip()
+        if value:
+            category_names.add(value)
+
+    for category_name in sorted(category_names):
+        if frappe.db.exists("ELMS Course Category", category_name):
+            continue
+        category = frappe.new_doc("ELMS Course Category")
+        category.category_name = category_name
+        category.is_active = 1
+        category.flags.ignore_permissions = True
+        category.insert()
+
+
+def backfill_lms_display_links() -> None:
+	"""Fill human-readable link targets on legacy progress and enrollment rows."""
+	if frappe.db.exists("DocType", "ELMS Enrollment") and frappe.db.exists("DocType", "ELMS Course"):
+		for row in frappe.get_all("ELMS Enrollment", fields=["name", "course", "course_name"], limit_page_length=0):
+			if not row.get("course"):
+				continue
+			course_name = frappe.db.get_value("ELMS Course", row.get("course"), "course_name")
+			if course_name and row.get("course_name") != course_name:
+				frappe.db.set_value("ELMS Enrollment", row.get("name"), "course_name", course_name, update_modified=False)
+			if frappe.db.exists("DocType", "ELMS Course Progress"):
+				for progress in frappe.get_all("ELMS Course Progress", filters={"enrollment": row.get("name")}, fields=["name", "course_name"], limit_page_length=0):
+					if course_name and progress.get("course_name") != course_name:
+						frappe.db.set_value("ELMS Course Progress", progress.get("name"), "course_name", course_name, update_modified=False)
+
+	if frappe.db.exists("DocType", "ELMS Lesson Progress") and frappe.db.exists("DocType", "ELMS Course Lesson"):
+		lesson_fields = ["name", "lesson_id", "lesson", "lesson_name", "course_progress"]
+		if frappe.db.has_column("ELMS Lesson Progress", "user"):
+			lesson_fields.append("user")
+		if frappe.db.has_column("ELMS Lesson Progress", "course_name"):
+			lesson_fields.append("course_name")
+		for row in frappe.get_all("ELMS Lesson Progress", fields=lesson_fields, limit_page_length=0):
+			lesson_id = row.get("lesson_id")
+			if lesson_id and frappe.db.exists("ELMS Course Lesson", lesson_id):
+				if not row.get("lesson"):
+					frappe.db.set_value("ELMS Lesson Progress", row.get("name"), "lesson", lesson_id, update_modified=False)
+				lesson_name = frappe.db.get_value("ELMS Course Lesson", lesson_id, "lesson_name")
+				if lesson_name and row.get("lesson_name") != lesson_name:
+					frappe.db.set_value("ELMS Lesson Progress", row.get("name"), "lesson_name", lesson_name, update_modified=False)
+			course_progress = row.get("course_progress")
+			if course_progress and frappe.db.exists("ELMS Course Progress", course_progress):
+				cp = frappe.db.get_value(
+					"ELMS Course Progress",
+					course_progress,
+					["user", "course_name"],
+					as_dict=True,
+				)
+				if cp:
+					if (
+						frappe.db.has_column("ELMS Lesson Progress", "user")
+						and cp.get("user")
+						and row.get("user") != cp.get("user")
+					):
+						frappe.db.set_value(
+							"ELMS Lesson Progress",
+							row.get("name"),
+							"user",
+							cp.get("user"),
+							update_modified=False,
+						)
+					if (
+						frappe.db.has_column("ELMS Lesson Progress", "course_name")
+						and cp.get("course_name")
+						and row.get("course_name") != cp.get("course_name")
+					):
+						frappe.db.set_value(
+							"ELMS Lesson Progress",
+							row.get("name"),
+							"course_name",
+							cp.get("course_name"),
+							update_modified=False,
+						)
+
+
+def ensure_user_link_titles() -> None:
+	"""Show User.full_name in LMS Link controls instead of email IDs."""
+	if not frappe.db.exists("DocType", "User"):
+		return
+	if frappe.db.exists(
+		"Property Setter",
+		{
+			"doc_type": "User",
+			"doctype_or_field": "DocType",
+			"property": "show_title_field_in_link",
+		},
+	):
+		return
+	from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+
+	make_property_setter(
+		"User",
+		None,
+		"show_title_field_in_link",
+		1,
+		"Check",
+		for_doctype=True,
+	)
 
 
 def migrate_exact_role_profile_users() -> None:
@@ -237,6 +357,7 @@ def ensure_user_groups() -> None:
         for row in legacy.user_group_members:
             if row.user not in current_members:
                 learner.append("user_group_members", {"user": row.user})
+        learner.flags.ignore_mandatory = True
         learner.flags.ignore_permissions = True
         learner.save()
         frappe.delete_doc("User Group", legacy_group, force=True, ignore_permissions=True)
@@ -244,6 +365,7 @@ def ensure_user_groups() -> None:
         if frappe.db.exists("User Group", group_name):
             group = frappe.get_doc("User Group", group_name)
             group.update({"elms_group_purpose": purpose, "elms_access_rule": limitation})
+            group.flags.ignore_mandatory = True
             group.flags.ignore_permissions = True
             group.save()
             continue
@@ -540,6 +662,9 @@ def after_migrate() -> None:
     ensure_desk_page_read_perm()
     ensure_access_model_perms()
     ensure_role_profiles()
+    ensure_course_categories()
+    backfill_lms_display_links()
+    ensure_user_link_titles()
     migrate_exact_role_profile_users()
     ensure_user_groups()
     ensure_permission_manager_access()
@@ -564,6 +689,9 @@ def after_install() -> None:
     ensure_desk_page_read_perm()
     ensure_access_model_perms()
     ensure_role_profiles()
+    ensure_course_categories()
+    backfill_lms_display_links()
+    ensure_user_link_titles()
     migrate_exact_role_profile_users()
     ensure_user_groups()
     ensure_permission_manager_access()

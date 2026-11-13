@@ -11,7 +11,7 @@ verification:
     bench --site elms.localhost execute elms.lms.api.get_learning_relationships --kwargs
     '{"search":"Демо-поток 2026 · Стропальные работы"}'
   evidence_file: memory-bank/app/bugfix/T-A04-elms-course-studio/runtime-verification-20261109T181045Z.json
-  last_run_at: '2026-11-09T18:10:45Z'
+  last_run_at: '2026-11-09T22:05:00+03:00'
   evidence: 47 passed; JS/Python syntax passed; live relationship query returned one
     course group with program, batch, subscription, enrollments, chapters, lessons,
     nested outline and quiz; authenticated browser acceptance passed for Course Studio
@@ -19,7 +19,7 @@ verification:
 items:
 - id: BF-001
   status: done
-  done_at: '2026-11-09T18:10:45Z'
+  done_at: '2026-11-09T22:05:00+03:00'
   class: leftover
   title: Converge the live LMS workspace and block stale direct child authoring routes
   root_cause: Installed Workspace LMS was stale and still exposed ELMS Course Chapter/Lesson
@@ -49,7 +49,7 @@ items:
     legacy route guard added
 - id: BF-002
   status: done
-  done_at: '2026-11-09T18:10:45Z'
+  done_at: '2026-11-09T22:05:00+03:00'
   class: ac_gap
   title: Add relationship-aware global LMS management search
   root_cause: get_learning_admin_data returns independent arrays and the UI renders
@@ -79,8 +79,9 @@ items:
   - multiple program memberships render under one course root
   - Course/Chapter/Lesson/Quiz links resolve by title and ID
   evidence_result: live query returned one grouped course root with nested chapter/lesson
-    outline; browser search showed two temporary program memberships and the final demo
-    data remains clean; search_link returned human-readable Course and Lesson titles
+    outline; browser search showed two temporary program memberships and the final
+    demo data remains clean; search_link returned human-readable Course and Lesson
+    titles
 - id: BF-003
   status: cancelled
   done_at: 2026-11-09 21:00:50+03:00

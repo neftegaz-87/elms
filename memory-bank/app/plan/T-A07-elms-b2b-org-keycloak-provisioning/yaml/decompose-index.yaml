@@ -1,0 +1,187 @@
+schema: epic-decompose-index/v1
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+level: L2
+sNN_cap: 4
+appetite:
+  timebox_days: 5
+  cut_list:
+  - T-A08 application forms and Bitrix status synchronization
+  - T-A09 company progress cabinet and reporting
+  - Subscription quota enforcement on invite
+  - customer-owned IdP and magic-link authentication
+effort_probe:
+  outcomes:
+  - outcome: Organization, membership, Company Admin role and User Permission isolation
+    hours_mid: 8.0
+    hours_range: 6-12
+    confidence: medium
+    notes: New access DocTypes, role/profile seed, permission helpers and backend
+      tests
+  - outcome: Idempotent ELMS to Keycloak invite and execute-actions delivery
+    hours_mid: 12.0
+    hours_range: 8-16
+    confidence: medium
+    notes: Typed Admin API client, compensating failure behavior, audit and contract
+      tests
+  - outcome: Keycloak-only migration and Yandex sunset
+    hours_mid: 8.0
+    hours_range: 6-12
+    confidence: medium
+    notes: Realm replacement, legacy-user migration, login and smoke contract updates
+  - outcome: Desk organization/invite journey and end-to-end acceptance evidence
+    hours_mid: 10.0
+    hours_range: 8-14
+    confidence: medium
+    notes: Real Frappe calls, role-aware UI, wire/browser/live checks and QA artifact
+  total_hours: 38.0
+  effort_hours_total: 38.0
+  effort_class: XL
+  independent_outcomes: 4
+  split_seams: 3
+  sNN_cap: 4
+  sNN_target: 4
+split_rationale: 'Four independently verifiable outcomes have separate acceptance
+  boundaries: organization scope, provider-backed invite, identity sunset/migration,
+  and the real Desk-to-Keycloak wire journey. The final wire step consumes the stable
+  backend contracts and is not a backend-only placeholder.'
+steps:
+- id: s01
+  file: s01-organization-role-and-scope.yaml
+  title: Organization, Company Admin role and organization scope
+  next_phase: APP IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-keycloak-invite-provisioning.yaml
+  title: Typed Keycloak Admin client and idempotent invite provisioning
+  next_phase: APP IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-keycloak-only-yandex-sunset-and-migration.yaml
+  title: Keycloak-only realm, Yandex sunset and legacy-user migration
+  next_phase: APP IMPLEMENT
+  status: pending
+- id: s04
+  file: s04-desk-invite-wire-and-acceptance.yaml
+  title: Desk organization/invite UI and mixed wire acceptance
+  next_phase: APP IMPLEMENT
+  status: pending
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: ELMS Organization schema, membership and User Permission isolation
+- id: FR-002
+  step: s01
+  description: ELMS Company Admin role/profile and restricted permissions
+- id: FR-003
+  step: s02
+  description: Atomic/idempotent invite from ELMS to Keycloak with execute-actions
+    email
+- id: FR-004
+  step: s02
+  description: Typed server-only Keycloak Admin API configuration and errors
+- id: FR-005
+  step: s03
+  description: Remove Yandex IdP and migrate linked users to local required-password
+    flow
+- id: FR-006
+  step: s03
+  description: Preserve Keycloak callback/JIT identity reconciliation and explicit
+    roles
+- id: NFR-001
+  step: s02
+  description: Invite path is bounded and does not include email latency in unit contract
+- id: NFR-002
+  step: s02
+  description: Typed external errors and secret-safe diagnostics
+- id: NFR-003
+  step: s02
+  description: Invite and membership audit trail is durable and secret-safe
+- id: NFR-004
+  step: s01
+  description: Minimal personal data and no password persistence/logging
+- id: US-001
+  step: s01
+  description: Admin creates Organization and assigns Company Admin
+- id: US-002
+  step: s02
+  description: Company Admin invites a user in the same organization
+- id: US-003
+  step: s02
+  description: Invitee receives Keycloak password setup and can enter ELMS
+- id: US-004
+  step: s01
+  description: Company Admin cannot access or invite outside own organization
+- id: US-005
+  step: s03
+  description: Login and realm contain no Yandex entry point
+- id: US-006
+  step: s03
+  description: Existing Yandex-linked users receive local credential migration
+- id: AC-001
+  step: s01
+  description: Organization membership creates/updates matching User Permission
+- id: AC-002
+  step: s02
+  description: Keycloak failure never reports a Frappe-only invite success
+- id: AC-003
+  step: s02
+  description: Re-invite is idempotent and never returns a password
+- id: AC-004
+  step: s03
+  description: Realm seed and runtime migration are Keycloak-only
+- id: AC-005
+  step: s04
+  description: Real Desk journey reaches organization and invite API with role-aware
+    states
+- id: AC-006
+  step: s04
+  description: Invite-to-password-to-login wire journey has acceptance evidence
+stages_coverage:
+- stage: Stage s01 organization-role-and-scope
+  step: s01
+- stage: Stage s02 keycloak-invite-provisioning
+  step: s02
+- stage: Stage s03 keycloak-only-yandex-sunset-and-migration
+  step: s03
+- stage: Stage s04 desk-invite-wire-and-acceptance
+  step: s04
+outcome_map:
+- outcome: Organization, membership, Company Admin role and User Permission isolation
+  step: s01
+- outcome: Idempotent ELMS to Keycloak invite and execute-actions delivery
+  step: s02
+- outcome: Keycloak-only migration and Yandex sunset
+  step: s03
+- outcome: Desk organization/invite journey and end-to-end acceptance evidence
+  step: s04
+replacement_cleanup:
+  s01:
+    replaces: Batch.organization free-text ownership and role-only B2B access
+    target: ELMS Organization membership with User Permission scope
+    step: s01
+    policy: replace-in-epic
+  s02:
+    replaces: JIT-only identity creation with manual Keycloak account setup
+    target: ELMS-owned typed invite provisioning
+    step: s02
+    policy: replace-in-epic
+  s03:
+    replaces: Keycloak broker Yandex happy path and Yandex-dependent login copy
+    target: Keycloak-only local credential path with migration
+    step: s03
+    policy: replace-in-epic
+  items:
+  - symbol: Frappe User without a matching Keycloak account after invite
+    kind: A
+    replacement: Compensating disable/rollback and typed KeycloakProvisionError
+    step: s02
+    policy: replace-in-epic
+  - symbol: Yandex identity provider alias and mappers in realm seed
+    kind: C
+    replacement: Realm with no Yandex IdP plus migration command/runbook
+    step: s03
+    policy: replace-in-epic
+  sunset:
+  - Invite success that means only a local Frappe User exists
+  - Company Admin scope based on UI filtering without User Permission
+  - Yandex broker happy-path requirement for ELMS login

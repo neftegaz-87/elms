@@ -14,6 +14,15 @@
 | Technical context | [`techContext.md`](../techContext.md) |
 | System patterns | [`systemPatterns.md`](../systemPatterns.md) |
 | Workflow state | [`activeContext.md`](../activeContext.md) |
+| Внешние интеграции (канон) | [`integrations.md`](integrations.md) |
+
+## Внешние интеграции и операционный контур (кратко)
+
+**ELMS** — единый внутренний учёт, документооборот, заявки и автоподачи в госреестры. Ручные стыки as-is (Прометей ↔ Bitrix ↔ Минтруд, Bitrix→Минтруд вручную, подача ФРДО сбоку) в целевой модели **автоматизируются внутри ELMS**.
+
+Внешний периметр: Bitrix24 (переходный sync), СДО «Прометей» (миграция), Минтруд, Олимпокс, ФИС ФРДО. **ОНАТО** — донор логики автоподачи в ФИС ФРДО; логика **переносится в ELMS**, внешний ОНАТО не остаётся sole runtime.
+
+Детали, as-is→to-be, DENY — [`integrations.md`](integrations.md).
 
 Правило: explanatory process docs остаются в `docs/process/`, а фактические
 решения и stateful artifacts — в `memory-bank/`. Здесь не создаётся второй

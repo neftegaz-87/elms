@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["user", "organization", "role_profile", "is_primary"],
+ "fields": [
+  {"fieldname": "user", "fieldtype": "Link", "in_list_view": 1, "label": "User", "options": "User", "reqd": 1},
+  {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
+  {"fieldname": "role_profile", "fieldtype": "Data", "label": "Role Profile"},
+  {"default": 1, "fieldname": "is_primary", "fieldtype": "Check", "label": "Primary Organization"}
+ ],
+ "links": [],
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Organization Member",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 0, "delete": 0, "read": 1, "role": "ELMS Company Admin", "write": 0},
+  {"create": 0, "delete": 0, "read": 0, "role": "ELMS Learner", "write": 0},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

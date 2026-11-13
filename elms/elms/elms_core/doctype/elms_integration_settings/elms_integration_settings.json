@@ -1,0 +1,86 @@
+{
+ "actions": [],
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "provider_section",
+  "omniroute_base_url",
+  "omniroute_api_key",
+  "default_model",
+  "provider_help"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "description": "When disabled, get_models/ask fail closed and LMS continues without LLM.",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "provider_section",
+   "fieldtype": "Section Break",
+   "label": "OpenAI-compatible provider"
+  },
+  {
+   "description": "Base URL ending with /v1. From Docker backend use http://host.docker.internal:20128/v1 (not localhost). OmniRoute / OpenAI-compatible gateway.",
+   "fieldname": "omniroute_base_url",
+   "fieldtype": "Data",
+   "label": "Base URL"
+  },
+  {
+   "description": "API key for the provider. Never sent to non-admin clients.",
+   "fieldname": "omniroute_api_key",
+   "fieldtype": "Password",
+   "label": "API Key"
+  },
+  {
+   "default": "cx/gpt-5.6-luna-high",
+   "description": "Used when the chat panel does not pick another model from the live /models list.",
+   "fieldname": "default_model",
+   "fieldtype": "Data",
+   "label": "Default Model"
+  },
+  {
+   "fieldname": "provider_help",
+   "fieldtype": "HTML",
+   "label": "Help",
+   "options": "<p>Платформенный помощник ELMS (DocType/API). В Docker backend Base URL = <code>http://host.docker.internal:20128/v1</code>, не localhost. Ключ — OpenAI-compatible provider. Доступ к чату — роли Admin/Operations/Methodologist/Instructor; запись Settings — Admin/System Manager.</p>"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Integration Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "ELMS Admin",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "Administrator",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

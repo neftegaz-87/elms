@@ -1,0 +1,135 @@
+schema: epic-decompose/v1
+role: app
+step_id: s02
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: Typed Keycloak Admin client and idempotent invite provisioning
+level: L2
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: no
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Замкнуть invite: Company Admin или Admin валидирует org scope, создаёт или
+  обновляет Frappe User и Keycloak user, отправляет UPDATE_PASSWORD и сообщает
+  успех только после успешного Keycloak provision; ошибки typed и fail-closed.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004]
+  us_ids: [US-002, US-003]
+  ac_ids: [AC-002, AC-003]
+  nfr_ids: [NFR-001, NFR-002, NFR-004]
+  nouns:
+  - Keycloak Admin client
+  - invite_org_user
+  - KeycloakProvisionError
+  - execute-actions-email UPDATE_PASSWORD
+  - ELMS Invite Log
+  layout_paths:
+  - elms/elms/access/keycloak.py
+  - elms/elms/access/api.py
+  - elms/elms/elms_core/doctype/elms_invite_log/
+  - elms/elms/tests/test_access_invite.py
+  - elms/elms/tests/test_keycloak_admin.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:147-185
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:187-220
+  ac_quotes:
+  - "AC-002: Invite success is reported only after both durable Frappe state and Keycloak provisioning succeed."
+  - "AC-003: Re-invite is idempotent, sends `UPDATE_PASSWORD`, and never returns a password."
+  api:
+    invite_org_user:
+      method: elms.access.api.invite_org_user
+      input: email, first_name, last_name, organization, optional role_profile
+      output: user, organization, keycloak_id, invited, status
+      errors: PermissionError, ValidationError, KeycloakProvisionError
+    client:
+      endpoints: POST /admin/realms/{realm}/users, PUT user/{id}, PUT execute-actions-email
+      config: KEYCLOAK_ADMIN_BASE_URL, KEYCLOAK_ADMIN_REALM, KEYCLOAK_ADMIN_CLIENT_ID, KEYCLOAK_ADMIN_CLIENT_SECRET
+  roles:
+    callers: ELMS Admin, ELMS Company Admin with membership
+    denied: Guest, ELMS Learner, Company Admin outside organization
+  persistence: >-
+    Frappe User and Invite Log are durable; no password is stored or returned.
+    Provision failures use explicit compensation (disable/delete local user) and
+    raise a typed error.
+  done: >-
+    Mocked Admin API contract covers create/update/idempotency, auth/timeout/error
+    paths, execute-actions and compensation; real API call sites use the same client.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md
+    reason: invite atomicity, NFR and API contract
+  - path: elms/elms/access/api.py
+    reason: s01 organization scope and role boundary
+  - path: elms/elms/sso/login.py
+    reason: existing Keycloak HTTP/error patterns
+  - path: elms/elms/techContext.py
+    reason: Keycloak runtime configuration (if present)
+  produces:
+  - path: elms/elms/access/keycloak.py
+    reason: typed server-only Admin API client
+  - path: elms/elms/access/api.py
+    reason: invite whitelist and compensation
+  - path: elms/elms/elms_core/doctype/elms_invite_log/
+    reason: audit trail
+  - path: elms/elms/tests/test_access_invite.py
+    reason: invite contract and failure tests
+  - path: elms/elms/tests/test_keycloak_admin.py
+    reason: client HTTP contract tests
+  plan_refs: [FR-003, FR-004, NFR-001, NFR-002, NFR-003, NFR-004, US-002, US-003, AC-002, AC-003]
+
+as_built:
+- elms/elms/sso/login.py — existing Keycloak client authenticates users but no Admin API provision client exists.
+- elms/elms/install.py — Frappe User reconciliation is callback/JIT-oriented, not invite-oriented.
+
+delta:
+- Add typed Keycloak Admin API client with token, user create/update and execute-actions calls.
+- Add invite whitelist, audit log, idempotency and explicit compensation on provider failure.
+
+files:
+  - elms/elms/access/keycloak.py
+  - elms/elms/access/api.py
+  - elms/elms/elms_core/doctype/elms_invite_log/__init__.py
+  - elms/elms/elms_core/doctype/elms_invite_log/elms_invite_log.json
+  - elms/elms/elms_core/doctype/elms_invite_log/elms_invite_log.py
+  - elms/elms/hooks.py
+  - elms/elms/tests/test_access_invite.py
+  - elms/elms/tests/test_keycloak_admin.py
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s02-keycloak-invite-provisioning.yaml
+deletes: []
+out_of_scope:
+  - Password storage in Frappe
+  - Bitrix-triggered automatic invite
+skills:
+    code_surface: backend
+    impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+tdd:
+  - Add failing client and whitelist tests for auth, timeout, idempotency, action email and compensation.
+  - Implement typed client, invite log and server-side invite operation.
+  - Verify secret redaction and no password in response or logs.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_keycloak_admin.py
+  - python3 -m py_compile elms/elms/access/keycloak.py elms/elms/access/api.py
+  - rg -n 'invite_org_user|UPDATE_PASSWORD|KeycloakProvisionError|client_secret|password' elms/elms/access elms/elms/tests/test_access_invite.py
+checkpoints:
+  - id: cp1
+    criterion: Keycloak Admin client obtains token and handles status/timeout without secret leakage.
+    verify: ./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_keycloak_admin.py
+  - id: cp2
+    criterion: Invite is idempotent, sends password action and compensates on provider failure.
+    verify: ./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_keycloak_admin.py
+wire_complete:
+  call_sites:
+  - "Company Admin invite form -> invite_org_user -> Frappe User + Keycloak user"
+  - "Keycloak user -> execute-actions-email UPDATE_PASSWORD -> invite result"
+  enforce_path: elms/elms/access/api.py
+  dual_path_rg: 'rg -n "invite_org_user|KeycloakAdmin|UPDATE_PASSWORD" elms/elms/access elms/elms/hooks.py'
+  instruction_rg: 'rg -n "password.*return|client_secret.*log|Frappe.*only" elms/elms/access elms/elms/tests'
+  deny_old_proven: true

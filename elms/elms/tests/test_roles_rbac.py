@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import frappe
 from elms.install import (
+    ELMS_COMPANY_ADMIN_ROLE,
     ELMS_ADMIN_ROLE,
     ELMS_OPERATIONS_SECTION_DOCTYPE,
     ELMS_OPERATIONS_USER_ROLE,
@@ -101,9 +102,10 @@ class TestRolesRBACSeed(unittest.TestCase):
         self.assertEqual(ELMS_ADMIN_ROLE, "ELMS Admin")
         self.assertEqual(ELMS_OPERATIONS_USER_ROLE, "ELMS Operations User")
         self.assertEqual(ELMS_LEARNER_ROLE, "ELMS Learner")
+        self.assertEqual(ELMS_COMPANY_ADMIN_ROLE, "ELMS Company Admin")
         self.assertEqual(
             ELMS_ROLES,
-            ("ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist"),
+            ("ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist", "ELMS Company Admin"),
         )
         self.assertEqual(ELMS_OPERATIONS_SECTION_DOCTYPE, "ELMS Operations Section")
         self.assertEqual(ELMS_REVIEW_SECTION_DOCTYPE, "ELMS Review Section")
@@ -151,12 +153,12 @@ class TestRolesRBACSeed(unittest.TestCase):
 
         self.assertEqual(
             set(created_docs),
-            {"ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist"},
+            {"ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist", "ELMS Company Admin"},
         )
         self.assertTrue(all(fake_exists("Role", r) for r in ELMS_ROLES))
 
     def test_ensure_roles_idempotent_no_duplicate_error(self):
-        existing_roles = {"ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist"}
+        existing_roles = {"ELMS Admin", "ELMS Operations User", "ELMS Learner", "ELMS Instructor", "ELMS Methodologist", "ELMS Company Admin"}
 
         def fake_exists(doctype, name):
             if doctype == "Role":

@@ -29,6 +29,7 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "show_title_field_in_link": 1,
  "states": [],
  "search_fields": "program_name, program_code, category",
  "title_field": "program_name"

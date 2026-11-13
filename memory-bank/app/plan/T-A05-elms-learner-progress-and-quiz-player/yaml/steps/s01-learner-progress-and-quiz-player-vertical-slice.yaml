@@ -1,0 +1,206 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A05-elms-learner-progress-and-quiz-player
+title: Learner progress inspector and resumable quiz vertical slice
+level: L2
+next_phase: APP IMPLEMENT
+status: pending
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Замкнуть production journey LMS от опубликованного quiz-урока до сохранённой
+  возобновляемой попытки и от management поиска слушателя до permission-aware
+  профиля с прогрессом и историей обучения по годам.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006]
+  us_ids: [US-001, US-002, US-003, US-004, US-005, US-006]
+  nouns:
+  - ELMS Quiz
+  - ELMS Quiz Question
+  - ELMS Quiz Attempt
+  - ELMS Course Progress
+  - ELMS Lesson Progress
+  - ELMS Program Enrollment
+  - ELMS User Activity
+  - save_quiz_progress
+  - get_learner_profile
+  - answered/total question counter
+  - history_by_year
+  - learner profile surface
+  layout_paths:
+  - /app/elms-learning
+  - elms/elms/lms/api.py
+  - elms/elms/lms/doctype/elms_quiz_attempt/elms_quiz_attempt.json
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/css/desk-learning.css
+  ac_quotes:
+  - "Слушатель видит варианты id/text без correct и может сохранить/возобновить активную попытку."
+  - "Карточка слушателя показывает программы, курсы, события и историю по годам только при настроенном праве."
+  - "Любой прямой cross-user запрос без права получает typed PermissionError/403 и не partial payload."
+  - "Wire путь идёт через реальный Frappe API и сохраняет существующий T-A02 course progress contract."
+  plan_jumps:
+  - memory-bank/app/plan/T-A05-elms-learner-progress-and-quiz-player/md/plan.md:38-205
+  - memory-bank/app/plan/T-A05-elms-learner-progress-and-quiz-player/md/plan.md:210-286
+  user_journey: >-
+    Learner opens My Courses, enters a published quiz lesson, starts or resumes
+    the active attempt, selects options, saves draft, returns later and submits.
+    A viewer with configured LMS read permission searches a learner in management,
+    opens the profile and sees current courses, programs, events and yearly history.
+  api:
+    save_quiz_progress:
+      method: elms.lms.api.save_quiz_progress
+      input: attempt identifier plus JSON answers keyed by snapshot question name
+      output: attempt status, sanitized answers, answered_questions, total_questions, percentage, saved_at
+      errors: Guest/cross-user 403; missing/closed/expired attempt or invalid option 400/404
+    get_learner_profile:
+      method: elms.lms.api.get_learner_profile
+      input: optional target User name; omitted means current session user
+      output: user, summary, current_courses, programs, history_by_year, activity
+      errors: explicit missing user 404; unauthorized target 403 with no partial payload
+    existing_extensions:
+      get_lesson_quiz: sanitized options plus active attempt summary when available
+      start_quiz: idempotent resume for existing active attempt
+      submit_quiz: optional answers, counters and safe result disclosure
+      get_learner_dashboard: quiz summary and last activity without breaking existing keys
+  roles:
+    self_view: ELMS Learner through own enrollment/progress permissions
+    target_view: any role granted read access to the LMS source records plus applicable User Permission
+    management_callers: configured role/access only; no hardcoded UI-only role flag
+    denied: Guest, learner targeting another user, authenticated user without source read permission
+  persistence: >-
+    Extend ELMS Quiz Attempt with draft counters/timestamp while retaining
+    answers_json and frozen snapshot. Aggregate learner history from existing
+    Enrollment, Program Enrollment, Course/Lesson Progress, Quiz Attempt and
+    User Activity; do not create a duplicate history/progress DocType.
+  ui_contract:
+    route: /app/elms-learning
+    required: quiz option cards, answered/total counter, save/resume/submit/result states, learner profile/history by year
+    empty_error: no enrollments, no quiz, invalid options, no history, denied target, expired/closed attempt
+    accessibility: keyboard reachable radio/checkbox options, visible focus/disabled/loading/error states, Russian labels
+  done: >-
+    Real LMS data flows from published quiz lesson through safe option payload,
+    persisted draft/resume and server grading; management can open a permitted
+    learner profile with yearly history; all required backend/frontend/wire/live
+    checks pass and old final-only/cross-user UI-only paths are absent.
+
+context:
+  consumes:
+  - path: memory-bank/app/clarify/clarify-20261111-learner-progress-and-quiz-player.md
+    reason: owner decisions on configurable access, metrics, draft persistence and safe result disclosure
+  - path: memory-bank/product/modules.md
+    reason: canonical LMS roles, DocTypes and learner self-only rule
+  - path: memory-bank/product/lms-best-practices.md
+    reason: Practice/Assessment, activity and privacy expectations
+  - path: rules/elms-approach.mdc
+    reason: ELMS/Frappe lookup and API canon
+  - path: rules/elms-design.mdc
+    reason: scoped visual and accessibility canon
+  - path: elms/elms/lms/api.py
+    reason: current quiz, progress, enrollment, activity and relationships contracts
+  - path: elms/elms/public/js/desk-learning.js
+    reason: current player, progress tab and management relationship surface
+  produces:
+  - path: elms/elms/lms/api.py
+    reason: safe quiz draft/resume, counters, learner profile/history and permission boundary
+  - path: elms/elms/lms/doctype/elms_quiz_attempt/elms_quiz_attempt.json
+    reason: persisted question counters and draft timestamp
+  - path: elms/elms/public/js/desk-learning.js
+    reason: learner player and profile/history management journey
+  - path: elms/elms/public/css/desk-learning.css
+    reason: scoped quiz/profile/history states
+  plan_refs: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, US-001, US-002, US-003, US-004, US-005, US-006]
+  files:
+  - elms/elms/lms/api.py
+  - elms/elms/lms/doctype/elms_quiz_attempt/elms_quiz_attempt.json
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/css/desk-learning.css
+  - elms/elms/tests/test_lms_core.py
+  - elms/elms/tests/test_learning_ui.py
+  - memory-bank/app/implement/T-A05-elms-learner-progress-and-quiz-player/s01-learner-progress-and-quiz-player-vertical-slice.yaml
+
+as_built:
+- path: elms/elms/lms/api.py
+  fact: get_lesson_quiz strips correct keys, start_quiz rejects an existing active attempt, submit_quiz grades only on final submit, and get_learner_dashboard is self-only.
+- path: elms/elms/lms/doctype/elms_quiz_attempt/elms_quiz_attempt.json
+  fact: answers_json and snapshot_json exist, but no persisted answered counters or draft timestamp exist.
+- path: elms/elms/public/js/desk-learning.js
+  fact: player renders option controls after start and collects answers only in the form until submit; management search is course-grouped and has no learner profile action.
+- path: elms/elms/public/css/desk-learning.css
+  fact: existing LMS token system has quiz/player styles but no profile/history state contract.
+- path: elms/elms/tests/test_lms_core.py
+  fact: existing tests cover safe payload, server grading, progress math and cross-user lesson-progress denial.
+
+delta:
+- Extend ELMS Quiz Attempt persistence and API to save validated draft answers, resume one active attempt, expose counters and preserve safe grading disclosure.
+- Add learner profile/history aggregation from canonical LMS records with permission and self-only enforcement.
+- Wire player counter/save/resume/result UI and a management learner profile/history surface to real whitelist calls.
+- Add targeted backend/UI/wire contract assertions and preserve T-A02/T-A04 behavior.
+
+deletes:
+- path: elms/elms/lms/api.py
+  symbol: start_quiz active-attempt rejection as the only resume behavior
+  replacement: idempotent active-attempt response with persisted draft and counters
+- path: elms/elms/public/js/desk-learning.js
+  symbol: client-only final submit path with no draft save/resume or learner profile action
+  replacement: save/resume counter and permission-aware learner profile journey
+
+out_of_scope:
+- certificates, exam commission protocols, FIS FRDO/EISOT export and manual grading
+- full question bank authoring in Course Studio, organization analytics and cohort dashboards
+- external LMS, OmniRoute/RAG/assistant integration and duplicate history/progress DocTypes
+
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  design:
+  - .agents/skills/frontend-design/SKILL.md
+
+tdd:
+- Add failing backend tests for invalid options, draft save/resume, counters, attempt ownership and profile history permission before implementation.
+- Add failing UI contract assertions for answer options, save/resume counter, learner profile/history and explicit error states before implementation.
+- Implement DocType/API behavior, then player/profile UI and scoped styles against real Frappe method names.
+- Run backend, frontend syntax/contract, wire and live checks; prove no answer-key leakage or UI-only permission path.
+
+verify:
+- ./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'quiz or progress or learner_profile or activity'
+- ./bin/pytest -q elms/elms/tests/test_learning_ui.py -k 'learning or quiz or progress or profile'
+- node --check elms/elms/public/js/desk-learning.js
+- python3 -m py_compile elms/elms/lms/api.py
+- rg -n "save_quiz_progress|get_learner_profile|answered_questions|history_by_year|Продолжить тест|Введено" elms/elms/lms/api.py elms/elms/public/js/desk-learning.js elms/elms/public/css/desk-learning.css
+
+checkpoints:
+- id: cp1
+  criterion: Quiz options are validated/sanitized and draft answers/counters persist across resume without duplicate attempts.
+  verify: ./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'quiz or attempt or option'
+- id: cp2
+  criterion: Learner profile/history aggregates canonical sources by year and enforces self/target permissions with no partial denial payload.
+  verify: ./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'learner_profile or history or isolation or activity'
+- id: cp3
+  criterion: Player renders options, save/resume/counters/results and management opens profile/history through real API call-sites.
+  verify: ./bin/pytest -q elms/elms/tests/test_learning_ui.py -k 'learning or quiz or progress or profile'
+- id: cp4
+  criterion: Production JS/Python parse and wire/legacy scans prove the mixed boundary has no final-only or UI-only path.
+  verify: node --check elms/elms/public/js/desk-learning.js && python3 -m py_compile elms/elms/lms/api.py && rg -n "save_quiz_progress|get_learner_profile|history_by_year|answered_questions" elms/elms/lms/api.py elms/elms/public/js/desk-learning.js
+
+wire_complete:
+  call_sites:
+  - "LMS My Courses -> player -> get_lesson_quiz -> start_quiz/resume -> sanitized option cards"
+  - "Player option changes/save -> save_quiz_progress -> ELMS Quiz Attempt draft counters"
+  - "Player submit -> submit_quiz -> server score/status -> course progress refresh"
+  - "Management learner search -> get_learner_profile -> profile/history by year"
+  - "Denied target or invalid attempt -> visible typed error; no silent empty success"
+  enforce_path: elms/elms/lms/api.py
+  dual_path_rg: rg -n "start_quiz|save_quiz_progress|submit_quiz|get_learner_profile|get_learner_dashboard" elms/elms/lms/api.py elms/elms/public/js/desk-learning.js
+  instruction_rg: rg -n "correct|answer_key|history_by_year|learner profile|data-action=\\\"learner" elms/elms/lms/api.py elms/elms/public/js/desk-learning.js
+  deny_old_proven: true

@@ -1,0 +1,78 @@
+schema: epic-implement/v1
+role: app
+step_id: s01
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+task_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: s01 — Organization, Company Admin role and organization scope IMPLEMENT
+level: L2
+status: completed
+date: 2026-11-13
+decompose_ref: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/yaml/steps/s01-organization-role-and-scope.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+files:
+  - elms/elms/access/__init__.py
+  - elms/elms/access/api.py
+  - elms/elms/elms_core/doctype/elms_organization/__init__.py
+  - elms/elms/elms_core/doctype/elms_organization/elms_organization.json
+  - elms/elms/elms_core/doctype/elms_organization/elms_organization.py
+  - elms/elms/elms_core/doctype/elms_organization_member/__init__.py
+  - elms/elms/elms_core/doctype/elms_organization_member/elms_organization_member.json
+  - elms/elms/elms_core/doctype/elms_organization_member/elms_organization_member.py
+  - elms/elms/install.py
+  - elms/elms/permissions.py
+  - elms/elms/tests/test_access_model.py
+  - elms/elms/tests/test_roles_rbac.py
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s01-organization-role-and-scope.yaml
+
+deletes: []
+
+done:
+  - "ELMS Organization and ELMS Organization Member are first-class ELMS Core DocTypes with INN/OGRN/KPP validation."
+  - "ELMS Company Admin role/profile is seeded alongside existing product roles without changing learner naming."
+  - "Admin assignment creates explicit membership and User Permission allow=ELMS Organization for the assigned user."
+  - "Organization access is enforced server-side; Company Admin without membership receives PermissionError."
+
+wire_complete:
+  call_sites:
+    - "Organization Form -> create_organization -> ELMS Organization"
+    - "Assign Company Admin -> assign_company_admin -> membership + User Permission"
+  enforce_path: elms/elms/access/api.py
+  dual_path_rg: rg -n "organization|ELMS Organization" elms/elms/access elms/elms/elms_core/doctype/elms_organization* elms/elms/install.py
+  instruction_rg: rg -n "UI-only|ui.only|filter.*organization" elms/elms/access elms/elms/tests
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_access_model.py -k 'organization or company_admin or permission'"
+  - "./bin/pytest -q elms/elms/tests/test_roles_rbac.py -k 'role or profile'"
+  - "python3 -m py_compile elms/elms/access/api.py elms/elms/elms_core/doctype/elms_organization/elms_organization.py elms/elms/elms_core/doctype/elms_organization_member/elms_organization_member.py"
+  - "rg -n 'ELMS Organization|ELMS Company Admin|User Permission|assign_company_admin' elms/elms/access elms/elms/install.py"
+
+integration_check:
+  - "The API is the enforcement path; the User Permission is created from membership, not from a client-side filter."
+  - "The new DocTypes live under the existing ELMS Core module and are discoverable by Frappe migrations."
+  - "Company Admin role/profile is present in both install seed and permission-manager summaries."
+
+checkpoints:
+  - id: cp1
+    criterion: Organization and membership schemas exist with validation and User Permission scope.
+    status: done
+    evidence: "Targeted access contract => 5 passed, 3 skipped, 3 deselected; JSON manifests parse."
+    verify: "./bin/pytest -q elms/elms/tests/test_access_model.py -k 'organization or company_admin or permission'"
+  - id: cp2
+    criterion: Admin/Company Admin role profiles and cross-org denial are enforced server-side.
+    status: done
+    evidence: "Targeted RBAC contract => 14 passed; scope test covers own-org allow and other-org PermissionError."
+    verify: "./bin/pytest -q elms/elms/tests/test_roles_rbac.py -k 'role or profile'"
+
+resume_from: cp2
+
+verification_results:
+  - "./bin/pytest -q elms/elms/tests/test_access_model.py -k 'organization or company_admin or permission' => PASS (5 passed, 3 skipped, 3 deselected)"
+  - "./bin/pytest -q elms/elms/tests/test_roles_rbac.py -k 'role or profile' => PASS (14 passed)"
+  - "python3 -m py_compile ... => PASS"

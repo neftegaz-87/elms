@@ -14,22 +14,31 @@
 | T-B07 | elms-backup-operations | active | [plan](back/plan/T-B07-elms-backup-operations/md/plan.md) |
 | T-B08 | elms-cicd-release-rollback | active | [plan](back/plan/T-B08-elms-cicd-release-rollback/md/plan.md) |
 | T-B09 | elms-caddy-edge-cutover | active | [plan](back/plan/T-B09-elms-caddy-edge-cutover/md/plan.md) |
+| T-B10 | elms-offline-registry-bundle | planned | [plan](back/plan/T-B10-elms-offline-registry-bundle/md/plan.md) |
+| T-B11 | elms-host-local-logs-read-contract | planned | [plan](back/plan/T-B11-elms-host-local-logs-read-contract/md/plan.md) |
 | T-A02 | elms-learning-core-flows | done | [plan](app/plan/T-A02-elms-learning-core-flows/md/plan.md) |
+| T-A05 | elms-learner-progress-and-quiz-player | done | [plan](app/plan/T-A05-elms-learner-progress-and-quiz-player/md/plan.md) |
+| T-A06 | elms-knowledge-assistant-omniroute | done | [plan](app/plan/T-A06-elms-knowledge-assistant-omniroute/md/plan.md) |
 
 ## Queues
 
 - BACK: [back/roadmap/queue.yaml](back/roadmap/queue.yaml) batches `elms-foundation`, `bitrix-rest`, `elms-production`
 - FRONT: [front/roadmap/queue.yaml](front/roadmap/queue.yaml) batch `elms-desk-shell`
-- APP: [app/roadmap/queue.yaml](app/roadmap/queue.yaml) batches `elms-auth-surface`, `elms-learning-core`
+- APP: [app/roadmap/queue.yaml](app/roadmap/queue.yaml) batches `elms-auth-surface`, `elms-learning-core`, `elms-learner-progress`, `elms-knowledge-assistant`, `elms-b2b-access`
 
 ## Порядок IMPLEMENT
 
-1. T-B01 → 2. T-B02 → 3. T-B03 → 4. T-A01 → 5. T-F01 → 6. T-B05 → 7. T-B06 → 8. T-B07 → 9. T-B08 → 10. T-B09 → 11. T-A02
+1. T-B01 → 2. T-B02 → 3. T-B03 → 4. T-A01 → 5. T-F01 → 6. T-B05 → 7. T-B06 → 8. T-B07 → 9. T-B08 → 10. T-B09 → 11. T-A02 → 12. T-B10 → 13. T-B11 → 14. T-A05
 
 ## last
 
 | Дата | Событие |
 |------|---------|
+| 2026-11-13 | APP DONE T-A06 knowledge assistant: Integration Settings URL+key, Desk assistant, QA PASS; head = T-A07 |
+| 2026-11-13 | APP queue: T-A05 → done (QA PASS 2026-11-12); head = T-A06 |
+| 2026-11-12 | Observability canon: ship-to-central Loki отменён; логи на хосте, чтение с ops (`decisions/observability-stack.md`); BACK PLAN T-B11 host-local-logs-read-contract; центр — репо `/home/aero/PyProject/observability` |
+| 2026-11-11 | BACK PLAN T-B10 elms-offline-registry-bundle: офлайн-бандл (full-minus-vault), offline secrets profile, air-gap gate, SBOM; clarify done Q1–Q5=A; next BACK DECOMPOSE |
+| 2026-11-12 | APP PLAN T-A05 elms-learner-progress-and-quiz-player: role/DocPerm-controlled learner progress inspector, persisted quiz answers, answer options, question counters and user learning history by program/course/activity/year; clarify Q1–Q3 resolved; next APP DECOMPOSE |
 | 2026-11-05 | APP DONE T-A02 elms-learning-core-flows: 7 доменных DocTypes LMS в MariaDB, Whitelist API (квоты, трекинг времени, рубежи аттестации), Desk LMS Workspace, 110 passed pytest + 2 passed bench runtime QA, context-sync complete |
 | 2026-11-05 | Keycloak Yandex SSO + Bitrix mapping: Protocol Mappers, JIT bitrix_user_id in Frappe, sync_bitrix_keycloak.py, 106 tests; Bitrix card 35677 (Ерохин -> Ерохин) -> Done |
 | 2026-11-05 | APP PLAN T-A02 elms-learning-core-flows: потоки, подписки, прогресс, активность, Desk LMS Workspace, соответствие ФИС ФРДО/ПП 2464/152-ФЗ; синхронизирована документация vendor (learning, marketplace-free, crm, erpnext) |

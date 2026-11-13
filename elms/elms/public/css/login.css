@@ -478,8 +478,29 @@ body[data-path="login"] a.btn-keycloak.disabled,
   box-shadow: none;
 }
 
-body[data-path="login"] .web-footer {
-  display: none;
+body[data-path="login"] .web-footer,
+body[data-path="login"] .login-content.page-card .social-logins,
+body[data-path="login"] .login-content.page-card .login-divider,
+body[data-path="login"] .login-content.page-card .btn-login-option.btn-keycloak,
+body[data-path="login"] .login-content.page-card .btn-login-with-email-link,
+body[data-path="login"] .social-logins,
+body[data-path="login"] .btn-keycloak,
+.for-login .social-logins,
+.for-login .login-divider,
+.for-login .btn-keycloak,
+.for-login .btn-login-with-email-link {
+  display: none !important;
+}
+
+body[data-path="login"] .social-logins,
+body[data-path="login"] .login-divider,
+body[data-path="login"] .btn-keycloak,
+body[data-path="login"] .btn-login-with-email-link,
+.for-login .social-logins,
+.for-login .login-divider,
+.for-login .btn-keycloak,
+.for-login .btn-login-with-email-link {
+  display: none !important;
 }
 
 @media (max-width: 575px) {

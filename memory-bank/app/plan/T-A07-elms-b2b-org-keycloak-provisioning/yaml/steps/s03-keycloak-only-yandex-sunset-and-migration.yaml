@@ -1,0 +1,155 @@
+schema: epic-decompose/v1
+role: app
+step_id: s03
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: Keycloak-only realm, Yandex sunset and legacy-user migration
+level: L2
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Удалить Yandex как runtime IdP ELMS, сохранить Keycloak callback/JIT
+  reconciliation и дать оператору dry-run/apply миграцию пользователей с
+  legacy identity link на локальный credential с UPDATE_PASSWORD.
+
+plan_contract:
+  fr_ids: [FR-005, FR-006]
+  us_ids: [US-005, US-006]
+  ac_ids: [AC-004]
+  nouns:
+  - Keycloak-only realm
+  - Yandex sunset
+  - migrate_yandex_users
+  - UPDATE_PASSWORD
+  - realm-elms.json
+  layout_paths:
+  - docker/keycloak/realm-elms.json
+  - elms/elms/sso/
+  - elms/elms/install.py
+  - scripts/live_smoke.sh
+  - scripts/infra/vault_preflight.sh
+  - elms/elms/tests/test_sso.py
+  - elms/elms/tests/test_login_ui.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:170-186
+  - memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md:220-238
+  ac_quotes:
+  - "AC-004: The realm seed and runtime migration are Keycloak-only: no enabled Yandex provider or broker hint remains."
+  api:
+    migrate_yandex_users:
+      method: elms.access.api.migrate_yandex_users
+      input: dry_run optional boolean
+      output: migrated count, skipped count, errors
+      errors: PermissionError, KeycloakProvisionError
+    login: Keycloak local password/OIDC callback without kc_idp_hint=yandex
+  roles:
+    migration: ELMS Admin / Administrator only
+    login: Keycloak only
+  persistence: >-
+    Realm seed is the source for new environments; migration is idempotent and
+    records required actions before Yandex provider removal. No Yandex secret is
+    required by the ELMS login path after this step.
+  done: >-
+    JSON/runtime scans, unit tests and live smoke prove no enabled Yandex IdP or
+    Yandex-dependent login path remains, while Keycloak callback/JIT still works.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md
+    reason: sunset and migration contract
+  - path: docker/keycloak/realm-elms.json
+    reason: current Yandex broker seed
+  - path: elms/elms/sso/ensure.py
+    reason: current Social Login Key ensure path
+  - path: elms/elms/install.py
+    reason: current install/on-login reconciliation
+  - path: scripts/live_smoke.sh
+    reason: current browser/runtime acceptance path
+  produces:
+  - path: docker/keycloak/realm-elms.json
+    reason: Keycloak-only realm seed
+  - path: docker/keycloak/entrypoint.sh
+    reason: runtime seed preparation must not re-enable the retired provider
+  - path: elms/elms/access/api.py
+    reason: migration operator method
+  - path: elms/elms/sso/
+    reason: Keycloak-only constants/config/runtime reconciliation
+  - path: scripts/live_smoke.sh
+    reason: no-Yandex live smoke contract
+  - path: elms/elms/tests/test_sso.py
+    reason: Keycloak-only and migration tests
+  - path: elms/elms/tests/test_login_ui.py
+    reason: login surface no-Yandex tests
+  - path: docs/reports/sso-browser-api-trace.json
+    reason: live Keycloak-only login and no-Yandex acceptance evidence
+  - path: docs/runbooks/keycloak-yandex-user-migration.md
+    reason: operator ordering and dry-run/apply procedure
+  plan_refs: [FR-005, FR-006, US-005, US-006, AC-004]
+
+as_built:
+- docker/keycloak/realm-elms.json — enabled Yandex identity provider and mappers are seeded.
+- elms/elms/tests/test_login_ui.py — current acceptance expects a Yandex broker button.
+- scripts/live_smoke.sh — current smoke has broker/Yandex assumptions that must be removed or inverted.
+
+delta:
+- Remove Yandex IdP/mappers and Yandex login copy from the Keycloak-only runtime path.
+- Add idempotent legacy-user migration with local credential and UPDATE_PASSWORD required action.
+
+files:
+  - docker/keycloak/realm-elms.json
+  - docker/keycloak/entrypoint.sh
+  - elms/elms/access/api.py
+  - elms/elms/sso/constants.py
+  - elms/elms/sso/ensure.py
+  - elms/elms/sso/login.py
+  - elms/elms/sso/mapping.py
+  - elms/elms/install.py
+  - elms/elms/public/js/login-keycloak.js
+  - scripts/live_smoke.sh
+  - scripts/infra/vault_preflight.sh
+  - elms/elms/tests/test_sso.py
+  - elms/elms/tests/test_sso_config.py
+  - elms/elms/tests/test_login_ui.py
+  - docs/reports/sso-browser-api-trace.json
+  - docs/runbooks/keycloak-yandex-user-migration.md
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s03-keycloak-only-yandex-sunset-and-migration.yaml
+deletes: []
+out_of_scope:
+  - Removal of unrelated Yandex SMTP integration if still required by operations
+  - T-A08 Bitrix forms
+skills:
+    code_surface: mixed
+    impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/frontend-testing/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+tdd:
+  - Add failing realm, login and migration tests before replacing Yandex paths.
+  - Implement idempotent migration and Keycloak-only seed/runtime behavior.
+  - Run targeted SSO/login tests and live smoke when stack is available.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_sso.py elms/elms/tests/test_sso_config.py elms/elms/tests/test_login_ui.py
+  - python3 -m json.tool docker/keycloak/realm-elms.json >/dev/null
+  - bash -n scripts/live_smoke.sh scripts/infra/vault_preflight.sh
+  - rg -n -i 'yandex|kc_idp_hint' docker/keycloak elms/elms/sso elms/elms/public/js scripts
+  - test -s docs/runbooks/keycloak-yandex-user-migration.md
+checkpoints:
+  - id: cp1
+    criterion: Realm seed and login route contain no enabled Yandex provider or hint.
+    verify: ./bin/pytest -q elms/elms/tests/test_sso.py elms/elms/tests/test_sso_config.py elms/elms/tests/test_login_ui.py
+  - id: cp2
+    criterion: Legacy migration sets local password required action and is idempotent.
+    verify: ./bin/pytest -q elms/elms/tests/test_sso.py elms/elms/tests/test_sso_config.py elms/elms/tests/test_login_ui.py
+wire_complete:
+  call_sites:
+  - "Operator migration -> migrate_yandex_users -> Keycloak users required actions"
+  - "ELMS login -> Keycloak local credential/OIDC callback -> Frappe session"
+  enforce_path: elms/elms/access/api.py and elms/elms/sso/
+  dual_path_rg: 'rg -n -i "yandex|kc_idp_hint" docker/keycloak elms/elms/sso elms/elms/public/js scripts'
+  instruction_rg: 'rg -n -i "yandex.*(enabled|happy|broker)|dual.*idp|Yandex.*login" docker/keycloak elms/elms scripts'
+  deny_old_proven: true

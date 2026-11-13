@@ -22,3 +22,9 @@ epics:
   T-B07-elms-backup-operations: erokhin
   T-B08-elms-cicd-release-rollback: sokolov
   T-B09-elms-caddy-edge-cutover: sokolov
+  T-B10-elms-offline-registry-bundle: sokolov
+  T-A05-elms-learner-progress-and-quiz-player: erokhin
+  T-A06-elms-knowledge-assistant-omniroute: erokhin
+  T-A07-elms-b2b-org-keycloak-provisioning: erokhin
+  T-A08-elms-application-forms-bitrix-status: erokhin
+  T-A09-elms-company-admin-cabinet: erokhin

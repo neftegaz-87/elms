@@ -1,4 +1,4 @@
-"""SSO identity and email mapping lookup for Bitrix to Yandex 360 / Keycloak."""
+"""SSO identity and email mapping lookup for legacy directory data and Keycloak."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class UserMapping:
     position: str
     departments: str
     corporate_login: str
-    yandex_email: str
+    target_email: str
     role_profile: str
     elms_roles: list[str]
     keycloak_realm_roles: list[str]
@@ -33,12 +33,12 @@ class UserMapping:
 
 
 class IdentityMappingRegistry:
-    """Thread-safe in-memory cache of identity mappings between Bitrix and Yandex/Keycloak."""
+    """Thread-safe in-memory cache of identity mappings for Keycloak users."""
 
     def __init__(self, csv_path: Path | None = None) -> None:
         self.csv_path = csv_path or DATA_PATH
         self._by_bitrix_email: dict[str, UserMapping] = {}
-        self._by_yandex_email: dict[str, UserMapping] = {}
+        self._by_target_email: dict[str, UserMapping] = {}
         self._by_corporate_login: dict[str, UserMapping] = {}
         self._by_bitrix_id: dict[str, UserMapping] = {}
         self._load()
@@ -51,8 +51,8 @@ class IdentityMappingRegistry:
             for row in reader:
                 bitrix_id = str(row.get("bitrix_id") or "").strip()
                 bitrix_email = normalize_email(row.get("bitrix_email") or "")
-                corp_login = str(row.get("target_login") or row.get("corporate_login") or row.get("target_login") or row.get("yandex-login") or row.get("ydx_login") or "").strip().lower()
-                yandex_email = normalize_email(row.get("target_email") or row.get("corporate_email") or row.get("yandex_email_template") or row.get("yandex_email") or "")
+                corp_login = str(row.get("target_login") or row.get("corporate_login") or "").strip().lower()
+                target_email = normalize_email(row.get("target_email") or row.get("corporate_email") or "")
                 full_name = str(row.get("full_name") or "").strip()
                 position = str(row.get("position") or "").strip()
                 departments = str(row.get("departments") or "").strip()
@@ -70,7 +70,7 @@ class IdentityMappingRegistry:
                     position=position,
                     departments=departments,
                     corporate_login=corp_login,
-                    yandex_email=yandex_email,
+                    target_email=target_email,
                     role_profile=role_profile,
                     elms_roles=elms_roles,
                     keycloak_realm_roles=kc_roles,
@@ -78,31 +78,31 @@ class IdentityMappingRegistry:
                 )
                 if bitrix_email:
                     self._by_bitrix_email[bitrix_email] = mapping
-                if yandex_email:
-                    self._by_yandex_email[yandex_email] = mapping
+                if target_email:
+                    self._by_target_email[target_email] = mapping
                 if corp_login:
                     self._by_corporate_login[corp_login] = mapping
                 if bitrix_id:
                     self._by_bitrix_id[bitrix_id] = mapping
 
     def resolve_target_identity(self, identifier: str) -> str:
-        """Resolve any given identifier (Bitrix email, Yandex email, Yandex login) to canonical Yandex email."""
+        """Resolve a legacy directory identifier to the canonical Keycloak email."""
         clean = normalize_email(identifier)
         if clean in self._by_bitrix_email:
-            return self._by_bitrix_email[clean].yandex_email
-        if clean in self._by_yandex_email:
-            return self._by_yandex_email[clean].yandex_email
+            return self._by_bitrix_email[clean].target_email or identifier
+        if clean in self._by_target_email:
+            return self._by_target_email[clean].target_email
         login_key = identifier.strip().lower()
         if login_key in self._by_corporate_login:
-            return self._by_corporate_login[login_key].yandex_email
+            return self._by_corporate_login[login_key].target_email or identifier
         return identifier
 
     def get_mapping(self, identifier: str) -> UserMapping | None:
         clean = normalize_email(identifier)
         if clean in self._by_bitrix_email:
             return self._by_bitrix_email[clean]
-        if clean in self._by_yandex_email:
-            return self._by_yandex_email[clean]
+        if clean in self._by_target_email:
+            return self._by_target_email[clean]
         login_key = identifier.strip().lower()
         if login_key in self._by_corporate_login:
             return self._by_corporate_login[login_key]

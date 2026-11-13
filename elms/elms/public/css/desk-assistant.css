@@ -1,0 +1,325 @@
+.elms-navbar-assistant {
+	display: flex;
+	align-items: center;
+	margin-left: 8px;
+	flex-shrink: 0;
+}
+
+.elms-navbar-assistant-btn,
+.elms-navbar-assistant [data-elms-assistant] {
+	white-space: nowrap;
+}
+
+.elms-assistant-slot.elms-assistant-float {
+	position: fixed;
+	right: 24px;
+	bottom: 24px;
+	z-index: 1055;
+	width: min(420px, calc(100vw - 24px));
+	height: min(580px, calc(100vh - 48px));
+	box-sizing: border-box;
+	pointer-events: none;
+}
+
+.elms-assistant-slot.elms-assistant-float:empty,
+.elms-assistant-slot.elms-assistant-float[hidden] {
+	display: none;
+}
+
+.elms-assistant-slot.elms-assistant-float.is-placed {
+	right: auto;
+	bottom: auto;
+}
+
+.elms-assistant-panel,
+.elms-assistant-panel * {
+	box-sizing: border-box;
+}
+
+.elms-assistant-panel {
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	border: 1px solid var(--border-color, #d1d8dd);
+	border-radius: 12px;
+	background: var(--fg-color, #fff);
+	box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+}
+
+.elms-assistant-panel-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex: 0 0 40px;
+	height: 40px;
+	padding: 0 8px 0 12px;
+	border-bottom: 1px solid var(--border-color, #d1d8dd);
+	background: var(--subtle-fg, #f5f7fa);
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+}
+
+.elms-assistant-panel.is-dragging .elms-assistant-panel-head {
+	cursor: grabbing;
+}
+
+.elms-assistant-panel-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+.elms-assistant-panel-title h4 {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.elms-assistant-drag-hint {
+	color: var(--text-muted, #74808b);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	line-height: 1;
+}
+
+.elms-assistant-close {
+	border: 0;
+	background: transparent;
+	color: var(--text-muted, #74808b);
+	width: 28px;
+	height: 28px;
+	min-width: 28px;
+	min-height: 28px;
+	border-radius: 6px;
+	font-size: 18px;
+	line-height: 28px;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+	flex: 0 0 28px;
+}
+
+.elms-assistant-close:hover {
+	background: rgba(0, 0, 0, 0.06);
+	color: var(--text-color, #1f272e);
+}
+
+.elms-assistant-toolbar {
+	display: flex;
+	align-items: center;
+	flex: 0 0 40px;
+	height: 40px;
+	padding: 0 12px;
+	border-bottom: 1px solid var(--border-color, #d1d8dd);
+	background: var(--fg-color, #fff);
+}
+
+.elms-assistant-model {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+	font-size: 12px;
+	line-height: 1;
+	color: var(--text-muted, #74808b);
+	white-space: nowrap;
+}
+
+.elms-assistant-model > span {
+	flex: 0 0 auto;
+}
+
+.elms-assistant-model select {
+	display: block;
+	width: 100%;
+	min-width: 0;
+	flex: 1 1 auto;
+	height: 28px;
+	max-height: 28px;
+	border: 1px solid var(--border-color, #d1d8dd);
+	border-radius: 6px;
+	padding: 0 24px 0 8px;
+	margin: 0;
+	background: var(--control-bg, #fff);
+	color: var(--text-color, #1f272e);
+	font-size: 12px;
+	line-height: 26px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.elms-assistant-messages {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+	padding: 12px;
+	background: var(--bg-color, #f8fafc);
+}
+
+.elms-assistant-empty {
+	margin: auto 0;
+	text-align: center;
+	color: var(--text-muted, #74808b);
+	font-size: 13px;
+	line-height: 1.4;
+	padding: 8px;
+}
+
+.elms-assistant-message {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-width: 85%;
+}
+
+.elms-assistant-message.is-user {
+	align-self: flex-end;
+}
+
+.elms-assistant-message.is-assistant {
+	align-self: flex-start;
+}
+
+.elms-assistant-message-role {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-muted, #74808b);
+	padding: 0 2px;
+	line-height: 1.2;
+}
+
+.elms-assistant-message-body {
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 10px;
+	font-size: 13px;
+	line-height: 1.4;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	background: var(--fg-color, #fff);
+	border: 1px solid var(--border-color, #d1d8dd);
+	color: var(--text-color, #1f272e);
+}
+
+.elms-assistant-message.is-user .elms-assistant-message-body {
+	background: var(--primary, #2490ef);
+	border-color: var(--primary, #2490ef);
+	color: #fff;
+	border-bottom-right-radius: 3px;
+}
+
+.elms-assistant-message.is-assistant .elms-assistant-message-body {
+	border-bottom-left-radius: 3px;
+}
+
+.elms-assistant-status {
+	flex: 0 0 auto;
+	margin: 0 12px 8px;
+	padding: 6px 8px;
+	border-radius: 6px;
+	font-size: 12px;
+	line-height: 1.35;
+	background: var(--bg-blue, #e9f4ff);
+	color: var(--text-color, #1f272e);
+}
+
+.elms-assistant-status.is-error {
+	background: #fdecec;
+	color: #8a1f1f;
+}
+
+.elms-assistant-status.is-warning {
+	background: #fff6e5;
+	color: #9a6700;
+}
+
+.elms-assistant-compose {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 36px;
+	align-items: end;
+	gap: 8px;
+	flex: 0 0 auto;
+	padding: 10px 12px 12px;
+	border-top: 1px solid var(--border-color, #d1d8dd);
+	background: var(--fg-color, #fff);
+}
+
+.elms-assistant-compose textarea,
+.elms-assistant-panel .elms-assistant-compose textarea[data-assistant-input] {
+	display: block;
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	height: 40px;
+	min-height: 40px;
+	max-height: 96px;
+	border: 1px solid var(--border-color, #d1d8dd);
+	border-radius: 8px;
+	padding: 9px 10px;
+	margin: 0;
+	resize: none;
+	background: var(--control-bg, #fff);
+	color: var(--text-color, #1f272e);
+	font-size: 13px;
+	line-height: 1.35;
+	overflow-y: auto;
+}
+
+.elms-assistant-compose .elms-assistant-send,
+.elms-assistant-panel button.elms-assistant-send {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	max-width: 36px;
+	min-height: 36px;
+	max-height: 36px;
+	padding: 0;
+	margin: 0 0 2px;
+	border: 0;
+	border-radius: 8px;
+	background: var(--primary, #2490ef);
+	color: #fff;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.elms-assistant-compose .elms-assistant-send:disabled,
+.elms-assistant-panel button.elms-assistant-send:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+	.elms-navbar-assistant {
+		margin-left: 4px;
+	}
+
+	.elms-assistant-slot.elms-assistant-float {
+		right: 8px;
+		bottom: 8px;
+		width: calc(100vw - 16px);
+		height: min(70vh, 560px);
+	}
+}

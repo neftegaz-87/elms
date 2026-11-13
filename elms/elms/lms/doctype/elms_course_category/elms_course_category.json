@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2026-11-10 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["category_name", "description", "is_active"],
+ "fields": [
+  {
+   "fieldname": "category_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Category Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "default": 1,
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-10 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LMS",
+ "name": "ELMS Course Category",
+ "autoname": "field:category_name",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 1, "delete": 0, "read": 1, "role": "ELMS Operations User", "write": 1},
+  {"create": 1, "delete": 0, "read": 1, "role": "ELMS Methodologist", "write": 1},
+  {"create": 0, "delete": 0, "read": 1, "role": "ELMS Instructor", "write": 0},
+  {"create": 0, "delete": 0, "read": 0, "role": "ELMS Learner", "write": 0}
+ ],
+ "sort_field": "category_name",
+ "sort_order": "ASC",
+ "show_title_field_in_link": 1,
+ "states": [],
+ "search_fields": "category_name, description",
+ "title_field": "category_name"
+}

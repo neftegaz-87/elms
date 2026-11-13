@@ -16,13 +16,16 @@ add_to_apps_screen = [
 ]
 
 web_include_css = "/assets/elms/css/login.css"
-web_include_js = ["/assets/elms/js/login-keycloak.js?v=2"]
+web_include_js = ["/assets/elms/js/login-keycloak.js?v=3"]
 app_include_css = [
-	"/assets/elms/css/desk-learning.css?v=2",
-	"/assets/elms/css/course-studio.css?v=1",
+	"/assets/elms/css/desk-learning.css?v=6",
+	"/assets/elms/css/desk-assistant.css?v=10",
+	"/assets/elms/css/course-studio.css?v=11",
 ]
 app_include_js = [
-	"/assets/elms/js/desk-learning.js?v=3",
+	"/assets/elms/js/desk-learning.js?v=6",
+	"/assets/elms/js/desk-assistant.js?v=10",
+	"/assets/elms/js/course-studio.js?v=12",
 ]
 
 doctype_js = {
@@ -37,7 +40,10 @@ page_js = {
 	"elms-course-studio": "public/js/elms-course-studio-page.js",
 }
 
-extend_bootinfo = ["elms.sso.review.extend_bootinfo"]
+extend_bootinfo = [
+	"elms.sso.review.extend_bootinfo",
+	"elms.ai.boot.extend_bootinfo",
+]
 
 override_whitelisted_methods = {
     "frappe.desk.desktop.get_desktop_page": "elms.sso.review.get_desktop_page",

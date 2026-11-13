@@ -1,0 +1,219 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A06-elms-knowledge-assistant-omniroute
+title: Knowledge assistant and Integration Settings vertical slice
+level: L2
+next_phase: APP QA
+status: completed
+visible_ui: yes
+needs_creative: false
+wire_complete_required: true
+
+goal: >-
+  Дать Admin отдельное окно ELMS Integration Settings и Desk staff grounded-чат
+  у «Поиск по связям» через OmniRoute, optional/fail-closed, без RAG и без
+  dual-path site_config.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006]
+  us_ids: [US-001, US-002, US-003, US-004, US-005, US-006]
+  nouns:
+  - ELMS Integration Settings
+  - OmniRoute client
+  - context assembler
+  - get_models
+  - ask
+  - relationship-search assistant button
+  - chat panel
+  layout_paths:
+  - elms/elms/elms_core/doctype/elms_integration_settings/
+  - elms/elms/ai/omniroute.py
+  - elms/elms/ai/context.py
+  - elms/elms/ai/api.py
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/css/desk-learning.css
+  - elms/elms/desk/workspaces.py
+  ac_quotes:
+  - "Admin открывает Settings → ELMS Integration Settings и сохраняет enabled/URL/key/default_model."
+  - "Кнопка ассистента в .elms-relationship-search-controls, не floating FAB."
+  - "ask возвращает answer + sources; unknown model отклоняется до completions."
+  - "enabled=0 → явная ошибка ask; LMS пути продолжают работать."
+  plan_jumps:
+  - memory-bank/app/plan/T-A06-elms-knowledge-assistant-omniroute/md/plan.md:66-210
+  - memory-bank/app/plan/T-A06-elms-knowledge-assistant-omniroute/md/plan.md:211-304
+  user_journey: >-
+    ELMS Admin opens Workspace Settings, opens ELMS Integration Settings Form,
+    enables OmniRoute with base URL, API key and default model. Desk staff opens
+    learning management, uses the assistant button next to relationship search,
+    picks a model, asks about an existing whitelist method or DocType, and sees
+    a grounded answer with sources. With integration disabled the assistant fails
+    closed while LMS search and enroll keep working.
+  api:
+    get_models:
+      method: elms.ai.api.get_models
+      input: none
+      output: models list and default_model from Integration Settings + OmniRoute
+      errors: disabled/missing config ValidationError; upstream 401 Auth error; Learner PermissionError
+    ask:
+      method: elms.ai.api.ask
+      input: question, optional model, optional bounded history
+      output: answer, insufficient_data, sources, model, correlation_id
+      errors: disabled/config; unknown model; OmniRoute timeout/status; empty question; PermissionError
+  roles:
+    settings_write: ELMS Admin, System Manager, Administrator
+    chat_call: ELMS Admin, ELMS Operations User, ELMS Methodologist, ELMS Instructor, System Manager, Administrator
+    denied: Guest, ELMS Learner
+  persistence: >-
+    ELMS Integration Settings Single is the sole OmniRoute config SoT (Password
+    field for key). No Chat DocType. Context pack is assembled from as-built files
+    at runtime (optional short TTL cache).
+  ui_contract:
+    settings_route: Form for DocType ELMS Integration Settings via Workspace Settings
+    assistant_entry: button inside .elms-relationship-search-controls
+    required: model select, messages, input, send, error/insufficient states, sources list
+    forbidden: floating FAB; Learner-visible assistant entry
+  done: >-
+    Settings Form is the only product config path; relationship-search assistant
+    calls get_models/ask; grounded sources present; disabled path fails closed;
+    site_config dual-path and FAB are absent.
+
+context:
+  consumes:
+  - path: memory-bank/app/clarify/clarify-20261111-elms-knowledge-assistant-omniroute.md
+    reason: locked Q→A decisions
+  - path: memory-bank/product/modules.md
+    reason: Desk roles and Settings ownership
+  - path: memory-bank/compliance/reestr-po-certification.md
+    reason: optional foreign LLM constraint
+  - path: elms/elms/public/js/desk-learning.js
+    reason: relationship search entry surface
+  - path: elms/elms/desk/workspaces.py
+    reason: Settings workspace links
+  produces:
+  - path: elms/elms/elms_core/doctype/elms_integration_settings/
+    reason: Integration Settings Single Form
+  - path: elms/elms/ai/omniroute.py
+    reason: OmniRoute HTTP client
+  - path: elms/elms/ai/context.py
+    reason: as-built context assembler
+  - path: elms/elms/ai/api.py
+    reason: get_models and ask whitelist
+  - path: elms/elms/public/js/desk-learning.js
+    reason: assistant button and chat panel
+  - path: elms/elms/desk/workspaces.py
+    reason: Settings Integrations link
+  plan_refs: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, US-001, US-002, US-003, US-004, US-005, US-006]
+  files:
+  - elms/elms/elms_core/doctype/elms_integration_settings/elms_integration_settings.json
+  - elms/elms/elms_core/doctype/elms_integration_settings/elms_integration_settings.py
+  - elms/elms/elms_core/doctype/elms_integration_settings/__init__.py
+  - elms/elms/ai/__init__.py
+  - elms/elms/ai/omniroute.py
+  - elms/elms/ai/context.py
+  - elms/elms/ai/api.py
+  - elms/elms/hooks.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/elms_core/workspace/settings/settings.json
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/css/desk-learning.css
+  - elms/elms/tests/test_ai_assistant.py
+  - elms/elms/tests/test_learning_ui.py
+  - elms/elms/tests/test_workspaces.py
+
+as_built:
+- Desk learning management already has .elms-relationship-search-controls without assistant entry.
+- ELMS Settings Section is an RBAC-only Single; no Integration Settings Form exists.
+- Platform Workspace Integrations is hidden; Settings workspace has access cards only.
+- LMS whitelist API lives in elms/elms/lms/api.py; no elms.ai package yet.
+
+delta:
+- Add ELMS Integration Settings Single with enabled/base_url/Password key/default_model and Admin write perms.
+- Add OmniRoute client, context assembler, get_models/ask whitelist with role gates and fail-closed disabled path.
+- Wire assistant button + chat panel into relationship search controls; Workspace Settings link to Integration Settings.
+- Deny site_config dual-path and floating FAB; prove LMS unaffected when AI disabled.
+
+files:
+- elms/elms/elms_core/doctype/elms_integration_settings/elms_integration_settings.json
+- elms/elms/elms_core/doctype/elms_integration_settings/elms_integration_settings.py
+- elms/elms/elms_core/doctype/elms_integration_settings/__init__.py
+- elms/elms/ai/__init__.py
+- elms/elms/ai/omniroute.py
+- elms/elms/ai/context.py
+- elms/elms/ai/api.py
+- elms/elms/hooks.py
+- elms/elms/desk/workspaces.py
+- elms/elms/elms_core/workspace/settings/settings.json
+- elms/elms/public/js/desk-learning.js
+- elms/elms/public/css/desk-learning.css
+- elms/elms/tests/test_ai_assistant.py
+- elms/elms/tests/test_learning_ui.py
+- elms/elms/tests/test_workspaces.py
+- memory-bank/app/implement/T-A06-elms-knowledge-assistant-omniroute/s01-knowledge-assistant-vertical-slice.yaml
+
+deletes:
+- path: elms/elms
+  symbol: site_config OmniRoute dual-path fallback for assistant config
+  replacement: ELMS Integration Settings Single only
+- path: elms/elms/public/js
+  symbol: floating FAB / global navbar assistant entry
+  replacement: relationship-search-controls assistant button
+
+out_of_scope:
+- RAG/embeddings; Learner tutoring; Chat DocType; prod OmniRoute hard-dep; OpenAPI export; LangGraph; non-OmniRoute integration fields beyond reserved section.
+
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  design:
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/impeccable/SKILL.md
+
+tdd:
+- Add failing tests for Integration Settings schema/RBAC and disabled fail-closed before implementation
+- Add get_models/ask contract tests (allowlist, unknown model, Learner deny, sources)
+- Add desk-learning and workspaces assertions for assistant entry and Settings link
+- Implement DocType, ai modules, UI panel and Workspace link
+- Prove LMS paths still pass with AI disabled
+
+verify:
+- ./bin/pytest -q elms/elms/tests/test_ai_assistant.py
+- ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py
+- node --check elms/elms/public/js/desk-learning.js
+- python3 -m py_compile elms/elms/ai/omniroute.py elms/elms/ai/context.py elms/elms/ai/api.py
+- rg -n "ELMS Integration Settings|elms.ai.api.get_models|elms.ai.api.ask|relationship-search|data-elms-assistant" elms/elms
+
+checkpoints:
+- id: cp1
+  criterion: Integration Settings Single exists with fields, Admin write, validate-on-write
+  verify: ./bin/pytest -q elms/elms/tests/test_ai_assistant.py -k 'settings or Integration'
+- id: cp2
+  criterion: get_models and ask enforce allowlist, RBAC, grounded sources and disabled fail-closed
+  verify: ./bin/pytest -q elms/elms/tests/test_ai_assistant.py
+- id: cp3
+  criterion: Assistant control is in relationship-search controls; Settings workspace links Integration Settings
+  verify: ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_workspaces.py
+- id: cp4
+  criterion: Desk JS parses and production call-sites wire get_models/ask
+  verify: node --check elms/elms/public/js/desk-learning.js
+- id: cp5
+  criterion: No site_config dual-path and no floating FAB; Integration Settings and ask are sole paths
+  verify: rg -n "ELMS Integration Settings|elms.ai.api|data-elms-assistant|omniroute_base_url" elms/elms
+
+wire_complete:
+  call_sites:
+  - "Workspace Settings -> ELMS Integration Settings Form -> Single save"
+  - "desk-learning relationship-search-controls -> Assistant button -> chat panel"
+  - "chat panel -> elms.ai.api.get_models -> OmniRoute /models"
+  - "chat panel -> elms.ai.api.ask -> context assembler + OmniRoute /chat/completions"
+  - "enabled=0 -> ask HALT; LMS relationship search / enroll unaffected"
+  enforce_path: elms/elms/ai/api.py
+  dual_path_rg: rg -n "omniroute_base_url|omniroute_api_key|elms.ai.api" elms/elms
+  instruction_rg: rg -n "site_config.*omniroute|floating.*assistant|FAB" elms/elms memory-bank/app/plan/T-A06-elms-knowledge-assistant-omniroute
+  deny_old_proven: true

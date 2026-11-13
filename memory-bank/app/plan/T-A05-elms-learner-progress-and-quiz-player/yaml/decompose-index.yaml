@@ -1,0 +1,124 @@
+schema: epic-decompose-index/v1
+plan_id: T-A05-elms-learner-progress-and-quiz-player
+level: L2
+sNN_cap: 1
+appetite:
+  timebox_days: 4
+  cut_list:
+  - certificates, exam commission protocols and FIS FRDO/EISOT export
+  - full quiz/question bank authoring in Course Studio
+  - organization-wide analytics and cohort dashboards
+  - external LMS or assistant/RAG integration
+effort_probe:
+  outcomes:
+  - outcome: Resumable quiz attempts with safe answer options and question counters
+    hours_mid: 10.0
+    hours_range: 8-14
+    confidence: medium
+    notes: Existing API/DocType extension, server validation, targeted behavior tests and player wiring
+  - outcome: Role-controlled learner profile with yearly learning history
+    hours_mid: 8.0
+    hours_range: 6-10
+    confidence: medium
+    notes: Aggregated existing LMS sources, permission boundary, management UI and wire journey
+  total_hours: 18.0
+  effort_hours_total: 18.0
+  effort_class: L
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 1
+  sNN_target: 1
+steps:
+- id: s01
+  file: s01-learner-progress-and-quiz-player-vertical-slice.yaml
+  title: Learner progress inspector and resumable quiz vertical slice
+  next_phase: APP IMPLEMENT
+  status: pending
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Safe option payload and validation for all supported quiz question types
+- id: FR-002
+  step: s01
+  description: Persisted quiz draft, resume, counters and server-side submit
+- id: FR-003
+  step: s01
+  description: Course/lesson/quiz progress projection for learner and profile
+- id: FR-004
+  step: s01
+  description: Role/permission-controlled learner profile and history by year
+- id: FR-005
+  step: s01
+  description: Player, profile, empty/error and accessibility states
+- id: FR-006
+  step: s01
+  description: Activity audit, ownership and fail-closed privacy boundary
+- id: US-001
+  step: s01
+  description: Learner sees safe answer options in a published quiz
+- id: US-002
+  step: s01
+  description: Learner saves and resumes a partially answered attempt
+- id: US-003
+  step: s01
+  description: Learner sees course and quiz progress metrics
+- id: US-004
+  step: s01
+  description: Authorized staff opens learner profile, programs and yearly history
+- id: US-005
+  step: s01
+  description: Unauthorized cross-user profile access is denied
+- id: US-006
+  step: s01
+  description: Published quiz linkage and options are validated end to end
+- id: AC-001
+  step: s01
+  description: Player renders sanitized options for all supported types without answer keys
+- id: AC-002
+  step: s01
+  description: Active attempt is saved, resumed and counted without duplicate attempt
+- id: AC-003
+  step: s01
+  description: Self progress includes lessons, time, last activity, quiz counters and status
+- id: AC-004
+  step: s01
+  description: Permitted viewer sees selected learner programs, courses, events and years
+- id: AC-005
+  step: s01
+  description: Direct unauthorized access fails closed with typed errors
+- id: AC-006
+  step: s01
+  description: Invalid or missing quiz options/link show an explicit error state
+stages_coverage:
+- stage: Stage s01 learner-progress-and-quiz-player-vertical-slice
+  step: s01
+outcome_map:
+- outcome: Resumable quiz attempts with safe answer options and question counters
+  step: s01
+- outcome: Role-controlled learner profile with yearly learning history
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Final-submit-only quiz player and course-only progress management surface
+    target: Persisted resumable quiz state plus learner profile/history entrypoint
+    step: s01
+    policy: replace-in-epic
+  items:
+  - symbol: Active-attempt error in start_quiz
+    kind: A
+    replacement: Idempotent resume response with persisted answers and counters
+    step: s01
+    policy: replace-in-epic
+  - symbol: Client-only answer collection until submitQuiz
+    kind: A
+    replacement: save_quiz_progress contract and visible answered/total counter
+    step: s01
+    policy: replace-in-epic
+  - symbol: Course-only management relationship surface
+    kind: B
+    replacement: Permission-aware learner profile/history surface
+    step: s01
+    policy: replace-in-epic
+  sunset:
+  - Final-submit-only quiz path without persisted draft/resume
+  - UI-only assumption that a learner profile can be opened without server permission

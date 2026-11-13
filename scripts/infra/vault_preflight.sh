@@ -84,7 +84,7 @@ done
 forbidden=(
   DB_PASSWORD ADMIN_PASSWORD KEYCLOAK_DB_PASSWORD KEYCLOAK_ADMIN_PASSWORD
   KEYCLOAK_CLIENT_SECRET
-  NEFTEGAZ_REVIEW_CLIENT_SECRET ELMS_REVIEW_HANDOFF_SECRET YANDEX_CLIENT_ID YANDEX_CLIENT_SECRET
+  NEFTEGAZ_REVIEW_CLIENT_SECRET ELMS_REVIEW_HANDOFF_SECRET
 )
 for key in "${forbidden[@]}"; do
   value="$(dotenv_value "$key")"
@@ -276,8 +276,7 @@ agent_check() {
     exit 1
   fi
   for key in DB_PASSWORD ADMIN_PASSWORD KEYCLOAK_CLIENT_SECRET ELMS_REVIEW_HANDOFF_SECRET \
-    NEFTEGAZ_REVIEW_CLIENT_SECRET KEYCLOAK_DB_PASSWORD KEYCLOAK_ADMIN_PASSWORD \
-    YANDEX_CLIENT_ID YANDEX_CLIENT_SECRET; do
+    NEFTEGAZ_REVIEW_CLIENT_SECRET KEYCLOAK_DB_PASSWORD KEYCLOAK_ADMIN_PASSWORD; do
     grep -q "\"$key\"" "$data_file" || {
       echo "ERROR: Vault path is missing a required key" >&2
       exit 1
@@ -293,7 +292,6 @@ agent_check() {
   grep -q "^DB_PASSWORD=" /run/elms-secrets/frappe/runtime.env || exit 1
   grep -q "^KEYCLOAK_CLIENT_SECRET=" /run/elms-secrets/frappe/runtime.env || exit 1
   grep -q "^KEYCLOAK_ADMIN_PASSWORD=" /run/elms-secrets/keycloak/runtime.env || exit 1
-  grep -q "^YANDEX_CLIENT_ID=" /run/elms-secrets/keycloak/runtime.env || exit 1
   ' >/dev/null 2>&1
 }
 

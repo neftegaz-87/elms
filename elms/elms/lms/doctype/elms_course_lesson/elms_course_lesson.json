@@ -141,6 +141,7 @@
  ],
  "sort_field": "sequence_id",
  "sort_order": "ASC",
+ "show_title_field_in_link": 1,
  "states": [],
  "search_fields": "lesson_name, course, chapter, content_type",
  "title_field": "lesson_name"

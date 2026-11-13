@@ -118,6 +118,7 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "show_title_field_in_link": 1,
  "states": [],
  "search_fields": "batch_name, course_name, course, organization, order_number",
  "title_field": "batch_name"
