@@ -28,7 +28,6 @@
 		relationshipGroups: [],
 		relationshipSearch: "",
 		relationshipType: "",
-		activities: [],
 		admin: { can_manage: false, can_view_learner_profile: false, courses: [], batches: [], subscriptions: [], enrollments: [], quizzes: [], programs: [], users: [] }
 	};
 
@@ -107,7 +106,6 @@
 		call("elms.lms.api.get_learner_dashboard", {}, function (dashboard) {
 			if (!dashboard) return;
 			state.courses = dashboard.courses || [];
-			state.activities = dashboard.activities || [];
 			if (!state.currentEnrollment && state.courses.length) state.currentEnrollment = state.courses[0].enrollment;
 			renderAll();
 		});
@@ -143,8 +141,8 @@
 		container.innerHTML = [
 			'<div class="elms-learning-shell">',
 			'  <div class="elms-learning-header"><div><h1 class="elms-learning-title"><span>elms</span><span class="elms-learning-badge">Обучение</span></h1><div class="elms-learning-subtitle">Курсы, потоки, зачисления, прогресс и контроль освоения в одном рабочем месте</div></div><button class="elms-btn-secondary" id="elms-refresh-btn">Обновить данные</button></div>',
-			'  <div class="elms-learning-tabs"><button class="elms-tab-btn active" data-tab="courses">Мои курсы</button><button class="elms-tab-btn" data-tab="catalog">Каталог курсов</button><button class="elms-tab-btn" data-tab="programs">Программы</button><button class="elms-tab-btn" data-tab="player">Учебный плеер</button><button class="elms-tab-btn" data-tab="progress">Прогресс и аттестация</button><button class="elms-tab-btn" data-tab="activity">Журнал активности</button><button class="elms-tab-btn elms-manager-tab" data-tab="manage" hidden>Управление обучением</button></div>',
-			'  <div id="elms-tab-courses" class="elms-tab-pane active"></div><div id="elms-tab-catalog" class="elms-tab-pane"></div><div id="elms-tab-programs" class="elms-tab-pane"></div><div id="elms-tab-player" class="elms-tab-pane"></div><div id="elms-tab-progress" class="elms-tab-pane"></div><div id="elms-tab-activity" class="elms-tab-pane"></div><div id="elms-tab-manage" class="elms-tab-pane"></div>',
+			'  <div class="elms-learning-tabs"><button class="elms-tab-btn active" data-tab="courses">Мои курсы</button><button class="elms-tab-btn" data-tab="catalog">Каталог курсов</button><button class="elms-tab-btn" data-tab="programs">Программы</button><button class="elms-tab-btn" data-tab="player">Учебный плеер</button><button class="elms-tab-btn" data-tab="progress">Прогресс и аттестация</button><button class="elms-tab-btn elms-manager-tab" data-tab="manage" hidden>Управление обучением</button></div>',
+			'  <div id="elms-tab-courses" class="elms-tab-pane active"></div><div id="elms-tab-catalog" class="elms-tab-pane"></div><div id="elms-tab-programs" class="elms-tab-pane"></div><div id="elms-tab-player" class="elms-tab-pane"></div><div id="elms-tab-progress" class="elms-tab-pane"></div><div id="elms-tab-manage" class="elms-tab-pane"></div>',
 			'</div>'
 		].join("");
 
@@ -163,7 +161,6 @@
 		renderProgramsTab();
 		renderPlayerTab();
 		renderProgressTab();
-		renderActivityTab();
 		renderManageTab();
 	}
 
@@ -280,29 +277,33 @@
 	}
 
 	function openPlayer(enrollment) {
-		var course = state.courses.filter(function (item) { return item.enrollment === enrollment; })[0];
-		state.currentEnrollment = enrollment;
-		state.currentLesson = null;
-		state.currentStructure = null;
-		state.quiz = null;
-		state.quizAttempt = null;
-		state.quizError = null;
-		switchTab("player");
-		if (!course || !course.course) { renderPlayerTab(); return; }
-		call("elms.lms.api.get_course_structure", { course: course.course, enrollment: enrollment }, function (structure, error) {
-			if (!structure) {
-				state.quizError = apiErrorMessage(error);
+		var open = function () {
+			var course = state.courses.filter(function (item) { return item.enrollment === enrollment; })[0];
+			state.currentEnrollment = enrollment;
+			state.currentLesson = null;
+			state.currentStructure = null;
+			state.quiz = null;
+			state.quizAttempt = null;
+			state.quizError = null;
+			switchTab("player");
+			if (!course || !course.course) { renderPlayerTab(); return; }
+			call("elms.lms.api.get_course_structure", { course: course.course, enrollment: enrollment }, function (structure, error) {
+				if (!structure) {
+					state.quizError = apiErrorMessage(error);
+					renderPlayerTab();
+					return;
+				}
+				state.currentStructure = structure;
+				var lessons = flattenLessons(structure);
+				var next = lessons.filter(function (lesson) { return !(lesson.progress && Number(lesson.progress.is_completed)); })[0] || lessons[0];
+				state.currentLesson = next && next.name;
+				state.timeSpent = next && next.progress ? Number(next.progress.time_spent_seconds) || 0 : 0;
+				state.pendingTimeSpent = 0;
 				renderPlayerTab();
-				return;
-			}
-			state.currentStructure = structure;
-			var lessons = flattenLessons(structure);
-			var next = lessons.filter(function (lesson) { return !(lesson.progress && Number(lesson.progress.is_completed)); })[0] || lessons[0];
-			state.currentLesson = next && next.name;
-			state.timeSpent = next && next.progress ? Number(next.progress.time_spent_seconds) || 0 : 0;
-			state.pendingTimeSpent = 0;
-			renderPlayerTab();
-		});
+			});
+		};
+		if (state.pendingTimeSpent > 0) flushLessonProgress(false, open);
+		else open();
 	}
 
 	function flattenLessons(structure) {
@@ -327,14 +328,20 @@
 		var material = selected.video_url ? '<a class="elms-material-link" href="' + esc(selected.video_url) + '" target="_blank" rel="noopener">Открыть видеоматериал ↗</a>' : '';
 		var quizPane = selected.content_type === "Quiz" ? '<div id="elms-quiz-pane" class="elms-quiz-pane"></div>' : '';
 		var completeButton = selected.content_type === "Quiz" ? '' : '<button id="elms-complete-lesson-btn" class="elms-btn-action">Завершить урок</button>';
-		pane.innerHTML = ['<div class="elms-player-container"><aside class="elms-player-sidebar"><div class="elms-sidebar-title">Программа курса</div><ul class="elms-lessons-list">' + sidebar + '</ul></aside>', '<main class="elms-player-main"><div class="elms-player-telemetry-bar"><div class="elms-telemetry-status"><div id="elms-pulse-indicator" class="elms-pulse-dot"></div><span id="elms-telemetry-label">Телеметрия активна · время фиксируется только при активном окне</span></div><span class="elms-timer-value" id="elms-study-timer">' + formatTime(state.timeSpent) + '</span></div>', '<article class="elms-player-content"><div class="elms-kicker">' + esc(selected.content_type || "Материал") + '</div><h2>' + esc(selected.lesson_name) + '</h2><div class="elms-lesson-body">' + body + '</div>' + material + quizPane + '<div class="elms-player-note"><b>Как засчитывается урок:</b> система сохраняет активное время и факт завершения. Переключение вкладки приостанавливает таймер.</div></article><div class="elms-player-footer"><span>Зачисление: <code>' + esc(state.currentEnrollment) + '</code></span>' + completeButton + '</div></main></div>'].join("");
+		pane.innerHTML = ['<div class="elms-player-container"><aside class="elms-player-sidebar"><div class="elms-sidebar-title">Программа курса</div><ul class="elms-lessons-list">' + sidebar + '</ul></aside>', '<main class="elms-player-main"><div class="elms-player-telemetry-bar"><div class="elms-telemetry-status"><div id="elms-pulse-indicator" class="elms-pulse-dot"></div><span id="elms-telemetry-label">Время обучения сохраняется автоматически · таймер работает только при открытом окне</span></div><span class="elms-timer-value" id="elms-study-timer">' + formatTime(state.timeSpent) + '</span></div>', '<article class="elms-player-content"><div class="elms-kicker">' + esc(selected.content_type || "Материал") + '</div><h2>' + esc(selected.lesson_name) + '</h2><div class="elms-lesson-body">' + body + '</div>' + material + quizPane + '<div class="elms-player-note"><b>Как засчитывается урок:</b> система сохраняет активное время и факт завершения. Переключение вкладки приостанавливает таймер.</div></article><div class="elms-player-footer"><span>Зачисление: <code>' + esc(state.currentEnrollment) + '</code></span>' + completeButton + '</div></main></div>'].join("");
 		pane.querySelectorAll(".elms-lesson-item").forEach(function (item) {
 			item.addEventListener("click", function () {
-				state.currentLesson = item.getAttribute("data-lesson");
-				var selectedProgress = lessons.filter(function (lesson) { return lesson.name === state.currentLesson; })[0];
-				state.timeSpent = selectedProgress && selectedProgress.progress ? Number(selectedProgress.progress.time_spent_seconds) || 0 : 0;
-				state.pendingTimeSpent = 0;
-				renderPlayerTab();
+				var nextLesson = item.getAttribute("data-lesson");
+				var selectLesson = function () {
+					state.currentLesson = nextLesson;
+					var selectedProgress = lessons.filter(function (lesson) { return lesson.name === state.currentLesson; })[0];
+					state.timeSpent = selectedProgress && selectedProgress.progress ? Number(selectedProgress.progress.time_spent_seconds) || 0 : 0;
+					state.pendingTimeSpent = 0;
+					renderPlayerTab();
+				};
+				if (nextLesson === state.currentLesson) return;
+				if (state.pendingTimeSpent > 0) flushLessonProgress(false, selectLesson);
+				else selectLesson();
 			});
 		});
 		var complete = pane.querySelector("#elms-complete-lesson-btn");
@@ -451,13 +458,6 @@
 			return '<tr><td><b>' + esc(course.course_name || "Курс") + '</b><div class="elms-table-subtitle">' + esc(course.batch_name || course.batch) + '</div></td><td>' + esc(course.completed_lessons) + '/' + esc(course.total_lessons) + '</td><td><b>' + esc(course.progress_percentage || 0) + '%</b><div class="elms-table-subtitle">Время: ' + esc(formatTime(course.time_spent_seconds || 0)) + '</div></td><td><span class="elms-status-pill ' + (Number(course.exam_eligible) ? 'success' : 'warning') + '">' + (Number(course.exam_eligible) ? 'Допуск открыт' : 'Не завершено') + '</span>' + attempts + '</td></tr>';
 		}).join("");
 		pane.innerHTML = '<div class="elms-table-container"><div class="elms-section-intro"><div><div class="elms-kicker">КОНТРОЛЬ ОСВОЕНИЯ</div><h2>Прогресс по программам</h2><p>Процент, уроки, время и состояние тестов рассчитываются сервером.</p></div></div><table class="elms-audit-table"><thead><tr><th>Программа / поток</th><th>Уроки</th><th>Прогресс и время</th><th>Статус и тесты</th></tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="elms-muted">Нет данных для отображения</td></tr>') + '</tbody></table></div>';
-	}
-
-	function renderActivityTab() {
-		var pane = state.root && state.root.querySelector("#elms-tab-activity");
-		if (!pane) return;
-		var rows = state.activities.map(function (log) { return '<tr><td class="elms-mono">' + esc(log.timestamp) + '</td><td><b>' + esc(log.activity_type) + '</b></td><td>' + esc((log.reference_doctype || "") + (log.reference_name ? " · " + log.reference_name : "")) + '</td><td class="elms-mono">' + esc(log.ip_address) + '</td></tr>'; }).join("");
-		pane.innerHTML = '<div class="elms-table-container"><div class="elms-section-intro"><div><div class="elms-kicker">АУДИТ УЧЕБНОГО ПРОЦЕССА</div><h2>Моя активность</h2><p>Журнал показывает сохранённые события текущего пользователя. Доступ к нему ограничен серверными правами.</p></div></div><table class="elms-audit-table"><thead><tr><th>Время</th><th>Событие</th><th>Объект</th><th>IP</th></tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="elms-muted">Событий пока нет</td></tr>') + '</tbody></table></div>';
 	}
 
 	function renderLearnerProfile() {
@@ -644,28 +644,68 @@
 		}, 1000);
 		state.heartbeatInterval = setInterval(function () {
 			if (!state.isPaused && state.currentEnrollment && state.currentLesson && state.pendingTimeSpent > 0) sendLessonProgress(Math.min(300, state.pendingTimeSpent), false);
-		}, 15000);
+		}, 60000);
 	}
 
-	function sendLessonProgress(delta, isCompleted) {
-		if (!state.currentEnrollment || !state.currentLesson) return;
+	function sendLessonProgress(delta, isCompleted, done) {
+		if (!state.currentEnrollment || !state.currentLesson || (!delta && !isCompleted)) {
+			if (done) done(false);
+			return;
+		}
 		if (state.savingProgress) return;
+		var enrollment = state.currentEnrollment;
+		var lesson = state.currentLesson;
 		state.savingProgress = true;
-		call("elms.lms.api.record_lesson_progress", { enrollment: state.currentEnrollment, lesson_id: state.currentLesson, time_spent_delta: delta, mark_completed: isCompleted ? 1 : 0 }, function (result) {
+		call("elms.lms.api.record_lesson_progress", { enrollment: enrollment, lesson_id: lesson, time_spent_delta: delta, mark_completed: isCompleted ? 1 : 0 }, function (result) {
 			state.savingProgress = false;
-			if (!result) return;
-			state.pendingTimeSpent = Math.max(0, state.pendingTimeSpent - delta);
+			if (!result) {
+				if (done) done(false);
+				return;
+			}
+			if (state.currentEnrollment === enrollment && state.currentLesson === lesson) {
+				state.pendingTimeSpent = Math.max(0, state.pendingTimeSpent - delta);
+			}
 			if (isCompleted) {
 				frappe.show_alert({ message: "Урок завершён, прогресс сохранён", indicator: "green" });
 				loadData();
-				if (state.currentStructure) openPlayer(state.currentEnrollment);
+				if (state.currentStructure && state.currentEnrollment === enrollment) openPlayer(enrollment);
 			}
+			if (done) done(true);
 		});
 	}
 
+	function flushLessonProgress(isCompleted, done) {
+		if (!state.pendingTimeSpent && !isCompleted) {
+			if (done) done(true);
+			return;
+		}
+		if (state.savingProgress) {
+			window.setTimeout(function () { flushLessonProgress(isCompleted, done); }, 100);
+			return;
+		}
+		sendLessonProgress(Math.min(300, state.pendingTimeSpent), Boolean(isCompleted), done);
+	}
+
+	function sendLessonProgressBeacon() {
+		if (!state.currentEnrollment || !state.currentLesson || !state.pendingTimeSpent || state.savingProgress || !navigator.sendBeacon) return;
+		var delta = Math.min(300, state.pendingTimeSpent);
+		var payload = new URLSearchParams();
+		payload.append("enrollment", state.currentEnrollment);
+		payload.append("lesson_id", state.currentLesson);
+		payload.append("time_spent_delta", delta);
+		payload.append("mark_completed", "0");
+		if (frappe.csrf_token) payload.append("csrf_token", frappe.csrf_token);
+		if (navigator.sendBeacon("/api/method/elms.lms.api.record_lesson_progress", payload)) {
+			state.pendingTimeSpent = Math.max(0, state.pendingTimeSpent - delta);
+		}
+	}
+
 	function bindAntiCheat() {
+		if (window._elmsLearningTelemetryBound) return;
+		window._elmsLearningTelemetryBound = true;
 		window.addEventListener("blur", function () {
 			state.isPaused = true;
+			flushLessonProgress(false);
 			var dot = state.root && state.root.querySelector("#elms-pulse-indicator");
 			var label = state.root && state.root.querySelector("#elms-telemetry-label");
 			if (dot) dot.classList.add("paused");
@@ -678,6 +718,20 @@
 			if (dot) dot.classList.remove("paused");
 			if (label) label.textContent = "Телеметрия активна · время фиксируется только при активном окне";
 		});
+		document.addEventListener("visibilitychange", function () {
+			if (document.visibilityState === "hidden") flushLessonProgress(false);
+		});
+		window.addEventListener("pagehide", sendLessonProgressBeacon);
+	}
+
+	function stopLearningTelemetryWhenLeaving() {
+		var route = frappe.get_route && frappe.get_route();
+		if (!route || !route.length || route[0] === pageName) return;
+		if (state.timerInterval) clearInterval(state.timerInterval);
+		if (state.heartbeatInterval) clearInterval(state.heartbeatInterval);
+		state.timerInterval = null;
+		state.heartbeatInterval = null;
+		flushLessonProgress(false);
 	}
 
 	function redirectLegacyAuthoringRoute() {
@@ -701,5 +755,8 @@
 		frappe.re_route["elms"] = "lms";
 	}
 	$(document).on("toolbar_setup page-change", registerPage);
-	$(document).on("page-change", redirectLegacyAuthoringRoute);
+	$(document).on("page-change", function () {
+		stopLearningTelemetryWhenLeaving();
+		redirectLegacyAuthoringRoute();
+	});
 })();

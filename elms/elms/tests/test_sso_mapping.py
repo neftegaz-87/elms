@@ -53,12 +53,12 @@ class TestSSOIdentityMapping(unittest.TestCase):
         self.assertEqual(self.registry.resolve_target_identity("erokhin.a@nftgz.ru"), "erokhin.a@nftgz.ru")
         self.assertEqual(self.registry.resolve_target_identity("unknown.person@example.com"), "unknown.person@example.com")
 
-    def test_get_sso_authorization_url_resolves_and_attaches_kc_hint(self):
+    def test_get_sso_authorization_url_resolves_without_legacy_kc_hint(self):
         res = get_sso_authorization_url(user_input="aeroalgo@gmail.com")
         self.assertTrue(res["mapped"])
         self.assertEqual(res["target_identity"], "erokhin.a@nftgz.ru")
         auth_url = res["auth_url"]
-        self.assertIn("kc_idp_hint=yandex", auth_url)
+        self.assertNotIn("kc_idp_hint=", auth_url)
         self.assertIn("login_hint=erokhin.a%40nftgz.ru", auth_url)
         self.assertIn("client_id=", auth_url)
         self.assertIn("response_type=code", auth_url)

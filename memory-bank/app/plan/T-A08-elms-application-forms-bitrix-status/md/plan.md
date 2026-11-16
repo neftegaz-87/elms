@@ -89,11 +89,21 @@
 | US-004 | Как система, при падении Bitrix не показываю ложный success. | P0 | fail-closed |
 | US-005 | Как Admin, не могу выставить «Approved» только в ELMS в обход Bitrix. | P0 | DENY local master status |
 
+### Acceptance criteria
+
+| ID | Criterion |
+|----|-----------|
+| AC-001 | Given published course id; When submit valid PII+consent; Then Bitrix lead created; ELMS stores bitrix_id; user sees success with tracking ref. |
+| AC-002 | Given legal cooperation payload with courses+INN+consent; When submit; Then Bitrix lead created and Application Link stored for application_kind=legal. |
+| AC-003 | Given Bitrix unavailable or BITRIX_REST_WEBHOOK_URL missing; When submit; Then form/API returns explicit error and no successful Application Link is presented. |
+| AC-004 | Given Bitrix status changed to STAGE_X; When ELMS refresh; Then UI shows STAGE_X label from mapping; stale local snapshot updated. |
+| AC-005 | Given Application Link; When PATCH/write local master status; Then ValidationError/Permission denied. |
+
 ### Acceptance highlights
 
-- US-001: Given published course id; When submit valid PII+consent; Then Bitrix lead/deal created; ELMS stores bitrix_id; user sees success with tracking ref.
-- US-003: Given Bitrix status changed to STAGE_X; When ELMS refresh; Then UI shows STAGE_X label from mapping; stale local snapshot updated.
-- US-005: Given Application Link; When PATCH local status; Then ValidationError/Permission denied.
+- US-001 → AC-001: Given published course id; When submit valid PII+consent; Then Bitrix lead/deal created; ELMS stores bitrix_id; user sees success with tracking ref.
+- US-003 → AC-004: Given Bitrix status changed to STAGE_X; When ELMS refresh; Then UI shows STAGE_X label from mapping; stale local snapshot updated.
+- US-005 → AC-005: Given Application Link; When PATCH local status; Then ValidationError/Permission denied.
 
 ## Functional requirements
 
@@ -124,9 +134,12 @@
 
 ## NFR
 
-- Submit timeout explicit; Bitrix error text sanitized.
-- PII only fields needed; logs mask phone/email partially.
-- Idempotent submit key (email+course+day) — optional anti-dup (DECOMPOSE).
+| ID | Requirement |
+|----|-------------|
+| NFR-001 | Submit timeout explicit; Bitrix error text sanitized. |
+| NFR-002 | PII only fields needed; logs mask phone/email partially. |
+| NFR-003 | Honeypot and/or rate-limit on public submit. |
+| NFR-004 | Optional idempotent submit key (email+course+day) anti-dup. |
 
 ## Explicit non-goals
 

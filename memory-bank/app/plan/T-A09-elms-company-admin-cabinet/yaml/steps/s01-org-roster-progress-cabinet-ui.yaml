@@ -1,0 +1,196 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A09-elms-company-admin-cabinet
+title: Org roster with progress and Desk cabinet UI
+level: L2
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Дать ELMS Company Admin (и ELMS Admin) кабинет «Моя организация»: server-side
+  roster только своей org с enrollment status и progress_percentage из ELMS
+  Course Progress, Desk table + empty state; cross-org → PermissionError.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-004]
+  nfr_ids: [NFR-001, NFR-003]
+  us_ids: [US-001, US-002, US-004, US-005]
+  ac_ids: [AC-001, AC-002, AC-003, AC-005]
+  nouns:
+  - get_org_roster
+  - OrgRosterDTO
+  - ELMS Organization Member
+  - ELMS Enrollment
+  - ELMS Course Progress
+  - progress_percentage
+  - require_organization_access
+  - Desk cabinet page
+  - empty state
+  layout_paths:
+  - elms/elms/cabinet/
+  - elms/elms/operations/page/elms_cabinet/
+  - elms/elms/public/js/desk-cabinet.js
+  - elms/elms/public/css/desk-cabinet.css
+  - elms/elms/desk/workspaces.py
+  - elms/elms/tests/test_cabinet_roster.py
+  - elms/elms/tests/test_cabinet_ui.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md:16-27
+  - memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md:53-108
+  - memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md:70-95
+  ac_quotes:
+  - "AC-001: Given Company Admin A in org1 and users in org1/org2; When get_org_roster for org1; Then only org1 members are returned."
+  - "AC-002: Given Company Admin A in org1; When get_org_roster (or export) for org2; Then PermissionError / explicit access denial."
+  - "AC-003: Given enrollment Active and ELMS Course Progress progress_percentage=40; When roster row; Then enrollment status and progress_pct=40 are shown; missing progress row → documented 0."
+  - "AC-005: Given organization with zero members; When cabinet opens; Then explicit empty state is shown (no fake rows)."
+  progress_semantics: >-
+    progress_pct = ELMS Course Progress.progress_percentage for the enrollment;
+    if no Course Progress row exists → 0.0 (documented, not null inventing a second SoT).
+  user_journey: >-
+    Company Admin opens Workspace «Кабинет компании» /app/elms-cabinet. Page
+    calls get_org_roster for primary membership org (Admin may pass organization).
+    Table shows FIO/email/account status, enrollments with status and %. Empty
+    membership → empty state copy. Cross-org API call shows explicit error.
+  api:
+    get_org_roster:
+      method: elms.cabinet.api.get_org_roster
+      input: >-
+        organization (optional; default = caller primary org membership);
+        status_filter optional; page / page_size (default 50, max 500)
+      output: >-
+        organization, total, page, rows[{user, full_name, email, user_enabled,
+        roles (learner/profile flags), enrollments[{enrollment, course,
+        course_name, status, progress_pct, last_activity?}]}]
+      errors: PermissionError cross-org; ValidationError bad page_size; DoesNotExist org
+    authz: >-
+      Reuse elms.access.api.require_organization_access — ELMS Admin any org;
+      Company Admin only membership org. FORBIDDEN trusting client user list.
+  roles:
+    company_admin: ELMS Company Admin — own org roster
+    admin: ELMS Admin — any org select
+    denied: Guest, Learner, Company Admin for foreign org
+  persistence: >-
+    Read-only over ELMS Organization Member, User, ELMS Enrollment, ELMS Course
+    Progress. No new progress SoT DocType. Optional thin audit of roster views
+    deferred; export audit is s02.
+  done: >-
+    Two-org fixture proves AC-001/002; progress join proves AC-003; Desk page
+    wires real get_org_roster with empty state; leftover_sot rg finds no
+    unfiltered User dump used as cabinet path.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md
+    reason: FR/US/AC cabinet contract
+  - path: elms/elms/access/api.py
+    reason: require_organization_access and membership helpers (T-A07)
+  - path: elms/elms/lms/doctype/elms_enrollment/
+    reason: enrollment status fields
+  - path: elms/elms/lms/doctype/elms_course_progress/
+    reason: progress_percentage SoT
+  - path: elms/elms/desk/workspaces.py
+    reason: B2B Access workspace patterns
+  - path: elms/elms/public/js/desk-access.js
+    reason: Desk page JS conventions (do not merge unrelated access forms)
+  - path: elms/elms/operations/page/elms_access/
+    reason: page DocType pattern for Desk surface
+  produces:
+  - path: elms/elms/cabinet/__init__.py
+    reason: cabinet package
+  - path: elms/elms/cabinet/api.py
+    reason: whitelist get_org_roster
+  - path: elms/elms/cabinet/roster.py
+    reason: membership query + enrollment/progress join DTO
+  - path: elms/elms/operations/page/elms_cabinet/elms_cabinet.json
+    reason: Desk page DocType for Company Admin/Admin
+  - path: elms/elms/public/js/desk-cabinet.js
+    reason: table + empty state wire to get_org_roster
+  - path: elms/elms/public/css/desk-cabinet.css
+    reason: cabinet table/empty styles (neftegaz Desk tokens)
+  - path: elms/elms/public/js/elms-cabinet-page.js
+    reason: page_js bootstrap if required by hooks pattern
+  - path: elms/elms/desk/workspaces.py
+    reason: Кабинет компании workspace card/shortcut
+  - path: elms/elms/hooks.py
+    reason: app_include / page_js for cabinet assets
+  - path: elms/elms/tests/test_cabinet_roster.py
+    reason: ACL two-org + progress join + pagination
+  - path: elms/elms/tests/test_cabinet_ui.py
+    reason: Desk call-site and empty-state contracts
+  - path: memory-bank/app/implement/T-A09-elms-company-admin-cabinet/s01-org-roster-progress-cabinet-ui.yaml
+    reason: implement evidence contract
+  plan_refs: [FR-001, FR-002, FR-004, NFR-001, NFR-003, US-001, US-002, US-004, US-005, AC-001, AC-002, AC-003, AC-005]
+
+as_built:
+- elms/elms/access/api.py — Organization, membership, require_organization_access exist; no cabinet roster.
+- elms/elms/lms — ELMS Enrollment.status and ELMS Course Progress.progress_percentage are canonical progress fields (T-A05).
+- Desk has elms-access for invite/org; no company progress cabinet page.
+
+delta:
+- Add cabinet package with typed get_org_roster over membership + enrollment + progress_percentage.
+- Add Desk /app/elms-cabinet page and workspace entry with empty state.
+- Enforce cross-org denial via require_organization_access; no client user-list trust.
+
+files:
+  - elms/elms/cabinet/__init__.py
+  - elms/elms/cabinet/api.py
+  - elms/elms/cabinet/roster.py
+  - elms/elms/operations/page/elms_cabinet/elms_cabinet.json
+  - elms/elms/operations/page/elms_cabinet/__init__.py
+  - elms/elms/public/js/desk-cabinet.js
+  - elms/elms/public/css/desk-cabinet.css
+  - elms/elms/public/js/elms-cabinet-page.js
+  - elms/elms/desk/workspaces.py
+  - elms/elms/hooks.py
+  - elms/elms/tests/test_cabinet_roster.py
+  - elms/elms/tests/test_cabinet_ui.py
+  - elms/elms/tests/test_workspaces.py
+  - memory-bank/app/implement/T-A09-elms-company-admin-cabinet/s01-org-roster-progress-cabinet-ui.yaml
+deletes: []
+out_of_scope:
+  - CSV/xlsx export (s02)
+  - Export audit log (s02)
+  - Enrollment create/edit from cabinet
+  - Funnel BI / heatmaps
+  - Bitrix progress sync
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  design:
+  - .agents/skills/frontend-design/SKILL.md
+tdd:
+  - Add failing two-org ACL, progress join (40% and missing→0), pagination max, empty roster tests.
+  - Implement roster API + Desk cabinet wired to get_org_roster.
+  - Run targeted pytest and JS syntax checks.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_cabinet_ui.py
+  - ./bin/pytest -q elms/elms/tests/test_workspaces.py -k cabinet
+  - python3 -m py_compile elms/elms/cabinet/api.py elms/elms/cabinet/roster.py
+  - node --check elms/elms/public/js/desk-cabinet.js
+  - 'rg -n ''get_org_roster|require_organization_access|progress_percentage|elms-cabinet'' elms/elms/cabinet elms/elms/public/js/desk-cabinet.js elms/elms/desk/workspaces.py'
+checkpoints:
+  - id: cp1
+    criterion: Two-org fixture — only own org returned; foreign org PermissionError; progress_pct from Course Progress.
+    verify: ./bin/pytest -q elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_cabinet_ui.py
+  - id: cp2
+    criterion: Desk cabinet calls real get_org_roster; empty state; workspace entry present.
+    verify: 'rg -n ''get_org_roster|require_organization_access|progress_percentage|elms-cabinet'' elms/elms/cabinet elms/elms/public/js/desk-cabinet.js elms/elms/desk/workspaces.py'
+wire_complete:
+  call_sites:
+  - "Workspace Кабинет компании -> /app/elms-cabinet -> desk-cabinet.js -> elms.cabinet.api.get_org_roster"
+  - "get_org_roster -> require_organization_access -> Member + Enrollment + Course Progress.progress_percentage"
+  enforce_path: elms/elms/cabinet/api.py
+  dual_path_rg: 'rg -n "get_all\\(\"User\"|frappe.get_list\\(\"User\"|client.?side.?ACL|UI filter as security" elms/elms/cabinet elms/elms/public/js/desk-cabinet.js'
+  instruction_rg: 'rg -n "UI filter|client.?side.?ACL|без проверки org" elms/elms/cabinet elms/elms/public/js/desk-cabinet.js'
+  deny_old_proven: true

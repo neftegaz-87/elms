@@ -12,7 +12,6 @@ from elms.sso.constants import (
     KEYCLOAK_DEFAULT_REDIRECT_URL,
     KEYCLOAK_LOGIN_CONF_KEY,
     KEYCLOAK_PROVIDER_NAME,
-    YANDEX_IDP_ALIAS,
 )
 
 if not hasattr(frappe, "scrub"):

@@ -1,0 +1,107 @@
+schema: epic-implement/v1
+epic_id: T-A09-elms-company-admin-cabinet
+role: app
+phase: implement
+plan_id: T-A09-elms-company-admin-cabinet
+step_id: s02
+status: completed
+checkpoints:
+  - id: cp1
+    status: done
+    owner: implement-flush/finish
+  - id: cp2
+    status: done
+    owner: implement-flush/finish
+current_step_verification:
+  step_id: s02
+  checklist:
+    - command: ./bin/pytest -q elms/elms/tests/test_cabinet_export.py
+      result: 5 passed
+    - command: python3 -m py_compile elms/elms/cabinet/api.py elms/elms/cabinet/export.py
+      result: passed
+    - command: node --check elms/elms/public/js/desk-cabinet.js
+      result: passed
+    - command: rg -n 'export_org_progress|ELMS Cabinet Export Log|5000' elms/elms/cabinet elms/elms/public/js/desk-cabinet.js
+      result: matched
+  wire_complete:
+    status: completed
+    scope: wire
+    slice: wire_complete
+    call_sites:
+      - "Desk cabinet Export -> export_org_progress -> roster query + CSV + ELMS Cabinet Export Log"
+    enforce_path: elms/elms/cabinet/export.py
+    deny_old_proven: true
+    dual_path_rg: 'rg -n "Blob\\(|downloadCSV|tableToCsv|innerText.*csv" elms/elms/public/js/desk-cabinet.js'
+    instruction_rg: 'rg -n "скачай из таблицы|export without server|DOM CSV" elms/elms/public/js/desk-cabinet.js elms/elms/cabinet'
+  evidence:
+    - checkpoint: cp1
+      scope: contract
+      status: completed
+    - checkpoint: cp2
+      scope: wire
+      status: completed
+    - checkpoint: wire_complete
+      command: wire_complete
+      result: passed
+      scope: wire
+      status: completed
+      slice: wire_complete
+      call_site: "Desk cabinet Export -> export_org_progress -> roster query + CSV + ELMS Cabinet Export Log"
+      enforce_path: elms/elms/cabinet/export.py
+      deny_old_proven: true
+      dual_path_rg:
+        command: 'rg -n "Blob\(|downloadCSV|tableToCsv|innerText.*csv" elms/elms/public/js/desk-cabinet.js'
+        result: no matches
+        passed: true
+      instruction_rg:
+        command: 'rg -n "скачай из таблицы|export without server|DOM CSV" elms/elms/public/js/desk-cabinet.js elms/elms/cabinet'
+        result: no matches
+        passed: true
+  implementation_scope: mixed_contract_wire
+wire_complete:
+  status: completed
+  scope: wire
+  slice: wire_complete
+  call_sites:
+    - "Desk cabinet Export -> export_org_progress -> roster query + CSV + ELMS Cabinet Export Log"
+  enforce_path: elms/elms/cabinet/export.py
+  deny_old_proven: true
+  dual_path_rg: 'rg -n "Blob\\(|downloadCSV|tableToCsv|innerText.*csv" elms/elms/public/js/desk-cabinet.js'
+  instruction_rg: 'rg -n "скачай из таблицы|export without server|DOM CSV" elms/elms/public/js/desk-cabinet.js elms/elms/cabinet'
+wire_evidence:
+  status: completed
+  scope: wire
+  slice: wire_complete
+  call_sites:
+  - "Desk cabinet Export -> export_org_progress -> roster query + CSV + ELMS Cabinet Export Log"
+  enforce_path: elms/elms/cabinet/export.py
+  deny_old_proven: true
+  dual_path_rg: 'rg -n "Blob\\(|downloadCSV|tableToCsv|innerText.*csv" elms/elms/public/js/desk-cabinet.js'
+  instruction_rg: 'rg -n "скачай из таблицы|export without server|DOM CSV" elms/elms/public/js/desk-cabinet.js elms/elms/cabinet'
+tests:
+  - elms/elms/tests/test_cabinet_export.py
+evidence:
+  - command: ./bin/pytest -q elms/elms/tests/test_cabinet_export.py
+    result: 5 passed
+  - command: python3 -m py_compile elms/elms/cabinet/api.py elms/elms/cabinet/export.py
+    result: passed
+  - command: node --check elms/elms/public/js/desk-cabinet.js
+    result: passed
+  - command: rg -n 'export_org_progress|ELMS Cabinet Export Log|5000' elms/elms/cabinet elms/elms/public/js/desk-cabinet.js
+    result: matched
+  - command: wire_complete
+    result: passed
+    scope: wire
+    slice: wire_complete
+    call_sites:
+      - "Desk cabinet Export -> export_org_progress -> roster query + CSV + ELMS Cabinet Export Log"
+    enforce_path: elms/elms/cabinet/export.py
+    deny_old_proven: true
+    dual_path_rg:
+      command: 'rg -n "Blob\(|downloadCSV|tableToCsv|innerText.*csv" elms/elms/public/js/desk-cabinet.js'
+      result: no matches
+      passed: true
+    instruction_rg:
+      command: 'rg -n "скачай из таблицы|export without server|DOM CSV" elms/elms/public/js/desk-cabinet.js elms/elms/cabinet'
+      result: no matches
+      passed: true

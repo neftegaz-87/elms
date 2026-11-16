@@ -259,6 +259,19 @@ if "yandex" in html.lower() or "kc_idp_hint" in html.lower():
     raise SystemExit("live_smoke: Keycloak authorization page exposes a removed external IdP path")
 PY
 
+access_url="$ELMS_BASE_URL/app/elms-access"
+request access_page "$access_url"
+access_status="$(status_code "$TEMP_DIR/access_page.headers")"
+require_status access_page "$access_status" 200 301 302
+python3 - "$TEMP_DIR/access_page.body" <<'PY'
+from pathlib import Path
+import sys
+
+html = Path(sys.argv[1]).read_text(encoding="utf-8").lower()
+if "yandex" in html or "kc_idp_hint" in html:
+    raise SystemExit("live_smoke: organization access route exposes a removed external IdP path")
+PY
+
 python3 - "$EVIDENCE_FILE" "$timestamp" "$ELMS_BASE_URL" "$KEYCLOAK_BASE_URL" "$REALM" "$discovery_url" "$discovery_status" "$TEMP_DIR/discovery.headers" "$TEMP_DIR/discovery.body" "$frappe_login_url" "$frappe_login_status" "$frappe_location" "$TEMP_DIR/frappe_login.headers" "$TEMP_DIR/frappe_login.body" "$authorization_status" "$TEMP_DIR/authorization.headers" "$TEMP_DIR/authorization.body" "$LIVE_SMOKE_COMMAND" <<'PY'
 import json
 import pathlib

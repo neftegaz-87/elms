@@ -1,7 +1,7 @@
 # Архитектурные паттерны системы (systemPatterns)
 
 **Дата:** 2026-11-01
-**Статус:** Базовые системные паттерны подтверждены по результатам T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
+**Статус:** Базовые системные паттерны подтверждены по результатам T-A09 и T-A08 APP QA PASS, T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
 
 ## 1. Slim Single-App Frappe Architecture
 
@@ -18,14 +18,14 @@
 ## 3. Central Identity Broker Pattern (SSO & RBAC)
 
 - **Принцип:** Строгое разделение плоскости аутентификации/идентичности (Identity Plane) и плоскости авторизации/прав (Application Authorization Plane):
-  - **Keycloak (Identity Plane):** единственный IdP целевого контура (логин/пароль, invite). Frappe доверяет только Keycloak через Social Login Key `Keycloak` и `/api/method/frappe.integrations.oauth2_logins.login_via_keycloak`.
-  - **Целевое решение (2026-11-13):** Yandex как SSO IdP **снимается** с контура; as-built broker Yandex — legacy к purge (не расширять). Прямой Social Login Key Yandex в Frappe по-прежнему запрещён.
-  - **Конфигурация и секреты:** Frappe `site_config` содержит только `keycloak_login` (`client_id`, `client_secret`). Git tracking свободен от открытых секретов.
+  - **Keycloak (Identity Plane):** единственный runtime IdP целевого контура (логин/пароль, invite). Frappe доверяет только Keycloak через Social Login Key `Keycloak` и `/api/method/frappe.integrations.oauth2_logins.login_via_keycloak`; invite из ELMS provisioned в Keycloak через Admin API.
+  - **Целевое решение (2026-11-13):** Yandex как SSO IdP снят с контура; enabled provider и broker hint удалены. Оставшиеся aliases/data — только migration compatibility inventory, расширять Yandex path запрещено. Прямой Social Login Key Yandex в Frappe запрещён.
+  - **Конфигурация и секреты:** Frappe `site_config` содержит только `keycloak_login` (`client_id`, `client_secret`); Yandex secrets не обязательны для SSO. Git tracking свободен от открытых секретов.
   - **Conf Gating:** Включение Social Login Key (`enable_social_login = 1`) происходит только при наличии действительных учетных данных в `site_config`.
-  - **Just-in-Time (JIT) Provisioning:** Пользователи создаются в Frappe строго в момент первого успешного входа через Keycloak брокер (`first broker login`), сопоставляясь по неизменяемому `sub` и верифицированному email. Массовый импорт каталога запрещён.
-  - **Fail-Closed Role Assignment Hook:** Хук `User.after_insert` (`elms.sso.roles.maybe_assign_sso_roles`) гарантированно присваивает новому SSO-пользователю роли `Desk User` и `ELMS Learner`. Если хотя бы одна из ролей отсутствует в базе данных, операция выбрасывает `frappe.throw`, откатывая транзакцию и предотвращая появление учетных записей без прав.
-  - **Outage Branching & Local Fallback:** Сбой внешнего IdP Yandex завершается fail-closed (никаких фиктивных сессий). Для утверждённых пользователей поддерживается резервный вход по локальным паролям Keycloak (`fallback.user@elms.local`), а для аварийного восстановления — локальный логин Administrator в Desk UI (Break-Glass Level 2).
-  - **Live Boundary Evidence:** `scripts/live_smoke.sh` проверяет Frappe login, Keycloak authorization и Yandex broker route, пишет `docs/reports/sso-browser-api-trace.json`; отсутствие реальных Yandex credentials/callback фиксируется как `not_run`, а не как fabricated success.
+  - **Just-in-Time (JIT) Provisioning:** Непредварительно приглашённые пользователи создаются в Frappe при первом успешном входе через Keycloak, сопоставляясь по неизменяемому `sub` и верифицированному email; уже provisioned invite users не дублируются. Массовый импорт каталога запрещён.
+  - **Fail-Closed Role Assignment Hook:** Хук `User.after_insert` (`elms.sso.roles.maybe_assign_sso_roles`) гарантированно присваивает базовые роли `Desk User` и `ELMS Learner`, не снимая `ELMS Company Admin` и явные invite-роли. Если роль отсутствует, операция выбрасывает `frappe.throw`, откатывая транзакцию и предотвращая учетные записи без прав.
+  - **Outage Branching & Local Fallback:** Сбой Keycloak завершается fail-closed без фиктивной сессии. Для утверждённых пользователей поддерживается локальный пароль Keycloak (`fallback.user@elms.local`), а для аварийного восстановления — локальный логин Administrator в Desk UI (Break-Glass Level 2); Yandex broker не является fallback.
+  - **Live Boundary Evidence:** `scripts/live_smoke.sh` и browser journeys проверяют Keycloak discovery/login/authorization, access route и invite wire; typed evidence фиксирует `live_evidence=true`, `exit_code=0`, а scan подтверждает отсутствие enabled Yandex provider и `kc_idp_hint` runtime dependency.
 
 ## 4. Multi-Service Container Topology
 
@@ -48,6 +48,18 @@
 - **Жизненный цикл прав (Lifecycle Hooks):** Идемпотентная инициализация ролей (`ensure_roles`) и распределение прав (`ensure_section_perms`) выполняются при `after_install` и `after_migrate` (`elms/elms/install.py`).
 - **Fail-Closed & No-Silent-Fallback:** Любой сбой создания роли или назначения прав генерирует исключение (`frappe.throw`), предотвращая запуск системы в полунастроенном состоянии. Использование `try/except: pass`, тихий возврат при отсутствии подключения к БД или пропуск при отсутствии DocType / Custom DocPerm запрещены и контролируются fail-closed исключениями.
 - **Сохранение платформенных ролей:** Системные роли Frappe (`Administrator`, `System Manager`) не блокируются и сохраняют административный доступ.
+
+## 5a. B2B Organization Scope Pattern
+
+- **Организационная граница:** `ELMS Organization` — canonical B2B boundary; `ELMS Organization Member` фиксирует membership, а `User Permission` с `allow=ELMS Organization` и `for_value=<org>` ограничивает записи.
+- **Company Admin:** `ELMS Company Admin` и `ELMS Company Admin Profile` дают только scoped invite/read surface; проверка membership обязательна для чтения и invite, cross-org операции завершаются `PermissionError`.
+- **Группы не являются security boundary:** `User Group` используется для адресации, но не выдаёт роль и не заменяет User Permission.
+
+## 5b. Invite Provisioning Pattern
+
+- **Typed external boundary:** `elms.access` использует typed Keycloak Admin API settings/responses и структурированный invite result; HTML/regex ошибки не считаются успехом.
+- **Atomic success contract:** invite считается успешным только после Frappe state, Keycloak user и `UPDATE_PASSWORD` action; provider/network failure — typed fail-closed error с rollback/compensating disable, без Frappe-only success.
+- **Idempotency and privacy:** повторный invite разрешён по email, повторяет password action, не возвращает пароль и сохраняет audit в `ELMS Invite Log`.
 
 ## 6. Closed External Integrations Boundary
 
@@ -75,7 +87,7 @@
 - **Surface ownership:** Login остаётся на штатном Frappe `/login`; вертикальный срез подключает scoped `login.css` через `web_include_css` и `login-keycloak.js` через `web_include_js`, не создавая custom SPA или template fork. Рендерится стандартная форма и ровно одна кнопка `.btn-keycloak` с публичным Keycloak URL (`KEYCLOAK_PUBLIC_URL/realms/elms`). Прямые Yandex-кнопки исключены.
 - **Cascade boundary:** `login.bundle.css` подключается через `head_include` после `head.html` и переопределяет equal-specificity selectors из `web_include_css`. Для гарантии применения дизайна Neftegaz (`#0d4cd3`, `44px`, `3px`) в `login.css` используются селекторы повышенной специфичности и правило `!important` для состояний кнопки action (устранён дефект BF-001).
 - **Runtime acceptance:** Статические CSS-токены не заменяют browser evidence: acceptance проверяет live computed style и asset delivery в реальном браузере через Playwright. T-A01 подтвердил `44px` control height, `3px` radius, cobalt action `rgb(13, 76, 211)` (`#0d4cd3`), single `.btn-keycloak` button и отсутствие direct Yandex control.
-- **Identity boundary:** Browser login и live HTTP trace проходят через Keycloak authorization/broker route; Frappe не вызывает Yandex напрямую, а interactive Yandex остаётся `not_run` без реальных credentials и callback.
+- **Identity boundary:** Browser login и live HTTP trace проходят через Keycloak authorization; Frappe не вызывает Yandex напрямую, runtime Yandex provider и `kc_idp_hint` отсутствуют, а migration-only aliases не образуют login control.
 
 ## 8. Immutable Production Compose & Vault Gate Pattern
 
@@ -108,3 +120,16 @@
 - **Контракт:** структурированный JSON в stdout/stderr → docker json-file/journald с ротацией; опционально Dozzle только на `127.0.0.1`.
 - **FORBIDDEN в ELMS SoT:** Loki/Grafana/Prometheus; Vector/Alloy/Fluent Bit с remote sink; публичный UI логов.
 - **Канон:** `memory-bank/decisions/observability-stack.md` (пересмотр 2026-11-12; supersedes ship-to-central).
+
+## 12. Application and Bitrix status SoT (`T-A08`)
+
+- Typed Pydantic application payloads and the single `scripts/bitrix/rest_client.py` transport bound public individual/legal forms to `crm.lead.add`; a local Application Link is persisted only after a Bitrix id is returned, and configuration/transport failures are fail-closed.
+- `crm.lead.get.STATUS_ID` is the sole application-status source. ELMS stores only mapped read-back snapshots (`last_status_snapshot`, `last_status_code`, `last_synced_at`, display label); local master-status/workflow mutation is denied.
+- Desk and public tracking use real refresh/read-back methods. APP QA evidence confirms the required app lanes and AC-001..AC-005; live Bitrix sandbox coverage remains explicitly out of scope.
+
+## 13. Company Admin Cabinet Scope and Export (`T-A09`)
+
+- **Server-side organization boundary:** `ELMS Organization Member` is the source of the Company Admin roster scope; UI organization filters are not a security boundary, and cross-org roster/export requests are denied.
+- **Shared LMS read model:** roster rows join organization members to `ELMS Enrollment` and `ELMS Course Progress`; absent progress is represented by the documented `0.0` value, without introducing a parallel progress SoT.
+- **Server-side export and audit:** `export_org_progress` reuses the roster ACL/query, emits UTF-8 CSV, and records actor, organization, row count, and timestamp in `ELMS Cabinet Export Log`. Client DOM/table content is not used to generate CSV.
+- **Desk states and acceptance:** the cabinet has an explicit empty state with no fake rows. Required APP lanes (backend, frontend_build, browser, live_smoke, wire_journey, leftover_sot) and AC-001..AC-005 passed. Authenticated runtime wire evidence passed roster/export and no-DOM-only-CSV checks; Keycloak-only active credentials/preflight were required. Exploratory usability was not run as an optional next action, and no blockers remain.

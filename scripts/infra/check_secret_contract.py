@@ -21,10 +21,9 @@ REQUIRED_KEYS = {
     "KEYCLOAK_DB_PASSWORD",
     "KEYCLOAK_ADMIN_PASSWORD",
     "KEYCLOAK_CLIENT_SECRET",
+    "KEYCLOAK_ADMIN_CLIENT_SECRET",
     "NEFTEGAZ_REVIEW_CLIENT_SECRET",
     "ELMS_REVIEW_HANDOFF_SECRET",
-    "YANDEX_CLIENT_ID",
-    "YANDEX_CLIENT_SECRET",
 }
 
 TEMPLATE_KEYS = {
@@ -32,6 +31,7 @@ TEMPLATE_KEYS = {
         "DB_PASSWORD",
         "ADMIN_PASSWORD",
         "KEYCLOAK_CLIENT_SECRET",
+        "KEYCLOAK_ADMIN_CLIENT_SECRET",
         "ELMS_REVIEW_HANDOFF_SECRET",
         "NEFTEGAZ_REVIEW_CLIENT_SECRET",
     },
@@ -39,9 +39,8 @@ TEMPLATE_KEYS = {
         "KEYCLOAK_DB_PASSWORD",
         "KEYCLOAK_ADMIN_PASSWORD",
         "KEYCLOAK_CLIENT_SECRET",
+        "KEYCLOAK_ADMIN_CLIENT_SECRET",
         "NEFTEGAZ_REVIEW_CLIENT_SECRET",
-        "YANDEX_CLIENT_ID",
-        "YANDEX_CLIENT_SECRET",
     },
 }
 
@@ -129,7 +128,7 @@ def validate(compose_path: Path, vault_dir: Path) -> list[str]:
             if key.endswith("_PASSWORD") and key not in {"ELMS_SSO_REQUIRE"}:
                 errors.append(f"{service_name}: password-like environment key {key} is not allowed")
 
-    if re.search(r"(?<!\$)\$\{(?:DB_PASSWORD|ADMIN_PASSWORD|KEYCLOAK_DB_PASSWORD|KEYCLOAK_CLIENT_SECRET|YANDEX_CLIENT_SECRET)\b", agent_text):
+    if re.search(r"(?<!\$)\$\{(?:DB_PASSWORD|ADMIN_PASSWORD|KEYCLOAK_DB_PASSWORD|KEYCLOAK_CLIENT_SECRET|KEYCLOAK_ADMIN_CLIENT_SECRET)\b", agent_text):
         errors.append("production Compose must not interpolate runtime secret values")
 
     for template_name, expected_keys in TEMPLATE_KEYS.items():

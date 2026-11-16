@@ -1,0 +1,12 @@
+{
+ "doctype": "Page",
+ "module": "Operations",
+ "name": "elms-access",
+ "page_name": "elms-access",
+ "roles": [
+  {"role": "ELMS Admin"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Доступ компаний"
+}

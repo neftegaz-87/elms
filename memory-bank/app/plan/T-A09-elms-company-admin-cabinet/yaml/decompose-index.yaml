@@ -1,0 +1,157 @@
+schema: epic-decompose-index/v1
+plan_id: T-A09-elms-company-admin-cabinet
+level: L2
+sNN_cap: 2
+appetite:
+  timebox_days: 3
+  cut_list:
+  - Funnel analytics / heatmaps / cross-org benchmarks
+  - Enrollment edit from cabinet
+  - Bitrix sync of progress
+  - xlsx export (P1; P0 = CSV only)
+  - Program-level summary beyond course progress_percentage (unless already on enrollment)
+effort_probe:
+  outcomes:
+  - outcome: Org-scoped roster with enrollment and Course Progress % plus Desk cabinet
+      UI
+    hours_mid: 12.0
+    hours_range: 8-16
+    confidence: medium
+    notes: get_org_roster DTO, require_organization_access, progress_percentage join,
+      Desk page empty state
+  - outcome: Server-side CSV export matching roster ACL with audit and export button
+      wire
+    hours_mid: 8.0
+    hours_range: 6-12
+    confidence: medium
+    notes: export_org_progress same query, 5000 cap, audit who exported, UI download
+  total_hours: 20.0
+  effort_hours_total: 20.0
+  effort_class: L
+  independent_outcomes: 2
+  split_seams: 1
+  sNN_cap: 2
+  sNN_target: 2
+split_rationale: 'Two independently verifiable acceptance boundaries: (1) Company
+  Admin/Admin can open a cabinet and read only own-org roster with enrollment status
+  and progress_percentage; (2) export produces the same org-scoped rows as CSV with
+  ACL/cap/audit. Backend+Desk UI stay in each mixed shard — no BACK/FRONT split.'
+technology_axiom_lock:
+- Typed whitelist roster/export DTO; FORBIDDEN client-supplied arbitrary user list
+  without server membership filter
+- progress_pct SoT = ELMS Course Progress.progress_percentage; FORBIDDEN parallel
+  CompanyProgress DocType
+- Export generated server-side from same org query as roster; FORBIDDEN browser-only
+  CSV from unchecked DOM
+- Authz via require_organization_access (Admin or Company Admin membership); UI filter
+  ≠ security
+steps:
+- id: s01
+  file: s01-org-roster-progress-cabinet-ui.yaml
+  title: Org roster with progress and Desk cabinet UI
+  next_phase: APP IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-org-progress-export-csv.yaml
+  title: Org progress CSV export and audit wire
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: get_org_roster with organization scope, optional status filter, enrollment
+    rows
+- id: FR-002
+  step: s01
+  description: progress_pct from ELMS Course Progress.progress_percentage; missing
+    → 0 documented
+- id: FR-003
+  step: s02
+  description: CSV export UTF-8 same authz as roster; audit who exported; 5000 row
+    cap
+- id: FR-004
+  step: s01
+  description: Desk cabinet page for Company Admin/Admin with table and empty state
+- id: NFR-001
+  step: s01
+  description: Roster pagination page_size default ≤50 hard max 500
+- id: NFR-002
+  step: s02
+  description: Export capped at 5000 rows with clear error
+- id: NFR-003
+  step: s01
+  description: Roster and export share server-side org ACL; UI filter not security
+- id: US-001
+  step: s01
+  description: Company Admin sees employees of own org
+- id: US-002
+  step: s01
+  description: Enrollment status and course progress % visible
+- id: US-003
+  step: s02
+  description: Simple report export
+- id: US-004
+  step: s01
+  description: Cross-org roster denied
+- id: US-005
+  step: s01
+  description: Empty org explicit empty state
+- id: AC-001
+  step: s01
+  description: Roster returns only org1 members
+- id: AC-002
+  step: s01
+  description: Cross-org roster/export PermissionError
+- id: AC-003
+  step: s01
+  description: progress_pct from Course Progress; missing → 0
+- id: AC-004
+  step: s02
+  description: Export CSV matches roster; no org2
+- id: AC-005
+  step: s01
+  description: Empty org empty state
+stages_coverage:
+- stage: Stage s01 org-roster-progress-cabinet-ui
+  step: s01
+- stage: Stage s02 org-progress-export-csv
+  step: s02
+outcome_map:
+- outcome: Org-scoped roster with enrollment and Course Progress % plus Desk cabinet
+    UI
+  step: s01
+- outcome: Server-side CSV export matching roster ACL with audit and export button
+    wire
+  step: s02
+replacement_cleanup:
+  s01:
+    replaces: Unfiltered User/Enrollment Desk views as company visibility surface
+    target: get_org_roster + Desk cabinet with require_organization_access
+    step: s01
+    policy: replace-in-epic
+  s02:
+    replaces: Browser-only CSV or client-trusted row dump
+    target: export_org_progress server CSV from same org query + audit
+    step: s02
+    policy: replace-in-epic
+  items:
+  - symbol: Client-passed user name list without membership filter
+    kind: A
+    replacement: Server builds roster from ELMS Organization Member only
+    step: s01
+    policy: replace-in-epic
+  - symbol: Parallel CompanyProgress denormalized SoT
+    kind: C
+    replacement: Reuse ELMS Course Progress.progress_percentage
+    step: s01
+    policy: replace-in-epic
+  - symbol: Instruction teaching UI filter as security
+    kind: I
+    replacement: Desk copy and tests prove server PermissionError; no client-only
+      ACL
+    step: s01
+    policy: replace-in-epic
+  sunset:
+  - Company Admin «sees org» via UI filter without User Permission / membership check
+  - Export that trusts DOM/table contents
+  - Second progress formula or CompanyProgress DocType

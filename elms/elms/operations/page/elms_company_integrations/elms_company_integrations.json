@@ -1,0 +1,13 @@
+{
+ "doctype": "Page",
+ "module": "Operations",
+ "name": "elms-company-integrations",
+ "page_name": "elms-company-integrations",
+ "roles": [
+  {"role": "ELMS Admin"},
+  {"role": "ELMS Company Admin"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Интеграции компании"
+}

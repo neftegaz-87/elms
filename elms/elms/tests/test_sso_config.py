@@ -100,6 +100,21 @@ class TestSSOConfiguration(unittest.TestCase):
         self.assertEqual(data.get("identityProviderMappers"), [])
         self.assertTrue(data.get("resetPasswordAllowed"))
 
+    def test_keycloak_runtime_has_no_legacy_provider_or_oauth_secret_contract(self):
+        """The retired broker is absent from the image and runtime secret graph."""
+        runtime_files = (
+            "docker/keycloak/Dockerfile",
+            "docker/compose.dev.yaml",
+            "docker/compose.prod.yaml",
+            "docker/vault/keycloak.env.tpl",
+            "docker/.env.dev.example",
+        )
+        for path in runtime_files:
+            with self.subTest(path=path):
+                content = open(path, encoding="utf-8").read()
+                self.assertNotIn("YANDEX_CLIENT", content)
+                self.assertNotIn("YandexOAuthIdentityProvider", content)
+
     def test_dev_test_users_use_environment_backed_passwords(self):
         """The local verification accounts must be Keycloak-only and never carry passwords in git."""
         with open("docker/keycloak/realm-elms.json", "r", encoding="utf-8") as f:
@@ -109,6 +124,8 @@ class TestSSOConfiguration(unittest.TestCase):
             "elms.test.one@elms.local": ("KEYCLOAK_TEST_ONE_PASSWORD", "employee", "/Employees"),
             "elms.test.two@elms.local": ("KEYCLOAK_TEST_TWO_PASSWORD", "employee", "/Employees"),
             "elms.test.admin@elms.local": ("KEYCLOAK_TEST_ADMIN_PASSWORD", "admin", "/Administrators"),
+            "elms.test.company.admin@elms.local": ("KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD", "employee", "/ELMS Company Admins"),
+            "elms.test.foreign.company.admin@elms.local": ("KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD", "employee", "/ELMS Company Admins"),
         }
         users_by_username = {user.get("username"): user for user in users}
         for username, (env_name, role, group) in expected.items():

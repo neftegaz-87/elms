@@ -1,0 +1,34 @@
+{
+ "actions": [],
+ "creation": "2026-11-14 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["organization", "integration_type", "enabled", "provider_section", "base_url", "api_key", "default_model", "bitrix_section", "webhook_url", "config_json", "help"],
+ "fields": [
+  {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
+  {"fieldname": "integration_type", "fieldtype": "Select", "in_list_view": 1, "label": "Integration Type", "options": "LLM\nBitrix24\nCustom API", "reqd": 1},
+  {"default": "0", "fieldname": "enabled", "in_list_view": 1, "label": "Enabled", "fieldtype": "Check"},
+  {"fieldname": "provider_section", "fieldtype": "Section Break", "label": "LLM / OpenAI-compatible provider"},
+  {"description": "For LLM use an OpenAI-compatible API root ending with /v1.", "fieldname": "base_url", "fieldtype": "Data", "label": "Base URL"},
+  {"description": "Secret is never returned by company integration API.", "fieldname": "api_key", "fieldtype": "Password", "label": "API Key"},
+  {"default": "cx/gpt-5.6-luna-high", "fieldname": "default_model", "fieldtype": "Data", "label": "Default Model"},
+  {"fieldname": "bitrix_section", "fieldtype": "Section Break", "label": "Bitrix24 / Custom API"},
+  {"description": "Bitrix24 Incoming Webhook URL. Custom API may use the same field for its endpoint.", "fieldname": "webhook_url", "fieldtype": "Password", "label": "Webhook URL"},
+  {"description": "Provider-specific non-secret options as JSON.", "fieldname": "config_json", "fieldtype": "Code", "label": "Additional Configuration", "options": "JSON"},
+  {"fieldname": "help", "fieldtype": "HTML", "label": "Help", "options": "<p>Настройки действуют только для выбранной организации. Company Admin не видит и не изменяет настройки других компаний или платформенный singleton.</p>"}
+ ],
+ "links": [],
+ "modified": "2026-11-14 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Organization Integration",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Company Admin", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

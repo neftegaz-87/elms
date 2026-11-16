@@ -1,0 +1,29 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["organization", "role_name", "description", "capabilities", "enabled"],
+ "fields": [
+  {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
+  {"fieldname": "role_name", "fieldtype": "Data", "in_list_view": 1, "label": "Название роли", "reqd": 1},
+  {"fieldname": "description", "fieldtype": "Small Text", "label": "Описание"},
+  {"fieldname": "capabilities", "fieldtype": "Long Text", "label": "Функциональные возможности", "reqd": 1},
+  {"default": 1, "fieldname": "enabled", "fieldtype": "Check", "in_list_view": 1, "label": "Активна"}
+ ],
+ "links": [],
+ "modified": "2026-11-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Organization Role",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Company Admin", "write": 1},
+  {"create": 0, "delete": 0, "read": 0, "role": "ELMS Learner", "write": 0},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

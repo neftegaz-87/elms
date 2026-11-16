@@ -79,6 +79,58 @@ class TestKeycloakAdminClient(unittest.TestCase):
             client.upsert_user("person@example.com", "Person", "User")
         self.assertNotIn("super-secret", str(raised.exception))
 
+    def test_upsert_marks_user_for_elms_first_login_password_surface(self):
+        session = MagicMock()
+        session.post.return_value = Response(payload={"access_token": "token"})
+        empty_search = Response()
+        empty_search._payload = []
+        session.request.side_effect = [empty_search, Response(headers={"Location": "/users/kc-1"})]
+        client = KeycloakAdminClient(
+            KeycloakAdminSettings.from_env(
+                {
+                    "KEYCLOAK_ADMIN_BASE_URL": "http://keycloak:8080",
+                    "KEYCLOAK_ADMIN_REALM": "elms",
+                    "KEYCLOAK_ADMIN_CLIENT_ID": "elms-admin",
+                    "KEYCLOAK_ADMIN_CLIENT_SECRET": "super-secret",
+                }
+            ),
+            session=session,
+        )
+
+        client.upsert_user("person@example.com", "Person", "User")
+
+        payload = session.request.call_args_list[-1].kwargs["json"]
+        self.assertEqual(payload["attributes"], {"elms_first_login_password_change": ["true"]})
+
+    def test_set_password_and_update_required_actions_use_keycloak_admin_api(self):
+        session = MagicMock()
+        session.post.return_value = Response(payload={"access_token": "token"})
+        session.request.side_effect = [Response(), Response(), Response()]
+        client = KeycloakAdminClient(
+            KeycloakAdminSettings.from_env(
+                {
+                    "KEYCLOAK_ADMIN_BASE_URL": "http://keycloak:8080",
+                    "KEYCLOAK_ADMIN_REALM": "elms",
+                    "KEYCLOAK_ADMIN_CLIENT_ID": "elms-admin",
+                    "KEYCLOAK_ADMIN_CLIENT_SECRET": "super-secret",
+                }
+            ),
+            session=session,
+        )
+
+        client.set_password("kc/1", "new-password")
+        client.update_required_actions("kc/1", ["CONFIGURE_TOTP"])
+        client.update_attributes("kc/1", {"source": ["invite"]})
+
+        password_call = session.request.call_args_list[0]
+        self.assertEqual(password_call.args[0], "PUT")
+        self.assertIn("users/kc%2F1/reset-password", password_call.args[1])
+        self.assertEqual(password_call.kwargs["json"], {"type": "password", "value": "new-password", "temporary": False})
+        action_call = session.request.call_args_list[1]
+        self.assertEqual(action_call.kwargs["json"], {"requiredActions": ["CONFIGURE_TOTP"]})
+        attributes_call = session.request.call_args_list[2]
+        self.assertEqual(attributes_call.kwargs["json"], {"attributes": {"source": ["invite"]}})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,9 @@
    "role": "ELMS Operations User"
   },
   {
+   "role": "ELMS Company Admin"
+  },
+  {
    "role": "ELMS Instructor"
   },
   {

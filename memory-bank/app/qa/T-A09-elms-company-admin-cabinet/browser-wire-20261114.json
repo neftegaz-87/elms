@@ -1,0 +1,133 @@
+{
+  "schema": "app-qa-browser-wire/v1",
+  "status": "pass",
+  "live_evidence": true,
+  "evidence_type": "runtime_browser_wire",
+  "timestamp": "2026-11-14T09:33:14.076959Z",
+  "command": "NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -",
+  "exit_code": 0,
+  "base_url": "http://elms.localhost:8082",
+  "journey_id": "JRN-T-A09-CABINET-001",
+  "journey": "Administrator opens /app/elms-cabinet, creates isolated empty-org fixture, loads server roster, and requests server CSV export",
+  "checks": [
+    {
+      "name": "login_http_200",
+      "status": "pass",
+      "observed": 200
+    },
+    {
+      "name": "administrator_login",
+      "status": "pass",
+      "observed": "http://elms.localhost:8082/app/lms"
+    },
+    {
+      "name": "cabinet_route_loaded",
+      "status": "pass",
+      "observed": "http://elms.localhost:8082/app/elms-cabinet"
+    },
+    {
+      "name": "cabinet_heading",
+      "status": "pass",
+      "observed": "Кабинет компании"
+    },
+    {
+      "name": "export_control_present",
+      "status": "pass",
+      "observed": 1
+    },
+    {
+      "name": "qa_organization_fixture_created",
+      "status": "pass",
+      "observed": {
+        "organization": "QA T-A09 Company Admin 20261114-123318",
+        "has_error": false
+      }
+    },
+    {
+      "name": "admin_org_selector_visible",
+      "status": "pass",
+      "observed": true
+    },
+    {
+      "name": "roster_wire",
+      "status": "pass",
+      "observed": {
+        "status": 200,
+        "message": {
+          "organization": "QA T-A09 Company Admin 20261114-123318",
+          "total": 0,
+          "page": 1,
+          "page_size": 50,
+          "rows": [],
+          "empty": true
+        }
+      }
+    },
+    {
+      "name": "empty_org_state",
+      "status": "pass",
+      "observed": "Пока нет сотрудников\nДобавьте участника в организации, чтобы увидеть его зачисления и прогресс."
+    },
+    {
+      "name": "no_fake_roster_rows",
+      "status": "pass",
+      "observed": 0
+    },
+    {
+      "name": "server_export_wire",
+      "status": "pass",
+      "observed": {
+        "status": 200,
+        "filename": "elms-org-QA-T-A09-Company-Admin-20261114-123318-20261114.csv",
+        "row_count": 0,
+        "charset": "UTF-8"
+      }
+    },
+    {
+      "name": "utf8_csv_download_payload",
+      "status": "pass",
+      "observed": {
+        "bom": true,
+        "header": "﻿user,full_name,email,user_enabled,roles,enrollments"
+      }
+    },
+    {
+      "name": "no_browser_dom_csv",
+      "status": "pass",
+      "observed": "export response came from whitelist API"
+    }
+  ],
+  "api_requests": [
+    {
+      "url": "http://elms.localhost:8082/api/method/elms.cabinet.api.get_org_roster",
+      "status": 200,
+      "json": {
+        "message": {
+          "organization": "QA T-A09 Company Admin 20261114-123318",
+          "total": 0,
+          "page": 1,
+          "page_size": 50,
+          "rows": [],
+          "empty": true
+        }
+      }
+    },
+    {
+      "url": "http://elms.localhost:8082/api/method/elms.cabinet.api.export_org_progress",
+      "status": 200,
+      "json": {
+        "message": {
+          "filename": "elms-org-QA-T-A09-Company-Admin-20261114-123318-20261114.csv",
+          "content_base64": "77u/dXNlcixmdWxsX25hbWUsZW1haWwsdXNlcl9lbmFibGVkLHJvbGVzLGVucm9sbG1lbnRzCg==",
+          "csv_text": "﻿user,full_name,email,user_enabled,roles,enrollments\n",
+          "charset": "UTF-8",
+          "row_count": 0,
+          "organization": "QA T-A09 Company Admin 20261114-123318"
+        }
+      }
+    }
+  ],
+  "console_errors": [],
+  "errors": [],
+  "screenshot": "browser-artifacts/t-a09-company-admin-cabinet.png"
+}

@@ -78,6 +78,9 @@ class TestIntegrationSettingsSchema(unittest.TestCase):
 		self.assertEqual(fields["default_model"]["fieldtype"], "Data")
 		self.assertEqual(fields["omniroute_base_url"]["label"], "Base URL")
 		self.assertEqual(fields["omniroute_api_key"]["label"], "API Key")
+		self.assertEqual(fields["bitrix_enabled"]["fieldtype"], "Check")
+		self.assertEqual(fields["bitrix_webhook_url"]["fieldtype"], "Password")
+		self.assertEqual(fields["bitrix_webhook_url"]["label"], "Incoming Webhook URL")
 		roles = {item["role"] for item in payload["permissions"] if item.get("write")}
 		self.assertIn("ELMS Admin", roles)
 		self.assertIn("System Manager", roles)
@@ -388,10 +391,12 @@ class TestAssistantUIContract(unittest.TestCase):
 		settings = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "Settings")
 		link_to = [link[1] for link in settings["links"]]
 		self.assertIn("ELMS Integration Settings", link_to)
+		self.assertIn("ELMS Application Settings", link_to)
 		workspace_json = (
 			ROOT / "elms_core" / "workspace" / "settings" / "settings.json"
 		).read_text(encoding="utf-8")
 		self.assertIn("ELMS Integration Settings", workspace_json)
+		self.assertIn("ELMS Application Settings", workspace_json)
 
 
 if __name__ == "__main__":

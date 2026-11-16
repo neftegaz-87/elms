@@ -1,0 +1,489 @@
+.elms-cabinet-page-wrapper .page-head {
+	display: none;
+}
+
+.elms-cabinet-page-wrapper .layout-main-section {
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+}
+
+.elms-cabinet-shell {
+	--cabinet-ink: #0b1f33;
+	--cabinet-muted: #66727f;
+	--cabinet-line: #d5dce3;
+	--cabinet-surface: #ffffff;
+	--cabinet-paper: #f5f7fa;
+	--cabinet-action: #0d4cd3;
+	--cabinet-action-soft: #eaf2ff;
+	--cabinet-success: #167a4a;
+	--cabinet-success-soft: #eaf7f0;
+	--cabinet-danger: #a32d25;
+	--cabinet-danger-soft: #fff0ee;
+	--cabinet-warning: #b54708;
+	--cabinet-warning-soft: #fff4e5;
+	box-sizing: border-box;
+	min-height: calc(100vh - 60px);
+	padding: 24px;
+	background: var(--cabinet-paper);
+	color: var(--cabinet-ink);
+	font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.elms-cabinet-shell *,
+.elms-cabinet-shell *::before,
+.elms-cabinet-shell *::after {
+	box-sizing: border-box;
+}
+
+.elms-cabinet-header,
+.elms-cabinet-toolbar,
+.elms-cabinet-actions {
+	display: flex;
+	align-items: center;
+}
+
+.elms-cabinet-header {
+	justify-content: space-between;
+	gap: 18px;
+	margin-bottom: 18px;
+	padding-bottom: 18px;
+	border-bottom: 1px solid var(--cabinet-line);
+}
+
+.elms-cabinet-heading h1,
+.elms-cabinet-heading p,
+.elms-cabinet-panel h3,
+.elms-cabinet-main h2 {
+	margin: 0;
+}
+
+.elms-cabinet-heading h1 {
+	font-size: 24px;
+	line-height: 1.15;
+}
+
+.elms-cabinet-heading p {
+	margin-top: 6px;
+	color: var(--cabinet-muted);
+	max-width: 640px;
+}
+
+.elms-cabinet-kicker {
+	color: var(--cabinet-action);
+	font: 600 11px/1.2 "IBM Plex Mono", monospace;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.elms-cabinet-actions,
+.elms-cabinet-toolbar {
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.elms-cabinet-toolbar {
+	justify-content: space-between;
+	margin-bottom: 14px;
+}
+
+.elms-cabinet-toolbar-meta {
+	display: flex;
+	align-items: end;
+	gap: 12px;
+	flex-wrap: wrap;
+	min-width: 0;
+	flex: 1;
+}
+
+.elms-cabinet-toolbar label {
+	display: grid;
+	gap: 5px;
+	min-width: min(320px, 100%);
+	color: var(--cabinet-ink);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.elms-cabinet-toolbar input {
+	min-height: 38px;
+	padding: 8px 10px;
+	border: 1px solid var(--cabinet-line);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--cabinet-ink);
+	font: inherit;
+	font-weight: 400;
+}
+
+.elms-cabinet-toolbar input:focus,
+.elms-cabinet-button:focus-visible {
+	outline: 2px solid rgba(13, 76, 211, 0.22);
+	outline-offset: 1px;
+	border-color: var(--cabinet-action);
+}
+
+.elms-cabinet-org-label {
+	color: var(--cabinet-muted);
+	font-size: 14px;
+}
+
+.elms-cabinet-org-label strong {
+	color: var(--cabinet-ink);
+}
+
+.elms-cabinet-status-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	border-radius: 3px;
+	background: #eef2f5;
+	color: var(--cabinet-muted);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.elms-cabinet-status-pill.is-ready {
+	background: var(--cabinet-success-soft);
+	color: var(--cabinet-success);
+}
+
+.elms-cabinet-status-pill.is-pending {
+	background: var(--cabinet-action-soft);
+	color: var(--cabinet-action);
+}
+
+.elms-cabinet-status-pill.is-error {
+	background: var(--cabinet-danger-soft);
+	color: var(--cabinet-danger);
+}
+
+.elms-cabinet-button {
+	border: 1px solid var(--cabinet-line);
+	border-radius: 4px;
+	background: var(--cabinet-surface);
+	color: var(--cabinet-ink);
+	padding: 8px 12px;
+	font: inherit;
+	cursor: pointer;
+}
+
+.elms-cabinet-button:hover,
+.elms-cabinet-button:focus-visible {
+	border-color: var(--cabinet-action);
+	color: var(--cabinet-action);
+}
+
+.elms-cabinet-button.is-primary {
+	border-color: var(--cabinet-action);
+	background: var(--cabinet-action);
+	color: #fff;
+}
+
+.elms-cabinet-button.is-primary:hover,
+.elms-cabinet-button.is-primary:focus-visible {
+	background: #0939a3;
+	border-color: #0939a3;
+	color: #fff;
+}
+
+.elms-cabinet-button:disabled {
+	opacity: 0.45;
+	cursor: wait;
+}
+
+.elms-cabinet-flash {
+	margin-bottom: 14px;
+	padding: 12px 16px;
+	border: 1px solid var(--cabinet-line);
+	border-radius: 6px;
+	background: var(--cabinet-surface);
+}
+
+.elms-cabinet-flash.pending {
+	border-left: 3px solid var(--cabinet-action);
+}
+
+.elms-cabinet-flash.success {
+	border-color: #9fd3b7;
+	background: var(--cabinet-success-soft);
+	color: var(--cabinet-success);
+}
+
+.elms-cabinet-flash.error {
+	border-color: #e5b5b0;
+	background: var(--cabinet-danger-soft);
+	color: var(--cabinet-danger);
+}
+
+.elms-cabinet-grid {
+	display: grid;
+	grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+	gap: 14px;
+	align-items: start;
+}
+
+.elms-cabinet-panel,
+.elms-cabinet-main {
+	background: var(--cabinet-surface);
+	border: 1px solid var(--cabinet-line);
+	border-radius: 6px;
+}
+
+.elms-cabinet-panel {
+	padding: 16px;
+	display: grid;
+	gap: 16px;
+}
+
+.elms-cabinet-panel h3 {
+	margin-bottom: 10px;
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--cabinet-muted);
+}
+
+.elms-cabinet-stat-list {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.elms-cabinet-stat {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	align-items: baseline;
+	padding: 10px 12px;
+	border: 1px solid var(--cabinet-line);
+	border-radius: 6px;
+	background: #fafbfc;
+}
+
+.elms-cabinet-stat span {
+	color: var(--cabinet-muted);
+	font-size: 13px;
+}
+
+.elms-cabinet-stat strong {
+	font: 600 18px/1 "IBM Plex Mono", monospace;
+	color: var(--cabinet-ink);
+}
+
+.elms-cabinet-note-block {
+	display: grid;
+	gap: 6px;
+	padding-top: 4px;
+	border-top: 1px solid var(--cabinet-line);
+	color: var(--cabinet-muted);
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.elms-cabinet-note-block strong {
+	color: var(--cabinet-ink);
+}
+
+.elms-cabinet-main {
+	padding: 22px;
+	min-height: 440px;
+}
+
+.elms-cabinet-main > .elms-cabinet-kicker {
+	margin-bottom: 8px;
+}
+
+.elms-cabinet-main-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 12px;
+	margin-bottom: 18px;
+}
+
+.elms-cabinet-main-head h2 {
+	font-size: 21px;
+}
+
+.elms-cabinet-main-head span {
+	color: var(--cabinet-muted);
+	font-size: 13px;
+}
+
+.elms-cabinet-table-wrap {
+	overflow-x: auto;
+}
+
+.elms-cabinet-table {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: left;
+}
+
+.elms-cabinet-table th {
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--cabinet-line);
+	color: var(--cabinet-muted);
+	font: 600 11px/1.2 "IBM Plex Mono", monospace;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.elms-cabinet-table td {
+	padding: 14px 12px;
+	border-bottom: 1px solid #e7ebef;
+	vertical-align: top;
+}
+
+.elms-cabinet-table tr:last-child td {
+	border-bottom: 0;
+}
+
+.elms-cabinet-person strong {
+	display: block;
+	font-size: 15px;
+}
+
+.elms-cabinet-person small {
+	display: block;
+	margin-top: 4px;
+	color: var(--cabinet-muted);
+}
+
+.elms-cabinet-account {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 8px;
+	border-radius: 3px;
+	background: #edf1f5;
+	color: var(--cabinet-muted);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.elms-cabinet-account.is-enabled {
+	background: var(--cabinet-success-soft);
+	color: var(--cabinet-success);
+}
+
+.elms-cabinet-account.is-disabled {
+	background: var(--cabinet-danger-soft);
+	color: var(--cabinet-danger);
+}
+
+.elms-cabinet-enrollments {
+	display: grid;
+	gap: 8px;
+}
+
+.elms-cabinet-enrollment {
+	display: grid;
+	grid-template-columns: minmax(160px, 1fr) 110px minmax(90px, 120px);
+	gap: 10px;
+	align-items: center;
+	padding: 8px 10px;
+	border: 1px solid var(--cabinet-line);
+	border-radius: 6px;
+	background: #fafbfc;
+}
+
+.elms-cabinet-enrollment strong {
+	font-size: 13px;
+	line-height: 1.3;
+}
+
+.elms-cabinet-enrollment-status {
+	color: var(--cabinet-muted);
+	font-size: 12px;
+}
+
+.elms-cabinet-progress {
+	display: grid;
+	gap: 4px;
+}
+
+.elms-cabinet-progress-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font: 600 12px/1 "IBM Plex Mono", monospace;
+	color: var(--cabinet-action);
+}
+
+.elms-cabinet-progress-bar {
+	height: 6px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: #e8eef5;
+}
+
+.elms-cabinet-progress-bar > span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--cabinet-action);
+}
+
+.elms-cabinet-muted {
+	color: var(--cabinet-muted);
+}
+
+.elms-cabinet-empty {
+	display: grid;
+	gap: 8px;
+	padding: 56px 24px;
+	text-align: center;
+	color: var(--cabinet-muted);
+}
+
+.elms-cabinet-empty strong {
+	color: var(--cabinet-ink);
+	font-size: 16px;
+}
+
+@media (max-width: 960px) {
+	.elms-cabinet-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.elms-cabinet-enrollment {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 720px) {
+	.elms-cabinet-shell {
+		padding: 14px;
+	}
+
+	.elms-cabinet-header {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.elms-cabinet-toolbar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.elms-cabinet-actions {
+		width: 100%;
+	}
+
+	.elms-cabinet-button {
+		flex: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.elms-cabinet-shell *,
+	.elms-cabinet-shell *::before,
+	.elms-cabinet-shell *::after {
+		transition: none !important;
+		animation: none !important;
+	}
+}

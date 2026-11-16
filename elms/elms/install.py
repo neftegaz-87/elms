@@ -55,6 +55,7 @@ SECTION_DOCPERM_MATRIX: dict[str, list[dict[str, Any]]] = {
     ],
     ELMS_LMS_SECTION_DOCTYPE: [
         {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
+        {"role": ELMS_COMPANY_ADMIN_ROLE, "read": 1, "write": 1, "create": 1, "delete": 1},
         {"role": ELMS_LEARNER_ROLE, "read": 1, "write": 1, "create": 0, "delete": 0},
     ],
     ELMS_SETTINGS_SECTION_DOCTYPE: [
@@ -76,6 +77,15 @@ APPROVED_ROLE_MAPPINGS: dict[str, list[str]] = {
     "/Methodologists": [ELMS_METHODOLOGIST_ROLE],
     "Students": ["Student"],
     "/Students": ["Student"],
+    "ELMS Company Admins": [ELMS_COMPANY_ADMIN_ROLE],
+    "/ELMS Company Admins": [ELMS_COMPANY_ADMIN_ROLE],
+}
+
+APPROVED_ROLE_PROFILES: dict[str, str] = {
+    "Administrators": "ELMS Admin Profile",
+    "/Administrators": "ELMS Admin Profile",
+    "ELMS Company Admins": "ELMS Company Admin Profile",
+    "/ELMS Company Admins": "ELMS Company Admin Profile",
 }
 
 
@@ -156,7 +166,7 @@ GROUP_POLICIES: dict[str, tuple[str, str]] = {
 
 
 def ensure_role_profiles() -> None:
-    """Seed the five supported user-facing role bundles."""
+    """Seed the supported user-facing role bundles."""
     if not frappe.db.exists("DocType", "Role Profile"):
         frappe.throw("Required DocType 'Role Profile' not found for ensure_role_profiles.")
     for profile_name, roles in ROLE_PROFILES.items():
@@ -176,6 +186,68 @@ def ensure_role_profiles() -> None:
             doc.insert()
         else:
             doc.save()
+
+
+COMPANY_ADMIN_LMS_DOCTYPES: tuple[str, ...] = (
+    "ELMS Course",
+    "ELMS Course Category",
+    "ELMS Course Chapter",
+    "ELMS Course Lesson",
+    "ELMS Batch",
+    "ELMS Subscription",
+    "ELMS Enrollment",
+    "ELMS Course Progress",
+    "ELMS Lesson Progress",
+    "ELMS User Activity",
+    "ELMS Video Watch Log",
+    "ELMS Program",
+    "ELMS Program Course",
+    "ELMS Program Enrollment",
+    "ELMS Quiz",
+    "ELMS Quiz Question",
+    "ELMS Quiz Attempt",
+)
+
+
+def ensure_company_admin_roles() -> None:
+    """Give Company Admin its own full LMS role instead of learner inheritance."""
+    users = frappe.get_all(
+        "User",
+        filters={"role_profile_name": "ELMS Company Admin Profile"},
+        fields=["name"],
+        limit_page_length=0,
+    )
+    for row in users:
+        user_doc = frappe.get_doc("User", row.get("name"))
+        current_roles = [item for item in getattr(user_doc, "roles", []) if str(item.role) != ELMS_LEARNER_ROLE]
+        role_names = {str(item.role) for item in current_roles}
+        user_doc.set("roles", current_roles)
+        if "Desk User" not in role_names:
+            user_doc.append("roles", {"role": "Desk User"})
+        if ELMS_COMPANY_ADMIN_ROLE not in role_names:
+            user_doc.append("roles", {"role": ELMS_COMPANY_ADMIN_ROLE})
+        user_doc.flags.ignore_permissions = True
+        user_doc.save(ignore_permissions=True)
+
+
+def ensure_company_admin_lms_perms() -> None:
+    """Keep Company Admin LMS access in standard DocType permissions."""
+    if not frappe.db.exists("DocType", "Custom DocPerm"):
+        frappe.throw("Required DocType 'Custom DocPerm' not found for Company Admin LMS permissions.")
+
+    for doctype in COMPANY_ADMIN_LMS_DOCTYPES:
+        if not frappe.db.exists("DocType", doctype):
+            frappe.throw(f"Required DocType '{doctype}' not found for Company Admin LMS permissions.")
+        custom_perms = frappe.get_all(
+            "Custom DocPerm",
+            filters={"parent": doctype, "role": ELMS_COMPANY_ADMIN_ROLE, "permlevel": 0},
+            pluck="name",
+            limit_page_length=0,
+        )
+        for custom_perm in custom_perms:
+            frappe.delete_doc("Custom DocPerm", custom_perm, force=True, ignore_permissions=True)
+
+    frappe.clear_cache()
 
 
 def ensure_course_categories() -> None:
@@ -393,6 +465,7 @@ def ensure_access_model_perms() -> None:
         ("User Group", {"read": 1, "write": 1, "create": 1, "delete": 1}, 0),
         ("User Group Member", {"read": 1, "write": 1, "create": 1, "delete": 1}, 0),
         ("User Permission", {"read": 1, "write": 1, "create": 1, "delete": 1}, 0),
+        ("ELMS Cabinet Export Log", {"read": 1}, 0),
     )
     for doctype, rights, permlevel in access_rules:
         if not frappe.db.exists("DocType", doctype):
@@ -519,15 +592,23 @@ def reconcile_keycloak_user(user_doc, keycloak_data: dict[str, Any]) -> None:
     if not user_doc or not keycloak_data:
         return
 
+    if hasattr(user_doc, "reload"):
+        user_doc.reload()
+
+    persisted_updates: dict[str, Any] = {}
+
     # 1. Lifecycle status sync
     if "enabled" in keycloak_data:
         user_doc.enabled = 1 if keycloak_data["enabled"] else 0
+        persisted_updates["enabled"] = user_doc.enabled
 
     # 2. Profile attributes update
     if first_name := keycloak_data.get("firstName") or keycloak_data.get("first_name"):
         user_doc.first_name = first_name
+        persisted_updates["first_name"] = first_name
     if last_name := keycloak_data.get("lastName") or keycloak_data.get("last_name"):
         user_doc.last_name = last_name
+        persisted_updates["last_name"] = last_name
 
     # 3. Approved group-to-role mapping
     groups = keycloak_data.get("groups") or []
@@ -541,12 +622,11 @@ def reconcile_keycloak_user(user_doc, keycloak_data: dict[str, Any]) -> None:
             for role_name in APPROVED_ROLE_MAPPINGS[group]:
                 if frappe.db.exists("Role", role_name):
                     roles_to_add.add(role_name)
+        if group in APPROVED_ROLE_PROFILES and frappe.db.exists("Role Profile", APPROVED_ROLE_PROFILES[group]):
+            mapped_profile = APPROVED_ROLE_PROFILES[group]
 
     existing_roles = {r.role for r in getattr(user_doc, "roles", [])}
     user_doc.flags.ignore_permissions = True
-    for role in roles_to_add:
-        if role not in existing_roles:
-            user_doc.add_roles(role)
 
     # 4. Bitrix User ID reconciliation
     bitrix_uid = keycloak_data.get("bitrix_user_id")
@@ -561,7 +641,7 @@ def reconcile_keycloak_user(user_doc, keycloak_data: dict[str, Any]) -> None:
         if m and m.bitrix_id:
             bitrix_uid = m.bitrix_id
 
-    if getattr(user_doc, "email", None):
+    if not mapped_profile and getattr(user_doc, "email", None):
         mapping = get_mapping_registry().get_mapping(str(user_doc.email).strip().lower())
         if mapping and mapping.role_profile:
             profile_aliases = {
@@ -572,14 +652,51 @@ def reconcile_keycloak_user(user_doc, keycloak_data: dict[str, Any]) -> None:
             mapped_profile = profile_aliases.get(mapping.role_profile, mapping.role_profile)
             if frappe.db.exists("Role Profile", mapped_profile):
                 user_doc.role_profile_name = mapped_profile
+                persisted_updates["role_profile_name"] = mapped_profile
+
+    if mapped_profile and frappe.db.exists("Role Profile", mapped_profile):
+        user_doc.role_profile_name = mapped_profile
+        persisted_updates["role_profile_name"] = mapped_profile
+        if hasattr(user_doc, "set"):
+            product_roles = set(ELMS_ROLES)
+            preserved_roles = [
+                row for row in getattr(user_doc, "roles", [])
+                if str(getattr(row, "role", "")) not in product_roles
+            ]
+            user_doc.set("roles", preserved_roles)
+            existing_roles = {str(getattr(row, "role", "")) for row in preserved_roles}
+            for row in frappe.get_doc("Role Profile", mapped_profile).roles:
+                role_name = str(getattr(row, "role", ""))
+                if role_name and role_name not in existing_roles:
+                    user_doc.append("roles", {"role": role_name})
+                    existing_roles.add(role_name)
 
     if bitrix_uid:
         if hasattr(user_doc, "custom_bitrix_user_id"):
             user_doc.custom_bitrix_user_id = str(bitrix_uid)
+            persisted_updates["custom_bitrix_user_id"] = str(bitrix_uid)
         if hasattr(user_doc, "bitrix_user_id"):
             user_doc.bitrix_user_id = str(bitrix_uid)
+            persisted_updates["bitrix_user_id"] = str(bitrix_uid)
 
-    user_doc.save()
+    if persisted_updates:
+        if hasattr(user_doc, "db_set"):
+            frappe.db.set_value("User", user_doc.name, persisted_updates, update_modified=True)
+            user_doc.reload()
+        else:
+            user_doc.save()
+
+    for role in roles_to_add:
+        if role not in existing_roles:
+            user_doc.add_roles(role)
+
+
+def _reconcile_keycloak_user_after_commit(user_name: str, keycloak_data: dict[str, Any]) -> None:
+    if not frappe.db.exists("User", user_name):
+        return
+
+    user_doc = frappe.get_doc("User", user_name)
+    reconcile_keycloak_user(user_doc, keycloak_data)
 
 
 def on_login_sync_identity(login_manager=None) -> None:
@@ -597,8 +714,24 @@ def on_login_sync_identity(login_manager=None) -> None:
     oauth_user_data = getattr(frappe.local, "oauth_user_data", None)
     if oauth_user_data and isinstance(oauth_user_data, dict):
         if frappe.db.exists("User", user_email):
-            user_doc = frappe.get_doc("User", user_email)
-            reconcile_keycloak_user(user_doc, oauth_user_data)
+            keycloak_data = dict(oauth_user_data)
+            enqueue = getattr(frappe, "enqueue", None)
+            if callable(enqueue):
+                enqueue(
+                    "elms.install._reconcile_keycloak_user_after_commit",
+                    user_name=user_email,
+                    keycloak_data=keycloak_data,
+                    enqueue_after_commit=True,
+                )
+                return
+
+            after_commit = getattr(getattr(frappe, "db", None), "after_commit", None)
+            if after_commit is not None and hasattr(after_commit, "add"):
+                after_commit.add(
+                    lambda: _reconcile_keycloak_user_after_commit(user_email, keycloak_data)
+                )
+            else:
+                _reconcile_keycloak_user_after_commit(user_email, keycloak_data)
 
 
 def setup_yandex_smtp() -> str:
@@ -659,6 +792,9 @@ def after_migrate() -> None:
     """
     ensure_roles()
     ensure_section_perms()
+    from elms.tenant import backfill_lms_organizations, clear_platform_admin_organization_scopes, ensure_platform_owner
+    ensure_platform_owner()
+    ensure_company_admin_lms_perms()
     ensure_desk_page_read_perm()
     ensure_access_model_perms()
     ensure_role_profiles()
@@ -666,8 +802,11 @@ def after_migrate() -> None:
     backfill_lms_display_links()
     ensure_user_link_titles()
     migrate_exact_role_profile_users()
+    ensure_company_admin_roles()
     ensure_user_groups()
     ensure_permission_manager_access()
+    backfill_lms_organizations()
+    clear_platform_admin_organization_scopes()
     from elms.sso.review import ensure_review_visibility_field
     ensure_review_visibility_field()
     from elms.sso.roles import ensure_bitrix_user_field
@@ -686,6 +825,9 @@ def after_install() -> None:
     """
     ensure_roles()
     ensure_section_perms()
+    from elms.tenant import backfill_lms_organizations, clear_platform_admin_organization_scopes, ensure_platform_owner
+    ensure_platform_owner()
+    ensure_company_admin_lms_perms()
     ensure_desk_page_read_perm()
     ensure_access_model_perms()
     ensure_role_profiles()
@@ -693,8 +835,11 @@ def after_install() -> None:
     backfill_lms_display_links()
     ensure_user_link_titles()
     migrate_exact_role_profile_users()
+    ensure_company_admin_roles()
     ensure_user_groups()
     ensure_permission_manager_access()
+    backfill_lms_organizations()
+    clear_platform_admin_organization_scopes()
     from elms.sso.review import ensure_review_visibility_field
     ensure_review_visibility_field()
     from elms.sso.roles import ensure_bitrix_user_field

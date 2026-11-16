@@ -66,7 +66,7 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     "ELMS Methodologist": "Методист: создание программ, курсов, уроков и банка вопросов.",
     "Desk User": "Техническая роль Frappe для входа в Desk; сама по себе не задаёт бизнес-права ELMS.",
     "System Manager": "Технический администратор Frappe: системные настройки и полная матрица прав.",
-    ELMS_COMPANY_ADMIN_ROLE: "Представитель компании: приглашает сотрудников только в своей организации.",
+    ELMS_COMPANY_ADMIN_ROLE: "Полный LMS-контур и администрирование своей организации; без глобального B2B и Settings.",
 }
 
 GROUP_POLICIES: dict[str, tuple[str, str]] = {

@@ -1,0 +1,99 @@
+.elms-access-shell {
+	--elms-access-paper: #f5f7fa;
+	--elms-access-surface: #ffffff;
+	--elms-access-graphite: #0b1f33;
+	--elms-access-muted: #66727f;
+	--elms-access-line: #d5dce3;
+	--elms-access-action: #0d4cd3;
+	--elms-access-action-hover: #0939a3;
+	--elms-access-danger: #a32d25;
+	--elms-access-danger-soft: #fff0ee;
+	--elms-access-success: #167a4a;
+	--elms-access-success-soft: #eaf7f0;
+	box-sizing: border-box;
+	min-height: calc(100vh - 60px);
+	padding: 32px clamp(20px, 4vw, 56px);
+	background: var(--elms-access-paper);
+	color: var(--elms-access-graphite);
+	font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.elms-access-shell *,
+.elms-access-shell *::before,
+.elms-access-shell *::after { box-sizing: border-box; }
+
+.elms-access-header {
+	display: flex;
+	justify-content: space-between;
+	gap: 24px;
+	max-width: 1080px;
+	margin: 0 auto 24px;
+	padding-bottom: 22px;
+	border-bottom: 1px solid var(--elms-access-line);
+}
+
+.elms-access-header h1 { margin: 4px 0 8px; font-size: clamp(28px, 4vw, 42px); line-height: 1; letter-spacing: -0.03em; }
+.elms-access-header p { max-width: 680px; margin: 0; color: var(--elms-access-muted); font-size: 16px; line-height: 1.5; }
+.elms-access-kicker { color: var(--elms-access-action); font: 600 11px/1.2 "IBM Plex Mono", monospace; letter-spacing: 0.14em; }
+.elms-access-mark { align-self: flex-start; color: var(--elms-access-action); font: 700 22px/1 "IBM Plex Mono", monospace; }
+
+.elms-access-status { max-width: 1080px; margin: 0 auto 18px; padding: 12px 16px; border: 1px solid var(--elms-access-line); background: var(--elms-access-surface); }
+.elms-access-status.pending { border-left: 3px solid var(--elms-access-action); }
+.elms-access-status.success { border-color: #9fd3b7; background: var(--elms-access-success-soft); color: var(--elms-access-success); }
+.elms-access-status.error { border-color: #e5b5b0; background: var(--elms-access-danger-soft); color: var(--elms-access-danger); }
+
+.elms-access-tabs {
+	display: flex;
+	gap: 4px;
+	max-width: 1080px;
+	margin: 0 auto 16px;
+	border-bottom: 1px solid var(--elms-access-line);
+	overflow-x: auto;
+}
+.elms-access-tab {
+	position: relative;
+	min-height: 42px;
+	padding: 9px 14px;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	background: transparent;
+	color: var(--elms-access-muted);
+	font: 600 13px/1.2 "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.elms-access-tab:hover,
+.elms-access-tab:focus-visible { color: var(--elms-access-action); }
+.elms-access-tab:focus-visible { outline: 2px solid rgba(13, 76, 211, 0.3); outline-offset: -2px; }
+.elms-access-tab.is-active {
+	border-bottom-color: var(--elms-access-action);
+	color: var(--elms-access-action);
+}
+.elms-access-panels { max-width: 1080px; margin: 0 auto; }
+.elms-access-card { padding: 22px; border: 1px solid var(--elms-access-line); background: var(--elms-access-surface); box-shadow: 0 2px 8px rgba(11, 31, 51, 0.04); }
+.elms-access-panel { min-height: 280px; }
+.elms-access-panel[hidden] { display: none; }
+.elms-access-card-head { display: flex; gap: 14px; margin-bottom: 20px; }
+.elms-access-card h2 { margin: 0 0 4px; font-size: 20px; }
+.elms-access-card p { margin: 0; color: var(--elms-access-muted); line-height: 1.4; }
+.elms-access-index { color: var(--elms-access-action); font: 400 18px/1 "IBM Plex Mono", monospace; }
+.elms-access-card form { display: grid; gap: 12px; }
+.elms-access-card label { display: grid; gap: 5px; color: var(--elms-access-graphite); font-size: 13px; font-weight: 600; }
+.elms-access-card input,
+.elms-access-card select { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--elms-access-line); border-radius: 4px; background: #fff; color: var(--elms-access-graphite); font: inherit; font-weight: 400; }
+.elms-access-card input:focus,
+.elms-access-card select:focus,
+.elms-access-card button:focus-visible { outline: 3px solid rgba(13, 76, 211, 0.28); outline-offset: 2px; }
+.elms-access-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.elms-access-primary { justify-self: start; min-height: 40px; padding: 8px 16px; border: 1px solid var(--elms-access-action); border-radius: 4px; background: var(--elms-access-action); color: #fff; cursor: pointer; font: 600 14px/1 "Source Sans 3", sans-serif; }
+.elms-access-primary:hover { background: var(--elms-access-action-hover); }
+.elms-access-primary:disabled { cursor: wait; opacity: 0.65; }
+.elms-access-note { display: flex; gap: 10px; max-width: 1080px; margin: 18px auto 0; padding: 12px 0; border-top: 1px solid var(--elms-access-line); color: var(--elms-access-muted); font-size: 13px; }
+.elms-access-note strong { color: var(--elms-access-graphite); }
+
+@media (max-width: 760px) {
+	.elms-access-header { display: block; }
+	.elms-access-mark { display: block; margin-top: 16px; }
+	.elms-access-row { grid-template-columns: 1fr; }
+	.elms-access-note { display: block; }
+}

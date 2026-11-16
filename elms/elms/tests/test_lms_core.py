@@ -102,6 +102,11 @@ class TestLMSCoreFlows(unittest.TestCase):
     def setUp(self):
         frappe.session.user = "student@example.ru"
 
+    def test_company_admin_has_full_lms_management_access(self):
+        with patch.object(lms_api, "_has_role", side_effect=lambda role, user=None: role == "ELMS Company Admin"):
+            self.assertTrue(lms_api._is_learning_manager("company@example.ru"))
+            self.assertTrue(lms_api._can_view_learner_profile("company@example.ru"))
+
     def test_lms_doctypes_registered(self):
         """FR-001 / TM-001: Check that all 7 LMS DocTypes are created with valid schemas."""
         base_dir = Path(__file__).resolve().parent.parent / "lms" / "doctype"
@@ -265,6 +270,46 @@ class TestLMSCoreFlows(unittest.TestCase):
             with self.assertRaises(frappe.ValidationError):
                 lms_api.record_lesson_progress(enrollment="ENR-001", lesson_id="l1", time_spent_delta=-5)
 
+    def test_lms_heartbeat_only_persists_delta(self):
+        """Regular progress flushes must not recalculate or create audit rows."""
+        lp_doc = FakeDoc(
+            "ELMS Lesson Progress",
+            name="LP-HEARTBEAT",
+            course_progress="CP-HEARTBEAT",
+            lesson_id="lesson-01",
+            time_spent_seconds=60,
+            is_completed=0,
+            _is_new=False,
+        )
+
+        def get_value(doctype, filters, field=None, *args, **kwargs):
+            if doctype == "ELMS Enrollment":
+                return "student@example.ru"
+            if doctype == "ELMS Course Progress":
+                return "CP-HEARTBEAT"
+            if doctype == "ELMS Lesson Progress":
+                return "LP-HEARTBEAT"
+            return None
+
+        with patch.object(frappe.db, "exists", return_value=True), \
+             patch.object(frappe.db, "get_value", side_effect=get_value), \
+             patch.object(frappe, "get_doc", return_value=lp_doc), \
+             patch.object(lms_api, "_has_role", return_value=False), \
+             patch.object(lms_api, "calculate_course_progress") as recalculate, \
+             patch.object(lms_api, "_record_user_activity") as audit:
+
+            result = lms_api.record_lesson_progress(
+                enrollment="ENR-001",
+                lesson_id="lesson-01",
+                time_spent_delta=60,
+                mark_completed=False,
+            )
+
+        self.assertEqual(result["total_time_spent_seconds"], 120)
+        self.assertIsNone(result["course_progress_percentage"])
+        recalculate.assert_not_called()
+        audit.assert_not_called()
+
     def test_lms_course_progress_calculation(self):
         """FR-002 / TM-007: Math percentage and exam eligibility rule (100% required)."""
         cp_doc = FakeDoc(
@@ -381,8 +426,8 @@ class TestLMSCoreFlows(unittest.TestCase):
         self.assertIsNotNone(lms_ws)
         link_to = [link[1] for link in lms_ws["links"]]
         self.assertIn("ELMS Course", link_to)
-        self.assertNotIn("ELMS Course Chapter", link_to)
-        self.assertNotIn("ELMS Course Lesson", link_to)
+        self.assertIn("ELMS Course Chapter", link_to)
+        self.assertIn("ELMS Course Lesson", link_to)
         self.assertIn("/app/elms-course-studio", [shortcut.get("url") for shortcut in lms_ws["shortcuts"]])
         self.assertIn("ELMS Quiz", link_to)
         self.assertIn("ELMS Quiz Question", link_to)

@@ -2,6 +2,8 @@ from urllib.parse import urlparse
 
 import frappe
 
+from elms.integrations.bitrix_config import validate_bitrix_settings
+
 try:
 	from frappe.model.document import Document
 except ImportError:
@@ -35,3 +37,11 @@ class ELMSIntegrationSettings(Document):
 			except Exception:
 				api_key = getattr(self, "omniroute_api_key", None)
 		validate_integration_settings(self.enabled, self.omniroute_base_url, api_key)
+
+		bitrix_url = None
+		if self.bitrix_enabled:
+			try:
+				bitrix_url = self.get_password("bitrix_webhook_url")
+			except Exception:
+				bitrix_url = getattr(self, "bitrix_webhook_url", None)
+		validate_bitrix_settings(self.bitrix_enabled, bitrix_url)

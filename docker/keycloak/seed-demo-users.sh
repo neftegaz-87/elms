@@ -23,14 +23,16 @@ test_password_count=0
 [ -n "${KEYCLOAK_TEST_ONE_PASSWORD:-}" ] && test_password_count=$((test_password_count + 1))
 [ -n "${KEYCLOAK_TEST_TWO_PASSWORD:-}" ] && test_password_count=$((test_password_count + 1))
 [ -n "${KEYCLOAK_TEST_ADMIN_PASSWORD:-}" ] && test_password_count=$((test_password_count + 1))
+[ -n "${KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD:-}" ] && test_password_count=$((test_password_count + 1))
+[ -n "${KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD:-}" ] && test_password_count=$((test_password_count + 1))
 
 if [ "$test_password_count" -eq 0 ]; then
   echo "Keycloak demo-user seed skipped: all KEYCLOAK_TEST_*_PASSWORD values are empty."
   exit 0
 fi
 
-if [ "$test_password_count" -ne 3 ]; then
-  echo "ERROR: all three KEYCLOAK_TEST_*_PASSWORD values must be set together." >&2
+if [ "$test_password_count" -ne 5 ]; then
+  echo "ERROR: all five KEYCLOAK_TEST_*_PASSWORD values must be set together." >&2
   exit 1
 fi
 
@@ -178,5 +180,23 @@ ensure_user \
   "Administrator" \
   "Administrators" \
   "admin"
+
+ensure_user \
+  "elms.test.company.admin@elms.local" \
+  "elms.test.company.admin@elms.local" \
+  "$KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD" \
+  "ELMS Test" \
+  "Company Admin" \
+  "ELMS Company Admins" \
+  "employee"
+
+ensure_user \
+  "elms.test.foreign.company.admin@elms.local" \
+  "elms.test.foreign.company.admin@elms.local" \
+  "$KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD" \
+  "ELMS Test" \
+  "Foreign Company Admin" \
+  "ELMS Company Admins" \
+  "employee"
 
 echo "Keycloak demo-user seed complete."

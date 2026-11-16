@@ -23,8 +23,7 @@
    cp docker/.env.dev.example docker/.env.dev
    ```
 2. **Dev-only значения**: Используйте только synthetic значения из dev-контракта. Они не являются production credentials, не переносятся в `.env.prod` и не должны попадать в git.
-3. **Регистрация Redirect URI в Yandex**: Укажите redirect URI брокера Keycloak: `http://elms-keycloak.localhost:8480/realms/elms/broker/yandex/endpoint` (в dev) или `https://<auth-host>/realms/elms/broker/yandex/endpoint` (в prod). В приложении Яндекс также включите права `login:email` и `login:info`.
-4. **Запуск Compose**: Запустите сервисы и дождитесь выполнения `create-site` и импорта realm через `docker/keycloak/entrypoint.sh`:
+3. **Запуск Compose**: Запустите сервисы и дождитесь выполнения `create-site` и импорта realm через `docker/keycloak/entrypoint.sh`:
    ```bash
    docker compose -f docker/compose.dev.yaml --env-file docker/.env.dev up -d
    ```
@@ -35,10 +34,9 @@
    ```bash
    make keycloak.seed
    ```
-5. **Вход через Keycloak**: Откройте `http://elms.localhost:8082/login`. Используется стандартная форма Frappe: отдельная кнопка Keycloak не показывается, её submit связан с Keycloak через `login-keycloak.js`. Для локальной проверки введите учетные данные Keycloak; для brokered-входа Keycloak предложит Yandex 360.
-6. **Проверка идентичности и ролей**: После callback убедитесь, что пользователь авторизован в Frappe Desk (`/app`), идентичность связана по `sub`, а роли по умолчанию (`Desk User`, `ELMS Learner`) назначены автоматически.
-7. **Проверка отказа**: При недоступности Yandex brokered-вход должен завершаться явной ошибкой Keycloak; локальный обход SSO не является production-путём.
-8. **Обновление кэша при изменениях**: При изменении параметров Social Login Key или CSS-ассета выполните очистку кэша:
+4. **Вход через Keycloak**: Откройте `http://elms.localhost:8082/login`. Используется стандартная форма Frappe: отдельная кнопка Keycloak не показывается, её submit связан с локальным password flow Keycloak через `login-keycloak.js`.
+5. **Проверка идентичности и ролей**: После callback убедитесь, что пользователь авторизован в Frappe Desk (`/app`), идентичность связана по `sub`, а роли по умолчанию (`Desk User`, `ELMS Learner`) назначены автоматически.
+6. **Обновление кэша при изменениях**: При изменении параметров Social Login Key или CSS-ассета выполните очистку кэша:
    ```bash
    docker compose -f docker/compose.dev.yaml exec backend bench --site elms.localhost clear-cache
    ```
@@ -64,30 +62,21 @@
 
 ## 2. Архитектура аутентификации и SSO
 
-### Архитектурный поток: Frappe → Keycloak → Yandex 360
+### Архитектурный поток: Frappe → Keycloak
 
 ```text
-+-----------------------+           +-----------------------+           +-----------------------+
-|      Frappe / Desk    | --------> |       Keycloak        | --------> |      Yandex 360       |
-| (Authorization Plane) | <-------- |   (Identity Plane)    | <-------- |    (External IdP)     |
-+-----------------------+   OIDC    +-----------------------+   OIDC    +-----------------------+
++-----------------------+           +-----------------------+
+|      Frappe / Desk    | --------> |       Keycloak        |
+| (Authorization Plane) | <-------- |   (Identity Plane)    |
++-----------------------+   OIDC    +-----------------------+
 ```
 
 1. **Разделение ответственности**:
-   - **Keycloak** — каноническая плоскость идентичности (Identity Plane): управление пользователями, группами, учетными записями, сессиями и брокеринг внешних провайдеров.
+   - **Keycloak** — каноническая плоскость идентичности (Identity Plane): управление локальными пользователями, учетными записями и сессиями.
    - **Frappe** — каноническая плоскость авторизации приложения (Application Authorization Plane): управление ролями, правами на DocType и доступом к Desk.
-   - **Yandex 360** — внешний корпоративный Identity Provider для штатного входа сотрудников и SMTP-шлюз.
-2. **Запрет прямого входа Frappe → Yandex (FR-012, AC-4)**:
-   - Прямой вход `Frappe → Yandex 360` исключен из архитектуры и не является production path.
-   - Frappe принимает federated SSO исключительно от доверенного Keycloak realm `elms`.
-
-### Настройка брокера Yandex в Keycloak (Manual Broker Onboarding)
-
-1. Зарегистрируйте OAuth-приложение в кабинете разработчика Yandex:
-   - Redirect URI приложения: `http://localhost:8480/realms/elms/broker/yandex/endpoint` (или внешний HTTPS адрес Keycloak).
-   - Запрашиваемые права: `login:email` и `login:info` (email и базовая информация профиля).
-2. Передайте `YANDEX_CLIENT_ID` и `YANDEX_CLIENT_SECRET` в конфигурацию окружения `docker/.env.dev`.
-3. В Keycloak realm `elms` брокер сконфигурирован как встроенный ELMS OAuth 2.0 Identity Provider с алиасом `yandex` и сценарием первого входа `first broker login`. Используется OAuth 2.0, а не OIDC: Keycloak не добавляет неподдерживаемый Яндексом scope `openid`.
+2. **Keycloak-only контракт**:
+   - Frappe принимает только локальный OIDC/password flow доверенного realm `elms`.
+   - Realm seed не содержит внешних identity providers или broker mappers.
 
 ### Сетевая топология и взаимодействие хостов (Host Networking 8000/8080)
 
@@ -106,7 +95,7 @@
 - **Межсервисное взаимодействие**:
   - Контейнер `backend` (Frappe) взаимодействует с Keycloak по внутренней Docker-сети `http://keycloak:8080` (валидация JWKS-ключей и userinfo).
   - Разрешение имени `elms.localhost` внутри контейнеров обеспечивается директивой `extra_hosts: ["${SITE_NAME:-elms.localhost}:host-gateway"]`.
-- **Keycloak Broker Callback**: входящий ответ авторизации от Yandex поступает на публичный эндпоинт брокера `http://localhost:8480/realms/elms/broker/yandex/endpoint`.
+- **OIDC callback**: ответ авторизации возвращается на Frappe endpoint `login_via_keycloak`.
 
 #### Команды валидации сетевой доступности (cURL Commands)
 
@@ -115,10 +104,10 @@
   curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8480/realms/elms/.well-known/openid-configuration
   # Ожидаемый результат: 200 (валидный JSON с OIDC метаданными)
   ```
-- **Keycloak Broker Endpoint**:
+- **Frappe OAuth Redirect Initiator**:
   ```bash
-  curl -s -I http://localhost:8480/realms/elms/broker/yandex/endpoint
-  # Ожидаемый результат: 200 OK или 302 Found
+  curl -s -I "http://elms.localhost:8082/api/method/frappe.integrations.oauth2_logins.login_via_keycloak"
+  # Ожидаемый результат: 302 Found на realm elms
   ```
 - **Frappe Desk Login Page (хост -> nginx:8082 -> backend:8000)**:
   ```bash
@@ -142,10 +131,12 @@
 
 ### Just-in-Time провижининг (FR-011, AC-9)
 
-ELMS не использует тяжелые механизмы синхронизации директорий (SCIM или периодический фоновый импорт пользователей из Yandex). Создание учетных записей происходит строго **Just-in-Time (JIT)** при первом успешном входе:
-1. Пользователь проходит аутентификацию в Yandex через брокер Keycloak.
-2. Keycloak создает локальную запись пользователя в realm `elms` и привязывает federated identity Yandex (`first broker login`).
-3. При возврате в Frappe создается локальный `User` на основе нормализованных OIDC-утверждений (`sub`, `email`, имя, фамилия).
+ELMS не использует тяжелые механизмы синхронизации директорий. Создание учетных
+записей выполняется через локальный Keycloak password flow или через управляемый
+invite из ELMS:
+1. Пользователь получает приглашение и завершает настройку пароля в Keycloak.
+2. При возврате в Frappe создается или находится локальный `User` на основе
+   нормализованных OIDC-утверждений (`sub`, `email`, имя, фамилия).
 4. Хук `User.after_insert` (`elms.sso.roles.maybe_assign_sso_roles`) проверяет наличие обязательных ролей в базе данных и назначает роли по умолчанию (`Desk User`, `ELMS Learner`) по принципу **fail-closed** (если роль отсутствует в системе — регистрация прерывается).
 
 ### Однонаправленная синхронизация (FR-014, AC+9, AC-7)
@@ -169,25 +160,21 @@ ELMS не использует тяжелые механизмы синхрон�
 
 ---
 
-## 4. Отказоустойчивость SSO при сбое Yandex 360
+## 4. Отказоустойчивость SSO при сбое Keycloak
 
-### Поведение при недоступности внешнего IdP Yandex (FR-005a, FR-015, AC-8, BN-007, BN-008)
+### Поведение при недоступности Keycloak
 
-1. **Brokered-only пользователи**:
-   - Пользователи, у которых нет локальных учетных данных в Keycloak и авторизующиеся исключительно через федерацию Yandex 360, при сбое Yandex получают явную ошибку аутентификации от Keycloak.
-   - Ложный успех или offline-вход без подтверждения личности **запрещены (Fail-Closed, BN-007, TM-009)**.
-2. **Fail-closed для всех brokered-пользователей**:
-   - Автоматическая генерация локальных паролей и локальный обход внешнего IdP запрещены.
-   - При сбое Yandex Keycloak возвращает явную ошибку, редирект в Frappe не выполняется, сессия не создаётся.
+1. При сбое Keycloak Frappe возвращает явную ошибку, редирект не завершается,
+   сессия не создаётся.
+2. Автоматическая генерация локальных паролей и обход Keycloak запрещены.
    - Административное восстановление выполняется только оператором через Vault/AppRole и проверку preflight; пользовательского login bypass нет.
 
 ### Чек-лист проверки веток отказа и конкретные исходы (Outage Branch Checklist Outcomes)
 
 | Ветка проверки | Входные параметры | Выполняемое действие | Конкретный результат (Outcome) | Статус |
 |---|---|---|---|---|
-| **Штатный JIT-вход (Happy Path)** | Yandex 360 активен | Вход через Keycloak -> выбор Yandex -> авторизация | **Keycloak:** создана учетная запись с привязкой identityProvider=yandex.<br>**Frappe:** создан User, назначены роли `Desk User` и `ELMS Learner`. Открыта сессия Desk (`sid`, HTTP 200). | PASS |
-| **Сбой Yandex без локального пароля (Fail-Closed)** | Yandex 360 недоступен (5xx/timeout), нет пароля в Keycloak | Клик по кнопке Yandex на форме входа Keycloak | **Fail-Closed (BN-007):** Keycloak отображает ошибку внешнего провайдера. Редирект в Frappe не выполняется. Сессия в Frappe не создается. Доступ закрыт. | PASS |
-| **Сбой Yandex** | Yandex 360 недоступен | Попытка brokered-входа | **Fail-Closed:** Keycloak показывает ошибку внешнего провайдера; токен OIDC и сессия Frappe не создаются. | PASS |
+| **Штатный локальный вход** | Keycloak доступен, пароль настроен | Ввод учетных данных в стандартной форме | **Keycloak:** проверяет пароль. **Frappe:** создаёт User, назначает роли `Desk User` и `ELMS Learner`, открывает Desk-сессию. | PASS |
+| **Сбой Keycloak (Fail-Closed)** | Keycloak недоступен или возвращает 5xx | Попытка входа | **Fail-Closed:** токен и сессия Frappe не создаются. | PASS |
 | **Отсутствие роли по умолчанию** | Роль `ELMS Learner` отсутствует в БД Frappe | Прохождение OAuth-аутентификации | **Fail-Closed (BN-005):** Хук `maybe_assign_sso_roles` выбрасывает исключение `frappe.throw`. Создание пользователя отменяется, пользователь без роли не сохраняется. | PASS |
 
 ### Операторское восстановление
@@ -280,7 +267,7 @@ production metadata остаётся non-secret, а пароли, client secrets
    curl -fsS -o /dev/null -w "%{http_code}\n" "https://$SITE_NAME/login"
    curl -fsS -o /dev/null -w "%{http_code}\n" "https://$AUTH_HOSTNAME/realms/elms/.well-known/openid-configuration"
    ```
-6. Yandex OAuth redirect URI: `https://<AUTH_HOSTNAME>/realms/elms/broker/yandex/endpoint`.
+6. Keycloak OIDC discovery: `https://<AUTH_HOSTNAME>/realms/elms/.well-known/openid-configuration`.
 
 Caddyfile: `docker/caddy/Caddyfile` (авто-TLS Let's Encrypt по `ACME_EMAIL`).  
 Keycloak в prod: `start` (не `start-dev`) + `KC_PROXY_HEADERS=xforwarded` + `KC_HOSTNAME=<AUTH_HOSTNAME>`.

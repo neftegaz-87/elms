@@ -1,0 +1,26 @@
+{
+ "actions": [],
+ "creation": "2026-11-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["source_id", "lead_field_map", "status_map", "help"],
+ "fields": [
+  {"default": "WEB", "fieldname": "source_id", "fieldtype": "Data", "label": "Bitrix Lead Source ID"},
+  {"description": "Optional JSON mapping for configured Bitrix Lead fields; it does not contain status.", "fieldname": "lead_field_map", "fieldtype": "Long Text", "label": "Lead Field Map"},
+  {"default": "{\"NEW\": \"Новая\", \"IN_PROCESS\": \"В работе\", \"CONVERTED\": \"Обработана\", \"JUNK\": \"Отклонена\"}", "description": "JSON map of Bitrix STATUS_ID to a display label. It is presentation only; Bitrix remains the source of truth.", "fieldname": "status_map", "fieldtype": "Long Text", "label": "Bitrix Status Map"},
+  {"fieldname": "help", "fieldtype": "HTML", "label": "Help", "options": "<p>Bitrix is the source of application status. ELMS stores only a read-only snapshot in Application Link.</p>"}
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Application Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Admin", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -1,0 +1,28 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<main class="elms-apply" data-elms-status-page data-tracking-ref="{{ tracking_ref }}">
+  <div class="elms-apply__eyebrow">ELMS / tracking</div>
+  <h1>Статус заявки</h1>
+  <p class="elms-apply__intro">Введите tracking ref, чтобы увидеть сохранённый статус заявки.</p>
+  <form method="get" action="/apply/status" class="elms-status-form">
+    <label>Tracking ref<input name="ref" value="{{ tracking_ref }}" required autocomplete="off"></label>
+    <button type="submit">Показать статус</button>
+  </form>
+  {% if application_status %}
+  <section class="elms-status-card" aria-live="polite">
+    <div class="elms-status-card__label">Статус из Bitrix</div>
+    <div class="elms-status-card__badge" data-status-badge>{{ application_status.display_label }}</div>
+    <p>Последняя синхронизация: <time data-status-synced>{{ application_status.last_synced_at or "ещё не синхронизировано" }}</time></p>
+    <form method="get" action="/apply/status">
+      <input type="hidden" name="ref" value="{{ tracking_ref }}">
+      <input type="hidden" name="refresh" value="1">
+      <button type="submit">Обновить сохранённые данные</button>
+    </form>
+    <p class="elms-apply__message" data-status-message>Статус из Bitrix. Локальное изменение статуса недоступно.</p>
+  </section>
+  {% elif status_error %}
+  <p class="elms-apply__message" data-status-message data-state="error">{{ status_error }}</p>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<main class="elms-apply" data-elms-application-page="legal">
+  <div class="elms-apply__eyebrow">ELMS / для компаний</div>
+  <h1>Сотрудничество по курсам</h1>
+  <p class="elms-apply__intro">Расскажите о компании и нужных курсах — подготовим предложение.</p>
+  <form data-elms-application-form data-application-kind="legal" novalidate>
+    <label>Название компании<input name="company_name" required maxlength="240" autocomplete="organization"></label>
+    <label>ИНН<input name="inn" required inputmode="numeric" maxlength="12"></label>
+    <label>Контактное лицо<input name="contact_fio" required maxlength="160" autocomplete="name"></label>
+    <div class="elms-apply__grid">
+      <label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+      <label>Телефон<input name="phone" required maxlength="40" autocomplete="tel"></label>
+    </div>
+    <label>Курсы<select name="course_ids" multiple required size="5">
+      {% for course in courses %}<option value="{{ course.name }}">{{ course.course_name or course.name }}</option>{% endfor %}
+    </select></label>
+    <label>Комментарий<textarea name="comment" maxlength="2000" rows="4"></textarea></label>
+    <label class="elms-apply__consent"><input name="consent" type="checkbox" required> Согласен на обработку персональных данных</label>
+    <input class="elms-apply__honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button type="submit">Отправить заявку</button>
+    <p class="elms-apply__message" data-form-message role="status"></p>
+  </form>
+</main>
+<script src="/assets/elms/js/apply-forms.js?v=1"></script>
+{% endblock %}

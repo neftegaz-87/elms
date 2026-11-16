@@ -4,11 +4,12 @@
  "creation": "2026-11-13 12:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["user", "organization", "role_profile", "is_primary"],
+ "field_order": ["user", "organization", "role_profile", "organization_role", "is_primary"],
  "fields": [
   {"fieldname": "user", "fieldtype": "Link", "in_list_view": 1, "label": "User", "options": "User", "reqd": 1},
   {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
-  {"fieldname": "role_profile", "fieldtype": "Data", "label": "Role Profile"},
+  {"fieldname": "role_profile", "fieldtype": "Data", "label": "Базовый профиль"},
+  {"fieldname": "organization_role", "fieldtype": "Link", "in_list_view": 1, "label": "Внутренняя роль компании", "options": "ELMS Organization Role"},
   {"default": 1, "fieldname": "is_primary", "fieldtype": "Check", "label": "Primary Organization"}
  ],
  "links": [],

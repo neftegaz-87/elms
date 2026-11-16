@@ -51,9 +51,11 @@ TEST_PASSWORD_COUNT=0
 [ -n "${KEYCLOAK_TEST_ONE_PASSWORD:-}" ] && TEST_PASSWORD_COUNT=$((TEST_PASSWORD_COUNT + 1))
 [ -n "${KEYCLOAK_TEST_TWO_PASSWORD:-}" ] && TEST_PASSWORD_COUNT=$((TEST_PASSWORD_COUNT + 1))
 [ -n "${KEYCLOAK_TEST_ADMIN_PASSWORD:-}" ] && TEST_PASSWORD_COUNT=$((TEST_PASSWORD_COUNT + 1))
+[ -n "${KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD:-}" ] && TEST_PASSWORD_COUNT=$((TEST_PASSWORD_COUNT + 1))
+[ -n "${KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD:-}" ] && TEST_PASSWORD_COUNT=$((TEST_PASSWORD_COUNT + 1))
 
-if [ "$TEST_PASSWORD_COUNT" -ne 0 ] && [ "$TEST_PASSWORD_COUNT" -ne 3 ]; then
-  echo "ERROR: KEYCLOAK_TEST_*_PASSWORD must be provided for all three test accounts, or all left empty." >&2
+if [ "$TEST_PASSWORD_COUNT" -ne 0 ] && [ "$TEST_PASSWORD_COUNT" -ne 5 ]; then
+  echo "ERROR: KEYCLOAK_TEST_*_PASSWORD must be provided for all five test accounts, or all left empty." >&2
   exit 1
 fi
 
@@ -66,22 +68,30 @@ if [ -f "$TEMPLATE_FILE" ]; then
       -e '/"username": "elms.test.one@elms.local"/,/^    }/ s/"enabled": true/"enabled": false/' \
       -e '/"username": "elms.test.two@elms.local"/,/^    }/ s/"enabled": true/"enabled": false/' \
       -e '/"username": "elms.test.admin@elms.local"/,/^    }/ s/"enabled": true/"enabled": false/' \
+      -e '/"username": "elms.test.company.admin@elms.local"/,/^    }/ s/"enabled": true/"enabled": false/' \
+      -e '/"username": "elms.test.foreign.company.admin@elms.local"/,/^    }/ s/"enabled": true/"enabled": false/' \
       "$TEMPLATE_FILE" > "$RENDER_TEMPLATE"
   fi
   PUBLIC_URL_ESCAPED=$(printf '%s' "$REVIEW_PUBLIC_URL" | sed 's/[&|\\]/\\&/g')
   KEYCLOAK_CLIENT_SECRET_ESCAPED=$(printf '%s' "${KEYCLOAK_CLIENT_SECRET:-}" | sed 's/[&|\\]/\\&/g')
+  KEYCLOAK_ADMIN_CLIENT_SECRET_ESCAPED=$(printf '%s' "${KEYCLOAK_ADMIN_CLIENT_SECRET:-}" | sed 's/[&|\\]/\\&/g')
   NEFTEGAZ_REVIEW_CLIENT_SECRET_ESCAPED=$(printf '%s' "${NEFTEGAZ_REVIEW_CLIENT_SECRET:-}" | sed 's/[&|\\]/\\&/g')
   KEYCLOAK_ADMIN_PASSWORD_ESCAPED=$(printf '%s' "${KEYCLOAK_ADMIN_PASSWORD:-}" | sed 's/[&|\\]/\\&/g')
   KEYCLOAK_TEST_ONE_PASSWORD_ESCAPED=$(printf '%s' "${KEYCLOAK_TEST_ONE_PASSWORD:-}" | sed 's/[&|\\]/\\&/g')
   KEYCLOAK_TEST_TWO_PASSWORD_ESCAPED=$(printf '%s' "${KEYCLOAK_TEST_TWO_PASSWORD:-}" | sed 's/[&|\\]/\\&/g')
   KEYCLOAK_TEST_ADMIN_PASSWORD_ESCAPED=$(printf '%s' "${KEYCLOAK_TEST_ADMIN_PASSWORD:-}" | sed 's/[&|\\]/\\&/g')
+  KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD_ESCAPED=$(printf '%s' "${KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD:-}" | sed 's/[&|\\]/\\&/g')
+  KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD_ESCAPED=$(printf '%s' "${KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD:-}" | sed 's/[&|\\]/\\&/g')
   sed -e "s|__NEFTEGAZ_REVIEW_PUBLIC_URL__|$PUBLIC_URL_ESCAPED|g" \
     -e "s|\${env.KEYCLOAK_CLIENT_SECRET:}|$KEYCLOAK_CLIENT_SECRET_ESCAPED|g" \
+    -e "s|\${env.KEYCLOAK_ADMIN_CLIENT_SECRET:}|$KEYCLOAK_ADMIN_CLIENT_SECRET_ESCAPED|g" \
     -e "s|\${env.NEFTEGAZ_REVIEW_CLIENT_SECRET:}|$NEFTEGAZ_REVIEW_CLIENT_SECRET_ESCAPED|g" \
     -e "s|\${env.KEYCLOAK_ADMIN_PASSWORD}|$KEYCLOAK_ADMIN_PASSWORD_ESCAPED|g" \
     -e "s|\${env.KEYCLOAK_TEST_ONE_PASSWORD}|$KEYCLOAK_TEST_ONE_PASSWORD_ESCAPED|g" \
     -e "s|\${env.KEYCLOAK_TEST_TWO_PASSWORD}|$KEYCLOAK_TEST_TWO_PASSWORD_ESCAPED|g" \
     -e "s|\${env.KEYCLOAK_TEST_ADMIN_PASSWORD}|$KEYCLOAK_TEST_ADMIN_PASSWORD_ESCAPED|g" \
+    -e "s|\${env.KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD}|$KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD_ESCAPED|g" \
+    -e "s|\${env.KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD}|$KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD_ESCAPED|g" \
     "$RENDER_TEMPLATE" > "$OUTPUT_FILE"
   [ "$RENDER_TEMPLATE" = "$TEMPLATE_FILE" ] || rm -f "$RENDER_TEMPLATE"
 fi

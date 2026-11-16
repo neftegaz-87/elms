@@ -59,12 +59,12 @@ steps:
   file: s03-keycloak-only-yandex-sunset-and-migration.yaml
   title: Keycloak-only realm, Yandex sunset and legacy-user migration
   next_phase: APP IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-desk-invite-wire-and-acceptance.yaml
   title: Desk organization/invite UI and mixed wire acceptance
   next_phase: APP IMPLEMENT
-  status: pending
+  status: completed
 requirements_coverage:
 - id: FR-001
   step: s01

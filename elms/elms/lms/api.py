@@ -69,6 +69,68 @@ def _has_role(role: str, user: Optional[str] = None) -> bool:
     return role in roles
 
 
+def _is_company_admin(user: Optional[str] = None) -> bool:
+    check_user = user or _get_current_user()
+    if check_user == "Administrator":
+        return False
+    try:
+        roles = frappe.get_roles(check_user) if hasattr(frappe, "get_roles") else []
+    except (AttributeError, ImportError):
+        return False
+    return "ELMS Company Admin" in roles
+
+
+def _company_admin_organizations(user: Optional[str] = None) -> list[str]:
+    check_user = user or _get_current_user()
+    if not _is_company_admin(check_user):
+        return []
+    rows = frappe.db.sql(
+        "select organization from `tabELMS Organization Member` where user = %s",
+        check_user,
+        as_dict=True,
+    )
+    return [str(row.get("organization")) for row in rows if row.get("organization")]
+
+
+def _require_company_admin_organization(organization: str, user: Optional[str] = None) -> str:
+    check_user = user or _get_current_user()
+    if not _is_company_admin(check_user):
+        return organization
+    if organization not in _company_admin_organizations(check_user):
+        frappe.throw(_("Company Admin has no access to this organization"), frappe.PermissionError)
+    return organization
+
+
+def _company_admin_users(user: Optional[str] = None) -> list[str]:
+    organizations = _company_admin_organizations(user)
+    if not organizations:
+        return []
+    placeholders = ", ".join(["%s"] * len(organizations))
+    rows = frappe.db.sql(
+        f"select user from `tabELMS Organization Member` where organization in ({placeholders})",
+        tuple(organizations),
+        as_dict=True,
+    )
+    return [str(row.get("user")) for row in rows if row.get("user")]
+
+
+def _company_admin_scope(user: Optional[str] = None) -> dict[str, Any]:
+    """Return a reusable organization filter for manager queries."""
+    if not _is_company_admin(user):
+        return {}
+    return {"organization": ["in", _company_admin_organizations(user)]}
+
+
+def _require_lms_document_scope(doctype: str, name: str, user: Optional[str] = None) -> str:
+    """Reject direct access to a document owned by another organization."""
+    current = user or _get_current_user()
+    if not _is_company_admin(current):
+        return str(name)
+    organization = frappe.db.get_value(doctype, name, "organization")
+    _require_company_admin_organization(str(organization or ""), current)
+    return str(name)
+
+
 def _is_learning_manager(user: Optional[str] = None) -> bool:
     """Return whether a user may manage the learning catalogue and cohorts."""
     check_user = user or _get_current_user()
@@ -77,6 +139,7 @@ def _is_learning_manager(user: Optional[str] = None) -> bool:
         or _has_role("System Manager", check_user)
         or _has_role("ELMS Admin", check_user)
         or _has_role("ELMS Operations User", check_user)
+        or _has_role("ELMS Company Admin", check_user)
         or _has_role("ELMS Methodologist", check_user)
     )
 
@@ -111,6 +174,8 @@ def _can_view_learner_profile(user: Optional[str] = None) -> bool:
     check_user = user or _get_current_user()
     if _is_learning_manager(check_user):
         return True
+    if _has_role("ELMS Company Admin", check_user):
+        return False
     return all(
         _source_readable(doctype, check_user)
         for doctype in ("ELMS Enrollment", "ELMS Course Progress", "ELMS Lesson Progress")
@@ -155,6 +220,26 @@ def _save_doc(doctype: str, name: Optional[str], values: Dict[str, Any]) -> Dict
     else:
         doc = frappe.new_doc(doctype)
 
+    if doctype in {
+        "ELMS Course", "ELMS Course Category", "ELMS Course Chapter", "ELMS Course Lesson",
+        "ELMS Batch", "ELMS Subscription", "ELMS Enrollment", "ELMS Course Progress",
+        "ELMS Lesson Progress", "ELMS User Activity", "ELMS Video Watch Log", "ELMS Program",
+        "ELMS Program Course", "ELMS Program Enrollment", "ELMS Quiz", "ELMS Quiz Question",
+        "ELMS Quiz Attempt",
+    }:
+        current = _get_current_user()
+        existing_organization = str(getattr(doc, "organization", "") or "")
+        requested_organization = str(values.get("organization") or existing_organization or "")
+        if _is_company_admin(current):
+            organizations = _company_admin_organizations(current)
+            if not requested_organization and len(organizations) == 1:
+                requested_organization = organizations[0]
+            _require_company_admin_organization(requested_organization, current)
+            values["organization"] = requested_organization
+        elif not requested_organization and hasattr(doc, "organization"):
+            from elms.tenant import ensure_platform_owner
+            values["organization"] = ensure_platform_owner()
+
     for field, value in values.items():
         if value is not None:
             setattr(doc, field, value)
@@ -170,6 +255,7 @@ def _course_structure(course: str, enrollment: Optional[str] = None) -> Dict[str
     """Build the learner-facing course structure from persisted chapters and lessons."""
     if not frappe.db.exists("ELMS Course", course):
         frappe.throw(_("Course {0} not found").format(course), frappe.DoesNotExistError)
+    _require_lms_document_scope("ELMS Course", course)
 
     course_doc = frappe.get_doc("ELMS Course", course)
     chapters = frappe.get_all(
@@ -741,7 +827,8 @@ def enroll_learner(
         frappe.throw(_("Authentication required to enroll learners"), frappe.PermissionError)
 
     # Permission check: ELMS Admin or ELMS Operations User can enroll learners
-    if not (_has_role("ELMS Admin") or _has_role("ELMS Operations User") or session_user == user):
+    company_admin_can_manage_user = _is_company_admin(session_user) and user in _company_admin_users(session_user)
+    if not (_has_role("ELMS Admin") or _has_role("ELMS Operations User") or company_admin_can_manage_user or session_user == user):
         frappe.throw(_("Permission denied to enroll learner"), frappe.PermissionError)
 
     # Validate User exists
@@ -751,6 +838,8 @@ def enroll_learner(
     # Validate Batch exists
     if not frappe.db.exists("ELMS Batch", batch):
         frappe.throw(_("Batch {0} does not exist").format(batch), frappe.DoesNotExistError)
+    batch_organization = frappe.db.get_value("ELMS Batch", batch, "organization")
+    _require_company_admin_organization(batch_organization, session_user)
 
     # Prevent duplicate active enrollment
     existing = frappe.db.get_value(
@@ -794,6 +883,7 @@ def enroll_learner(
     enrollment.user = user
     enrollment.batch = batch
     enrollment.course = batch_course or ""
+    enrollment.organization = batch_organization
     enrollment.program_enrollment = program_enrollment or ""
     enrollment.subscription = subscription or ""
     enrollment.enrollment_date = _today()
@@ -805,6 +895,7 @@ def enroll_learner(
     # Initialize Course Progress
     progress = frappe.new_doc("ELMS Course Progress")
     progress.enrollment = enrollment.name
+    progress.organization = batch_organization
     progress.user = user
     progress.progress_percentage = 0.0
     progress.total_lessons = 0
@@ -940,6 +1031,13 @@ def save_batch(
         frappe.throw(_("Course {0} not found").format(course), frappe.DoesNotExistError)
     if status not in ("Planning", "Active", "Completed", "Cancelled"):
         frappe.throw(_("Unsupported batch status"), frappe.ValidationError)
+    if _is_company_admin():
+        if not organization:
+            organizations = _company_admin_organizations()
+            if len(organizations) != 1:
+                frappe.throw(_("Укажите организацию своей компании"), frappe.ValidationError)
+            organization = organizations[0]
+        _require_company_admin_organization(organization)
     return _save_doc(
         "ELMS Batch",
         name,
@@ -962,6 +1060,7 @@ def save_subscription(
     company_name: str = "",
     inn: str = "",
     course: Optional[str] = None,
+    organization: str = "",
     contract_number: str = "",
     total_seats: Any = 1,
     valid_from: Optional[str] = None,
@@ -976,11 +1075,15 @@ def save_subscription(
         frappe.throw(_("Course {0} not found").format(course), frappe.DoesNotExistError)
     if status not in ("Active", "Expired", "Exhausted"):
         frappe.throw(_("Unsupported subscription status"), frappe.ValidationError)
+    organization = str(organization or company_name).strip()
+    if frappe.db.exists("ELMS Organization", organization):
+        _require_company_admin_organization(organization)
     return _save_doc(
         "ELMS Subscription",
         name,
         {
             "company_name": str(company_name).strip(),
+            "organization": organization,
             "inn": str(inn).strip(),
             "course": course,
             "contract_number": contract_number,
@@ -1023,45 +1126,61 @@ def get_learning_admin_data() -> Dict[str, Any]:
     if not manager:
         return result
 
+    company_admin_scope = _is_company_admin(user)
+    company_organizations = _company_admin_organizations(user) if company_admin_scope else []
+    company_users = _company_admin_users(user) if company_admin_scope else []
+    batch_filters = _company_admin_scope(user)
+
     result["courses"] = frappe.get_all(
         "ELMS Course",
+        filters=_company_admin_scope(user),
         fields=["name", "course_name", "course_code", "category", "academic_hours", "is_published", "modified"],
         order_by="modified desc",
         limit_page_length=200,
     )
     result["batches"] = frappe.get_all(
         "ELMS Batch",
+        filters=batch_filters,
         fields=["name", "batch_name", "course", "course_name", "start_date", "end_date", "status", "instructor"],
         order_by="start_date desc",
         limit_page_length=200,
     )
     result["subscriptions"] = frappe.get_all(
         "ELMS Subscription",
+        filters=_company_admin_scope(user),
         fields=["name", "company_name", "inn", "course", "contract_number", "total_seats", "seats_used", "valid_to", "status"],
         order_by="modified desc",
         limit_page_length=200,
     )
-    result["enrollments"] = frappe.get_all(
+    enrollment_rows = frappe.get_all(
         "ELMS Enrollment",
+        filters=_company_admin_scope(user),
         fields=["name", "user", "batch", "course", "subscription", "enrollment_date", "status"],
         order_by="modified desc",
         limit_page_length=200,
     )
+    result["enrollments"] = (
+        [row for row in enrollment_rows if row.get("user") in company_users]
+        if company_admin_scope
+        else enrollment_rows
+    )
     result["quizzes"] = frappe.get_all(
         "ELMS Quiz",
+        filters=_company_admin_scope(user),
         fields=["name", "quiz_name", "course", "quiz_type", "passing_percentage", "is_published"],
         order_by="modified desc",
         limit_page_length=200,
     )
     result["programs"] = frappe.get_all(
         "ELMS Program",
+        filters=_company_admin_scope(user),
         fields=["name", "program_name", "program_code", "category", "total_hours", "is_published"],
         order_by="modified desc",
         limit_page_length=200,
     )
     result["users"] = frappe.get_all(
         "User",
-        filters={"enabled": 1},
+        filters={"enabled": 1, "name": ["in", company_users]} if company_admin_scope else {"enabled": 1},
         fields=["name", "full_name", "email"],
         order_by="full_name asc",
         limit_page_length=500,
@@ -1090,60 +1209,70 @@ def get_learning_relationships(
     _require_relationship_viewer()
     courses = frappe.get_all(
         "ELMS Course",
+        filters=_company_admin_scope(),
         fields=["name", "course_name", "course_code", "category", "academic_hours", "is_published"],
         order_by="modified desc",
         limit_page_length=500,
     )
     batches = frappe.get_all(
         "ELMS Batch",
+        filters=_company_admin_scope(),
         fields=["name", "batch_name", "course", "course_name", "start_date", "end_date", "status", "instructor"],
         order_by="start_date desc, modified desc",
         limit_page_length=500,
     )
     subscriptions = frappe.get_all(
         "ELMS Subscription",
+        filters=_company_admin_scope(),
         fields=["name", "company_name", "inn", "course", "contract_number", "total_seats", "seats_used", "valid_to", "status"],
         order_by="modified desc",
         limit_page_length=500,
     )
     enrollments = frappe.get_all(
         "ELMS Enrollment",
+        filters=_company_admin_scope(),
         fields=["name", "user", "batch", "course", "subscription", "enrollment_date", "status"],
         order_by="modified desc",
         limit_page_length=1000,
     )
     chapters = frappe.get_all(
         "ELMS Course Chapter",
+        filters=_company_admin_scope(),
         fields=["name", "chapter_name", "course", "sequence_id"],
         order_by="sequence_id asc, modified asc",
         limit_page_length=1000,
     )
     lessons = frappe.get_all(
         "ELMS Course Lesson",
+        filters=_company_admin_scope(),
         fields=["name", "lesson_name", "course", "chapter", "sequence_id", "content_type"],
         order_by="sequence_id asc, modified asc",
         limit_page_length=2000,
     )
     quizzes = frappe.get_all(
         "ELMS Quiz",
+        filters=_company_admin_scope(),
         fields=["name", "quiz_name", "course", "lesson", "quiz_type", "is_published"],
         order_by="modified desc",
         limit_page_length=1000,
     )
     program_courses = frappe.get_all(
         "ELMS Program Course",
+        filters=_company_admin_scope(),
         fields=["name", "program", "course", "sequence_id", "is_mandatory"],
         order_by="sequence_id asc, modified asc",
         limit_page_length=1000,
     )
     programs = frappe.get_all(
         "ELMS Program",
+        filters=_company_admin_scope(),
         fields=["name", "program_name", "program_code", "category", "is_published"],
         order_by="modified desc",
         limit_page_length=500,
     )
     users = frappe.get_all(
         "User",
+        filters={"name": ["in", _company_admin_users()]} if _is_company_admin() else {},
         fields=["name", "full_name", "email"],
         limit_page_length=1000,
     )
@@ -1508,6 +1637,7 @@ def _attempt_payload(attempt: Any, questions: List[Dict[str, Any]], resumed: boo
 
 
 def _require_enrollment_access(enrollment: str, user: str) -> Dict[str, Any]:
+    _require_lms_document_scope("ELMS Enrollment", enrollment, user)
     enrollment_data = frappe.db.get_value(
         "ELMS Enrollment", enrollment, ["user", "course", "status"], as_dict=True
     ) or {}
@@ -1522,6 +1652,7 @@ def _require_enrollment_access(enrollment: str, user: str) -> Dict[str, Any]:
 
 def _quiz_for_learner(quiz: str, enrollment: str, user: str) -> Dict[str, Any]:
     enrollment_data = _require_enrollment_access(enrollment, user)
+    _require_lms_document_scope("ELMS Quiz", quiz, user)
     quiz_data = frappe.db.get_value(
         "ELMS Quiz",
         quiz,
@@ -1627,6 +1758,7 @@ def start_quiz(quiz: str, enrollment: str) -> Dict[str, Any]:
 
 
 def _assert_attempt_access(attempt: Any, user: str) -> None:
+    _require_lms_document_scope("ELMS Quiz Attempt", attempt.name, user)
     if getattr(attempt, "user", None) != user and not _is_learning_manager(user):
         frappe.throw(_("Access denied"), frappe.PermissionError)
     if getattr(attempt, "status", None) != "In Progress":
@@ -2194,11 +2326,14 @@ def record_lesson_progress(
     else:
         lp.save()
 
-    # Recalculate summary course progress
-    summary = calculate_course_progress(course_progress_name)
-
-    # Log telemetry
-    _record_user_activity(session_user, "Heartbeat", "ELMS Lesson Progress", lp.name)
+    # A regular progress flush only persists the delta. Recalculating every
+    # course lesson and writing an audit row for each heartbeat made the hot
+    # path unnecessarily expensive. Recalculate and audit only on completion;
+    # the next dashboard/course read will receive the persisted lesson time.
+    summary = {"progress_percentage": None, "exam_eligible": None}
+    if mark_completed:
+        summary = calculate_course_progress(course_progress_name)
+        _record_user_activity(session_user, "Lesson Completed", "ELMS Lesson Progress", lp.name)
 
     return {
         "lesson_id": lesson_id,
@@ -2375,27 +2510,11 @@ def get_learner_dashboard() -> Dict[str, Any]:
             "quiz_attempts": attempts,
         })
 
-    activities = frappe.get_all(
-        "ELMS User Activity",
-        filters={"user": session_user},
-        fields=["name", "activity_type", "reference_doctype", "reference_name", "ip_address", "timestamp"],
-        order_by="timestamp desc",
-        limit_page_length=50,
-    )
-    last_activity_at = activities[0].get("timestamp") if activities else None
-    last_login_at = next(
-        (item.get("timestamp") for item in activities if str(item.get("activity_type") or "").casefold() == "login"),
-        None,
-    )
-
     return {
         "authenticated": True,
         "user": session_user,
         "active_enrollments_count": len(courses_data),
         "courses": courses_data,
-        "activities": activities,
-        "last_activity_at": last_activity_at,
-        "last_login_at": last_login_at,
     }
 
 

@@ -43,7 +43,10 @@ class TestAccessModelContract(unittest.TestCase):
         self.assertIn("inn", {field["fieldname"] for field in organization["fields"]})
         self.assertIn("organization", {field["fieldname"] for field in member["fields"]})
         self.assertEqual(ELMS_COMPANY_ADMIN_ROLE, "ELMS Company Admin")
-        self.assertEqual(ROLE_PROFILES["ELMS Company Admin Profile"], ("Desk User", ELMS_COMPANY_ADMIN_ROLE))
+        self.assertEqual(
+            ROLE_PROFILES["ELMS Company Admin Profile"],
+            ("Desk User", ELMS_COMPANY_ADMIN_ROLE),
+        )
         self.assertTrue(callable(access_api.create_organization))
         self.assertTrue(callable(access_api.assign_company_admin))
 
@@ -94,7 +97,10 @@ class TestAccessModelContract(unittest.TestCase):
 
         self.assertEqual(result["role_profile"], "ELMS Company Admin Profile")
         self.assertEqual(user.role_profile_name, "ELMS Company Admin Profile")
-        self.assertIn("ELMS Company Admin", {row.role for row in user.roles})
+        self.assertEqual(
+            {row.role for row in user.roles},
+            {"ELMS Company Admin"},
+        )
         self.assertEqual(
             [(record.doctype, record.user, record.organization) for record in records if record.doctype != "User Permission"],
             [("ELMS Organization Member", "company@example.com", "Acme")],

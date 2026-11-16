@@ -20,6 +20,35 @@ class TestInviteContract(unittest.TestCase):
             with self.assertRaises(frappe.PermissionError):
                 access_api.invite_org_user("person@example.com", "Person", "User", "Acme")
 
+    def test_company_admin_can_invite_company_admin_in_own_organization(self):
+        with (
+            patch.object(access_api, "_is_admin", return_value=False),
+            patch.object(access_api, "_roles", return_value={"ELMS Company Admin"}),
+            patch.object(access_api, "_db_exists", return_value=True),
+            patch.object(
+                access_api,
+                "_create_or_get_frappe_user",
+                return_value=(SimpleNamespace(name="person@example.com", flags=SimpleNamespace()), True),
+            ),
+            patch.object(access_api, "_ensure_membership_and_scope") as ensure_scope,
+            patch.object(access_api, "_get_keycloak_client") as client_factory,
+        ):
+            client_factory.return_value.upsert_user.return_value = "kc-admin"
+            result = access_api.invite_org_user(
+                "person@example.com",
+                "Person",
+                "User",
+                "Acme",
+                role_profile="ELMS Company Admin Profile",
+            )
+
+        self.assertEqual(result["keycloak_id"], "kc-admin")
+        ensure_scope.assert_called_once_with(
+            "person@example.com",
+            "Acme",
+            "ELMS Company Admin Profile",
+        )
+
     def test_invite_returns_keycloak_identity_without_password(self):
         with (
             patch.object(access_api, "_is_admin", return_value=True),

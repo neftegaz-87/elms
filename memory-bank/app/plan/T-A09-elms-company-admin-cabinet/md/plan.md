@@ -77,11 +77,22 @@
 | US-004 | Не вижу другую org. | P0 | PermissionError |
 | US-005 | Пустая org — понятный empty state. | P1 | UI |
 
+### Acceptance criteria
+
+| ID | Criterion |
+|----|-----------|
+| AC-001 | Given Company Admin A in org1 and users in org1/org2; When get_org_roster for org1; Then only org1 members are returned. |
+| AC-002 | Given Company Admin A in org1; When get_org_roster (or export) for org2; Then PermissionError / explicit access denial. |
+| AC-003 | Given enrollment Active and ELMS Course Progress progress_percentage=40; When roster row; Then enrollment status and progress_pct=40 are shown; missing progress row → documented 0. |
+| AC-004 | When export_org_progress; Then UTF-8 CSV contains the same users/rows as roster for that org and never includes org2. |
+| AC-005 | Given organization with zero members; When cabinet opens; Then explicit empty state is shown (no fake rows). |
+
 ### Acceptance
 
-- US-001/004: Given Admin A in org1, users in org1/org2; When roster; Then only org1; direct API org2 → error.
-- US-002: Given enrollment + course progress 40%; When roster row; Then shows Active/Completed/… and 40%.
-- US-003: When export; Then file contains same users/rows; no org2.
+- US-001/004 → AC-001/AC-002: Given Admin A in org1, users in org1/org2; When roster; Then only org1; direct API org2 → error.
+- US-002 → AC-003: Given enrollment + course progress 40%; When roster row; Then shows Active/Completed/… and 40%.
+- US-003 → AC-004: When export; Then file contains same users/rows; no org2.
+- US-005 → AC-005: empty org → empty state.
 
 ## Functional requirements
 
@@ -109,8 +120,11 @@
 
 ## NFR
 
-- Roster p95 reasonable for ≤500 members/org (paginate if needed — DECOMPOSE).
-- Export capped (e.g. 5000 rows) with clear error if exceeded.
+| ID | Requirement |
+|----|-------------|
+| NFR-001 | Roster p95 reasonable for ≤500 members/org; paginate (page_size default ≤50, hard max 500). |
+| NFR-002 | Export capped at 5000 rows with clear ValidationError if exceeded. |
+| NFR-003 | Export and roster share the same server-side org ACL; UI filter is not a security boundary. |
 
 ## Explicit non-goals
 

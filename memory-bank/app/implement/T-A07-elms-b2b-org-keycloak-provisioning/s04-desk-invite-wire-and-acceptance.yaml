@@ -1,0 +1,79 @@
+schema: epic-implement/v1
+role: app
+step_id: s04
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+task_id: T-A07-elms-b2b-org-keycloak-provisioning
+title: s04 — Desk organization/invite UI and mixed wire acceptance IMPLEMENT
+level: L2
+status: completed
+date: 2026-11-13
+decompose_ref: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/yaml/steps/s04-desk-invite-wire-and-acceptance.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+
+files:
+  - elms/elms/desk/workspaces.py
+  - elms/elms/hooks.py
+  - elms/elms/public/js/desk-access.js
+  - elms/elms/public/css/desk-access.css
+  - elms/elms/tests/test_access_ui.py
+  - elms/elms/tests/test_workspaces.py
+  - scripts/live_smoke.sh
+  - memory-bank/app/implement/T-A07-elms-b2b-org-keycloak-provisioning/s04-desk-invite-wire-and-acceptance.yaml
+
+deletes: []
+
+done:
+  - "B2B Access workspace exposes organization, membership and invite-log DocTypes to ELMS Admin and ELMS Company Admin."
+  - "Desk route elms-access uses real create_organization, assign_company_admin and invite_org_user whitelist methods."
+  - "Admin and Company Admin states are role-aware; denied users see an explicit permission state and server errors remain visible."
+  - "Scoped neftegaz-style access surface has keyboard focus, responsive layout and a Keycloak password-setup handoff."
+  - "Live smoke reaches the access route and rejects Yandex or kc_idp_hint remnants."
+
+wire_complete:
+  call_sites:
+    - "B2B Access workspace -> /app/elms-access -> create_organization"
+    - "B2B Access workspace -> /app/elms-access -> assign_company_admin -> User Permission scope"
+    - "Company Admin invite form -> invite_org_user -> Keycloak password setup -> Keycloak-only login"
+  enforce_path: elms/elms/access/api.py
+  dual_path_rg: rg -n "frappe.call|create_organization|assign_company_admin|invite_org_user" elms/elms/public/js/desk-access.js
+  instruction_rg: rg -n "filter.*organization|kc_idp_hint=yandex|Login.*Yandex" elms/elms/public/js elms/elms/desk
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py"
+  - "node --check elms/elms/public/js/desk-access.js"
+  - "python3 -m py_compile elms/elms/desk/workspaces.py"
+  - "bash -n scripts/live_smoke.sh"
+  - "rg -n 'create_organization|assign_company_admin|invite_org_user|Company Admin|ELMS Organization' elms/elms/public/js/desk-access.js elms/elms/desk/workspaces.py"
+
+integration_check:
+  - "Workspace navigation points to real organization DocTypes and the access page route."
+  - "Client-side role presentation does not replace server-side organization and permission enforcement."
+  - "Invite success copy describes the Keycloak UPDATE_PASSWORD path and no Yandex control is rendered."
+
+checkpoints:
+  - id: cp1
+    criterion: Workspace and Desk surface call real access methods and expose explicit denial/error states.
+    status: done
+    evidence: "Targeted access/workspace contract => 17 passed."
+    verify: "./bin/pytest -q elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py"
+  - id: cp2
+    criterion: JS parses and no client-only scope or Yandex login control remains.
+    status: done
+    evidence: "Node syntax, Python workspace syntax, live-smoke syntax and wire scans pass."
+    verify: "node --check elms/elms/public/js/desk-access.js"
+
+resume_from: cp2
+
+verification_results:
+  - "./bin/pytest -q elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py => PASS (17 passed)"
+  - "node --check elms/elms/public/js/desk-access.js => PASS"
+  - "python3 -m py_compile elms/elms/desk/workspaces.py => PASS"
+  - "bash -n scripts/live_smoke.sh => PASS"

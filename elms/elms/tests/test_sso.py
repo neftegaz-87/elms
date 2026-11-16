@@ -276,6 +276,44 @@ class TestSSO(unittest.TestCase):
         self.assertIn("ELMS Admin", user.get_roles())
         self.assertTrue(user.saved)
 
+    def test_login_reconciliation_waits_for_transaction_commit(self):
+        from elms.install import on_login_sync_identity
+
+        callbacks = []
+
+        class AfterCommit:
+            def add(self, callback):
+                callbacks.append(callback)
+
+        user = FakeUserDoc(email="admin@example.com", is_social=False)
+        database = SimpleNamespace(
+            exists=MagicMock(return_value=True),
+            after_commit=AfterCommit(),
+        )
+        login_manager = SimpleNamespace(user=user.email)
+        previous_oauth_data = getattr(frappe.local, "oauth_user_data", None)
+        frappe.local.oauth_user_data = {"enabled": True, "groups": ["Administrators"]}
+
+        try:
+            with patch.object(frappe, "db", database, create=True), patch.object(
+                frappe, "get_doc", return_value=user, create=True
+            ), patch("elms.install.reconcile_keycloak_user") as reconcile:
+                on_login_sync_identity(login_manager)
+
+                reconcile.assert_not_called()
+                self.assertEqual(len(callbacks), 1)
+
+                callbacks[0]()
+                reconcile.assert_called_once_with(user, frappe.local.oauth_user_data)
+        finally:
+            if previous_oauth_data is None:
+                try:
+                    del frappe.local.oauth_user_data
+                except AttributeError:
+                    pass
+            else:
+                frappe.local.oauth_user_data = previous_oauth_data
+
     def setUp(self):
         self.original_conf_roles = frappe.conf.get(DEFAULT_SSO_ROLES_CONF_KEY)
 

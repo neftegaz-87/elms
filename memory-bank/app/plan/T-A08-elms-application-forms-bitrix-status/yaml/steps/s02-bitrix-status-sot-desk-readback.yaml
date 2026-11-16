@@ -1,0 +1,215 @@
+schema: epic-decompose/v1
+role: app
+step_id: s02
+plan_id: T-A08-elms-application-forms-bitrix-status
+title: Bitrix status SoT read-back, DENY local master and Desk list
+level: L2
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Сделать Bitrix STATUS_ID единственным SoT статуса заявки: refresh читает Lead
+  через rest_client, обновляет только snapshot, UI показывает mapped label;
+  локальная запись master-статуса DENY; Admin/Operations видят список Application
+  Link в Desk с кнопкой «Обновить статус».
+
+plan_contract:
+  fr_ids: [FR-003, FR-004]
+  nfr_ids: []
+  us_ids: [US-003, US-005]
+  ac_ids: [AC-004, AC-005]
+  nouns:
+  - get_application_status
+  - last_status_snapshot
+  - last_synced_at
+  - status mapping config
+  - Desk Application Link list
+  - Обновить статус
+  - DENY local master status
+  - crm.lead.get
+  layout_paths:
+  - elms/elms/applications/api.py
+  - elms/elms/applications/status.py
+  - elms/elms/elms_core/doctype/elms_application_link/
+  - elms/elms/elms_core/doctype/elms_application_settings/
+  - elms/elms/public/js/desk-applications.js
+  - elms/elms/public/css/desk-applications.css
+  - elms/elms/desk/workspaces.py
+  - elms/elms/www/apply/status.py
+  - elms/elms/tests/test_applications_status.py
+  - elms/elms/tests/test_applications_ui.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A08-elms-application-forms-bitrix-status/md/plan.md:27-33
+  - memory-bank/app/plan/T-A08-elms-application-forms-bitrix-status/md/plan.md:65-96
+  - memory-bank/app/plan/T-A08-elms-application-forms-bitrix-status/md/plan.md:112-135
+  - memory-bank/app/plan/T-A08-elms-application-forms-bitrix-status/md/plan.md:147-163
+  ac_quotes:
+  - "AC-004: Given Bitrix status changed to STAGE_X; When ELMS refresh; Then UI shows STAGE_X label from mapping; stale local snapshot updated."
+  - "AC-005: Given Application Link; When PATCH/write local master status; Then ValidationError/Permission denied."
+  bitrix_status_lock:
+    get_method: crm.lead.get
+    sot_field: STATUS_ID
+    elms_mirror: last_status_snapshot + last_synced_at + display_label from map
+    forbidden: ELMS Workflow State / Select status as master; local write that overrides Bitrix
+  user_journey: >-
+    Operator opens Desk Application Links list, selects a link, clicks
+    «Обновить статус». Server calls crm.lead.get, maps STATUS_ID via Application
+    Settings status_map JSON, writes snapshot fields only. Applicant tracking
+    page/badge shows label + synced_at. Attempt to set Approved via DocType
+    write/API fails closed. Optional inbound webhook updates snapshot only
+    (same mapper); never invents local master.
+  api:
+    get_application_status:
+      method: elms.applications.api.get_application_status
+      input: name (Application Link) or tracking_ref
+      output: bitrix_id, status_code, display_label, last_synced_at, application_kind
+      errors: NotFound; BitrixRestError/config → fail-closed (no fake Approved)
+    refresh_application_status:
+      method: elms.applications.api.refresh_application_status
+      input: name
+      output: same as get after snapshot update
+      errors: same fail-closed
+    list_application_links:
+      method: elms.applications.api.list_application_links
+      input: optional filters kind/status_snapshot
+      output: rows for Desk
+      errors: PermissionError for non Admin/Operations
+    deny_local_status_write:
+      surface: ELMS Application Link validate/on_update + any whitelist setter
+      behavior: ValidationError/PermissionError if client tries master status field
+  roles:
+    admin: ELMS Admin — list + refresh
+    operations: ELMS Operations — list + refresh
+    guest: status by tracking_ref only (read)
+    denied: Company Admin write of foreign/local master status; Learner inventing Approved
+  persistence: >-
+    Application Link gains last_status_snapshot, last_status_code,
+    last_synced_at, display_label (derived). No Workflow. Application Settings
+    holds status_map JSON (STATUS_ID → label) as single mapping SoT.
+    Optional webhook receiver writes snapshot fields only.
+  done: >-
+    Mocked Bitrix STATUS_ID change appears after refresh; Desk list + badge
+    wire real methods; local master status write DENY proven by tests; leftover
+    SoT scan finds no ELMS Workflow master; invite deep-link remains out_of_scope.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A08-elms-application-forms-bitrix-status/md/plan.md
+    reason: FR-003/FR-004 status SoT and Desk list
+  - path: elms/elms/applications/api.py
+    reason: s01 submit contract to extend
+  - path: elms/elms/elms_core/doctype/elms_application_link/
+    reason: s01 Link schema
+  - path: scripts/bitrix/rest_client.py
+    reason: crm.lead.get transport
+  - path: elms/elms/desk/workspaces.py
+    reason: Desk entry patterns (T-A07 access workspace)
+  - path: elms/elms/public/js/desk-access.js
+    reason: neighboring Desk JS conventions
+  produces:
+  - path: elms/elms/applications/api.py
+    reason: get/refresh/list status methods; deny write helpers
+  - path: elms/elms/applications/status.py
+    reason: Bitrix get + status_map apply + snapshot update
+  - path: elms/elms/elms_core/doctype/elms_application_link/elms_application_link.json
+    reason: snapshot fields; no master status Select
+  - path: elms/elms/elms_core/doctype/elms_application_link/elms_application_link.py
+    reason: validate DENY local master status mutation
+  - path: elms/elms/elms_core/doctype/elms_application_settings/elms_application_settings.json
+    reason: status_map JSON single source
+  - path: elms/elms/public/js/desk-applications.js
+    reason: Desk list + refresh wire
+  - path: elms/elms/public/css/desk-applications.css
+    reason: badge/list states
+  - path: elms/elms/desk/workspaces.py
+    reason: Operations Application Links entry
+  - path: elms/elms/hooks.py
+    reason: app_include desk-applications assets
+  - path: elms/elms/www/apply/status.py
+    reason: public tracking status view by ref
+  - path: elms/elms/www/apply/status.html
+    reason: badge + refresh/synced_at copy «статус из Bitrix»
+  - path: elms/elms/tests/test_applications_status.py
+    reason: SoT refresh, DENY local write, fail-closed Bitrix
+  - path: elms/elms/tests/test_applications_ui.py
+    reason: Desk/www call-site contracts
+  - path: memory-bank/app/implement/T-A08-elms-application-forms-bitrix-status/s02-bitrix-status-sot-desk-readback.yaml
+    reason: implement evidence contract
+  plan_refs: [FR-003, FR-004, US-003, US-005, AC-004, AC-005]
+
+as_built:
+- After s01: Application Link exists with bitrix_id but no status read-back or Desk list.
+- No ELMS application Workflow today — step must not introduce master status Select/Workflow.
+- desk-access.js is org/invite only; applications Desk surface is new.
+
+delta:
+- Add status.py + get/refresh/list whitelist methods using crm.lead.get.
+- Persist snapshot-only fields; Settings status_map; DENY local master writes in DocType/API.
+- Wire Desk list + public status page with «статус из Bitrix» and refresh control.
+- Kind I: no operator instructions that teach setting Approved in ELMS.
+
+files:
+  - elms/elms/applications/api.py
+  - elms/elms/applications/status.py
+  - elms/elms/elms_core/doctype/elms_application_link/elms_application_link.json
+  - elms/elms/elms_core/doctype/elms_application_link/elms_application_link.py
+  - elms/elms/elms_core/doctype/elms_application_settings/elms_application_settings.json
+  - elms/elms/elms_core/doctype/elms_application_settings/elms_application_settings.py
+  - elms/elms/public/js/desk-applications.js
+  - elms/elms/public/css/desk-applications.css
+  - elms/elms/desk/workspaces.py
+  - elms/elms/hooks.py
+  - elms/elms/www/apply/status.py
+  - elms/elms/www/apply/status.html
+  - elms/elms/tests/test_applications_status.py
+  - elms/elms/tests/test_applications_ui.py
+  - memory-bank/app/implement/T-A08-elms-application-forms-bitrix-status/s02-bitrix-status-sot-desk-readback.yaml
+deletes: []
+out_of_scope:
+  - Auto Keycloak invite when Bitrix status ∈ approved (P1 / cut_list; T-A07 invite remains manual)
+  - Deep-link button «Пригласить в ELMS» (P1 optional in plan FR-004)
+  - Live Bitrix sandbox required lane (QA charter: mock + not_run live documented)
+  - Inbound Bitrix webhook as mandatory P0 (optional snapshot updater if portal supports; same mapper)
+  - Company cabinet T-A09
+  - crm.deal status paths
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  design:
+  - .agents/skills/frontend-design/SKILL.md
+tdd:
+  - Add failing tests for refresh from mocked STATUS_ID, mapping labels, DENY local status write, Bitrix-down fail-closed.
+  - Implement status module, DocType validate, Desk/www UI wired to real methods.
+  - Run targeted pytest + JS check; leftover_sot rg for Workflow/master status.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_applications_status.py elms/elms/tests/test_applications_ui.py
+  - python3 -m py_compile elms/elms/applications/api.py elms/elms/applications/status.py elms/elms/elms_core/doctype/elms_application_link/elms_application_link.py
+  - node --check elms/elms/public/js/desk-applications.js
+  - 'rg -n ''get_application_status|refresh_application_status|last_status_snapshot|status_map|crm\.lead\.get'' elms/elms/applications elms/elms/public/js/desk-applications.js elms/elms/www/apply'
+  - 'rg -n ''Workflow|master.?status|set_status|Approved'' elms/elms/applications elms/elms/elms_core/doctype/elms_application_link elms/elms/public/js/desk-applications.js elms/elms/www/apply/status.html'
+checkpoints:
+  - id: cp1
+    criterion: Bitrix STATUS_ID change is reflected after refresh; snapshot updated; Bitrix errors fail closed.
+    verify: ./bin/pytest -q elms/elms/tests/test_applications_status.py elms/elms/tests/test_applications_ui.py
+  - id: cp2
+    criterion: Local master status write DENY; Desk/www call real refresh/list; copy states status from Bitrix.
+    verify: ./bin/pytest -q elms/elms/tests/test_applications_status.py elms/elms/tests/test_applications_ui.py
+wire_complete:
+  call_sites:
+  - "Desk Application Links -> refresh_application_status -> status.crm.lead.get -> snapshot fields"
+  - "Public /apply/status?ref= -> get_application_status -> badge label from status_map"
+  - "Application Link validate -> DENY local master status mutation"
+  enforce_path: elms/elms/elms_core/doctype/elms_application_link/elms_application_link.py
+  dual_path_rg: 'rg -n "Workflow|set_status|master_status|local_status=" elms/elms/applications elms/elms/elms_core/doctype/elms_application_link'
+  instruction_rg: 'rg -n "поставь Approved|статус в ELMS|измени статус локально" elms/elms/public/js/desk-applications.js elms/elms/www/apply elms/elms/desk'
+  deny_old_proven: true

@@ -1,0 +1,153 @@
+schema: epic-decompose/v1
+role: app
+step_id: s02
+plan_id: T-A09-elms-company-admin-cabinet
+title: Org progress CSV export and audit wire
+level: L2
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Дать Company Admin/Admin server-side выгрузку CSV тех же строк, что roster,
+  с тем же org ACL, лимитом 5000 строк, UTF-8 и аудитом «кто выгрузил»; кнопка
+  Export на кабинете зовёт реальный whitelist, не DOM-CSV.
+
+plan_contract:
+  fr_ids: [FR-003]
+  nfr_ids: [NFR-002]
+  us_ids: [US-003]
+  ac_ids: [AC-004]
+  nouns:
+  - export_org_progress
+  - UTF-8 CSV
+  - export audit
+  - 5000 row cap
+  - Export button
+  layout_paths:
+  - elms/elms/cabinet/api.py
+  - elms/elms/cabinet/export.py
+  - elms/elms/public/js/desk-cabinet.js
+  - elms/elms/tests/test_cabinet_export.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md:53-60
+  - memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md:80-95
+  - memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md:99-120
+  ac_quotes:
+  - "AC-004: When export_org_progress; Then UTF-8 CSV contains the same users/rows as roster for that org and never includes org2."
+  user_journey: >-
+    On cabinet page, Admin/Company Admin clicks Export. Browser calls
+    export_org_progress; server reuses roster query under require_organization_access,
+    builds CSV (org+date filename), writes audit, returns file/content. Cap
+    exceeded → clear ValidationError. Cross-org → PermissionError.
+  api:
+    export_org_progress:
+      method: elms.cabinet.api.export_org_progress
+      input: organization optional; status_filter optional (same as roster)
+      output: >-
+        file download or {filename, content_base64/csv_text, row_count,
+        organization}; charset UTF-8; filename elms-org-{org}-{YYYYMMDD}.csv
+      errors: PermissionError; ValidationError if row_count would exceed 5000
+    audit: >-
+      Durable log row (ELMS Invite Log-style or ELMS User Activity / dedicated
+      ELMS Cabinet Export Log) with user, organization, row_count, timestamp;
+      no PII dump beyond org id and counts in logs.
+  roles:
+    company_admin: own org export
+    admin: any org export
+    denied: foreign org; Guest; Learner
+  persistence: >-
+    Same read model as s01 roster. Add lightweight export audit DocType or
+    activity record. No xlsx in P0.
+  done: >-
+    Export rows match roster for fixture org; org2 absent; cap error proven;
+    Desk Export button calls export_org_progress; no client-only CSV path.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md
+    reason: FR-003 export contract
+  - path: elms/elms/cabinet/roster.py
+    reason: shared org query from s01
+  - path: elms/elms/cabinet/api.py
+    reason: extend whitelist surface
+  - path: elms/elms/access/api.py
+    reason: require_organization_access
+  - path: elms/elms/public/js/desk-cabinet.js
+    reason: add Export control wire
+  produces:
+  - path: elms/elms/cabinet/api.py
+    reason: export_org_progress whitelist
+  - path: elms/elms/cabinet/export.py
+    reason: CSV builder + cap + audit write
+  - path: elms/elms/elms_core/doctype/elms_cabinet_export_log/
+    reason: who/when/org/row_count audit (or justified reuse of User Activity)
+  - path: elms/elms/public/js/desk-cabinet.js
+    reason: Export button → export_org_progress
+  - path: elms/elms/tests/test_cabinet_export.py
+    reason: ACL, row parity with roster, cap, UTF-8
+  - path: memory-bank/app/implement/T-A09-elms-company-admin-cabinet/s02-org-progress-export-csv.yaml
+    reason: implement evidence contract
+  plan_refs: [FR-003, NFR-002, US-003, AC-004]
+
+as_built:
+- After s01: get_org_roster and Desk cabinet exist without export.
+- No server CSV export for org progress today.
+
+delta:
+- Add export_org_progress sharing roster query and ACL; CSV UTF-8; 5000 cap; audit log.
+- Wire Export button on desk-cabinet.js to real method; forbid DOM-only CSV.
+
+files:
+  - elms/elms/cabinet/api.py
+  - elms/elms/cabinet/export.py
+  - elms/elms/elms_core/doctype/elms_cabinet_export_log/__init__.py
+  - elms/elms/elms_core/doctype/elms_cabinet_export_log/elms_cabinet_export_log.json
+  - elms/elms/elms_core/doctype/elms_cabinet_export_log/elms_cabinet_export_log.py
+  - elms/elms/public/js/desk-cabinet.js
+  - elms/elms/install.py
+  - elms/elms/tests/test_cabinet_export.py
+  - memory-bank/app/implement/T-A09-elms-company-admin-cabinet/s02-org-progress-export-csv.yaml
+deletes: []
+out_of_scope:
+  - xlsx export (P1 cut)
+  - Funnel analytics
+  - Enrollment mutation
+  - Bitrix progress sync
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  design:
+  - .agents/skills/frontend-design/SKILL.md
+tdd:
+  - Add failing tests for export ACL, row parity vs roster, 5000 cap, UTF-8 BOM/charset, audit row.
+  - Implement export module + Desk Export wire.
+  - Run targeted pytest and JS check.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_cabinet_export.py
+  - python3 -m py_compile elms/elms/cabinet/api.py elms/elms/cabinet/export.py
+  - node --check elms/elms/public/js/desk-cabinet.js
+  - 'rg -n ''export_org_progress|ELMS Cabinet Export Log|5000'' elms/elms/cabinet elms/elms/public/js/desk-cabinet.js'
+checkpoints:
+  - id: cp1
+    criterion: Export CSV matches roster for org; foreign org denied; cap raises clear error.
+    verify: ./bin/pytest -q elms/elms/tests/test_cabinet_export.py
+  - id: cp2
+    criterion: Desk Export calls export_org_progress; no DOM-only CSV path.
+    verify: 'rg -n ''export_org_progress|ELMS Cabinet Export Log|5000'' elms/elms/cabinet elms/elms/public/js/desk-cabinet.js'
+wire_complete:
+  call_sites:
+  - "Desk cabinet Export -> export_org_progress -> roster query + CSV + ELMS Cabinet Export Log"
+  enforce_path: elms/elms/cabinet/export.py
+  dual_path_rg: 'rg -n "Blob\(|downloadCSV|tableToCsv|innerText.*csv" elms/elms/public/js/desk-cabinet.js'
+  instruction_rg: 'rg -n "скачай из таблицы|export without server|DOM CSV" elms/elms/public/js/desk-cabinet.js elms/elms/cabinet'
+  deny_old_proven: true

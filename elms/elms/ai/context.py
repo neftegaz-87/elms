@@ -27,7 +27,7 @@ ELMS REST patterns:
 
 PAGE_SURFACES = """
 Desk pages (route → what the screen is for):
-- /app/elms-learning (page elms-learning): кабинет обучения. Tabs: Мои курсы, Каталог курсов, Программы, Учебный плеер, Прогресс и аттестация, Журнал активности, Управление обучением (manager).
+- /app/elms-learning (page elms-learning): кабинет обучения. Tabs: Мои курсы, Каталог курсов, Программы, Учебный плеер, Прогресс и аттестация, Управление обучением (manager).
 - /app/elms-course-studio: конструктор курса (разделы/уроки/тесты: Practice|Assessment, Single/Multiple/True-False).
 - /app/elms-course-preview: превью курса для методиста.
 - Form/<DocType>: форма записи. List/<DocType>: список.

@@ -1,0 +1,1 @@
+"""Company cabinet Desk page."""

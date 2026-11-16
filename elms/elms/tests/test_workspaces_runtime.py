@@ -19,6 +19,7 @@ class TestELMSWorkspaceRuntime(FrappeTestCase):
             self.skipTest("Requires Frappe test framework runtime")
         self.user = "_elms_lms_workspace_test@example.com"
         self.methodologist = "_elms_methodologist_workspace_test@example.com"
+        self.company_admin = "_elms_company_admin_workspace_test@example.com"
         self.system_manager = "_elms_system_manager_workspace_test@example.com"
         if not frappe.db.exists("User", self.user):
             frappe.get_doc(
@@ -44,6 +45,22 @@ class TestELMSWorkspaceRuntime(FrappeTestCase):
                 }
             ).insert(ignore_permissions=True)
             self.addCleanup(frappe.delete_doc, "User", self.methodologist, force=True, ignore_permissions=True)
+        if not frappe.db.exists("User", self.company_admin):
+            frappe.get_doc(
+                {
+                    "doctype": "User",
+                    "email": self.company_admin,
+                    "first_name": "ELMS Company Admin Workspace Test",
+                    "enabled": 1,
+                    "send_welcome_email": 0,
+                    "roles": [
+                        {"role": "Desk User"},
+                        {"role": "ELMS Company Admin"},
+                        {"role": "ELMS Learner"},
+                    ],
+                }
+            ).insert(ignore_permissions=True)
+            self.addCleanup(frappe.delete_doc, "User", self.company_admin, force=True, ignore_permissions=True)
         if not frappe.db.exists("User", self.system_manager):
             frappe.get_doc(
                 {
@@ -63,7 +80,7 @@ class TestELMSWorkspaceRuntime(FrappeTestCase):
         with self.set_user("Administrator"):
             names = [page["name"] for page in get_workspace_sidebar_items()["pages"]]
 
-        self.assertEqual(names, ["LMS", "Предпросмотр курсов", "Settings"])
+        self.assertEqual(names, ["LMS", "Предпросмотр курсов", "Моя компания", "B2B Access", "Settings"])
 
     def test_lms_user_sees_only_lms_workspace(self):
         from frappe.desk.desktop import get_workspace_sidebar_items
@@ -88,6 +105,14 @@ class TestELMSWorkspaceRuntime(FrappeTestCase):
             names = [page["name"] for page in get_workspace_sidebar_items()["pages"]]
 
         self.assertEqual(names, ["LMS", "Предпросмотр курсов"])
+
+    def test_company_admin_sees_learning_and_own_company_workspace_without_global_b2b(self):
+        from frappe.desk.desktop import get_workspace_sidebar_items
+
+        with self.set_user(self.company_admin):
+            names = [page["name"] for page in get_workspace_sidebar_items()["pages"]]
+
+        self.assertEqual(names, ["LMS", "Предпросмотр курсов", "Моя компания"])
 
     def test_operations_user_sees_learning_management(self):
         operations_user = "_elms_operations_workspace_test@example.com"
@@ -114,5 +139,5 @@ class TestELMSWorkspaceRuntime(FrappeTestCase):
     def test_installed_lms_workspace_has_no_direct_child_authoring_links(self):
         workspace = frappe.get_doc("Workspace", "LMS")
         link_to = [link.get("link_to") for link in (workspace.get("links") or []) if link.get("type") == "Link"]
-        self.assertNotIn("ELMS Course Chapter", link_to)
-        self.assertNotIn("ELMS Course Lesson", link_to)
+        self.assertIn("ELMS Course Chapter", link_to)
+        self.assertIn("ELMS Course Lesson", link_to)

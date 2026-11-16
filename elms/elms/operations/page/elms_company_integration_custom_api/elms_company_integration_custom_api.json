@@ -1,0 +1,13 @@
+{
+ "doctype": "Page",
+ "module": "Operations",
+ "name": "elms-company-integration-custom-api",
+ "page_name": "elms-company-integration-custom-api",
+ "roles": [
+  {"role": "ELMS Admin"},
+  {"role": "ELMS Company Admin"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Custom API"
+}

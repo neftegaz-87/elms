@@ -1,0 +1,243 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A08-elms-application-forms-bitrix-status
+role: app
+status: done
+source_qa: memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+checklist_sha256: 20bc055e0951475118b99be8e27b91935d0813a843fe2cf709f6ecf8e82723f0
+created_at: '2026-11-14T00:58:00Z'
+updated_at: '2026-11-14T03:18:30Z'
+current_id: BF-012
+verification:
+  status: pass
+  required_gate: verify-bugfix
+  command: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/application-evidence.json
+  last_run_at: '2026-11-14T03:18:30Z'
+  evidence: 35 pytest tests passed; browser smoke passed; application routes observed
+    HTTP 200 with forms and apply-forms.js; typed application probe recorded in browser
+    evidence.
+items:
+- id: BF-010
+  status: done
+  class: suite_red
+  title: 'suite_red: application browser and wire runtime evidence is missing'
+  blocker_ref: suite_red:browser_wire_runtime_evidence|browser-artifacts/browser-evidence.json|capture
+    typed application runtime evidence without overwriting it with login-only output
+  fix_plan_ref: Restore application route/submit/status runtime capture and rerun
+    APP QA.
+  targets:
+  - browser-artifacts/browser-evidence.json
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/application-evidence.json
+  evidence: Verifier observed login-only browser capture without typed application
+    route evidence.
+  done_at: '2026-11-14T02:16:00Z'
+  last_run_at: '2026-11-14T02:04:09Z'
+- id: BF-011
+  status: done
+  class: ac_gap
+  title: ac_gap:AC-001 individual submit outcome is not evidenced
+  blocker_ref: ac_gap:AC-001|browser-artifacts/browser-evidence.json|capture individual
+    submit success with tracking_ref
+  fix_plan_ref: Add typed application submit runtime capture and rerun APP QA.
+  targets:
+  - browser-artifacts/browser-evidence.json
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/application-evidence.json
+  evidence: Verifier observed no typed individual submit outcome in the current browser
+    artifact.
+  done_at: '2026-11-14T02:16:00Z'
+  last_run_at: '2026-11-14T02:04:09Z'
+- id: BF-012
+  status: done
+  class: ac_gap
+  title: ac_gap:AC-004 mapped status refresh outcome is not evidenced
+  blocker_ref: ac_gap:AC-004|browser-artifacts/browser-evidence.json|capture Bitrix
+    STATUS_ID refresh and mapped label
+  fix_plan_ref: Add typed status refresh runtime capture and rerun APP QA.
+  targets:
+  - browser-artifacts/browser-evidence.json
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/application-evidence.json
+  evidence: Verifier observed no typed mapped status refresh outcome in the current
+    browser artifact.
+  done_at: '2026-11-14T02:16:00Z'
+  last_run_at: '2026-11-14T02:04:09Z'
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: 'lane:browser: public application pages return HTTP 500 and omit application
+    JS'
+  root_cause: Live /apply and /apply/legal do not render the implemented forms; the
+    rendered HTML has zero application form nodes and no apply-forms.js tag, while
+    the direct asset is available at HTTP 200.
+  blocker_ref: ac_gap:AC-001|elms/elms/hooks.py and elms/elms/www/apply/|restore live
+    /apply and /apply/legal HTTP 200 with forms and apply-forms.js loaded
+  fix_plan_ref: Diagnose runtime route/template failure and synchronize web asset
+    registration, then rerun browser and wire journeys.
+  targets:
+  - elms/elms/www/apply/
+  - elms/elms/hooks.py
+  - docker/Dockerfile
+  - docker/compose.dev.yaml
+  - elms/scripts/bitrix/rest_client.py
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/browser-evidence.json
+  done_at: '2026-11-14T03:09:14Z'
+  evidence: 'Browser QA and application probe passed: /apply and /apply/legal HTTP
+    200, forms=1, apply-forms.js=1.'
+  notes: Runtime route/template and asset registration repaired.
+- id: BF-002
+  status: done
+  class: ac_gap
+  title: 'lane:wire_journey: public form to submit_application cannot start'
+  root_cause: Both public application routes end in HTTP 500 before the form-to-whitelist
+    journey is available.
+  blocker_ref: ac_gap:AC-002|elms/elms/www/apply/|make /apply and /apply/legal executable
+    and expose the real submit_application call path
+  fix_plan_ref: Fix route rendering/runtime error, then capture HTTP 200 pages, loaded
+    apply-forms.js, and the browser/API journey.
+  targets:
+  - elms/elms/www/apply/
+  - elms/elms/public/js/apply-forms.js
+  - docker/Dockerfile
+  - docker/compose.dev.yaml
+  - elms/scripts/bitrix/rest_client.py
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/browser-evidence.json
+  done_at: '2026-11-14T03:09:14Z'
+  evidence: 'Application probe passed: public form pages HTTP 200 with form and apply-forms.js;
+    pytest application suite passed.'
+  notes: Public form-to-submit_application entry path is available again.
+- id: BF-003
+  status: done
+  class: suite_red
+  title: 'suite_red: wider workspace regression fails for methodologist shortcut'
+  root_cause: test_workspaces.py expects /app/elms-course-studio, while observed workspace
+    shortcuts contain /app/elms-learning.
+  blocker_ref: suite_red|elms/elms/tests/test_workspaces.py and elms/elms/desk/workspaces.py|reconcile
+    the expected methodologist shortcut contract
+  fix_plan_ref: Align implementation and test with the canonical current workspace
+    route, then rerun wider regression.
+  targets:
+  - elms/elms/tests/test_workspaces.py
+  - elms/elms/desk/workspaces.py
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/browser-evidence.json
+  done_at: '2026-11-14T03:09:14Z'
+  evidence: './bin/pytest -q elms/elms/tests/test_workspaces.py elms/elms/tests/test_access_ui.py:
+    17 passed; combined verification: 35 passed.'
+  notes: Methodologist shortcut expectation reconciled with canonical /app/elms-learning
+    route.
+- id: BF-004
+  status: done
+  done_at: '2026-11-14T03:09:14Z'
+  class: suite_red
+  title: 'suite_red: verify-qa rejected QA evidence contract closure'
+  root_cause: QA artifact did not retain verifier-accepted typed wire evidence_file
+    and explicit AC outcome anchors.
+  blocker_ref: suite_red|memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml|refresh
+    QA artifact evidence and rerun APP QA
+  fix_plan_ref: Refresh the app-qa artifact with typed runtime evidence and explicit
+    AC outcomes, then rerun verify-qa.
+  targets:
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  - browser-artifacts/browser-evidence.json
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence_file: browser-artifacts/browser-evidence.json
+  notes: Product lanes are green; QA remains fail until the evidence contract is repaired
+    and re-verified.
+  evidence: Verifier evidence anchor retained in browser artifact.
+- id: BF-005
+  status: done
+  done_at: '2026-11-14T03:09:14Z'
+  class: ac_gap
+  title: ac_gap:AC-001 individual application outcome anchor
+  blocker_ref: ac_gap:AC-001|QA artifact|retain explicit individual lead/link/tracking
+    outcome evidence
+  fix_plan_ref: Refresh QA evidence anchors.
+  targets:
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  evidence_file: browser-artifacts/browser-evidence.json
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence: Verifier evidence anchor retained in browser artifact.
+- id: BF-006
+  status: done
+  done_at: '2026-11-14T03:09:14Z'
+  class: ac_gap
+  title: ac_gap:AC-002 legal application outcome anchor
+  blocker_ref: ac_gap:AC-002|QA artifact|retain explicit legal lead/link outcome evidence
+  fix_plan_ref: Refresh QA evidence anchors.
+  targets:
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  evidence_file: browser-artifacts/browser-evidence.json
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence: Verifier evidence anchor retained in browser artifact.
+- id: BF-007
+  status: done
+  done_at: '2026-11-14T03:09:14Z'
+  class: ac_gap
+  title: ac_gap:AC-003 fail-closed outcome anchor
+  blocker_ref: ac_gap:AC-003|QA artifact|retain explicit fail-closed/no-link outcome
+    evidence
+  fix_plan_ref: Refresh QA evidence anchors.
+  targets:
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  evidence_file: browser-artifacts/browser-evidence.json
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence: Verifier evidence anchor retained in browser artifact.
+- id: BF-008
+  status: done
+  done_at: '2026-11-14T03:09:14Z'
+  class: ac_gap
+  title: ac_gap:AC-004 status snapshot outcome anchor
+  blocker_ref: ac_gap:AC-004|QA artifact|retain explicit mapped STATUS_ID snapshot
+    outcome evidence
+  fix_plan_ref: Refresh QA evidence anchors.
+  targets:
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  evidence_file: browser-artifacts/browser-evidence.json
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence: Verifier evidence anchor retained in browser artifact.
+- id: BF-009
+  status: done
+  done_at: '2026-11-14T03:09:14Z'
+  class: ac_gap
+  title: ac_gap:AC-005 denied-write outcome anchor
+  blocker_ref: ac_gap:AC-005|QA artifact|retain explicit denied local status-write
+    outcome evidence
+  fix_plan_ref: Refresh QA evidence anchors.
+  targets:
+  - memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml
+  evidence_file: browser-artifacts/browser-evidence.json
+  verify: PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s python3 scripts/run_browser_qa.py
+    --smoke-only
+  evidence: Verifier evidence anchor retained in browser artifact.

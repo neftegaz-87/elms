@@ -64,6 +64,10 @@
     {
       "name": "Employees",
       "path": "/Employees"
+    },
+    {
+      "name": "ELMS Company Admins",
+      "path": "/ELMS Company Admins"
     }
   ],
   "identityProviders": [],
@@ -173,6 +177,21 @@
       ]
     },
     {
+      "clientId": "elms-admin",
+      "name": "ELMS server-side provisioning client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${env.KEYCLOAK_ADMIN_CLIENT_SECRET:}",
+      "fullScopeAllowed": true
+    },
+    {
       "clientId": "neftegaz-review",
       "name": "Neftegaz application review",
       "enabled": true,
@@ -256,6 +275,18 @@
     }
   ],
   "users": [
+    {
+      "username": "service-account-elms-admin",
+      "enabled": true,
+      "serviceAccountClientId": "elms-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
+    },
     {
       "username": "admin",
       "email": "admin@elms.local",
@@ -358,6 +389,48 @@
       },
       "groups": [
         "/Administrators"
+      ]
+    },
+    {
+      "username": "elms.test.company.admin@elms.local",
+      "email": "elms.test.company.admin@elms.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "ELMS Test",
+      "lastName": "Company Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${env.KEYCLOAK_TEST_COMPANY_ADMIN_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "employee"
+      ],
+      "groups": [
+        "/ELMS Company Admins"
+      ]
+    },
+    {
+      "username": "elms.test.foreign.company.admin@elms.local",
+      "email": "elms.test.foreign.company.admin@elms.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "ELMS Test",
+      "lastName": "Foreign Company Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${env.KEYCLOAK_TEST_FOREIGN_COMPANY_ADMIN_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "employee"
+      ],
+      "groups": [
+        "/ELMS Company Admins"
       ]
     }
   ]

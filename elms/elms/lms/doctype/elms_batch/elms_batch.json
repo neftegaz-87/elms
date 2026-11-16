@@ -4,17 +4,18 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "organization",
   "batch_name",
   "course",
   "course_name",
   "start_date",
   "end_date",
   "instructor",
-  "organization",
   "order_number",
   "status"
  ],
  "fields": [
+  {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
   {
    "fieldname": "batch_name",
    "fieldtype": "Data",
@@ -62,9 +63,11 @@
   },
   {
    "fieldname": "organization",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Customer Organization"
+   "label": "Customer Organization",
+   "options": "ELMS Organization",
+   "reqd": 1
   },
   {
    "fieldname": "order_number",
@@ -87,6 +90,7 @@
  "name": "ELMS Batch",
  "owner": "Administrator",
  "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Company Admin", "write": 1},
   {
    "create": 1,
    "delete": 1,

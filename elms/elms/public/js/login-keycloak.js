@@ -22,7 +22,7 @@
 		}
 		if (!forms.length) return;
 
-		forms.off("submit.elmsKeycloak");
+		forms.off("submit");
 		forms.on("submit.elmsKeycloak", function (event) {
 			event.preventDefault();
 			event.stopImmediatePropagation();

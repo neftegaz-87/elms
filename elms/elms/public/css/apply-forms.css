@@ -1,0 +1,32 @@
+.elms-apply {
+  --elms-paper: #f7f9fc;
+  --elms-surface: #ffffff;
+  --elms-ink: #172033;
+  --elms-muted: #627089;
+  --elms-line: #d6deeb;
+  --elms-action: #2458c6;
+  max-width: 760px;
+  margin: 48px auto;
+  padding: 40px;
+  color: var(--elms-ink);
+  background: var(--elms-paper);
+  border: 1px solid var(--elms-line);
+}
+
+.elms-apply h1 { margin: 8px 0 12px; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.04em; }
+.elms-apply__eyebrow { color: var(--elms-action); font: 700 0.75rem/1.2 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase; }
+.elms-apply__intro { color: var(--elms-muted); margin: 0 0 32px; }
+.elms-apply form { display: grid; gap: 18px; }
+.elms-apply label { display: grid; gap: 7px; font-weight: 650; }
+.elms-apply input:not([type="checkbox"]), .elms-apply select, .elms-apply textarea { box-sizing: border-box; width: 100%; padding: 12px 13px; color: var(--elms-ink); background: var(--elms-surface); border: 1px solid var(--elms-line); border-radius: 2px; font: inherit; }
+.elms-apply input:focus, .elms-apply select:focus, .elms-apply textarea:focus, .elms-apply button:focus { outline: 3px solid rgba(36, 88, 198, 0.24); outline-offset: 2px; border-color: var(--elms-action); }
+.elms-apply__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.elms-apply__consent { display: flex !important; grid-template-columns: none; align-items: flex-start; gap: 9px !important; font-size: 0.9rem; font-weight: 500 !important; }
+.elms-apply__consent input { margin-top: 3px; }
+.elms-apply button { justify-self: start; padding: 13px 22px; color: #fff; background: var(--elms-action); border: 0; border-radius: 2px; font: 700 0.95rem/1 inherit; cursor: pointer; }
+.elms-apply button:disabled { opacity: 0.65; cursor: wait; }
+.elms-apply__message { min-height: 1.4em; margin: 0; color: var(--elms-muted); }
+.elms-apply__message[data-state="success"] { color: #146b43; }
+.elms-apply__message[data-state="error"] { color: #a52b36; }
+.elms-apply__honeypot { position: absolute; left: -10000px; width: 1px !important; height: 1px; opacity: 0; }
+@media (max-width: 640px) { .elms-apply { margin: 20px 12px; padding: 24px 18px; } .elms-apply__grid { grid-template-columns: 1fr; } }

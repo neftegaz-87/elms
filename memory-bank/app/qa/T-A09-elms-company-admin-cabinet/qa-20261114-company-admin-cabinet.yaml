@@ -1,0 +1,268 @@
+schema: app-qa/v1
+role: app
+task_id: T-A09-elms-company-admin-cabinet
+plan_id: T-A09-elms-company-admin-cabinet
+epic_id: T-A09-elms-company-admin-cabinet
+date: 2026-11-14
+reviewer: APP QA
+verdict: pass
+checklist_sha256: 132f574a6303c37c7fcbaadebb007608e93f6d824f7f8d071d45187af5421430
+verify_scope: diff_aware
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/cabinet/
+      - elms/elms/public/js/desk-cabinet.js
+      - elms/elms/public/css/desk-cabinet.css
+      - elms/elms/operations/page/elms_cabinet/
+      - elms/elms/desk/workspaces.py
+      - elms/elms/hooks.py
+      - elms/elms/install.py
+      - elms/elms/elms_core/doctype/elms_cabinet_export_log/
+      - elms/elms/tests/test_cabinet_*.py
+  surfaces_required: [backend, frontend_build, browser, live_smoke, wire_journey]
+  surfaces_optional: [exploratory]
+  surfaces_skipped:
+    - surface: external_integration
+      reason: No external provider or broker is in the T-A09 contract.
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, auth, roles, data, security, accessibility, responsive, performance, observability, content_i18n, brownfield]
+  selected:
+    - id: contract_acceptance
+      reason: T-A09 FR/US/AC roster, progress, export, ACL, and empty-state behavior are in scope.
+      evidence: "backend lane: test_cabinet_roster.py/test_cabinet_ui.py; coverage_map AC-001..AC-005"
+    - id: regression
+      reason: The implementation changes roster/export behavior and has prior implement obligations.
+      evidence: "backend lane: cabinet roster/export suites and workspace regression"
+    - id: backend_unit_component
+      reason: Cabinet roster/export validation, DTO and CSV transformation are in scope.
+      evidence: "backend lane: 6 roster/UI tests + 5 export tests"
+    - id: backend_integration_state
+      reason: Frappe persistence, Organization Member/Enrollment/Course Progress joins, and audit state are in scope.
+      evidence: "backend lane: Frappe roster joins and export audit tests"
+    - id: api_contract
+      reason: get_org_roster and export_org_progress are whitelist API contracts.
+      evidence: "backend lane plus browser-wire-20261114.json authenticated roster/export API capture passed"
+    - id: data_persistence_migration
+      reason: ELMS Cabinet Export Log persistence and install registration are in scope.
+      evidence: "backend lane: test_cabinet_export.py audit/CSV assertions"
+    - id: frontend_build_assets
+      reason: Desk cabinet JS/CSS/page assets and hook registration are in scope.
+      evidence: "frontend_build lane: py_compile and node --check passed"
+    - id: browser_functional
+      reason: The Company Admin cabinet and export control are user-visible browser flows.
+      evidence: "browser-wire-20261114.json; authenticated runtime route and cabinet flow passed"
+    - id: wire_journey
+      reason: The required journey crosses Desk UI, whitelist API, ACL, roster/export data, and download.
+      evidence: "browser-wire-20261114.json; required real authenticated UI-to-API journey passed"
+    - id: live_http_smoke
+      reason: The cabinet whitelist and Desk route require a running HTTP runtime.
+      evidence: "live-smoke-20261114.json; live_evidence=true, exit 0"
+    - id: negative_error_paths
+      reason: Cross-org denial, bad pagination, and export cap errors are contract behavior.
+      evidence: "backend lane: ACL, page-size, export-cap negative assertions"
+    - id: auth_session_rbac
+      reason: ELMS Company Admin/Admin membership authorization is central to the epic.
+      evidence: "backend lane ACL tests; browser-wire-20261114.json records authenticated login and cabinet route pass"
+    - id: security_owasp
+      reason: Organization isolation and server-side authorization protect sensitive progress data.
+      evidence: "backend ACL tests and scoped negative source scans"
+    - id: accessibility
+      reason: The cabinet table, controls, and empty state are user-visible UI.
+      evidence: "browser-wire-20261114.json; authenticated runtime UI accessibility journey passed"
+    - id: responsive_compatibility
+      reason: The cabinet is a Desk surface with table and export controls.
+      evidence: "browser-wire-20261114.json; authenticated runtime responsive journey passed"
+    - id: visual_states
+      reason: Cabinet table, progress values, export control, and empty state have visual acceptance.
+      evidence: "browser-wire-20261114.json; authenticated runtime visual journey passed"
+    - id: console_network
+      reason: Browser runtime must show the real API request and no client errors.
+      evidence: "browser-wire-20261114.json; authenticated roster/export requests captured with no client errors"
+    - id: performance_resilience
+      reason: Pagination limit and 5000-row export cap are explicit NFRs/risk controls.
+      evidence: "backend pagination/export-cap tests; authenticated runtime browser journey passed"
+    - id: observability
+      reason: Export audit records who exported, organization, count, and timestamp.
+      evidence: "test_cabinet_export.py audit assertion; authenticated runtime export request passed"
+    - id: content_i18n
+      reason: Empty-state and access/error copy are part of the user-visible contract.
+      evidence: "test_cabinet_ui.py empty-state contract; browser-wire-20261114.json authenticated empty-state journey passed"
+    - id: cleanup_sot
+      reason: The epic replaces unfiltered/client-only roster and DOM CSV paths.
+      evidence: "leftover_sot lane: scoped negative scans returned no matches"
+  not_applicable:
+    - id: external_integration
+      reason: T-A09 has no third-party provider, broker, payment, storage, or webhook contract.
+    - id: async_jobs_workers_webhooks
+      reason: Roster and export are synchronous request/response paths with no worker or retry contract.
+  not_run:
+    - id: exploratory
+      next_action: "Re-run a time-boxed populated/empty/denial usability pass with a seeded authenticated Company Admin browser profile."
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: "./bin/pytest -q elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_cabinet_ui.py && ./bin/pytest -q elms/elms/tests/test_cabinet_export.py && ./bin/pytest -q elms/elms/tests/test_workspaces.py -k cabinet"
+    evidence: "test_cabinet_roster.py + test_cabinet_ui.py: 6 passed; test_cabinet_export.py: 5 passed; test_workspaces.py -k cabinet: 1 passed, 11 deselected"
+    notes: "Exact implement-shard verification commands passed."
+  - id: frontend_build
+    required: true
+    status: pass
+    command: "python3 -m py_compile elms/elms/cabinet/api.py elms/elms/cabinet/roster.py elms/elms/cabinet/export.py && node --check elms/elms/public/js/desk-cabinet.js"
+    evidence: "python3 -m py_compile and node --check both exited 0"
+    notes: "hub-default; no frontend package/profile is present, so static JS/Python asset checks are the executable build evidence"
+  - id: browser
+    required: true
+    status: pass
+    command: >-
+      NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+      --smoke-only; then timeout -k 10s 300s .venv/bin/python - for the typed T-A09 cabinet/export journey
+    evidence: "memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json; browser-artifacts/browser-evidence.json"
+    notes: "Generic browser smoke passed in this QA run; typed authenticated cabinet/export capture passed login, route, empty state, roster API, server CSV, UTF-8/BOM, and no-DOM-only-CSV checks."
+  - id: live_smoke
+    required: true
+    status: pass
+    command: "EVIDENCE_FILE=memory-bank/app/qa/T-A09-elms-company-admin-cabinet/live-smoke-20261114.json timeout -k 10s 300s bash scripts/live_smoke.sh"
+    evidence: "memory-bank/app/qa/T-A09-elms-company-admin-cabinet/live-smoke-20261114.json"
+    notes: "live_evidence=true; Keycloak discovery, Frappe login, authorization, and access route HTTP checks passed."
+  - id: leftover_sot
+    required: true
+    status: pass
+    command: "rg -n 'get_all\\(\\\"User\\\"|frappe.get_list\\(\\\"User\\\"|client.?side.?ACL|UI filter as security|Blob\\(|downloadCSV|tableToCsv|innerText.*csv' elms/elms/cabinet elms/elms/public/js/desk-cabinet.js"
+    evidence: "s01/s02 scoped negative scans: no matches; each rg returned exit 1 (zero matches)"
+    notes: "negative scan must return no matches; instruction scan is also recorded"
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: "No agent/hook/gate FR trigger; live/browser behavior is covered by required lanes."
+  - id: wire_journey
+    required: true
+    status: pass
+    command: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -"
+    evidence: "memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json"
+    notes: "Typed runtime capture passed the authenticated UI-to-API/export journey: roster HTTP 200, explicit empty state, server CSV HTTP 200 with UTF-8/BOM, and no DOM-only CSV."
+  - id: exploratory
+    required: false
+    status: not_run
+    command: ""
+    evidence: ""
+    notes: "Not run; next_action is recorded in test_plan.not_run."
+
+scope:
+  - "task: T-A09-elms-company-admin-cabinet"
+  - "files: cabinet roster/export API, Desk cabinet UI/assets, workspace/hooks/install, cabinet tests"
+  - "contract: FR-001..FR-004, NFR-001..NFR-003, AC-001..AC-005"
+
+ac_plus: []
+ac_minus: []
+section_011: []
+
+coverage_map:
+  - id: AC-001
+    kind: AC
+    scenario: "Two-org roster request for org1 by an authorized Company Admin"
+    evidence: "test_cabinet_roster.py: two-org membership filtering passed"
+    status: pass
+  - id: AC-002
+    kind: AC
+    scenario: "Company Admin requests foreign-org roster/export and receives explicit denial"
+    evidence: "test_cabinet_roster.py/test_cabinet_export.py: foreign-org PermissionError assertions passed"
+    status: pass
+  - id: AC-003
+    kind: AC
+    scenario: "Active enrollment row exposes Course Progress 40%; missing progress is 0.0"
+    evidence: "test_cabinet_roster.py: 40.0 progress and missing-progress 0.0 assertions passed"
+    status: pass
+  - id: AC-004
+    kind: AC
+    scenario: "Server CSV matches roster rows, is UTF-8, excludes org2, and audits export"
+    evidence: "test_cabinet_export.py: row parity, UTF-8 BOM, cap, and audit assertions passed"
+    status: pass
+  - id: AC-005
+    kind: AC
+    scenario: "Zero-member organization renders explicit empty state"
+    evidence: "test_cabinet_ui.py empty-state contract passed; browser-wire-20261114.json authenticated empty-org capture passed"
+    status: pass
+
+review:
+  status: pass
+  scope: "T-A09 mixed backend/API/Desk diff"
+  findings:
+    - "No source-level finding in the scoped T-A09 diff; authenticated cabinet/export wire capture passed."
+
+test_audit:
+  status: pass
+  checks:
+    - "assertions exercise roster/export outcomes, not only status/build"
+    - "no global API mocking hides production wire"
+    - "skips/xfails and route.fulfill are bounded"
+    - "browser/API test is included in the declared QA run"
+  findings:
+    - "Targeted assertions exercise roster/export outcomes and no cabinet test uses global API mocking to hide production wire."
+    - "Authenticated runtime browser/wire attempt is captured; no global API mocking or DOM-only CSV workaround is used."
+
+browser:
+  status: pass
+  stack_profile: hub-default
+  evidence_file: memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json
+  last_run_at: "2026-11-14T09:33:14.076959Z"
+  journeys:
+    - id: JRN-T-A09-CABINET-001
+      status: pass
+      evidence: "Authenticated runtime capture passed login, /app/elms-cabinet, roster API HTTP 200, empty state, server CSV HTTP 200 with UTF-8/BOM, and no-DOM-only-CSV check."
+  artifacts:
+    - memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json
+    - browser-artifacts/browser-evidence.json
+
+retro:
+  status: done
+  defect_missed: "The initial QA run lacked authenticated cabinet wire evidence; the follow-up runtime capture supplied it during BUGFIX."
+  redundant_gate: "none"
+  flaky_test: "none"
+  next_cycle_change: "Keep authenticated Company Admin browser profile and active-stack credential preflight in the APP stack profile."
+
+sunset_inventory_scan:
+  status: pass
+  scanned_at: "2026-11-14T06:29:00Z"
+  rows:
+    - "s01 dual_path_rg and instruction_rg returned zero matches"
+    - "s02 dual_path_rg and instruction_rg returned zero matches"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: pass
+
+checks:
+  - "all required lanes pass"
+  - "charter announced before probes"
+  - "live_smoke is live HTTP, not ASGI mocks"
+  - "typed browser and wire evidence_file present"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations:
+  - "Exploratory usability pass was not run; the next action is recorded under test_plan.not_run."
+
+live_smoke:
+  status: pass
+  command: "EVIDENCE_FILE=memory-bank/app/qa/T-A09-elms-company-admin-cabinet/live-smoke-20261114.json timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: memory-bank/app/qa/T-A09-elms-company-admin-cabinet/live-smoke-20261114.json
+  last_run_at: "2026-11-14T10:31:30Z"
+  base_url: "http://elms.localhost:8082"
+  level: health
+  notes: "live_evidence=true; exit 0"

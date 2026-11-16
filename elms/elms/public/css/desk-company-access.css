@@ -1,0 +1,308 @@
+.elms-company-access-page-wrapper .page-head {
+	display: none;
+}
+
+.elms-company-access-page-wrapper .layout-main-section {
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+}
+
+.elms-company-access-shell {
+	--company-ink: #0b1f33;
+	--company-muted: #66727f;
+	--company-line: #d5dce3;
+	--company-paper: #f5f7fa;
+	--company-action: #0d4cd3;
+	--company-danger: #a32d25;
+	box-sizing: border-box;
+	min-height: calc(100vh - 60px);
+	padding: 24px;
+	background: var(--company-paper);
+	color: var(--company-ink);
+	font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.elms-company-access-shell *,
+.elms-company-access-shell *::before,
+.elms-company-access-shell *::after {
+	box-sizing: border-box;
+}
+
+.elms-company-access-header,
+.elms-company-access-actions,
+.elms-company-access-toolbar {
+	display: flex;
+	align-items: center;
+}
+
+.elms-company-access-header {
+	justify-content: space-between;
+	gap: 18px;
+	margin-bottom: 18px;
+	padding-bottom: 18px;
+	border-bottom: 1px solid var(--company-line);
+}
+
+.elms-company-access-header h1,
+.elms-company-access-header p,
+.elms-company-access-card h2 {
+	margin: 0;
+}
+
+.elms-company-access-header h1 {
+	font-size: 24px;
+}
+
+.elms-company-access-header p {
+	margin-top: 6px;
+	max-width: 720px;
+	color: var(--company-muted);
+}
+
+.elms-company-access-kicker {
+	color: var(--company-action);
+	font: 600 11px/1.2 "IBM Plex Mono", monospace;
+	letter-spacing: .14em;
+	text-transform: uppercase;
+}
+
+.elms-company-access-mark {
+	font: 700 22px/1 "IBM Plex Mono", monospace;
+}
+
+.elms-company-access-toolbar {
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+	flex-wrap: wrap;
+}
+
+.elms-company-access-toolbar label,
+.elms-company-access-form label {
+	display: grid;
+	gap: 5px;
+	color: var(--company-ink);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.elms-company-access-toolbar select,
+.elms-company-access-form input,
+.elms-company-access-form select,
+.elms-company-access-table select {
+	min-height: 36px;
+	padding: 7px 9px;
+	border: 1px solid var(--company-line);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--company-ink);
+	font: inherit;
+	font-weight: 400;
+}
+
+.elms-company-access-status {
+	margin-bottom: 14px;
+	padding: 11px 14px;
+	border: 1px solid var(--company-line);
+	border-radius: 5px;
+	background: #fff;
+}
+
+.elms-company-access-status.error {
+	border-color: #e5b5b0;
+	background: #fff0ee;
+	color: var(--company-danger);
+}
+
+.elms-company-access-tabs {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 14px;
+	border-bottom: 1px solid var(--company-line);
+	overflow-x: auto;
+}
+
+.elms-company-access-tab {
+	position: relative;
+	min-height: 42px;
+	padding: 9px 14px;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	background: transparent;
+	color: var(--company-muted);
+	font: 600 13px/1.2 "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.elms-company-access-tab:hover,
+.elms-company-access-tab:focus-visible {
+	color: var(--company-action);
+}
+
+.elms-company-access-tab:focus-visible {
+	outline: 2px solid rgba(13, 76, 211, .3);
+	outline-offset: -2px;
+}
+
+.elms-company-access-tab.is-active {
+	border-bottom-color: var(--company-action);
+	color: var(--company-action);
+}
+
+.elms-company-access-card {
+	padding: 18px;
+	border: 1px solid var(--company-line);
+	border-radius: 6px;
+	background: #fff;
+}
+
+.elms-company-access-panel {
+	min-height: 280px;
+}
+
+.elms-company-access-panel[hidden] {
+	display: none;
+}
+
+.elms-company-access-card h2 {
+	font-size: 18px;
+}
+
+.elms-company-access-card p {
+	margin: 5px 0 16px;
+	color: var(--company-muted);
+	font-size: 13px;
+}
+
+.elms-company-access-capabilities {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(220px, 1fr));
+	gap: 8px;
+}
+
+.elms-company-access-capability {
+	display: flex !important;
+	align-items: center;
+	gap: 7px;
+	padding: 9px;
+	border: 1px solid var(--company-line);
+	font-weight: 400 !important;
+}
+
+.elms-company-access-capability input {
+	min-height: auto;
+}
+
+.elms-company-access-form {
+	display: grid;
+	gap: 11px;
+}
+
+.elms-company-access-form-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+
+.elms-company-access-button {
+	min-height: 36px;
+	padding: 7px 12px;
+	border: 1px solid var(--company-line);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--company-ink);
+	font: inherit;
+	cursor: pointer;
+}
+
+.elms-company-access-button:hover,
+.elms-company-access-button:focus-visible {
+	border-color: var(--company-action);
+	color: var(--company-action);
+}
+
+.elms-company-access-button.is-primary {
+	border-color: var(--company-action);
+	background: var(--company-action);
+	color: #fff;
+}
+
+.elms-company-access-button.is-danger {
+	color: var(--company-danger);
+}
+
+.elms-company-access-button:disabled {
+	opacity: .5;
+	cursor: wait;
+}
+
+.elms-company-access-table-wrap {
+	overflow-x: auto;
+}
+
+.elms-company-access-table {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: left;
+}
+
+.elms-company-access-table th {
+	padding: 10px 9px;
+	border-bottom: 1px solid var(--company-line);
+	color: var(--company-muted);
+	font: 600 11px/1.2 "IBM Plex Mono", monospace;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+}
+
+.elms-company-access-table td {
+	padding: 12px 9px;
+	border-bottom: 1px solid #e7ebef;
+	vertical-align: middle;
+}
+
+.elms-company-access-person strong,
+.elms-company-access-person small {
+	display: block;
+}
+
+.elms-company-access-table td select + select {
+	display: block;
+	margin-top: 6px;
+}
+
+.elms-company-access-person small {
+	margin-top: 3px;
+	color: var(--company-muted);
+}
+
+.elms-company-access-actions {
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.elms-company-access-empty {
+	padding: 34px 12px;
+	text-align: center;
+	color: var(--company-muted);
+}
+
+@media (max-width: 900px) {
+	.elms-company-access-tabs { margin-right: -14px; padding-right: 14px; }
+}
+
+@media (max-width: 620px) {
+	.elms-company-access-shell {
+		padding: 14px;
+	}
+
+	.elms-company-access-form-row {
+		grid-template-columns: 1fr;
+	}
+
+	.elms-company-access-capabilities {
+		grid-template-columns: 1fr;
+	}
+}

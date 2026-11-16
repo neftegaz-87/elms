@@ -1,0 +1,13 @@
+{
+ "doctype": "Page",
+ "module": "Operations",
+ "name": "elms-cabinet",
+ "page_name": "elms-cabinet",
+ "roles": [
+  {"role": "ELMS Admin"},
+  {"role": "ELMS Company Admin"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Моя компания"
+}

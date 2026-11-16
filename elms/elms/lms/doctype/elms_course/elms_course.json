@@ -4,6 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "organization",
   "course_name",
   "course_code",
   "category",
@@ -16,6 +17,15 @@
   "description"
  ],
  "fields": [
+  {
+   "fieldname": "organization",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Organization",
+   "options": "ELMS Organization",
+   "reqd": 1
+  },
   {
    "fieldname": "course_name",
    "fieldtype": "Data",
@@ -89,6 +99,7 @@
  "name": "ELMS Course",
  "owner": "Administrator",
  "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "ELMS Company Admin", "write": 1},
   {
    "create": 1,
    "delete": 1,

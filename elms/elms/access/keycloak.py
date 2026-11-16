@@ -9,6 +9,8 @@ from urllib.parse import quote
 
 import requests
 
+FIRST_LOGIN_PASSWORD_ATTRIBUTE = "elms_first_login_password_change"
+
 
 class KeycloakProvisionError(RuntimeError):
     """Base error for a failed Keycloak provisioning boundary."""
@@ -132,6 +134,8 @@ class KeycloakAdminClient:
 
     def upsert_user(self, email: str, first_name: str, last_name: str) -> str:
         existing = self.find_user(email)
+        attributes = dict((existing or {}).get("attributes") or {})
+        attributes[FIRST_LOGIN_PASSWORD_ATTRIBUTE] = ["true"]
         payload = {
             "username": email,
             "email": email,
@@ -139,6 +143,7 @@ class KeycloakAdminClient:
             "lastName": last_name,
             "enabled": True,
             "emailVerified": False,
+            "attributes": attributes,
         }
         if existing and existing.get("id"):
             user_id = str(existing["id"])
@@ -165,4 +170,28 @@ class KeycloakAdminClient:
             "PUT",
             f"users/{quote(user_id, safe='')}/execute-actions-email",
             json=["UPDATE_PASSWORD"],
+        )
+
+    def set_password(self, user_id: str, password: str) -> None:
+        value = str(password or "")
+        if not value:
+            raise KeycloakProvisionError("Keycloak password cannot be empty")
+        self._request(
+            "PUT",
+            f"users/{quote(user_id, safe='')}/reset-password",
+            json={"type": "password", "value": value, "temporary": False},
+        )
+
+    def update_required_actions(self, user_id: str, required_actions: list[str]) -> None:
+        self._request(
+            "PUT",
+            f"users/{quote(user_id, safe='')}",
+            json={"requiredActions": list(required_actions)},
+        )
+
+    def update_attributes(self, user_id: str, attributes: dict[str, Any]) -> None:
+        self._request(
+            "PUT",
+            f"users/{quote(user_id, safe='')}",
+            json={"attributes": dict(attributes)},
         )

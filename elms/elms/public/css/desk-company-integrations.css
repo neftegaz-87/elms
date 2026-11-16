@@ -1,0 +1,37 @@
+.elms-company-integrations-page-wrapper .page-head { display: none; }
+.elms-company-integrations-page-wrapper .layout-main-section { padding: 0 !important; border: 0 !important; background: transparent !important; }
+.elms-company-integrations-shell { --integration-ink: #0b1f33; --integration-muted: #66727f; --integration-line: #d5dce3; --integration-paper: #f5f7fa; --integration-action: #0d4cd3; --integration-danger: #a32d25; min-height: calc(100vh - 60px); padding: 24px; background: var(--integration-paper); color: var(--integration-ink); font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+.elms-company-integrations-shell *, .elms-company-integrations-shell *::before, .elms-company-integrations-shell *::after { box-sizing: border-box; }
+.elms-company-integrations-header, .elms-company-integrations-toolbar, .elms-company-integrations-card-head, .elms-company-integrations-actions { display: flex; align-items: center; }
+.elms-company-integrations-navigation { min-height: 22px; margin-bottom: 8px; }
+.elms-company-integrations-back { color: var(--integration-action); font-size: 13px; text-decoration: none; }
+.elms-company-integrations-header { justify-content: space-between; gap: 18px; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--integration-line); }
+.elms-company-integrations-header h1, .elms-company-integrations-header p, .elms-company-integrations-card h2 { margin: 0; }
+.elms-company-integrations-header h1 { font-size: 24px; }
+.elms-company-integrations-header p { margin-top: 6px; max-width: 760px; color: var(--integration-muted); }
+.elms-company-integrations-kicker { color: var(--integration-action); font: 600 11px/1.2 "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; }
+.elms-company-integrations-mark { font: 700 22px/1 "IBM Plex Mono", monospace; }
+.elms-company-integrations-toolbar { justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.elms-company-integrations-toolbar label, .elms-company-integrations-card label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; }
+.elms-company-integrations-toolbar select, .elms-company-integrations-card input, .elms-company-integrations-card textarea { min-height: 36px; padding: 7px 9px; border: 1px solid var(--integration-line); border-radius: 4px; background: #fff; color: var(--integration-ink); font: inherit; font-weight: 400; }
+.elms-company-integrations-status { margin-bottom: 14px; padding: 11px 14px; border: 1px solid var(--integration-line); border-radius: 5px; background: #fff; }
+.elms-company-integrations-status.error { border-color: #e5b5b0; background: #fff0ee; color: var(--integration-danger); }
+.elms-company-integrations-grid { display: grid; grid-template-columns: repeat(3, minmax(260px, 1fr)); gap: 14px; align-items: start; }
+.elms-company-integrations-grid.is-detail { grid-template-columns: minmax(320px, 720px); }
+.elms-company-integrations-card { padding: 18px; border: 1px solid var(--integration-line); border-radius: 6px; background: #fff; }
+.elms-company-integrations-card-head { justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.elms-company-integrations-card h2 { font-size: 18px; }
+.elms-company-integrations-card p { min-height: 38px; margin: 5px 0 16px; color: var(--integration-muted); font-size: 13px; }
+.elms-company-integrations-overview-card .elms-company-integrations-button { display: inline-block; text-decoration: none; }
+.elms-company-integrations-card form { display: grid; gap: 11px; }
+.elms-company-integrations-check { display: flex !important; align-items: center; gap: 7px; }
+.elms-company-integrations-check input { min-height: auto; }
+.elms-company-integrations-badge { padding: 4px 7px; border: 1px solid var(--integration-line); color: var(--integration-muted); font: 600 10px "IBM Plex Mono", monospace; text-transform: uppercase; }
+.elms-company-integrations-badge.is-on { border-color: #88b89a; color: #216b3c; }
+.elms-company-integrations-actions { gap: 7px; margin-top: 3px; }
+.elms-company-integrations-button { min-height: 36px; padding: 7px 12px; border: 1px solid var(--integration-line); border-radius: 4px; background: #fff; color: var(--integration-ink); font: inherit; cursor: pointer; }
+.elms-company-integrations-button:hover, .elms-company-integrations-button:focus-visible { border-color: var(--integration-action); color: var(--integration-action); }
+.elms-company-integrations-button.is-primary { border-color: var(--integration-action); background: var(--integration-action); color: #fff; }
+.elms-company-integrations-button.is-danger { color: var(--integration-danger); }
+@media (max-width: 1050px) { .elms-company-integrations-grid { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .elms-company-integrations-shell { padding: 14px; } }

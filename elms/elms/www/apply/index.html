@@ -1,0 +1,25 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<main class="elms-apply" data-elms-application-page="individual">
+  <div class="elms-apply__eyebrow">ELMS / обучение</div>
+  <h1>Заявка на обучение</h1>
+  <p class="elms-apply__intro">Оставьте контакты — мы свяжемся по выбранному курсу.</p>
+  <form data-elms-application-form data-application-kind="individual" novalidate>
+    <label>ФИО<input name="fio" required maxlength="160" autocomplete="name"></label>
+    <div class="elms-apply__grid">
+      <label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+      <label>Телефон<input name="phone" required maxlength="40" autocomplete="tel"></label>
+    </div>
+    <label>Курс<select name="course" required>
+      <option value="">Выберите курс</option>
+      {% for course in courses %}<option value="{{ course.name }}">{{ course.course_name or course.name }}</option>{% endfor %}
+    </select></label>
+    <label class="elms-apply__consent"><input name="consent" type="checkbox" required> Согласен на обработку персональных данных</label>
+    <input class="elms-apply__honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button type="submit">Отправить заявку</button>
+    <p class="elms-apply__message" data-form-message role="status"></p>
+  </form>
+</main>
+<script src="/assets/elms/js/apply-forms.js?v=1"></script>
+{% endblock %}

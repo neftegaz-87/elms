@@ -1,0 +1,42 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A09-elms-company-admin-cabinet
+role: app
+source_qa: memory-bank/app/qa/T-A09-elms-company-admin-cabinet/qa-20261114-company-admin-cabinet.yaml
+checklist_sha256: 132f574a6303c37c7fcbaadebb007608e93f6d824f7f8d071d45187af5421430
+created_at: '2026-11-14T06:47:19Z'
+updated_at: '2026-11-14T10:31:30Z'
+current_id: BF-T-A09-001
+verification:
+  status: pass
+  command: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -"
+  evidence_file: memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json
+  last_run_at: '2026-11-14T09:33:14.076959Z'
+  evidence: "Authenticated cabinet/export capture PASS; active runtime authentication and server roster/export wire are available."
+items:
+  - id: BF-T-A09-001
+    status: done
+    done_at: '2026-11-14T09:33:14.076959Z'
+    class: suite_red:lane:browser|runtime_auth_missing
+    title: "Authenticated cabinet browser lane cannot start"
+    blocker_ref: suite_red:lane:browser|runtime_auth_missing
+    fix_plan_ref: "Provision active-stack Keycloak client credentials or provide a seeded authenticated Company Admin browser profile; do not weaken the login path."
+    targets:
+      - active Frappe site runtime configuration
+      - seeded authenticated Company Admin/Admin browser profile
+    verify: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -"
+    evidence_file: memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json
+    evidence: "Authenticated browser capture passed login, cabinet route, empty organization roster, server-side CSV export, UTF-8 payload, and no-DOM-only-CSV checks."
+    notes: "Later authenticated runtime capture passed the cabinet route, roster wire, and server export wire; no login-path weakening was used."
+  - id: BF-T-A09-002
+    status: done
+    done_at: '2026-11-14T09:33:14.076959Z'
+    class: suite_red:lane:wire_journey|runtime_auth_missing
+    title: "Authenticated cabinet roster and server CSV wire journey is unverified"
+    blocker_ref: suite_red:lane:wire_journey|runtime_auth_missing
+    fix_plan_ref: "Repeat JRN-T-A09-CABINET-001 with an authenticated Company Admin/Admin session and capture roster, empty state, API responses, and CSV download."
+    targets:
+      - memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json
+    verify: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -"
+    evidence_file: memory-bank/app/qa/T-A09-elms-company-admin-cabinet/browser-wire-20261114.json
+    evidence: "Authenticated runtime capture passed roster API HTTP 200, explicit empty state, server CSV wire HTTP 200 with UTF-8/BOM payload, and no-DOM-only-CSV check."
+    notes: "Authenticated runtime evidence records roster API 200 and server CSV wire 200; export remains server-side with no DOM-only CSV workaround."

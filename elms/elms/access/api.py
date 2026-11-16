@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -45,7 +46,42 @@ COMPANY_ADMIN_PROFILE = "ELMS Company Admin Profile"
 DEFAULT_INVITE_PROFILE = "ELMS Learner Profile"
 ORGANIZATION_DOCTYPE = "ELMS Organization"
 MEMBER_DOCTYPE = "ELMS Organization Member"
+ORGANIZATION_ROLE_DOCTYPE = "ELMS Organization Role"
 USER_PERMISSION_DOCTYPE = "User Permission"
+
+COMPANY_MANAGED_PROFILES = (
+    "ELMS Learner Profile",
+    "ELMS Instructor Profile",
+    "ELMS Methodologist Profile",
+    COMPANY_ADMIN_PROFILE,
+)
+PLATFORM_MANAGED_PROFILES = COMPANY_MANAGED_PROFILES + (
+    "ELMS Operations Profile",
+    "ELMS Admin Profile",
+)
+PROFILE_ROLES = {
+    "ELMS Learner Profile": ("Desk User", "ELMS Learner"),
+    "ELMS Instructor Profile": ("Desk User", "ELMS Instructor"),
+    "ELMS Methodologist Profile": ("Desk User", "ELMS Methodologist"),
+    "ELMS Operations Profile": ("Desk User", "ELMS Operations User"),
+    "ELMS Admin Profile": ("Desk User", ELMS_ADMIN_ROLE),
+    COMPANY_ADMIN_PROFILE: ("Desk User", ELMS_COMPANY_ADMIN_ROLE),
+}
+COMPANY_CAPABILITIES = {
+    "lms.catalog.manage": "Курсы и конструктор",
+    "lms.process.manage": "Потоки, квоты и зачисления",
+    "lms.progress.read": "Прогресс и активность слушателей",
+    "lms.assessment.manage": "Тесты и аттестация",
+}
+CAPABILITY_ROLES = {
+    "lms.catalog.manage": "ELMS Methodologist",
+    "lms.process.manage": "ELMS Operations User",
+    "lms.progress.read": "ELMS Instructor",
+    "lms.assessment.manage": "ELMS Instructor",
+}
+MANAGED_ROLES = frozenset(
+    role for profile in PROFILE_ROLES.values() for role in profile
+) | {"ELMS LMS User"}
 
 
 def _current_user() -> str:
@@ -141,6 +177,354 @@ def organization_membership_exists(user: str, organization: str) -> bool:
     return bool(_db_exists(MEMBER_DOCTYPE, {"user": user, "organization": organization}))
 
 
+def _organizations_for_user(user: str | None = None) -> list[str]:
+    current = user or _current_user()
+    get_all = getattr(frappe, "get_all", None)
+    if not callable(get_all):
+        return []
+    rows = get_all(
+        MEMBER_DOCTYPE,
+        filters={"user": current},
+        fields=["organization", "is_primary"],
+        order_by="is_primary desc, modified asc",
+        limit_page_length=0,
+    ) or []
+    organizations: list[str] = []
+    for row in rows:
+        value = str(row.get("organization") if isinstance(row, dict) else getattr(row, "organization", "") or "")
+        if value and value not in organizations:
+            organizations.append(value)
+    return organizations
+
+
+def _allowed_profiles(user: str | None = None) -> tuple[str, ...]:
+    return PLATFORM_MANAGED_PROFILES if _is_admin(user) else COMPANY_MANAGED_PROFILES
+
+
+def _capabilities(value: Any) -> list[str]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value or "[]")
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            _throw(f"Список возможностей должен быть JSON: {error}", frappe.ValidationError)
+    if not isinstance(value, (list, tuple, set)):
+        _throw("Список возможностей должен быть массивом", frappe.ValidationError)
+    values = []
+    for item in value:
+        capability = str(item or "").strip()
+        if capability not in COMPANY_CAPABILITIES:
+            _throw("Недопустимая возможность внутренней роли", frappe.ValidationError)
+        if capability not in values:
+            values.append(capability)
+    if not values:
+        _throw("У внутренней роли должна быть хотя бы одна возможность", frappe.ValidationError)
+    return values
+
+
+def _role_row(row: Any) -> dict[str, Any]:
+    value = row if isinstance(row, dict) else row.as_dict()
+    raw = value.get("capabilities") or "[]"
+    try:
+        capabilities = _capabilities(raw)
+    except Exception:
+        capabilities = []
+    return {
+        "name": str(value.get("name") or ""),
+        "organization": str(value.get("organization") or ""),
+        "role_name": str(value.get("role_name") or ""),
+        "description": str(value.get("description") or ""),
+        "capabilities": capabilities,
+        "enabled": bool(value.get("enabled", 1)),
+    }
+
+
+def _get_company_role(name: str, organization: str, require_enabled: bool = True) -> Any:
+    role_name = _clean(name, "organization_role", 140)
+    rows = frappe.get_all(
+        ORGANIZATION_ROLE_DOCTYPE,
+        filters={"name": role_name, "organization": organization},
+        fields=["name"],
+        limit_page_length=1,
+    )
+    if not rows:
+        _throw("Внутренняя роль не найдена в этой организации", frappe.PermissionError)
+    role = frappe.get_doc(ORGANIZATION_ROLE_DOCTYPE, rows[0].get("name"))
+    if require_enabled and not getattr(role, "enabled", 1):
+        _throw("Внутренняя роль отключена", frappe.ValidationError)
+    return role
+
+
+def _company_roles(organization: str) -> list[dict[str, Any]]:
+    get_all = getattr(frappe, "get_all", None)
+    if not callable(get_all):
+        return []
+    rows = get_all(
+        ORGANIZATION_ROLE_DOCTYPE,
+        filters={"organization": organization},
+        fields=["name", "organization", "role_name", "description", "capabilities", "enabled"],
+        order_by="role_name asc",
+        limit_page_length=500,
+    )
+    return [_role_row(row) for row in rows]
+
+
+def _require_company_admin(organization: str) -> str:
+    selected = require_organization_access(organization)
+    if not _is_admin() and ELMS_COMPANY_ADMIN_ROLE not in _roles():
+        _throw("Управлять внутренними ролями может только Company Admin этой организации", frappe.PermissionError)
+    return selected
+
+
+def _set_capability_roles(user_doc: Any, organization_role: str, organization: str) -> None:
+    role_doc = _get_company_role(organization_role, organization)
+    required = {CAPABILITY_ROLES[key] for key in _capabilities(role_doc.capabilities) if key in CAPABILITY_ROLES}
+    if not required:
+        return
+    current_rows = list(getattr(user_doc, "roles", []) or [])
+    existing_names = {
+        str(row.get("role", "") if isinstance(row, dict) else getattr(row, "role", "") or "")
+        for row in current_rows
+    }
+    rows = current_rows + [{"role": role} for role in sorted(required) if role not in existing_names]
+    setter = getattr(user_doc, "set", None)
+    if callable(setter):
+        setter("roles", rows)
+    else:
+        user_doc.roles = rows
+
+
+def _validate_managed_profile(profile: str, user: str | None = None) -> str:
+    value = str(profile or "").strip()
+    if value not in PROFILE_ROLES:
+        _throw("Недопустимый профиль доступа", frappe.ValidationError)
+    if value not in _allowed_profiles(user):
+        _throw("Этот профиль нельзя назначить внутри компании", frappe.PermissionError)
+    return value
+
+
+def _resolve_company_organization(organization: str | None = None) -> str:
+    if organization and str(organization).strip():
+        return require_organization_access(str(organization))
+    organizations = _organizations_for_user()
+    if len(organizations) == 1:
+        return require_organization_access(organizations[0])
+    if not organizations and not _is_admin():
+        _throw("Пользователь не состоит ни в одной организации", frappe.PermissionError)
+    _throw("Укажите организацию", frappe.ValidationError)
+    raise AssertionError("frappe.throw must raise")
+
+
+def _get_member(user: str, organization: str) -> Any:
+    get_all = getattr(frappe, "get_all", None)
+    rows = get_all(
+        MEMBER_DOCTYPE,
+        filters={"user": user, "organization": organization},
+        fields=["name"],
+        limit_page_length=1,
+    ) if callable(get_all) else []
+    if not rows:
+        _throw("Пользователь не состоит в этой организации", frappe.PermissionError)
+    member_name = rows[0].get("name") if isinstance(rows[0], dict) else getattr(rows[0], "name", "")
+    return frappe.get_doc(MEMBER_DOCTYPE, member_name)
+
+
+def _set_user_profile_roles(user_doc: Any, profile: str) -> None:
+    required_roles = PROFILE_ROLES[profile]
+    current_rows = list(getattr(user_doc, "roles", []) or [])
+    preserved = []
+    existing_names: set[str] = set()
+    for row in current_rows:
+        role = str(row.get("role", "") if isinstance(row, dict) else getattr(row, "role", "") or "")
+        if role and role not in MANAGED_ROLES:
+            preserved.append({"role": role})
+            existing_names.add(role)
+    rows = preserved + [{"role": role} for role in required_roles if role not in existing_names]
+    setter = getattr(user_doc, "set", None)
+    if callable(setter):
+        setter("roles", rows)
+    else:
+        user_doc.roles = rows
+
+
+@frappe.whitelist()
+def get_company_access_context(organization: str | None = None) -> dict[str, Any]:
+    """Return the organization selector and role profiles for the current user."""
+    current = _current_user()
+    platform_admin = _is_admin(current)
+    if platform_admin:
+        get_all = getattr(frappe, "get_all", None)
+        rows = get_all(ORGANIZATION_DOCTYPE, fields=["name"], order_by="organization_name asc", limit_page_length=0) if callable(get_all) else []
+        organizations = [str(row.get("name") if isinstance(row, dict) else getattr(row, "name", "") or "") for row in rows]
+    else:
+        organizations = _organizations_for_user(current)
+    selected = str(organization or "").strip()
+    if selected:
+        selected = require_organization_access(selected, current)
+    elif len(organizations) == 1:
+        selected = organizations[0]
+    return {
+        "organization": selected,
+        "organizations": [value for value in organizations if value],
+        "profiles": list(_allowed_profiles(current)),
+        "capabilities": [{"value": key, "label": label} for key, label in COMPANY_CAPABILITIES.items()],
+        "company_roles": _company_roles(selected) if selected else [],
+        "platform_admin": platform_admin,
+    }
+
+
+@frappe.whitelist()
+def get_organization_members(organization: str | None = None) -> dict[str, Any]:
+    """List staff in one authorized organization; never accept a client roster."""
+    organization_name = _resolve_company_organization(organization)
+    get_all = getattr(frappe, "get_all", None)
+    members = get_all(
+        MEMBER_DOCTYPE,
+        filters={"organization": organization_name},
+		fields=["name", "user", "role_profile", "organization_role", "is_primary"],
+        order_by="modified desc",
+        limit_page_length=500,
+    ) if callable(get_all) else []
+    user_names = [str(row.get("user") if isinstance(row, dict) else getattr(row, "user", "") or "") for row in members]
+    users = get_all(
+        "User",
+        filters={"name": ["in", user_names]},
+        fields=["name", "email", "full_name", "first_name", "last_name", "enabled", "role_profile_name"],
+        limit_page_length=500,
+    ) if callable(get_all) and user_names else []
+    users_by_name = {str(row.get("name") if isinstance(row, dict) else getattr(row, "name", "") or ""): row for row in users}
+    result = []
+    for member in members:
+        member_row = member if isinstance(member, dict) else member.as_dict()
+        user_name = str(member_row.get("user") or "")
+        user_row = users_by_name.get(user_name, {})
+        result.append(
+            {
+                "member": member_row.get("name"),
+                "user": user_name,
+                "email": user_row.get("email", user_name),
+                "full_name": user_row.get("full_name") or " ".join(filter(None, [user_row.get("first_name"), user_row.get("last_name")])),
+                "enabled": bool(user_row.get("enabled")),
+                "role_profile": member_row.get("role_profile") or user_row.get("role_profile_name") or DEFAULT_INVITE_PROFILE,
+                "organization_role": member_row.get("organization_role") or "",
+            }
+        )
+    return {"organization": organization_name, "members": result}
+
+
+@frappe.whitelist()
+def update_organization_member(user: str, organization: str, role_profile: str, organization_role: str | None = None) -> dict[str, str]:
+    """Change only a member's approved product profile inside an organization."""
+    organization_name = require_organization_access(organization)
+    profile = _validate_managed_profile(role_profile)
+    user_name = _clean(user, "user", 180).casefold()
+    member = _get_member(user_name, organization_name)
+    if not _is_admin() and _roles(user_name).intersection({ELMS_ADMIN_ROLE, "System Manager"}):
+        _throw("Нельзя изменять глобального администратора из компании", frappe.PermissionError)
+    user_doc = frappe.get_doc("User", user_name)
+    user_doc.role_profile_name = profile
+    _set_user_profile_roles(user_doc, profile)
+    user_doc.flags.ignore_permissions = True
+    user_doc.save()
+    member.role_profile = profile
+    if organization_role is not None:
+        role_name = str(organization_role or "").strip()
+        if role_name:
+            _get_company_role(role_name, organization_name)
+            member.organization_role = role_name
+            _set_capability_roles(user_doc, role_name, organization_name)
+        else:
+            member.organization_role = ""
+    member.flags.ignore_permissions = True
+    member.save()
+    return {
+        "user": user_name,
+        "organization": organization_name,
+        "role_profile": profile,
+        "organization_role": str(getattr(member, "organization_role", "") or ""),
+    }
+
+
+@frappe.whitelist()
+def disable_organization_member(user: str, organization: str) -> dict[str, str]:
+    """Disable a staff account after verifying organization membership."""
+    organization_name = require_organization_access(organization)
+    user_name = _clean(user, "user", 180).casefold()
+    _get_member(user_name, organization_name)
+    if not _is_admin() and _roles(user_name).intersection({ELMS_ADMIN_ROLE, "System Manager"}):
+        _throw("Нельзя отключить глобального администратора из компании", frappe.PermissionError)
+    user_doc = frappe.get_doc("User", user_name)
+    user_doc.enabled = 0
+    user_doc.flags.ignore_permissions = True
+    user_doc.save()
+    return {"user": user_name, "organization": organization_name, "status": "disabled"}
+
+
+@frappe.whitelist()
+def create_organization_role(
+    organization: str,
+    role_name: str,
+    description: str | None = None,
+    capabilities: Any = None,
+) -> dict[str, Any]:
+    """Create a company-scoped capability role without creating a global Frappe Role."""
+    organization_name = _require_company_admin(organization)
+    name = _clean(role_name, "role_name", 120)
+    selected = _capabilities(capabilities or [])
+    if frappe.db.exists(ORGANIZATION_ROLE_DOCTYPE, {"organization": organization_name, "role_name": name}):
+        _throw("В этой организации уже есть роль с таким названием", frappe.ValidationError)
+    role = frappe.get_doc(
+        {
+            "doctype": ORGANIZATION_ROLE_DOCTYPE,
+            "organization": organization_name,
+            "role_name": name,
+            "description": str(description or "").strip()[:500],
+            "capabilities": json.dumps(selected, ensure_ascii=False),
+            "enabled": 1,
+        }
+    )
+    role.flags.ignore_permissions = True
+    role.insert(ignore_permissions=True)
+    return _role_row(role)
+
+
+@frappe.whitelist()
+def update_organization_role(
+    name: str,
+    organization: str,
+    role_name: str,
+    description: str | None = None,
+    capabilities: Any = None,
+    enabled: Any = 1,
+) -> dict[str, Any]:
+    organization_name = _require_company_admin(organization)
+    role = _get_company_role(name, organization_name, require_enabled=False)
+    new_name = _clean(role_name, "role_name", 120)
+    selected = _capabilities(capabilities or [])
+    duplicate = frappe.db.exists(
+        ORGANIZATION_ROLE_DOCTYPE,
+        {"organization": organization_name, "role_name": new_name, "name": ["!=", role.name]},
+    )
+    if duplicate:
+        _throw("В этой организации уже есть роль с таким названием", frappe.ValidationError)
+    role.role_name = new_name
+    role.description = str(description or "").strip()[:500]
+    role.capabilities = json.dumps(selected, ensure_ascii=False)
+    role.enabled = int(bool(enabled))
+    role.flags.ignore_permissions = True
+    role.save(ignore_permissions=True)
+    return _role_row(role)
+
+
+@frappe.whitelist()
+def delete_organization_role(name: str, organization: str) -> dict[str, str]:
+    organization_name = _require_company_admin(organization)
+    role = _get_company_role(name, organization_name)
+    if frappe.db.exists(MEMBER_DOCTYPE, {"organization": organization_name, "organization_role": role.name}):
+        _throw("Сначала снимите эту роль с сотрудников организации", frappe.ValidationError)
+    role.delete(ignore_permissions=True)
+    return {"organization": organization_name, "name": role.name, "status": "deleted"}
+
+
 def require_organization_access(organization: str, user: str | None = None) -> str:
     """Enforce Admin or explicit Company Admin membership for an organization."""
     organization_name = _clean(organization, "organization")
@@ -222,6 +606,13 @@ def assign_company_admin(user: str, organization: str) -> dict[str, str]:
             }
         )
         _insert(membership)
+    else:
+        _ensure_membership_and_scope(user_name, organization_name, COMPANY_ADMIN_PROFILE)
+        return {
+            "user": user_name,
+            "organization": organization_name,
+            "role_profile": COMPANY_ADMIN_PROFILE,
+        }
     _ensure_user_permission(user_name, organization_name)
     return {
         "user": user_name,
@@ -260,10 +651,7 @@ def _create_or_get_frappe_user(
         user_doc.last_name = last_name
         user_doc.enabled = 1
         user_doc.role_profile_name = role_profile
-    roles = {str(getattr(row, "role", "")) for row in getattr(user_doc, "roles", [])}
-    for role in ("Desk User", "ELMS Learner"):
-        if role not in roles and callable(getattr(user_doc, "append", None)):
-            user_doc.append("roles", {"role": role})
+    _set_user_profile_roles(user_doc, role_profile)
     user_doc.flags.ignore_permissions = True
     if created:
         _insert(user_doc)
@@ -272,7 +660,7 @@ def _create_or_get_frappe_user(
     return user_doc, created
 
 
-def _ensure_membership_and_scope(user: str, organization: str, role_profile: str) -> None:
+def _ensure_membership_and_scope(user: str, organization: str, role_profile: str, organization_role: str = "") -> None:
     if not organization_membership_exists(user, organization):
         membership = _new_doc(
             {
@@ -280,10 +668,28 @@ def _ensure_membership_and_scope(user: str, organization: str, role_profile: str
                 "user": user,
                 "organization": organization,
                 "role_profile": role_profile,
+                "organization_role": organization_role,
                 "is_primary": 1,
             }
         )
         _insert(membership)
+    else:
+        get_all = getattr(frappe, "get_all", None)
+        rows = get_all(
+            MEMBER_DOCTYPE,
+            filters={"user": user, "organization": organization},
+            fields=["name", "role_profile"],
+            limit_page_length=1,
+        ) if callable(get_all) else []
+        if rows:
+            row = rows[0] if isinstance(rows[0], dict) else rows[0].as_dict()
+            if row.get("role_profile") != role_profile or organization_role:
+                membership = frappe.get_doc(MEMBER_DOCTYPE, row.get("name"))
+                membership.role_profile = role_profile
+                if organization_role:
+                    membership.organization_role = organization_role
+                membership.flags.ignore_permissions = True
+                membership.save()
     _ensure_user_permission(user, organization)
 
 
@@ -330,6 +736,7 @@ def invite_org_user(
     last_name: str,
     organization: str,
     role_profile: str | None = None,
+    organization_role: str | None = None,
 ) -> dict[str, Any]:
     """Provision a user in Frappe and Keycloak for an authorized organization."""
     email_value = _clean(email, "email", 180).casefold()
@@ -338,14 +745,21 @@ def invite_org_user(
     first_name_value = _clean(first_name, "first_name", 120)
     last_name_value = _clean(last_name, "last_name", 120)
     organization_value = require_organization_access(organization)
-    profile = str(role_profile or DEFAULT_INVITE_PROFILE).strip()
-    if profile not in {DEFAULT_INVITE_PROFILE, COMPANY_ADMIN_PROFILE}:
-        _throw("Недопустимый профиль приглашения", frappe.ValidationError)
+    profile = _validate_managed_profile(role_profile or DEFAULT_INVITE_PROFILE)
+    role_name = str(organization_role or "").strip()
+    if role_name:
+        _get_company_role(role_name, organization_value)
 
     user_doc, created = _create_or_get_frappe_user(
         email_value, first_name_value, last_name_value, profile
     )
-    _ensure_membership_and_scope(str(getattr(user_doc, "name", email_value)), organization_value, profile)
+    user_name = str(getattr(user_doc, "name", email_value))
+    if role_name:
+        _ensure_membership_and_scope(user_name, organization_value, profile, role_name)
+    else:
+        _ensure_membership_and_scope(user_name, organization_value, profile)
+    if role_name:
+        _set_capability_roles(user_doc, role_name, organization_value)
     client = _get_keycloak_client()
     keycloak_user_id = ""
     try:
@@ -365,8 +779,9 @@ def invite_org_user(
 
     _record_invite_log(email_value, organization_value, "Invited", keycloak_user_id=keycloak_user_id)
     return {
-        "user": str(getattr(user_doc, "name", email_value)),
+        "user": user_name,
         "organization": organization_value,
+        "organization_role": role_name,
         "keycloak_id": keycloak_user_id,
         "invited": True,
         "status": "invited",

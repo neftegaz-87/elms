@@ -1,0 +1,41 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["bitrix_id", "bitrix_entity", "application_kind", "applicant_name", "email", "phone", "company_name", "inn", "course", "course_ids", "comment", "consent_at", "submit_fingerprint", "last_status_snapshot", "last_status_code", "display_label", "last_synced_at"],
+ "fields": [
+  {"fieldname": "bitrix_id", "fieldtype": "Data", "in_list_view": 1, "label": "Bitrix Lead ID", "reqd": 1},
+  {"default": "lead", "fieldname": "bitrix_entity", "fieldtype": "Select", "label": "Bitrix Entity", "options": "lead", "read_only": 1, "reqd": 1},
+  {"fieldname": "application_kind", "fieldtype": "Select", "in_list_view": 1, "label": "Application Kind", "options": "individual\nlegal", "reqd": 1},
+  {"fieldname": "applicant_name", "fieldtype": "Data", "in_list_view": 1, "label": "Applicant / Contact"},
+  {"fieldname": "email", "fieldtype": "Data", "label": "Email"},
+  {"fieldname": "phone", "fieldtype": "Data", "label": "Phone"},
+  {"fieldname": "company_name", "fieldtype": "Data", "label": "Company"},
+  {"fieldname": "inn", "fieldtype": "Data", "label": "ИНН"},
+  {"fieldname": "course", "fieldtype": "Link", "label": "Course", "options": "ELMS Course"},
+  {"fieldname": "course_ids", "fieldtype": "Long Text", "label": "Course IDs (JSON)"},
+  {"fieldname": "comment", "fieldtype": "Small Text", "label": "Comment"},
+  {"fieldname": "consent_at", "fieldtype": "Datetime", "label": "Consent At", "reqd": 1},
+  {"fieldname": "submit_fingerprint", "fieldtype": "Data", "label": "Submit Fingerprint", "unique": 1},
+  {"fieldname": "last_status_snapshot", "fieldtype": "Data", "label": "Last Status Snapshot", "read_only": 1},
+  {"fieldname": "last_status_code", "fieldtype": "Data", "label": "Last Status Code", "read_only": 1},
+  {"fieldname": "display_label", "fieldtype": "Data", "in_list_view": 1, "label": "Status from Bitrix", "read_only": 1},
+  {"fieldname": "last_synced_at", "fieldtype": "Datetime", "label": "Last Synced At", "read_only": 1}
+ ],
+ "links": [],
+ "modified": "2026-11-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Application Link",
+ "owner": "Administrator",
+ "permissions": [
+  {"read": 1, "role": "ELMS Admin"},
+  {"read": 1, "role": "ELMS Operations User"},
+  {"read": 1, "role": "System Manager"}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "bitrix_id"
+}

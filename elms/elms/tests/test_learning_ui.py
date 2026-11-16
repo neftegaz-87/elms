@@ -52,6 +52,7 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn('frappe.pages["elms-learning"].on_page_load', page_js)
         self.assertIn('"name": "elms-learning"', page_json)
         self.assertIn('"module": "LMS"', page_json)
+        self.assertIn('"role": "ELMS Company Admin"', page_json)
 
     def test_course_preview_direct_route_has_a_frappe_page_definition(self):
         """Direct /app/elms-course-preview must resolve through the Page registry."""
@@ -145,6 +146,15 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn('window.addEventListener("blur"', js)
         self.assertIn('window.addEventListener("focus"', js)
         self.assertIn('heartbeatInterval', js)
+        self.assertIn('}, 60000);', js)
+        self.assertIn('document.addEventListener("visibilitychange"', js)
+        self.assertIn('window.addEventListener("pagehide"', js)
+        self.assertIn('stopLearningTelemetryWhenLeaving', js)
+        self.assertIn('navigator.sendBeacon', js)
+        self.assertIn('Время обучения сохраняется автоматически', js)
+        self.assertNotIn('Журнал активности', js)
+        self.assertNotIn('renderActivityTab', js)
+        self.assertNotIn('state.activities', js)
         self.assertIn('Поиск по связям', js)
         self.assertNotIn('data-elms-platform-assistant', js)
         self.assertNotIn('elms.ai.api.', js)
@@ -270,8 +280,8 @@ class TestLearningUI(unittest.TestCase):
         link_to = [link[1] for link in lms_ws["links"]]
         self.assertIn("ELMS Course", link_to)
         self.assertIn("ELMS Course Category", link_to)
-        self.assertNotIn("ELMS Course Chapter", link_to)
-        self.assertNotIn("ELMS Course Lesson", link_to)
+        self.assertIn("ELMS Course Chapter", link_to)
+        self.assertIn("ELMS Course Lesson", link_to)
         self.assertIn("/app/elms-course-studio", [item.get("url") for item in lms_ws.get("shortcuts", ())])
         self.assertIn("ELMS Quiz", link_to)
         self.assertIn("ELMS Quiz Question", link_to)
@@ -287,6 +297,7 @@ class TestLearningUI(unittest.TestCase):
         self.assertIn("Role", link_to)
         self.assertIn("Role Profile", link_to)
         self.assertIn("ELMS Integration Settings", link_to)
+        self.assertIn("ELMS Application Settings", link_to)
 
 
 if __name__ == "__main__":

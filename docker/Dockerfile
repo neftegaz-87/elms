@@ -150,7 +150,7 @@ server {
 		proxy_set_header X-Forwarded-For $remote_addr;
 		proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 		proxy_set_header X-Frappe-Site-Name ${FRAPPE_SITE_NAME_HEADER};
-		proxy_set_header Host $host;
+		proxy_set_header Host ${FRAPPE_SITE_NAME_HEADER};
 		proxy_set_header X-Use-X-Accel-Redirect True;
 		proxy_read_timeout ${PROXY_READ_TIMEOUT};
 		proxy_redirect off;
@@ -287,6 +287,7 @@ RUN apt-get update \
 
 COPY --chown=frappe:0 frappe /home/frappe/src/frappe
 COPY --chown=frappe:0 elms /home/frappe/src/elms
+COPY --chown=frappe:0 scripts /home/frappe/src/scripts
 
 USER frappe
 WORKDIR /home/frappe
@@ -300,6 +301,7 @@ RUN mkdir -p /home/frappe/frappe-bench/apps \
     && uv venv env --seed --python python3 \
     && cp -a /home/frappe/src/frappe apps/frappe \
     && cp -a /home/frappe/src/elms apps/elms \
+    && cp -a /home/frappe/src/scripts apps/scripts \
     && rm -rf /home/frappe/src
 
 RUN cd /home/frappe/frappe-bench \

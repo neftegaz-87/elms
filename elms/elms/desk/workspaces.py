@@ -17,6 +17,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
             "ELMS Admin",
             "ELMS Operations User",
             "ELMS Learner",
+            "ELMS Company Admin",
             "ELMS Instructor",
             "ELMS Methodologist",
         ),
@@ -34,12 +35,20 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
                 "label": "Конструктор курсов",
                 "icon": "edit",
             },
+            {
+                "type": "URL",
+                "url": "/app/elms-applications",
+                "label": "Заявки из Bitrix",
+                "icon": "list",
+            },
         ),
         "links": (
             ("Конструктор курсов", "ELMS Course", "Курсы"),
             ("Конструктор курсов", "ELMS Course Category", "Категории курсов"),
             ("Конструктор курсов", "ELMS Program", "Программы обучения"),
             ("Конструктор курсов", "ELMS Program Course", "Состав программ"),
+            ("Конструктор курсов", "ELMS Course Chapter", "Учебные разделы"),
+            ("Конструктор курсов", "ELMS Course Lesson", "Уроки и материалы"),
             ("Учебный процесс", "ELMS Batch", "Потоки и группы"),
             ("Учебный процесс", "ELMS Subscription", "Подписки и квоты"),
             ("Учебный процесс", "ELMS Enrollment", "Зачисления"),
@@ -51,6 +60,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
             ("Трекер обучения", "ELMS Lesson Progress", "Прогресс по урокам"),
             ("Трекер обучения", "ELMS User Activity", "Активность слушателей"),
             ("Трекер обучения", "ELMS Video Watch Log", "Просмотр видео"),
+            ("Операции", "ELMS Application Link", "Заявки из Bitrix"),
         ),
     },
     {
@@ -59,7 +69,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "module": "LMS",
         "icon": "preview",
         "sequence_id": 2,
-        "roles": ("ELMS Admin", "ELMS Operations User", "ELMS Instructor", "ELMS Methodologist"),
+        "roles": ("ELMS Admin", "ELMS Operations User", "ELMS Company Admin", "ELMS Instructor", "ELMS Methodologist"),
         "content": "Проверьте курс глазами обычного слушателя до публикации.",
         "shortcuts": (
             {
@@ -72,15 +82,70 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "links": (),
     },
     {
+        "name": "Моя компания",
+        "label": "Моя компания",
+        "module": "Operations",
+        "icon": "users",
+        "sequence_id": 3,
+        "roles": ("ELMS Admin", "ELMS Company Admin"),
+        "content": "Сотрудники, администраторы и прогресс вашей организации.",
+        "shortcuts": (
+            {
+                "type": "URL",
+                "url": "/app/elms-cabinet",
+                "label": "Кабинет моей компании",
+                "icon": "users",
+            },
+            {
+                "type": "URL",
+                "url": "/app/elms-company-access",
+                "label": "Роли и доступы сотрудников",
+                "icon": "lock",
+            },
+            {
+                "type": "URL",
+                "url": "/app/elms-company-integrations",
+                "label": "Интеграции компании",
+                "icon": "integration",
+            },
+        ),
+        "links": (
+            ("Моя организация", "ELMS Organization Member", "Сотрудники и администраторы"),
+        ),
+    },
+    {
+        "name": "B2B Access",
+        "label": "Доступ компаний",
+        "module": "Operations",
+        "icon": "users",
+        "sequence_id": 4,
+        "roles": ("ELMS Admin",),
+        "content": "Организации, участники и безопасная отправка приглашений в ELMS.",
+        "shortcuts": (
+            {
+                "type": "URL",
+                "url": "/app/elms-access",
+                "label": "Открыть доступ компаний",
+                "icon": "users",
+            },
+        ),
+        "links": (
+            ("Организации", "ELMS Organization", "Организации"),
+            ("Организации", "ELMS Organization Member", "Участники организаций"),
+            ("Аудит приглашений", "ELMS Invite Log", "Журнал приглашений"),
+        ),
+    },
+    {
         "name": "Settings",
         "module": "ELMS Core",
         "icon": "setting",
-        "sequence_id": 3,
+        "sequence_id": 5,
         "roles": ("ELMS Admin", "System Manager"),
         "content": "Кто входит в систему, что разрешено ролям и какие записи доступны пользователю.",
 		"links": (
 			("Настройки elms", "ELMS Settings Section", "Состояние настроек"),
-			("Интеграции", "ELMS Integration Settings", "Ассистент знаний и провайдер LLM"),
+			("Интеграции", "ELMS Integration Settings", "LLM и Bitrix24 CRM"),
+			("Интеграции", "ELMS Application Settings", "Маппинг заявок и статусов Bitrix"),
 			("Пользователи и доступ", "User", "Пользователи"),
 			("Пользователи и доступ", "Role", "Роли"),
 			("Пользователи и доступ", "permission-manager", "Матрица прав ролей"),
@@ -108,6 +173,8 @@ LMS_AUTHORING_LINKS = frozenset(
         "ELMS Course Category",
         "ELMS Program",
         "ELMS Program Course",
+        "ELMS Course Chapter",
+        "ELMS Course Lesson",
     }
 )
 LMS_PROCESS_LINKS = frozenset(
@@ -201,17 +268,19 @@ def filter_workspace_for_user(page_data: dict[str, Any], page: str, user: str | 
 
     current_user = user or frappe.session.user
     roles = set(frappe.get_roles(current_user) or [])
-    if roles.intersection({"ELMS Admin", "ELMS Operations User"}):
+    if roles.intersection({"ELMS Admin", "ELMS Operations User", "ELMS Company Admin"}):
         return page_data
 
     can_open_studio = bool(roles.intersection({"ELMS Methodologist", "System Manager"}))
-    if not can_open_studio:
+    is_application_operator = bool(roles.intersection({"ELMS Admin", "ELMS Operations User"}))
+    if not can_open_studio or not is_application_operator:
         shortcuts = page_data.get("shortcuts")
         if isinstance(shortcuts, list):
             page_data["shortcuts"] = [
                 shortcut
                 for shortcut in shortcuts
-                if shortcut.get("url") != "/app/elms-course-studio"
+                if shortcut.get("url")
+                not in ({"/app/elms-course-studio"} | ({"/app/elms-applications"} if not is_application_operator else set()))
             ]
         content = page_data.get("content")
         if isinstance(content, str):
@@ -226,7 +295,13 @@ def filter_workspace_for_user(page_data: dict[str, Any], page: str, user: str | 
                         for block in blocks
                         if not (
                             block.get("type") == "shortcut"
-                            and block.get("data", {}).get("shortcut_name") == "Конструктор курсов"
+                            and (
+                                block.get("data", {}).get("shortcut_name") == "Конструктор курсов"
+                                or (
+                                    not is_application_operator
+                                    and block.get("data", {}).get("shortcut_name") == "Заявки из Bitrix"
+                                )
+                            )
                         )
                     ],
                     ensure_ascii=False,
@@ -296,6 +371,15 @@ def filter_workspace_for_user(page_data: dict[str, Any], page: str, user: str | 
 
 def _ensure_workspace(definition: dict[str, Any]) -> None:
     name = definition["name"]
+    existing_name = frappe.db.exists("Workspace", name)
+    if not existing_name:
+        existing_name = frappe.db.exists("Workspace", {"title": name})
+    if not existing_name and definition.get("label"):
+        existing_name = frappe.db.exists("Workspace", {"label": definition["label"]})
+
+    if isinstance(existing_name, str) and existing_name != name:
+        frappe.rename_doc("Workspace", existing_name, name, force=True)
+
     if frappe.db.exists("Workspace", name):
         workspace = frappe.get_doc("Workspace", name)
     else:

@@ -93,7 +93,7 @@ services:
       vault:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "test -s /run/elms-secrets/frappe/runtime.env && test -s /run/elms-secrets/keycloak/runtime.env && test -s /run/elms-secrets/db/db-password && test -s /run/elms-secrets/db/keycloak-db-password && grep -q '^DB_PASSWORD=' /run/elms-secrets/frappe/runtime.env && grep -q '^ADMIN_PASSWORD=' /run/elms-secrets/frappe/runtime.env && grep -q '^KEYCLOAK_CLIENT_SECRET=' /run/elms-secrets/frappe/runtime.env && grep -q '^KEYCLOAK_ADMIN_PASSWORD=' /run/elms-secrets/keycloak/runtime.env && grep -q '^YANDEX_CLIENT_ID=' /run/elms-secrets/keycloak/runtime.env && grep -q '^YANDEX_CLIENT_SECRET=' /run/elms-secrets/keycloak/runtime.env"]
+      test: ["CMD-SHELL", "test -s /run/elms-secrets/frappe/runtime.env && test -s /run/elms-secrets/keycloak/runtime.env && test -s /run/elms-secrets/db/db-password && test -s /run/elms-secrets/db/keycloak-db-password && grep -q '^DB_PASSWORD=' /run/elms-secrets/frappe/runtime.env && grep -q '^ADMIN_PASSWORD=' /run/elms-secrets/frappe/runtime.env && grep -q '^KEYCLOAK_CLIENT_SECRET=' /run/elms-secrets/frappe/runtime.env && grep -q '^KEYCLOAK_ADMIN_CLIENT_SECRET=' /run/elms-secrets/frappe/runtime.env && grep -q '^KEYCLOAK_ADMIN_PASSWORD=' /run/elms-secrets/keycloak/runtime.env && grep -q '^KEYCLOAK_ADMIN_CLIENT_SECRET=' /run/elms-secrets/keycloak/runtime.env"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -223,7 +223,10 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}
       KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}
-      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
+      KEYCLOAK_ADMIN_BASE_URL: ${KEYCLOAK_ADMIN_BASE_URL:-http://keycloak:8080}
+      KEYCLOAK_ADMIN_REALM: ${KEYCLOAK_ADMIN_REALM:-elms}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:-elms-admin}
+      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS Learner}
       ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-1}
       ELMS_PROD_STAGE: ${ELMS_PROD_STAGE:-0}
     command:
@@ -311,7 +314,10 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-elms-frappe}
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?KEYCLOAK_PUBLIC_URL is required}
       KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}
-      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS LMS User}
+      KEYCLOAK_ADMIN_BASE_URL: ${KEYCLOAK_ADMIN_BASE_URL:-http://keycloak:8080}
+      KEYCLOAK_ADMIN_REALM: ${KEYCLOAK_ADMIN_REALM:-elms}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:-elms-admin}
+      ELMS_SSO_DEFAULT_ROLES: ${ELMS_SSO_DEFAULT_ROLES:-Desk User, ELMS Learner}
       ELMS_SSO_REQUIRE: ${ELMS_SSO_REQUIRE:-1}
       ELMS_REVIEW_URL: ${ELMS_REVIEW_URL:?ELMS_REVIEW_URL is required}
       ELMS_REVIEW_ELMS_ROLES: ${ELMS_REVIEW_ELMS_ROLES:-ELMS Admin,ELMS Operations User,System Manager}

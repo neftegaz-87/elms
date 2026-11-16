@@ -9,6 +9,86 @@ from typing import Any, Dict
 import frappe
 
 
+DEMO_ORGANIZATION = "Демонстрационный контур НефтеГаз"
+TEST_ORGANIZATION = "ELMS Test Company"
+TEST_COMPANY_ADMIN = "elms.test.foreign.company.admin@elms.local"
+
+
+def _ensure_test_company() -> str:
+    """Create an empty tenant and its repeatable Company Admin test identity."""
+    organization = frappe.db.get_value("ELMS Organization", TEST_ORGANIZATION, "name")
+    if not organization:
+        organization_doc = frappe.get_doc(
+            {
+                "doctype": "ELMS Organization",
+                "organization_name": TEST_ORGANIZATION,
+                "inn": "7700000001",
+                "status": "Active",
+                "is_platform_owner": 0,
+            }
+        )
+        organization_doc.flags.ignore_permissions = True
+        organization_doc.insert()
+        organization = organization_doc.name
+
+    if not frappe.db.exists("User", TEST_COMPANY_ADMIN):
+        user_doc = frappe.get_doc(
+            {
+                "doctype": "User",
+                "email": TEST_COMPANY_ADMIN,
+                "first_name": "ELMS Test",
+                "last_name": "Foreign Company Admin",
+                "enabled": 1,
+                "send_welcome_email": 0,
+                "role_profile_name": "ELMS Company Admin Profile",
+            }
+        )
+        user_doc.append("roles", {"role": "Desk User"})
+        user_doc.append("roles", {"role": "ELMS Company Admin"})
+        user_doc.flags.ignore_permissions = True
+        user_doc.insert()
+    else:
+        user_doc = frappe.get_doc("User", TEST_COMPANY_ADMIN)
+        user_doc.role_profile_name = "ELMS Company Admin Profile"
+        role_names = {str(getattr(row, "role", "")) for row in user_doc.roles}
+        if "Desk User" not in role_names:
+            user_doc.append("roles", {"role": "Desk User"})
+        if "ELMS Company Admin" not in role_names:
+            user_doc.append("roles", {"role": "ELMS Company Admin"})
+        user_doc.flags.ignore_permissions = True
+        user_doc.save(ignore_permissions=True)
+    if not frappe.db.exists(
+        "ELMS Organization Member", {"user": TEST_COMPANY_ADMIN, "organization": organization}
+    ):
+        member = frappe.get_doc(
+            {
+                "doctype": "ELMS Organization Member",
+                "user": TEST_COMPANY_ADMIN,
+                "organization": organization,
+                "role_profile": "ELMS Company Admin Profile",
+                "is_primary": 1,
+            }
+        )
+        member.flags.ignore_permissions = True
+        member.insert()
+    if not frappe.db.exists(
+        "User Permission",
+        {"user": TEST_COMPANY_ADMIN, "allow": "ELMS Organization", "for_value": organization},
+    ):
+        permission = frappe.get_doc(
+            {
+                "doctype": "User Permission",
+                "user": TEST_COMPANY_ADMIN,
+                "allow": "ELMS Organization",
+                "for_value": organization,
+                "apply_to_all_doctypes": 1,
+            }
+        )
+        permission.flags.ignore_permissions = True
+        permission.insert()
+    return str(organization)
+
+
 def _upsert(doctype: str, filters: Dict[str, Any], values: Dict[str, Any]) -> str:
     name = frappe.db.get_value(doctype, filters, "name")
     if name:
@@ -50,6 +130,7 @@ def _ensure_demo_enrollment(user: str, batch: str, subscription: str) -> bool:
     subscription_doc.save()
 
     course = frappe.db.get_value("ELMS Batch", batch, "course") or ""
+    organization = frappe.db.get_value("ELMS Batch", batch, "organization") or DEMO_ORGANIZATION
     enrollment = frappe.get_doc(
         {
             "doctype": "ELMS Enrollment",
@@ -57,6 +138,7 @@ def _ensure_demo_enrollment(user: str, batch: str, subscription: str) -> bool:
             "batch": batch,
             "course": course,
             "subscription": subscription,
+            "organization": organization,
             "enrollment_date": frappe.utils.today(),
             "status": "Active",
         }
@@ -69,6 +151,7 @@ def _ensure_demo_enrollment(user: str, batch: str, subscription: str) -> bool:
         {
             "doctype": "ELMS Course Progress",
             "enrollment": enrollment.name,
+            "organization": organization,
             "user": user,
             "progress_percentage": 0.0,
             "total_lessons": 0,
@@ -84,6 +167,10 @@ def _ensure_demo_enrollment(user: str, batch: str, subscription: str) -> bool:
 
 def seed_demo_data() -> Dict[str, Any]:
     """Create or update the demo catalogue and learner journeys."""
+    from elms.tenant import ensure_platform_owner
+
+    organization = ensure_platform_owner()
+    _ensure_test_company()
     start_date, end_date = _active_dates()
     courses = [
         {
@@ -117,7 +204,7 @@ def seed_demo_data() -> Dict[str, Any]:
 
     course_names = {}
     for course in courses:
-        values = {**course, "is_published": 1}
+        values = {**course, "is_published": 1, "organization": organization}
         course_names[course["course_code"]] = _upsert(
             "ELMS Course", {"course_code": course["course_code"]}, values
         )
@@ -127,6 +214,7 @@ def seed_demo_data() -> Dict[str, Any]:
         {"program_code": "DEMO-OIL-SAFE-2026"},
         {
             "program_name": "Безопасная работа на нефтегазовом объекте",
+            "organization": organization,
             "program_code": "DEMO-OIL-SAFE-2026",
             "category": "Охрана труда и промышленная безопасность",
             "total_hours": 64,
@@ -146,6 +234,7 @@ def seed_demo_data() -> Dict[str, Any]:
             {
                 "program": program_name,
                 "course": course_names[code],
+                "organization": organization,
                 "sequence_id": sequence_id,
                 "is_mandatory": 1,
             },
@@ -218,6 +307,7 @@ def seed_demo_data() -> Dict[str, Any]:
                 {
                     "chapter_name": chapter["chapter_name"],
                     "course": course,
+                    "organization": organization,
                     "sequence_id": chapter_index,
                     "description": chapter["description"],
                 },
@@ -229,6 +319,7 @@ def seed_demo_data() -> Dict[str, Any]:
                     {
                         "lesson_name": lesson_name,
                         "course": course,
+                        "organization": organization,
                         "chapter": chapter_name,
                         "sequence_id": lesson_index,
                         "content_type": "Article",
@@ -291,6 +382,7 @@ def seed_demo_data() -> Dict[str, Any]:
                 "quiz_name": quiz_definition["quiz_name"],
                 "course": course,
                 "lesson": lesson,
+                "organization": organization,
                 "quiz_type": quiz_definition["quiz_type"],
                 "passing_percentage": quiz_definition["passing_percentage"],
                 "time_limit_minutes": 20,
@@ -310,6 +402,7 @@ def seed_demo_data() -> Dict[str, Any]:
                 {"quiz": quiz, "sequence_id": question_index},
                 {
                     "quiz": quiz,
+                    "organization": organization,
                     "question_text": text,
                     "sequence_id": question_index,
                     "question_type": question_type,
@@ -335,7 +428,7 @@ def seed_demo_data() -> Dict[str, Any]:
                 "course": course,
                 "start_date": start_date,
                 "end_date": end_date,
-                "organization": "Демонстрационный контур НефтеГаз",
+                "organization": organization,
                 "order_number": "DEMO-2026",
                 "status": "Active",
             },
@@ -344,7 +437,8 @@ def seed_demo_data() -> Dict[str, Any]:
             "ELMS Subscription",
             {"contract_number": f"DEMO-{code}"},
             {
-                "company_name": "Демонстрационный контур НефтеГаз",
+                "company_name": organization,
+                "organization": organization,
                 "inn": "0000000000",
                 "course": course,
                 "contract_number": f"DEMO-{code}",

@@ -101,12 +101,32 @@ class TestLoginUI(unittest.TestCase):
         self.assertIn('"name": "elms"', hooks_content)
         self.assertIn('"route": "/app"', hooks_content)
 
+    def test_first_login_password_surface_is_registered(self):
+        hooks_content = self.hooks_path.read_text(encoding="utf-8")
+        password_css = REPO_ROOT / "elms/elms/public/css/first-login-password.css"
+        password_js = REPO_ROOT / "elms/elms/public/js/first-login-password.js"
+
+        self.assertTrue(password_css.is_file())
+        self.assertTrue(password_js.is_file())
+        self.assertIn("/assets/elms/css/first-login-password.css", hooks_content)
+        self.assertIn("/assets/elms/js/first-login-password.js", hooks_content)
+
+        js = password_js.read_text(encoding="utf-8")
+        css = password_css.read_text(encoding="utf-8")
+        self.assertIn("elms.sso.password.get_password_change_state", js)
+        self.assertIn("elms.sso.password.change_password", js)
+        self.assertIn("Измените пароль", js)
+        self.assertIn("#0d4cd3", css)
+        self.assertIn("#f5f7fa", css)
+        self.assertIn("prefers-reduced-motion", css)
+
     def test_login_js_submits_credentials_to_keycloak(self):
         """The primary form sends credentials through the existing Keycloak bridge."""
         js = (REPO_ROOT / "elms/elms/public/js/login-keycloak.js").read_text(encoding="utf-8")
 
         self.assertIn('$(document).on("login_rendered"', js)
         self.assertIn("hideSocialChrome", js)
+        self.assertIn('forms.off("submit")', js)
         self.assertIn('"elms.sso.login.login_with_keycloak"', js)
         self.assertIn("args: { usr: username, pwd: password }", js)
         self.assertIn('"/api/method/frappe.www.login.login_via_token"', js)

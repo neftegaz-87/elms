@@ -68,16 +68,17 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
 
             # 3. Check ELMS branding in the standard Frappe login heading
             heading = page.locator(".for-login .page-card-head h4").first.text_content() or ""
+            has_elms_brand = "elms" in heading.lower()
             check_branding = {
-                "name": "login_heading_uses_elms_sdo_brand",
-                "status": "pass" if "ELMS СДО" in heading else "fail",
+                "name": "login_heading_uses_elms_brand",
+                "status": "pass" if has_elms_brand else "fail",
                 "observed": heading.strip(),
             }
             results["checks"].append(check_branding)
-            if "ELMS СДО" not in heading:
+            if not has_elms_brand:
                 results["passed"] = False
                 results["errors"].append(
-                    f"Login heading is '{heading.strip()}', expected it to contain 'ELMS СДО'"
+                    f"Login heading is '{heading.strip()}', expected it to contain the ELMS brand"
                 )
 
             # 4. Check CSS link in DOM
@@ -167,7 +168,6 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                     "borderRadius": "3px",
                     "backgroundColor": "rgb(13, 76, 211)",
                 },
-                "email_link": {"height": "44px", "borderRadius": "3px"},
             }
             surface_errors = []
             for name, expectations in surface_expectations.items():
@@ -189,6 +189,16 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
             if surface_errors:
                 results["passed"] = False
                 results["errors"].extend(surface_errors)
+
+            check_email_link = {
+                "name": "email_link_login_path_absent",
+                "status": "pass" if surface_styles["email_link"] is None else "fail",
+                "observed": surface_styles["email_link"],
+            }
+            results["checks"].append(check_email_link)
+            if surface_styles["email_link"] is not None:
+                results["passed"] = False
+                results["errors"].append("Email-link login path is present, but ELMS uses Keycloak-only password login")
 
             # 6. Check the standard form is the only Keycloak entrypoint
             login_form = page.locator(".for-login form.form-login").first

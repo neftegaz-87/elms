@@ -1,0 +1,164 @@
+schema: epic-decompose-index/v1
+plan_id: T-A08-elms-application-forms-bitrix-status
+level: L2
+sNN_cap: 2
+appetite:
+  timebox_days: 4
+  cut_list:
+  - Auto Keycloak invite from Bitrix approved status
+  - Company progress cabinet (T-A09)
+  - Subscription quota on forms
+  - Deal entity path (crm.deal.add) — P0 locked to Lead per clarify Q11
+  - Live Bitrix sandbox as required QA lane (mock + documented not_run live)
+effort_probe:
+  outcomes:
+  - outcome: Public individual/legal forms submit create Bitrix Lead and ELMS Application
+      Link fail-closed
+    hours_mid: 14.0
+    hours_range: 10-18
+    confidence: medium
+    notes: Pydantic payloads, whitelist submit, rest_client crm.lead.add, www forms,
+      anti-dup/honeypot
+  - outcome: Bitrix status SoT read-back, DENY local master status, Desk Application
+      Link list and refresh
+    hours_mid: 10.0
+    hours_range: 8-14
+    confidence: medium
+    notes: get status API, status map settings, snapshot-only mirror, Desk UI, leftover_sot
+      enforce
+  total_hours: 24.0
+  effort_hours_total: 24.0
+  effort_class: L
+  independent_outcomes: 2
+  split_seams: 1
+  sNN_cap: 2
+  sNN_target: 2
+split_rationale: 'Two independently verifiable acceptance boundaries: (1) form submit
+  creates a Bitrix Lead and an Application Link with fail-closed transport; (2) status
+  is read from Bitrix as sole SoT with DENY of local master status and Desk/web refresh.
+  Backend+www/Desk UI for each boundary stay in the same mixed shard — no separate
+  BACK/FRONT/INTEG queues.'
+technology_axiom_lock:
+- Pydantic JSON submit payload (application_kind individual|legal); FORBIDDEN free-text
+  status regex
+- Bitrix Lead id + STATUS_ID as SoT; ELMS stores bitrix_id + last_status_snapshot
+  only
+- Transport only scripts/bitrix/rest_client.py (BITRIX_REST_WEBHOOK_URL); no BITRIX_WEBHOOK_URL
+  fallback
+- Entity lock P0: crm.lead.add / crm.lead.get for both form kinds (clarify Q11 = lead)
+steps:
+- id: s01
+  file: s01-application-forms-bitrix-lead-create.yaml
+  title: Public forms, Bitrix Lead create and Application Link
+  next_phase: APP IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-bitrix-status-sot-desk-readback.yaml
+  title: Bitrix status SoT read-back, DENY local master and Desk list
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Individual and legal public forms with server-side validation and consent
+- id: FR-002
+  step: s01
+  description: Map form to Bitrix crm.lead.add; persist bitrix_id, bitrix_entity=lead,
+    application_kind
+- id: FR-003
+  step: s02
+  description: get_application_status from Bitrix; snapshot-only mirror; UI refresh;
+    FORBIDDEN ELMS Workflow as master
+- id: FR-004
+  step: s02
+  description: Desk list Application Links for Admin/Operations (read); P1 invite
+    deep-link out of epic cut
+- id: NFR-001
+  step: s01
+  description: Explicit submit timeout; sanitized Bitrix error text to client
+- id: NFR-002
+  step: s01
+  description: Minimal PII fields; logs mask phone/email partially
+- id: NFR-003
+  step: s01
+  description: Honeypot and/or rate-limit on public submit
+- id: NFR-004
+  step: s01
+  description: Optional idempotent submit key (email+course+day) anti-dup
+- id: US-001
+  step: s01
+  description: Individual submits course application and sees confirmation with tracking
+    ref
+- id: US-002
+  step: s01
+  description: Legal entity submits cooperation application for selected courses
+- id: US-003
+  step: s02
+  description: Applicant/operator sees current status from Bitrix
+- id: US-004
+  step: s01
+  description: Bitrix unavailable → no false success on submit
+- id: US-005
+  step: s02
+  description: Admin cannot set Approved only in ELMS bypassing Bitrix
+- id: AC-001
+  step: s01
+  description: Submit valid individual → Bitrix lead + bitrix_id + success tracking
+    ref
+- id: AC-002
+  step: s01
+  description: Submit valid legal → Bitrix lead + Application Link for cooperation
+    courses
+- id: AC-003
+  step: s01
+  description: Bitrix down/misconfig → form/API error; no Application Link success
+- id: AC-004
+  step: s02
+  description: Bitrix status STAGE_X → ELMS refresh shows mapped label; snapshot updated
+- id: AC-005
+  step: s02
+  description: Local PATCH/write of master status → ValidationError/Permission denied
+stages_coverage:
+- stage: Stage s01 application-forms-bitrix-lead-create
+  step: s01
+- stage: Stage s02 bitrix-status-sot-desk-readback
+  step: s02
+outcome_map:
+- outcome: Public individual/legal forms submit create Bitrix Lead and ELMS Application
+    Link fail-closed
+  step: s01
+- outcome: Bitrix status SoT read-back, DENY local master status, Desk Application
+    Link list and refresh
+  step: s02
+replacement_cleanup:
+  s01:
+    replaces: Manual CRM entry without ELMS form link and silent success without Bitrix
+    target: Typed submit → crm.lead.add → Application Link with bitrix_id fail-closed
+    step: s01
+    policy: replace-in-epic
+  s02:
+    replaces: ELMS-owned Workflow/Select status as master for applications
+    target: Bitrix STATUS_ID SoT with read-only snapshot and DENY local master write
+    step: s02
+    policy: replace-in-epic
+  items:
+  - symbol: Local Application status field writable as SoT
+    kind: A
+    replacement: last_status_snapshot + last_synced_at only; write path raises
+    step: s02
+    policy: replace-in-epic
+  - symbol: Dual Bitrix transport / board webhook fallback for forms
+    kind: C
+    replacement: scripts/bitrix/rest_client.py + BITRIX_REST_WEBHOOK_URL only
+    step: s01
+    policy: replace-in-epic
+  - symbol: Instruction/copy teaching operator to set Approved in ELMS
+    kind: I
+    replacement: UI copy «статус из Bitrix»; Desk refresh button only
+    step: s02
+    policy: replace-in-epic
+  sunset:
+  - Form success without Bitrix entity id
+  - Silent fallback to BITRIX_WEBHOOK_URL or mock success when REST missing
+  - ELMS Workflow State as master application status
+  - crm.deal.add as P0 path (cut; lead only per Q11)

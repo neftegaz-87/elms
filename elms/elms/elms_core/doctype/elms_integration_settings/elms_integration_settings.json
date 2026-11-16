@@ -9,7 +9,11 @@
   "omniroute_base_url",
   "omniroute_api_key",
   "default_model",
-  "provider_help"
+  "provider_help",
+  "bitrix_section",
+  "bitrix_enabled",
+  "bitrix_webhook_url",
+  "bitrix_help"
  ],
  "fields": [
   {
@@ -48,11 +52,35 @@
    "fieldtype": "HTML",
    "label": "Help",
    "options": "<p>Платформенный помощник ELMS (DocType/API). В Docker backend Base URL = <code>http://host.docker.internal:20128/v1</code>, не localhost. Ключ — OpenAI-compatible provider. Доступ к чату — роли Admin/Operations/Methodologist/Instructor; запись Settings — Admin/System Manager.</p>"
+  },
+  {
+   "fieldname": "bitrix_section",
+   "fieldtype": "Section Break",
+   "label": "Bitrix24 CRM"
+  },
+  {
+   "default": "0",
+   "description": "When enabled, public application forms create CRM Leads and status is read from Bitrix. Requires Incoming Webhook URL or BITRIX_REST_WEBHOOK_URL.",
+   "fieldname": "bitrix_enabled",
+   "fieldtype": "Check",
+   "label": "Bitrix CRM Enabled"
+  },
+  {
+   "description": "Incoming webhook URL: https://&lt;portal&gt;/rest/&lt;user_id&gt;/&lt;code&gt;/. Used for crm.lead.add and crm.lead.get. Never use the board BITRIX_WEBHOOK_URL.",
+   "fieldname": "bitrix_webhook_url",
+   "fieldtype": "Password",
+   "label": "Incoming Webhook URL"
+  },
+  {
+   "fieldname": "bitrix_help",
+   "fieldtype": "HTML",
+   "label": "Bitrix Help",
+   "options": "<p><b>Bitrix24 CRM</b> — коммерческий контур заявок: ELMS создаёт Lead и читает <code>STATUS_ID</code> как SoT статуса. Маппинг подписей статусов и полей Lead — в <a href=\"/app/elms-application-settings\">ELMS Application Settings</a>. Альтернатива webhook в Desk: переменная окружения <code>BITRIX_REST_WEBHOOK_URL</code> (не путать с webhook доски задач).</p>"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-11-13 12:00:00.000000",
+ "modified": "2026-11-14 17:46:00.000000",
  "modified_by": "Administrator",
  "module": "ELMS Core",
  "name": "ELMS Integration Settings",

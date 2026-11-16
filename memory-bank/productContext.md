@@ -1,7 +1,7 @@
 # Контекст продукта (productContext)
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
+**Обновлено:** 2026-11-14 (после T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (после T-A07 APP QA PASS & context sync); 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
 
 ## Текущий срез (Current Wedge & Delivery Status)
 
@@ -12,15 +12,15 @@
     - Созданы три Single DocTypes в качестве RBAC-якорей секций: `ELMS Operations Section` (Operations), `ELMS LMS Section` (LMS), `ELMS Settings Section` (ELMS Core). Модули выровнены: `ELMS Core`, `Operations`, `LMS`.
     - Настроена матрица прав `DocPerm`: Admin имеет полный доступ (RWCD), Operations User — RW в Operations Section, LMS User — RW в LMS Section; гостевой и межролевой доступ закрыты (fail-closed).
     - Жизненный цикл ролей и прав автоматизирован через хуки `after_install` и `after_migrate` без скрытых подавлений ошибок (все выявленные QA дефекты BF-001, BF-002, BF-003 устранены с fail-closed поведением, 13 unit-тестов RBAC green).
-  - **SSO Keycloak + Yandex 360 Broker (`T-B03`):** завершён и прошёл верификацию QA:
-    - Развёрнут централизованный контур SSO: Keycloak 24 (realm `elms`, клиент `elms-frappe`), брокер внешнего Identity Provider Yandex 360 с точкой терминации `/realms/elms/broker/yandex/endpoint`.
+  - **SSO Keycloak + Yandex 360 Broker (`T-B03`, legacy foundation):** завершён и прошёл верификацию QA; runtime identity boundary затем заменён эпиком `T-A07`:
+    - Исторический срез развёрнул Keycloak 24 (realm `elms`, клиент `elms-frappe`) и Yandex broker; после T-A07 Yandex provider/broker hint удалены из runtime, а оставшиеся aliases/data служат только миграционной совместимости.
     - В Frappe зарегистрирован ровно один Social Login Key (`Keycloak`) с каноническим redirect `/api/method/frappe.integrations.oauth2_logins.login_via_keycloak`. Прямой Social Login Key Yandex или параллельные OAuth-модули в Frappe полностью исключены.
     - Инициализация Social Login Key идемпотентна (`ensure_social_login_keys` в `after_install` и `after_migrate`), флаг активности контролируется наличием учетных данных в конфигурации (`site_config.keycloak_login`).
     - Реализован Just-in-Time (JIT) провижининг пользователей при первом входе через брокер (`first broker login`) со связыванием по `sub` и верифицированному адресу электронной почты.
     - Реализован fail-closed хук назначения ролей `User.after_insert` (`maybe_assign_sso_roles`), автоматически присваивающий новому пользователю роли `Desk User` и `ELMS LMS User`. При отсутствии целевой роли операция прерывается с `frappe.throw`, блокируя создание непривилегированного пользователя.
     - Документирован и верифицирован регламент работы при сбоях внешнего IdP: fail-closed поведение без создания фиктивных сессий, поддержка резервного входа по локальным паролям Keycloak и Break-Glass доступ администратора Frappe.
     - Повторная QA-проверка подтвердила 51 passed в ELMS/Frappe suite, реальный `create-site` с установленными `frappe` и `elms`, а также live HTTP smoke с exit code 0 и typed evidence в `docs/reports/sso-browser-api-trace.json`.
-    - Интерактивный Yandex login не заявляется: он `not_run` без реальных credentials и зарегистрированного callback; broker route проверен на ожидаемый fail-closed ответ `502` при отсутствии state.
+    - Интерактивный Yandex login не является текущим продуктовым путём; миграция существующих федеративных пользователей выполняется в локальный Keycloak credential с обязательной сменой пароля.
   - **Keycloak Login UI (`T-A01`):** завершён и принят APP QA как единый vertical slice на штатной странице Frappe `/login`:
     - Штатная страница Frappe `/login` сохранена как единственный UI-владелец входа; на ней рендерится стандартная форма логина, делегирующая аутентификацию в Keycloak через `login-keycloak.js`, и ровно одна кнопка `.btn-keycloak`, ведущая на публичный URL Keycloak (`KEYCLOAK_PUBLIC_URL/realms/elms`). Прямой Yandex-контрол и template fork отсутствуют.
     - Ассет `login.css` подключается через `web_include_css` и гарантирует токены Neftegaz с повышенной специфичностью и `!important`, предотвращая переопределение со стороны `login.bundle.css`.
@@ -55,6 +55,18 @@
     - Contract/Compose/policy/secret, Frappe/app и browser gates выполняются до GHCR build/push; release manifest связывает commit-SHA image refs/digests, canonical Compose hash, smoke metadata и rollback verification, отклоняя mutable или secret-like identity.
     - Protected `production` Environment передаёт только explicit safe target/root/wrapper через known-host-pinned SSH. Allowlisted wrapper требует approval, semantic verified backup/Vault evidence и lock, выполняет фиксированный digest-pinned Compose health/internal-smoke путь и атомарно записывает release только после успеха.
     - Forced health failure сохраняет предыдущий `current.json`, rollback восстанавливает полный backend/frontend/application pair и не удаляет state volumes; evidence/status остаются redacted. QA подтвердил `87 passed, 2 skipped`, `tests/infra` — `58 passed`, bounded security/SOT scans и sanitized live HTTP smoke `live_evidence=true`, `exit_code=0` (`2026-10-31T19:56:42Z`). Реальные GHCR credentials, protected approval, SSH values и production deploy/rollback остаются operator gates.
+  - **B2B organization and Keycloak provisioning (`T-A07`):** завершён и принят APP QA как vertical slice доступа компании и Keycloak-only identity:
+    - `ELMS Organization`, membership и `ELMS Invite Log` задают B2B-границу; `ELMS Company Admin` и Role Profile, назначение через User Permission и deny cross-org ограничивают доступ своей организацией. Квота `ELMS Subscription` на invite не применяется; заявки Bitrix остаются follow-up после T-A08.
+    - `create_organization`, `assign_company_admin` и `invite_org_user` wired в Desk `/app/elms-access`; invite создаёт/обновляет Frappe и Keycloak state, отправляет `UPDATE_PASSWORD`, идемпотентен и не возвращает пароль. Ошибка Keycloak не выдаёт Frappe-only success; `migrate_yandex_users` переводит legacy federation на локальный credential.
+    - QA подтвердил 205 passed, 9 skipped, 5 subtests в полном suite и 49 passed, 3 skipped в targeted access/SSO suite; live browser/API/wire evidence подтвердили создание org, role-aware denial, SMTP-captured password setup и вход приглашённого пользователя. Realm/runtime — Keycloak-only, enabled Yandex provider и `kc_idp_hint` отсутствуют.
+  - **Заявления и Bitrix status SoT (`T-A08`):** завершён и принят APP QA как app-lanes vertical slice:
+    - Публичные формы физлица и юрлица валидируют typed payload, создают Bitrix Lead через `crm.lead.add` и сохраняют `ELMS Application Link` с `bitrix_id` только после подтверждённого ответа Bitrix; отсутствие конфигурации или transport error дают fail-closed без локального успеха.
+    - Статус читается через `crm.lead.get` из Bitrix `STATUS_ID`; ELMS хранит только snapshot/label/timestamp, а локальная запись master status/workflow запрещена. Desk и `/apply/status` wired к refresh/read-back API.
+    - QA PASS: required app lanes backend, frontend_build, browser, live_smoke, wire_journey и leftover_sot; AC-001..AC-005 passed. Evidence: `memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/qa-20261114-application-forms-bitrix-status.yaml`, `browser-artifacts/browser-evidence.json`, `memory-bank/app/qa/T-A08-elms-application-forms-bitrix-status/live-smoke-20261114.yaml`. Live Bitrix sandbox не входил в эпик; внешний provider покрыт mock-контрактом.
+  - **Кабинет Company Admin (`T-A09`):** завершён и принят APP QA как organization-scoped cabinet vertical slice:
+    - Кабинет ограничен серверной membership-проверкой организации и соединяет `ELMS Organization Member` с `ELMS Enrollment` и `ELMS Course Progress`; UI имеет явное empty state без фиктивных строк.
+    - `export_org_progress` использует тот же серверный ACL/read model, выдаёт UTF-8 CSV и записывает `ELMS Cabinet Export Log`; клиентский DOM не является источником CSV.
+    - Authenticated runtime wire evidence подтвердил roster/export journey, HTTP 200, UTF-8/BOM и отсутствие DOM-only CSV. Для active runtime потребовались Keycloak-only credentials и preflight. Все required lanes (backend, frontend_build, browser, live_smoke, wire_journey, leftover_sot) прошли; AC-001..AC-005 passed; exploratory usability не запускался как optional next action; blockers отсутствуют.
 - **Следующие шаги (Next Foundation Wedges):**
   - `T-F01` (Desk workspaces / role navigation): as-built закрыт — LMS/Operations/Settings workspaces, role filter, platform workspaces скрыты; login affordance закрыт в T-A01.
   - Прикладная синхронизация Bitrix24 (LMS / Operations интеграционные сценарии) на базе стабилизированного REST-транспорта `T-B04`.

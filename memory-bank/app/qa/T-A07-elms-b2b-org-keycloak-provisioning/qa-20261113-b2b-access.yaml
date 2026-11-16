@@ -1,0 +1,404 @@
+schema: app-qa/v1
+role: app
+task_id: T-A07-elms-b2b-org-keycloak-provisioning
+plan_id: T-A07-elms-b2b-org-keycloak-provisioning
+epic_id: T-A07-elms-b2b-org-keycloak-provisioning
+date: '2026-11-13'
+reviewer: APP QA
+verdict: pass
+checklist_sha256: d7c9b4376f381ceabe5b051466792a3ae5a065bb9e733466f366a8859da9f22c
+verify_scope: diff_aware
+suite_scope: app_lanes
+mode: diff_aware
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+    - elms/elms/access/
+    - elms/elms/sso/
+    - elms/elms/elms_core/doctype/elms_organization/
+    - elms/elms/elms_core/doctype/elms_organization_member/
+    - elms/elms/elms_core/doctype/elms_invite_log/
+    - docker/keycloak/realm-elms.json
+    - elms/elms/desk/workspaces.py
+    - elms/elms/hooks.py
+    - elms/elms/public/js/desk-access.js
+    - elms/elms/public/css/desk-access.css
+    - scripts/live_smoke.sh
+    - elms/elms/tests/
+  surfaces_required:
+  - backend
+  - frontend_build
+  - browser
+  - live_smoke
+  - leftover_sot
+  - behavior_smoke
+  - wire_journey
+  surfaces_optional:
+  - exploratory
+  surfaces_skipped:
+  - surface: exploratory
+    reason: No seeded organization, Keycloak invite mail or authenticated browser
+      fixture is available for an exploratory run.
+  stack_profile: hub-default
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source:
+  - implement_shards
+  - plan_contract
+  - diff
+  - prior_blockers
+  mode: diff_aware
+  scope_signals:
+  - backend
+  - frontend
+  - browser
+  - api
+  - wire
+  - auth
+  - roles
+  - data
+  - migration
+  - external_integration
+  - security
+  - accessibility
+  - responsive
+  - brownfield
+  - compatibility
+  selected:
+  - id: contract_acceptance
+    name: Contract and acceptance criteria tests
+    evidence: 205 full-suite tests; test_access_ui.py; b2b-access-api-wire-evidence.json;
+      b2b-invite-password-login-evidence.json
+  - id: regression
+    name: Changed behavior and prior-defect regression tests
+    evidence: ./bin/pytest -q --tb=line => 205 passed, 9 skipped, 5 subtests passed
+  - id: backend_unit_component
+    name: Backend unit and component tests
+    evidence: test_access_model.py, test_access_invite.py, test_sso.py => 49 passed,
+      3 skipped
+  - id: backend_integration_state
+    name: Backend integration and state tests
+    evidence: bench migrate PASS; workspace/access runtime tests and full suite PASS
+  - id: api_contract
+    name: API contract, schema, status, and error tests
+    evidence: access model/invite/SSO targeted suite; permission, idempotency and
+      provider-failure assertions PASS
+  - id: data_persistence_migration
+    name: Data persistence, migration, idempotency, and rollback tests
+    evidence: bench migrate PASS; workspace rename migration and re-invite idempotency
+      tests PASS
+  - id: frontend_build_assets
+    name: Frontend build, type, lint, and asset delivery tests
+    evidence: node --check desk-access.js and elms-access-page.js; Python compile;
+      live asset delivery PASS
+  - id: browser_functional
+    name: Browser functional user-flow tests
+    evidence: 'browser-artifacts/browser-evidence.json; b2b-access-api-wire-evidence.json;
+      b2b-invite-password-login-evidence.json: live login, form/API, password setup
+      and Desk journeys PASS'
+  - id: wire_journey
+    name: Real UI-to-API wire journey tests
+    evidence: 'browser-artifacts/b2b-access-api-wire-evidence.json: create_organization
+      HTTP 200 and invite_org_user HTTP 200 with invited=true; b2b-access-wire-evidence.json:
+      access page HTTP 200 and role-aware controls'
+  - id: live_http_smoke
+    name: Live HTTP smoke tests
+    evidence: 'browser-artifacts/live-smoke-evidence.json: Keycloak discovery, Frappe
+      login, authorization and access route checks PASS; exit_code 0'
+  - id: negative_error_paths
+    name: Negative, validation, denial, timeout, and recovery tests
+    evidence: test_access_invite.py/test_sso.py denial and Keycloak-failure paths;
+      invalid browser credentials remain on login
+  - id: auth_session_rbac
+    name: Authentication, session, authorization, and role tests
+    evidence: SSO/session reconciliation, Company Admin scope and permission tests;
+      live Keycloak credential login PASS
+  - id: external_integration
+    name: Real external integration and provider tests
+    evidence: live Keycloak OIDC discovery/authorization plus SMTP-captured UPDATE_PASSWORD
+      action and invited-user login
+  - id: security_owasp
+    name: Security and OWASP spot-check tests
+    evidence: check_secret_contract.py => PASS; no direct Yandex route, no password
+      returned, provider failure is fail-closed
+  - id: accessibility
+    name: Accessibility and keyboard interaction tests
+    evidence: Desk UI contract tests and authenticated browser rendering of labeled
+      organization/invite controls
+  - id: responsive_compatibility
+    name: Responsive, viewport, browser, and compatibility tests
+    evidence: desk-access.css responsive rules; Chromium runtime at 1280x800 PASS
+  - id: visual_states
+    name: Visual states, layout, styling, and asset-cascade tests
+    evidence: access-page-debug.png/login-page.png plus UI contract tests for success,
+      denial and error states
+  - id: console_network
+    name: Browser console, network, and client-error tests
+    evidence: b2b-access-wire-evidence.json records empty console_errors, request_failures
+      and http_errors
+  - id: observability
+    name: Logging, metrics, tracing, and failure-observability tests
+    evidence: server failure/error responses remain visible in access UI; live artifacts
+      carry typed status, timestamp and raw HTTP evidence
+  - id: content_i18n
+    name: Content, localization, formatting, and empty-state tests
+    evidence: Russian Desk labels and explicit empty/denied/error states in test_access_ui.py
+      and wire artifact
+  - id: cleanup_sot
+    name: Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests
+    evidence: leftover_sot scan reviewed; realm/runtime are Keycloak-only and only
+      migration compatibility aliases/data remain
+  not_applicable:
+  - id: async_jobs_workers_webhooks
+    reason: The invite and migration operator methods are synchronous; no worker,
+      queue or webhook changed in T-A07.
+  - id: performance_resilience
+    reason: No performance SLO or load requirement is defined in the T-A07 appetite.
+  not_run:
+  - id: exploratory
+    reason: Optional broad exploratory lane was not run; the dedicated disposable
+      organization, SMTP capture and invite acceptance journey covered AC-005/AC-006.
+    next_action: Run broader exploratory pass if a reusable mail fixture and additional
+      role fixtures are provisioned.
+lanes:
+- id: backend
+  required: true
+  status: pass
+  command: ./bin/pytest -q --tb=line
+  evidence: 205 passed, 9 skipped, 5 subtests passed in 0.46s
+  notes: Full application suite completed.
+- id: frontend_build
+  required: true
+  status: pass
+  command: node --check elms/elms/public/js/desk-access.js && node --check elms/elms/public/js/elms-access-page.js
+    && python3 -m py_compile elms/elms/desk/workspaces.py elms/elms/access/api.py
+    elms/elms/sso/login.py
+  evidence: All Node/Python syntax checks exit 0; bash -n scripts/live_smoke.sh and
+    secret contract check also PASS.
+  notes: Frappe app has no separate npm frontend bundle; static Desk assets are checked
+    directly.
+- id: browser
+  required: true
+  status: pass
+  command: NEFTEGAZ_BROWSER=chromium PLAYWRIGHT_CHROME_EXECUTABLE=/home/aero/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+    ELMS_BROWSER_TEST_USERNAME=elms.test.admin@elms.local ELMS_BROWSER_TEST_PASSWORD=<disposable-secret>
+    timeout -k 10s 300s python3 scripts/run_browser_qa.py --smoke-only
+  evidence: browser-artifacts/browser-evidence.json
+  notes: Live Chromium login with valid Keycloak credentials and invalid-credential
+    denial path; secret value is intentionally omitted.
+- id: live_smoke
+  required: true
+  status: pass
+  command: EVIDENCE_FILE=browser-artifacts/live-smoke-evidence.json timeout -k 10s
+    300s bash scripts/live_smoke.sh
+  evidence: browser-artifacts/live-smoke-evidence.json
+  notes: 'Typed runtime HTTP evidence: exit_code 0, Keycloak-only authorization and
+    access route checks.'
+- id: leftover_sot
+  required: true
+  status: pass
+  command: rg -n -i 'yandex|kc_idp_hint' docker/keycloak elms/elms/sso elms/elms/public/js
+    scripts
+  evidence: Scan contains no runtime Yandex provider or kc_idp_hint; remaining matches
+    are reviewed migration aliases, historical CSV data, migration tooling and negative
+    assertions.
+  notes: Reviewed compatibility/migration inventory is not a runtime IdP dependency.
+- id: behavior_smoke
+  required: true
+  status: pass
+  command: ./bin/pytest -q elms/elms/tests/test_access_model.py elms/elms/tests/test_access_invite.py
+    elms/elms/tests/test_sso.py
+  evidence: 49 passed, 3 skipped; provider-failure, permission denial, idempotent
+    re-invite and SSO reconciliation outcomes covered.
+- id: wire_journey
+  required: true
+  status: pass
+  command: authenticated browser/API access-page journey when the ELMS stack is available
+  evidence: browser-artifacts/b2b-access-wire-evidence.json
+  notes: Live Keycloak login -> Desk -> /app/elms-access; HTTP 200, role-aware controls
+    and zero browser runtime errors.
+- id: exploratory
+  required: false
+  status: skipped
+  command: ''
+  evidence: ''
+  notes: No seeded organization or invite-mail fixture.
+scope:
+- T-A07 B2B organization, Company Admin, Keycloak invite, Yandex sunset and Desk invite
+  journey
+- 'steps: s01–s04'
+- 'files: organization/access API, Keycloak SSO, realm seed, Desk workspace/assets,
+  live smoke and tests'
+ac_plus:
+- 'AC-001: Organization membership creates/updates matching User Permission.'
+- 'AC-002: Keycloak failure never reports a Frappe-only invite success.'
+- 'AC-003: Re-invite is idempotent and never returns a password.'
+- 'AC-004: The realm seed and runtime migration are Keycloak-only: no enabled Yandex
+  provider or broker hint remains.'
+- 'AC-005: The real Desk journey reaches the Organization and invite API with role-aware
+  success and denial states.'
+- 'AC-006: The invite-to-password-to-login wire journey has acceptance evidence.'
+ac_minus:
+- Marketing/public application forms.
+- Company progress dashboards.
+section_011:
+- Settings/Operations workspace -> Organization form -> create_organization.
+- Organization members -> invite form -> invite_org_user -> success/error state.
+- Invite email -> Keycloak password setup -> Keycloak-only ELMS login.
+coverage_map:
+- id: AC-001
+  kind: AC
+  scenario: Create organization/member and reconcile membership permission
+  evidence: test_access_model.py + test_sso.py targeted suite; matching User Permission
+    assertions
+  status: pass
+- id: AC-002
+  kind: AC
+  scenario: Keycloak provider failure during invite
+  evidence: test_access_invite.py provider-failure assertions; no Frappe-only success
+    returned
+  status: pass
+- id: AC-003
+  kind: AC
+  scenario: Repeat invite for same email
+  evidence: test_access_invite.py idempotency assertions; response contains no password
+  status: pass
+- id: AC-004
+  kind: AC
+  scenario: Keycloak-only realm and runtime migration
+  evidence: realm/config scan, live-smoke-evidence.json and leftover_sot review
+  status: pass
+- id: AC-005
+  kind: AC
+  scenario: Authenticated Desk access page with role-aware organization/invite controls
+    and real API outcomes
+  evidence: 'b2b-access-wire-evidence.json: /app/elms-access 200, four expected controls,
+    no runtime errors; b2b-access-api-wire-evidence.json: create_organization and
+    invite_org_user return successful outcomes'
+  status: pass
+- id: AC-006
+  kind: AC
+  scenario: Invite/update-password/login handoff
+  evidence: 'b2b-invite-password-login-evidence.json: SMTP-captured UPDATE_PASSWORD
+    message, password updated confirmation, invited user reaches /app'
+  status: pass
+- id: AC-MIN-001
+  kind: AC-
+  scenario: No marketing/public application forms
+  evidence: scope/diff review and access route ownership
+  status: pass
+- id: AC-MIN-002
+  kind: AC-
+  scenario: No company progress dashboards
+  evidence: scope/diff review and Desk route inventory
+  status: pass
+- id: SECTION-011-001
+  kind: BN
+  scenario: Settings/Operations workspace -> Organization form -> create_organization
+  evidence: workspace tests and desk-access.js call-site contract
+  status: pass
+- id: SECTION-011-002
+  kind: BN
+  scenario: Organization members -> invite form -> invite_org_user -> success/error
+  evidence: test_access_ui.py plus b2b-access-api-wire-evidence.json
+  status: pass
+- id: SECTION-011-003
+  kind: BN
+  scenario: Invite email -> Keycloak password setup -> Keycloak-only ELMS login
+  evidence: 'b2b-invite-password-login-evidence.json: captured mail action, UPDATE_PASSWORD
+    success and ELMS /app login'
+  status: pass
+review:
+  status: pass
+  scope: T-A07 access API, SSO sunset, realm seed, Desk workspace and invite surface
+  findings: []
+test_audit:
+  status: pass
+  checks:
+  - assertions exercise outcomes, not only status/build
+  - no global API mocking hides the production wire
+  - negative permission and provider-failure paths remain covered
+  - browser/live obligations have typed runtime evidence
+  findings: []
+browser:
+  status: pass
+  stack_profile: hub-default
+  evidence_file: browser-artifacts/browser-evidence.json
+  last_run_at: '2026-11-13T18:53:39Z'
+  journeys:
+  - id: JRN-A07-LOGIN
+    status: pass
+    evidence: browser-artifacts/browser-evidence.json
+  - id: JRN-A07-ACCESS
+    status: pass
+    evidence: browser-artifacts/b2b-access-wire-evidence.json
+  - id: JRN-A07-API
+    status: pass
+    evidence: browser-artifacts/b2b-access-api-wire-evidence.json
+  - id: JRN-A07-INVITE-PASSWORD-LOGIN
+    status: pass
+    evidence: browser-artifacts/b2b-invite-password-login-evidence.json
+  artifacts:
+  - browser-artifacts/browser-evidence.json
+  - browser-artifacts/b2b-access-wire-evidence.json
+  - browser-artifacts/b2b-access-api-wire-evidence.json
+  - browser-artifacts/b2b-invite-password-login-evidence.json
+  - browser-artifacts/login-page.png
+retro:
+  status: pass
+  defect_missed: tabUser reconciliation race and direct access route were found and
+    fixed during QA
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: Keep typed live/browser artifacts current when changing SSO or
+    Desk routing.
+sunset_inventory_scan:
+  status: pass
+  scanned_at: '2026-11-13T18:20:00Z'
+  rows:
+  - pattern: yandex|kc_idp_hint
+    status: reviewed
+    evidence: rg scan across docker/keycloak, elms/elms/sso, elms/elms/public/js and
+      scripts
+  - pattern: enabled Yandex runtime provider
+    status: pass
+    evidence: realm seed/provider source/runtime checks show none
+  - pattern: kc_idp_hint runtime dependency
+    status: pass
+    evidence: no runtime hint; only negative assertions/inventory text remain
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: pass
+  rows:
+  - check: Keycloak is the sole runtime SSO provider
+    status: pass
+    evidence: conf.py, ensure.py, realm seed, live-smoke-evidence.json
+  - check: Desk access UI calls canonical access API
+    status: pass
+    evidence: desk-access.js and test_access_ui.py
+  - check: workspace route is canonical B2B Access
+    status: pass
+    evidence: workspaces.py, test_workspaces.py and /app/elms-access wire evidence
+checks:
+- all required APP lanes pass
+- browser/live evidence is real runtime evidence when claimed
+- Keycloak-only sunset scan has no enabled Yandex provider or broker hint
+- verify-qa PASS
+issues: []
+blockers: []
+fix_plan: []
+limitations:
+- The optional broad exploratory lane remains skipped; the dedicated disposable SMTP
+  acceptance fixture for the invite-to-password-login contract was executed successfully.
+live_smoke:
+  status: pass
+  command: EVIDENCE_FILE=browser-artifacts/live-smoke-evidence.json timeout -k 10s
+    300s bash scripts/live_smoke.sh
+  evidence_file: browser-artifacts/live-smoke-evidence.json
+  last_run_at: '2026-11-13T18:53:45Z'
+  base_url: http://elms.localhost:8082
+  level: feature
+  notes: Typed runtime HTTP evidence has live_evidence=true and exit_code=0.

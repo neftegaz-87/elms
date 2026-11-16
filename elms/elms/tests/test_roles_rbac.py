@@ -340,10 +340,10 @@ class TestRolesRBACDocPermMatrix(unittest.TestCase):
             frappe, "new_doc", side_effect=fake_new_doc
         ), patch.object(frappe, "get_doc", side_effect=fake_get_doc):
             ensure_section_perms()
-            self.assertEqual(len(custom_perms_db), 9)
+            self.assertEqual(len(custom_perms_db), 10)
 
             ensure_section_perms()
-            self.assertEqual(len(custom_perms_db), 9)
+            self.assertEqual(len(custom_perms_db), 10)
 
     def test_ensure_section_perms_fails_closed_when_db_absent(self):
         """AC-6, AC--1: ensure_section_perms must fail closed when db is absent."""

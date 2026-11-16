@@ -5,7 +5,7 @@ plan_id: T-A07-elms-b2b-org-keycloak-provisioning
 task_id: T-A07-elms-b2b-org-keycloak-provisioning
 title: s03 — Keycloak-only realm, Yandex sunset and legacy-user migration IMPLEMENT
 level: L2
-status: in_progress
+status: completed
 date: 2026-11-13
 decompose_ref: memory-bank/app/plan/T-A07-elms-b2b-org-keycloak-provisioning/yaml/steps/s03-keycloak-only-yandex-sunset-and-migration.yaml
 

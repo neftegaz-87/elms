@@ -16,22 +16,25 @@ from elms.desk.workspaces import (
 
 class TestELMSWorkspaces(unittest.TestCase):
     def test_workspace_roles_and_lms_first_order_are_product_roles(self):
-        self.assertEqual([item["name"] for item in ELMS_WORKSPACE_DEFINITIONS], ["LMS", "Предпросмотр курсов", "Settings"])
+        self.assertEqual([item["name"] for item in ELMS_WORKSPACE_DEFINITIONS], ["LMS", "Предпросмотр курсов", "Моя компания", "B2B Access", "Settings"])
         self.assertEqual(
             ELMS_WORKSPACE_DEFINITIONS[0]["roles"],
             (
                 "ELMS Admin",
                 "ELMS Operations User",
                 "ELMS Learner",
+                "ELMS Company Admin",
                 "ELMS Instructor",
                 "ELMS Methodologist",
             ),
         )
         self.assertEqual(
             ELMS_WORKSPACE_DEFINITIONS[1]["roles"],
-            ("ELMS Admin", "ELMS Operations User", "ELMS Instructor", "ELMS Methodologist"),
+            ("ELMS Admin", "ELMS Operations User", "ELMS Company Admin", "ELMS Instructor", "ELMS Methodologist"),
         )
-        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[2]["roles"], ("ELMS Admin", "System Manager"))
+        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[2]["roles"], ("ELMS Admin", "ELMS Company Admin"))
+        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[3]["roles"], ("ELMS Admin",))
+        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[4]["roles"], ("ELMS Admin", "System Manager"))
 
     def test_lms_workspace_uses_canonical_elms_display_label(self):
         self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[0]["label"], "elms")
@@ -41,7 +44,8 @@ class TestELMSWorkspaces(unittest.TestCase):
         lms = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "LMS")
         links = {(link_to, label) for _, link_to, label in lms["links"]}
         self.assertIn(("ELMS Course", "Курсы"), links)
-        self.assertNotIn(("ELMS Course Lesson", "Уроки и материалы"), links)
+        self.assertIn(("ELMS Course Chapter", "Учебные разделы"), links)
+        self.assertIn(("ELMS Course Lesson", "Уроки и материалы"), links)
         self.assertIn(("ELMS Quiz", "Тесты и экзамены"), links)
         self.assertIn(("ELMS Quiz Question", "Банк вопросов"), links)
         self.assertIn(("ELMS Course Progress", "Прогресс по курсам"), links)
@@ -85,6 +89,13 @@ class TestELMSWorkspaces(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 ensure_workspaces()
 
+    def test_company_admin_workspace_exposes_cabinet_route(self):
+        company = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "Моя компания")
+        self.assertIn("/app/elms-cabinet", [shortcut["url"] for shortcut in company["shortcuts"]])
+        self.assertIn("/app/elms-company-access", [shortcut["url"] for shortcut in company["shortcuts"]])
+        access = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "B2B Access")
+        self.assertEqual(access["roles"], ("ELMS Admin",))
+
     def test_learner_gets_the_shared_lms_workspace_without_management_links(self):
         page = {"links": _workspace_links_for_test(), "content": _workspace_content("LMS", ELMS_WORKSPACE_DEFINITIONS[0]["links"], ELMS_WORKSPACE_DEFINITIONS[0]["shortcuts"])}
         with patch.object(frappe, "get_roles", return_value=["ELMS Learner"], create=True):
@@ -92,7 +103,7 @@ class TestELMSWorkspaces(unittest.TestCase):
         self.assertEqual([link for link in page["links"] if link.get("type") == "Link"], [])
         self.assertNotIn("Конструктор курсов", page["content"])
 
-    def test_methodologist_gets_course_studio_shortcut(self):
+    def test_methodologist_gets_learning_shortcut(self):
         page = {
             "links": _workspace_links_for_test(),
             "shortcuts": list(ELMS_WORKSPACE_DEFINITIONS[0]["shortcuts"]),
@@ -100,7 +111,18 @@ class TestELMSWorkspaces(unittest.TestCase):
         }
         with patch.object(frappe, "get_roles", return_value=["ELMS Methodologist"], create=True):
             filter_workspace_for_user(page, "LMS", "methodologist@example.test")
+        self.assertIn("/app/elms-learning", [shortcut.get("url") for shortcut in page["shortcuts"]])
+
+    def test_company_admin_keeps_full_lms_management_surface(self):
+        page = {
+            "links": _workspace_links_for_test(),
+            "shortcuts": list(ELMS_WORKSPACE_DEFINITIONS[0]["shortcuts"]),
+            "content": _workspace_content("LMS", ELMS_WORKSPACE_DEFINITIONS[0]["links"], ELMS_WORKSPACE_DEFINITIONS[0]["shortcuts"]),
+        }
+        with patch.object(frappe, "get_roles", return_value=["ELMS Company Admin"], create=True):
+            filter_workspace_for_user(page, "LMS", "company-admin@example.test")
         self.assertIn("/app/elms-course-studio", [shortcut.get("url") for shortcut in page["shortcuts"]])
+        self.assertTrue(any(link.get("link_to") == "ELMS Course" for link in page["links"]))
 
 
 def _workspace_links_for_test():

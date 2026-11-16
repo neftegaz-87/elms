@@ -1,0 +1,13 @@
+{
+ "doctype": "Page",
+ "module": "Operations",
+ "name": "elms-company-integration-bitrix24",
+ "page_name": "elms-company-integration-bitrix24",
+ "roles": [
+  {"role": "ELMS Admin"},
+  {"role": "ELMS Company Admin"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Bitrix24 CRM"
+}

@@ -1,0 +1,88 @@
+schema: epic-implement/v1
+role: app
+step_id: s01
+plan_id: T-A08-elms-application-forms-bitrix-status
+task_id: T-A08-elms-application-forms-bitrix-status
+title: s01 — Public forms, Bitrix Lead create and Application Link IMPLEMENT
+level: L2
+status: completed
+date: 2026-11-14
+decompose_ref: memory-bank/app/plan/T-A08-elms-application-forms-bitrix-status/yaml/steps/s01-application-forms-bitrix-lead-create.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+
+files:
+  - elms/elms/applications/__init__.py
+  - elms/elms/applications/api.py
+  - elms/elms/applications/schemas.py
+  - elms/elms/applications/bitrix_leads.py
+  - elms/elms/elms_core/doctype/elms_application_link/__init__.py
+  - elms/elms/elms_core/doctype/elms_application_link/elms_application_link.json
+  - elms/elms/elms_core/doctype/elms_application_link/elms_application_link.py
+  - elms/elms/elms_core/doctype/elms_application_settings/__init__.py
+  - elms/elms/elms_core/doctype/elms_application_settings/elms_application_settings.json
+  - elms/elms/elms_core/doctype/elms_application_settings/elms_application_settings.py
+  - elms/elms/www/apply/index.py
+  - elms/elms/www/apply/index.html
+  - elms/elms/www/apply/legal.py
+  - elms/elms/www/apply/legal.html
+  - elms/elms/public/js/apply-forms.js
+  - elms/elms/public/css/apply-forms.css
+  - elms/elms/hooks.py
+  - elms/elms/install.py
+  - elms/elms/tests/test_applications_submit.py
+  - memory-bank/app/implement/T-A08-elms-application-forms-bitrix-status/s01-application-forms-bitrix-lead-create.yaml
+
+deletes: []
+
+done:
+  - "Individual and legal Pydantic payloads enforce consent, email, INN, published-course selection and honeypot validation."
+  - "crm.lead.add is the only Bitrix create path and returns a validated Lead id before ELMS persists the Application Link."
+  - "Application Link stores bitrix_id, lead entity, application kind, applicant snapshot, courses, consent timestamp and idempotency fingerprint."
+  - "Public /apply and /apply/legal forms call the real submit_application whitelist method and show a tracking ref only after persistence."
+  - "Missing BITRIX_REST_WEBHOOK_URL and Bitrix transport errors fail closed without a local success response."
+
+wire_complete:
+  call_sites:
+    - "/apply individual form -> apply-forms.js -> elms.applications.api.submit_application -> bitrix_leads.crm.lead.add -> ELMS Application Link"
+    - "/apply/legal form -> submit_application (kind=legal) -> crm.lead.add -> Application Link"
+  enforce_path: elms/elms/applications/api.py
+  dual_path_rg: 'rg -n "BITRIX_WEBHOOK_URL|crm\\.deal\\.add|mock_success|silent" elms/elms/applications'
+  instruction_rg: 'rg -n "успех без Bitrix|локальн.*статус|deal\\.add" elms/elms/www/apply elms/elms/public/js/apply-forms.js elms/elms/applications'
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_applications_submit.py"
+  - "python3 -m py_compile elms/elms/applications/api.py elms/elms/applications/schemas.py elms/elms/applications/bitrix_leads.py"
+  - "node --check elms/elms/public/js/apply-forms.js"
+  - "rg -n 'submit_application|crm\\.lead\\.add|bitrix_id|ApplicationSubmitPayload|BITRIX_REST_WEBHOOK_URL' elms/elms/applications elms/elms/public/js/apply-forms.js elms/elms/www/apply"
+
+integration_check:
+  - "Both public forms submit through the real whitelist method and return a tracking reference only after Bitrix Lead creation."
+  - "Application Link persistence contains Bitrix entity identity and application kind for individual and legal submissions."
+  - "Missing Bitrix configuration, transport failure, honeypot and duplicate fingerprint never report success."
+
+verification_results:
+  - "./bin/pytest -q elms/elms/tests/test_applications_submit.py => PASS (8 passed)"
+  - "python3 -m py_compile elms/elms/applications/api.py elms/elms/applications/schemas.py elms/elms/applications/bitrix_leads.py => PASS"
+  - "node --check elms/elms/public/js/apply-forms.js => PASS"
+
+checkpoints:
+  - id: cp1
+    criterion: Individual and legal payloads validate; Bitrix mock lead create persists Application Link with bitrix_id.
+    status: done
+    verify: "./bin/pytest -q elms/elms/tests/test_applications_submit.py"
+  - id: cp2
+    criterion: Missing webhook / Bitrix error fails closed; UI calls real submit_application; no board-webhook fallback.
+    status: done
+    verify: "rg -n 'submit_application|crm\\.lead\\.add|bitrix_id|ApplicationSubmitPayload|BITRIX_REST_WEBHOOK_URL' elms/elms/applications elms/elms/public/js/apply-forms.js elms/elms/www/apply"
+
+resume_from: cp1

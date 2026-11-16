@@ -1,0 +1,1 @@
+"""ELMS Application Settings DocType."""

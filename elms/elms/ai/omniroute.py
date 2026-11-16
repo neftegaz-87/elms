@@ -11,6 +11,8 @@ from urllib.request import Request, urlopen
 
 import frappe
 
+from elms.integrations import resolver
+
 DEFAULT_TIMEOUT_SEC = 30
 DEFAULT_MODEL = "cx/gpt-5.6-luna-high"
 SETTINGS_DOCTYPE = "ELMS Integration Settings"
@@ -66,8 +68,47 @@ def _normalize_base_url(url: str) -> str:
 	return (url or "").strip().rstrip("/")
 
 
-def load_config() -> ProviderConfig:
+def _provider_config(doc: Any, *, correlation_id: str) -> ProviderConfig:
+	enabled = bool(int(getattr(doc, "enabled", 0) or 0))
+	base_url = _normalize_base_url(
+		getattr(doc, "base_url", None) or getattr(doc, "omniroute_base_url", "") or ""
+	)
+	default_model = (getattr(doc, "default_model", None) or DEFAULT_MODEL).strip() or DEFAULT_MODEL
+	api_key = ""
+	if enabled:
+		fieldname = "api_key" if hasattr(doc, "api_key") else "omniroute_api_key"
+		try:
+			api_key = (doc.get_password(fieldname) or "").strip()
+		except Exception:
+			api_key = (getattr(doc, fieldname, None) or "").strip()
+	if not enabled:
+		raise OmniRouteConfigError(
+			"Knowledge assistant is disabled for this organization integration",
+			correlation_id=correlation_id,
+		)
+	if not base_url or not api_key:
+		raise OmniRouteConfigError(
+			"Base URL and API Key are required when the knowledge assistant is enabled",
+			correlation_id=correlation_id,
+		)
+	return ProviderConfig(enabled=True, base_url=base_url, api_key=api_key, default_model=default_model)
+
+
+def load_config(organization: str | None = None) -> ProviderConfig:
 	correlation_id = str(uuid.uuid4())
+	try:
+		company_doc, resolved_organization = resolver.get_organization_integration(
+			"LLM", organization=organization
+		)
+	except resolver.OrganizationIntegrationResolutionError as exc:
+		raise OmniRouteConfigError(str(exc), correlation_id=correlation_id) from exc
+	if resolved_organization:
+		if company_doc is None:
+			raise OmniRouteConfigError(
+				"LLM integration is not configured for this organization",
+				correlation_id=correlation_id,
+			)
+		return _provider_config(company_doc, correlation_id=correlation_id)
 	try:
 		doc = frappe.get_single(SETTINGS_DOCTYPE)
 	except Exception as exc:
@@ -76,32 +117,7 @@ def load_config() -> ProviderConfig:
 			correlation_id=correlation_id,
 		) from exc
 
-	enabled = bool(int(getattr(doc, "enabled", 0) or 0))
-	base_url = _normalize_base_url(getattr(doc, "omniroute_base_url", "") or "")
-	default_model = (getattr(doc, "default_model", None) or DEFAULT_MODEL).strip() or DEFAULT_MODEL
-	api_key = ""
-	if enabled:
-		try:
-			api_key = (doc.get_password("omniroute_api_key") or "").strip()
-		except Exception:
-			api_key = (getattr(doc, "omniroute_api_key", None) or "").strip()
-
-	if not enabled:
-		raise OmniRouteConfigError(
-			"Knowledge assistant is disabled in ELMS Integration Settings",
-			correlation_id=correlation_id,
-		)
-	if not base_url or not api_key:
-		raise OmniRouteConfigError(
-			"Base URL and API Key are required when the knowledge assistant is enabled",
-			correlation_id=correlation_id,
-		)
-	return ProviderConfig(
-		enabled=True,
-		base_url=base_url,
-		api_key=api_key,
-		default_model=default_model,
-	)
+	return _provider_config(doc, correlation_id=correlation_id)
 
 
 def _request_json(

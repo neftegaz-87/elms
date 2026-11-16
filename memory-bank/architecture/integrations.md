@@ -134,9 +134,11 @@ TO-BE (один контур):
 
 ## 7. Bitrix в целевой модели
 
-- Транспорт as-built: `scripts/bitrix/` + `BITRIX_REST_WEBHOOK_URL`.  
+- Транспорт as-built: `scripts/bitrix/` + резолвер webhook: сначала `ELMS Organization Integration` для известной организации, затем **Desk** `ELMS Integration Settings` (Bitrix CRM) или env `BITRIX_REST_WEBHOOK_URL` только для публичного/непривязанного сценария.
+- LLM, Bitrix24 и прочие подключения компании хранятся в `ELMS Organization Integration`; Company Admin управляет только своей организацией. Если организация известна, отсутствие её настройки — fail-closed без тихого перехода на платформенный секрет.
+- Маппинг статусов/полей заявок: `ELMS Application Settings` (presentation only; SoT статуса = Bitrix `STATUS_ID`).  
 - На переходный период: подтягивание заявок/вложений **в ELMS**, чтобы операционка шла уже в ELMS.  
-- **FORBIDDEN как целевой процесс:** сотрудник вручную из Bitrix подаёт сведения в Минтруд или ведёт юридический реестр документов только в Bitrix.  
+- **FORBIDDEN:** тихий fallback на webhook доски (`BITRIX_WEBHOOK_URL`); ручная подача из Bitrix в Минтруд; юридический реестр только в Bitrix.  
 - Долгосрочно коммерческий контур либо остаётся тонким sync, либо сужается отдельным решением — без возврата ручных швов.
 
 ---
