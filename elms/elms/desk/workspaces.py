@@ -31,6 +31,12 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
             },
             {
                 "type": "URL",
+                "url": "/app/elms-admission",
+                "label": "Поступление: анкета и документы",
+                "icon": "file",
+            },
+            {
+                "type": "URL",
                 "url": "/app/elms-course-studio",
                 "label": "Конструктор курсов",
                 "icon": "edit",
@@ -61,6 +67,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
             ("Трекер обучения", "ELMS User Activity", "Активность слушателей"),
             ("Трекер обучения", "ELMS Video Watch Log", "Просмотр видео"),
             ("Операции", "ELMS Application Link", "Заявки из Bitrix"),
+            ("Поступление", "ELMS Admission Profile", "Профили поступления"),
         ),
     },
     {

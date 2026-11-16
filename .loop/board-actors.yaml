@@ -28,3 +28,8 @@ epics:
   T-A07-elms-b2b-org-keycloak-provisioning: erokhin
   T-A08-elms-application-forms-bitrix-status: erokhin
   T-A09-elms-company-admin-cabinet: erokhin
+  T-A10-elms-b2c-admission-payment: erokhin
+  T-A11-elms-ai-admission-parse: erokhin
+  T-A12-elms-b2b-batch-quotas: erokhin
+  T-A13-elms-custom-fields-course-program-batch: erokhin
+  T-A14-elms-admin-org-view-all: erokhin

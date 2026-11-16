@@ -1,0 +1,209 @@
+schema: epic-decompose/v1
+role: app
+step_id: s03
+plan_id: T-A10-elms-b2c-admission-payment
+title: DENY free B2C enroll and leftover SoT purge
+level: L3
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Сделать невозможным B2C Active Enrollment без paid payment ref: DENY на
+  enroll_self/enroll_learner B2C-пути, перевести catalog CTA на admission/pay,
+  purge leftover free enroll + Kind I инструкции «записаться без оплаты».
+
+plan_contract:
+  fr_ids: []
+  nfr_ids: []
+  us_ids: [US-005]
+  ac_ids: [AC-005]
+  nouns:
+  - DENY enroll without paid
+  - B2C payment gate
+  - enroll_self
+  - enroll_learner
+  - leftover_sot
+  - catalog enroll CTA rewire
+  - Kind I rewrite
+  layout_paths:
+  - elms/elms/lms/api.py
+  - elms/elms/admission/enforce.py
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/tests/test_admission_enroll_gate.py
+  - elms/elms/tests/test_learning_ui.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:59-65
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:75-94
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:138-147
+  ac_quotes:
+  - "AC-005: Given B2C path; When attempt enroll_learner without paid payment; Then DENY."
+  - "US-005: Как Admin/Ops, вижу статус платежа и профиль, но не подменяю paid локальным enum без payment event."
+  - "Delivery closure: Deny enroll without pay — unpaid → no Enrollment; leftover_sot."
+  - "Forbidden after: Локальный «проставить оплачено» без payment event; silent enroll в обход payment port."
+  user_journey: >-
+    Learner clicks catalog «Записаться» on payment-required published batch →
+    redirected/opened into /app/elms-admission pay journey (not silent enroll_self).
+    Direct API enroll_self/enroll_learner without paid ELMS Payment → typed DENY.
+    Admin/Ops can read payment+profile; setting local paid without event is blocked.
+  api:
+    require_paid_for_b2c:
+      method: elms.admission.enforce.require_paid_payment (used by enroll_self/enroll_learner)
+      input: user, batch, optional subscription
+      output: None or throw
+      errors: ValidationError/PermissionError unpaid B2C
+      semantics: >-
+        For B2C, missing or unpaid ELMS Payment for (user,batch) always throws
+        DENY. A valid B2B subscription seat is the only bypass and remains an
+        allowed out-of-scope path; an absent or invalid subscription does not
+        bypass the B2C payment check.
+    rule: >-
+      B2C = enrollment without Active subscription seat path requiring payment.
+      If subscription provided and valid (B2B seat) — out of T-A10 gate (existing
+      quota). If no subscription — require ELMS Payment status=paid for (user,batch).
+  roles:
+    learner: cannot free self-enroll on B2C
+    admin: cannot enroll_learner B2C without paid payment event
+    ops: read-only payment status; no local paid override
+  persistence: >-
+    No second paid flag on Enrollment; link/check ELMS Payment only.
+  done: >-
+    AC-005 green; catalog CTA no longer calls enroll_self for B2C; rg leftover
+    free path = 0 in prod admission/learning surfaces; Kind I rewritten.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md
+    reason: AC-005 / US-005 / leftover_sot
+  - path: elms/elms/admission/payment.py
+    reason: paid payment lookup from s02
+  - path: elms/elms/lms/api.py
+    reason: enroll_self / enroll_learner hot paths to gate
+  - path: elms/elms/public/js/desk-learning.js
+    reason: catalog enroll_self call-site to rewire
+  produces:
+  - path: elms/elms/admission/enforce.py
+    reason: require_paid_payment for B2C
+  - path: elms/elms/lms/api.py
+    reason: wire enroll_self/enroll_learner through B2C payment gate
+  - path: elms/elms/public/js/desk-learning.js
+    reason: B2C catalog CTA → admission journey instead of enroll_self
+  - path: elms/elms/public/js/desk-admission.js
+    reason: entry from catalog with batch preselected; Admin payment read-only copy
+  - path: elms/elms/tests/test_admission_enroll_gate.py
+    reason: AC-005 DENY unpaid; Admin cannot fake paid
+  - path: elms/elms/tests/test_learning_ui.py
+    reason: rewrite asserts — catalog no longer free enroll_self for B2C
+  - path: elms/elms/tests/test_admission_ui.py
+    reason: leftover_sot UI contracts
+  - path: memory-bank/app/implement/T-A10-elms-b2c-admission-payment/s03-deny-free-b2c-enroll-legacy-purge.yaml
+    reason: implement evidence contract
+  plan_refs: [US-005, AC-005]
+
+as_built:
+- enroll_self → enroll_learner creates Active without payment.
+- desk-learning.js elms-catalog-enroll-btn calls elms.lms.api.enroll_self.
+- Admin enroll dialog calls enroll_learner without payment ref.
+- Tests may assert free enroll_self availability (obsolete for B2C — rewrite/delete).
+
+delta:
+- Add require_paid_payment enforce; wire enroll_self and enroll_learner B2C path to DENY unpaid.
+- Rewire catalog CTA to admission/pay journey for payment-required batches.
+- Purge/rewrite obsolete free-enroll tests and Kind I Desk copy teaching silent enroll.
+- Prove Admin cannot substitute paid via local enum without payment event.
+
+files:
+  - elms/elms/admission/enforce.py
+  - elms/elms/lms/api.py
+  - elms/elms/public/js/desk-learning.js
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/tests/test_admission_enroll_gate.py
+  - elms/elms/tests/test_learning_ui.py
+  - elms/elms/tests/test_admission_ui.py
+  - elms/elms/tests/test_lms_core.py
+  - memory-bank/app/implement/T-A10-elms-b2c-admission-payment/s03-deny-free-b2c-enroll-legacy-purge.yaml
+deletes:
+  - symbol: free B2C enroll_self success without paid payment
+    paths:
+    - elms/elms/lms/api.py
+    - elms/elms/public/js/desk-learning.js
+  - symbol: obsolete test asserts requiring free enroll_self for B2C catalog
+    paths:
+    - elms/elms/tests/test_learning_ui.py
+    - elms/elms/tests/test_lms_core.py
+sunset_inventory:
+  kind_a:
+  - elms.lms.api.enroll_self free Active without paid (B2C)
+  - desk-learning.js enrollInCatalog → enroll_self bypass
+  kind_b:
+  - n/a (same Desk surfaces; no second deploy entrypoint)
+  kind_c:
+  - soft skip payment gate when provider missing after payments enabled
+  - local paid checkbox / enum without payment event
+  kind_i:
+  - Desk/test prose teaching «Записаться» = free Active without pay
+  - operator notes «проставить оплачено» without webhook
+grep_control:
+  - 'rg -n ''require_paid_payment|subscription'' elms/elms/admission/enforce.py elms/elms/lms/api.py'
+  - 'rg -n ''elms-admission'' elms/elms/public/js/desk-learning.js'
+  - 'rg -n ''enroll_self'' elms/elms/public/js/desk-learning.js; test $? -eq 1'
+  - 'rg -n ''проставить оплачено|записаться без оплаты|без webhook'' elms/elms/public/js/desk-learning.js elms/elms/public/js/desk-admission.js elms/elms/admission; test $? -eq 1'
+out_of_scope:
+  - YooKassa production adapter
+  - B2B blank enroll with subscription quota (T-A12) — subscription path remains
+  - Bitrix status SoT
+  - Profile field schema changes (s01)
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  design:
+    - .agents/skills/frontend-design/SKILL.md
+  omit_justification:
+    design_polish: minimal CTA rewire on existing Desk surfaces; no new visual dialect
+tdd:
+  - Red: unpaid enroll_self/enroll_learner B2C → DENY; paid → allow once.
+  - Red: Admin local paid without payment event → DENY.
+  - Rewrite learning UI tests; green targeted suite + leftover rg.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_admission_enroll_gate.py
+  - ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_admission_enroll_gate.py
+  - ./bin/pytest -q elms/elms/tests/test_admission_enroll_gate.py elms/elms/tests/test_learning_ui.py elms/elms/tests/test_admission_ui.py
+  - ./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'enroll'
+  - 'rg -n ''require_paid_payment|subscription'' elms/elms/admission/enforce.py elms/elms/lms/api.py'
+  - 'rg -n ''elms-admission'' elms/elms/public/js/desk-learning.js && ! rg -n ''enroll_self'' elms/elms/public/js/desk-learning.js'
+  - 'rg -n ''проставить оплачено|записаться без оплаты|без webhook'' elms/elms/public/js/desk-learning.js elms/elms/public/js/desk-admission.js elms/elms/admission; test $? -eq 1'
+checkpoints:
+  - id: cp1
+    criterion: AC-005 — unpaid B2C enroll_learner/enroll_self DENY; paid path still enrolls once.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_enroll_gate.py
+  - id: cp2
+    criterion: Catalog CTA no longer silent enroll_self for B2C; routes to admission/pay.
+    verify: 'rg -n ''elms-admission'' elms/elms/public/js/desk-learning.js && ! rg -n ''enroll_self'' elms/elms/public/js/desk-learning.js'
+  - id: cp-inventory-a
+    criterion: Kind A free B2C enroll symbols removed or gated; obsolete tests rewritten.
+    verify: ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_admission_enroll_gate.py
+  - id: cp-inventory-c
+    criterion: No soft missing-provider → free enroll; no local paid without event.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_enroll_gate.py
+  - id: cp-inventory-i
+    criterion: Kind I free-enroll / fake-paid instruction surfaces cleared in Desk admission/learning JS.
+    verify: 'rg -n ''проставить оплачено|записаться без оплаты|без webhook'' elms/elms/public/js/desk-learning.js elms/elms/public/js/desk-admission.js elms/elms/admission; test $? -eq 1'
+wire_complete:
+  call_sites:
+  - "enroll_self/enroll_learner -> require_paid_payment -> ELMS Payment paid"
+  - "desk-learning catalog CTA -> elms-admission pay journey (not free enroll_self)"
+  enforce_path: elms/elms/admission/enforce.py
+  dual_path_rg:
+  - 'rg -n ''require_paid_payment|subscription'' elms/elms/admission/enforce.py elms/elms/lms/api.py'
+  - 'rg -n ''elms-admission'' elms/elms/public/js/desk-learning.js && ! rg -n ''enroll_self'' elms/elms/public/js/desk-learning.js'
+  instruction_rg: 'rg -n ''проставить оплачено|без оплаты|без webhook'' elms/elms/public/js/desk-learning.js elms/elms/public/js/desk-admission.js elms/elms/admission'
+  deny_old_proven: true

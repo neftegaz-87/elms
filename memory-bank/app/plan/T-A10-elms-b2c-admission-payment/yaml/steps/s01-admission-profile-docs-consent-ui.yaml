@@ -1,0 +1,203 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A10-elms-b2c-admission-payment
+title: Admission profile, required scans, PD consent and Desk form
+level: L3
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Дать зарегистрированному слушателю единственный typed SoT анкеты поступления
+  (ELMS Admission Profile): обязательные поля ПДн, сканы паспорт/СНИЛС/образование,
+  согласие 152-ФЗ с версией текста; Desk шаги выбор курса → анкета → upload до оплаты.
+
+plan_contract:
+  fr_ids: [FR-001]
+  nfr_ids: [NFR-001, NFR-003]
+  us_ids: [US-001]
+  ac_ids: [AC-006]
+  nouns:
+  - ELMS Admission Profile
+  - LearnerProfile Pydantic DTO
+  - save_profile whitelist
+  - passport_scan
+  - snils_scan
+  - education_doc_scan
+  - consent version+timestamp
+  - Desk admission profile form
+  - private File ACL
+  layout_paths:
+  - elms/elms/admission/
+  - elms/elms/elms_core/doctype/elms_admission_profile/
+  - elms/elms/operations/page/elms_admission/
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/tests/test_admission_profile.py
+  - elms/elms/tests/test_admission_ui.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:16-37
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:59-114
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:75-123
+  ac_quotes:
+  - "AC-006: Given authenticated Learner; When save_profile without required fields or required scans or PD consent; Then typed ValidationError and no complete profile; When all required present; Then one ELMS Admission Profile per User persists with private files."
+  - "US-001: Как слушатель, заполняю анкету и загружаю сканы до оплаты."
+  - "FR-001: Fields FIO/birth/passport/SNILS/education/profession/phone/email/consent; Files passport_scan, snils_scan, education_doc_scan; One profile per User; upsert API."
+  - "NFR-001: Private file access only owner/Admin/Operations."
+  - "NFR-003: PII masked in logs."
+  user_journey: >-
+    Learner opens Workspace admission /app/elms-admission, selects published
+    course/batch, fills LearnerProfile form, attaches three required private
+    scans, checks PD consent with stored text version. Incomplete required
+    field/file → typed 4xx; success → profile ready for create_payment (s02).
+  api:
+    save_profile:
+      method: elms.admission.api.save_profile
+      input: >-
+        JSON LearnerProfile (fio parts, birth_date, passport_series/number,
+        snils, education_level, profession, phone) + consent_version; files via
+        Frappe attach to DocType
+      output: profile name, completeness flags, attached file ids
+      errors: ValidationError missing required; PermissionError Guest/foreign user
+    get_profile:
+      method: elms.admission.api.get_profile
+      input: optional user (Admin/Ops); default session user
+      output: LearnerProfile DTO + file meta (no raw PII dump in logs)
+    authz: >-
+      Learner upserts own profile only; Admin/Operations read; private files
+      owner or Admin/Operations. FORBIDDEN public File URLs.
+  roles:
+    learner: ELMS Learner — own profile R/W
+    admin: ELMS Admin / ELMS Operations User — read
+    denied: Guest; Learner reading foreign profile
+  persistence: >-
+    One ELMS Admission Profile per User (unique user). Consent_version +
+    consent_timestamp required on complete submit. Files private is_private=1.
+  done: >-
+    Incomplete profile fails validation; complete+files+consent persists;
+    foreign file access DENY; Desk form wires real save_profile; PII not logged
+    in cleartext.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md
+    reason: FR-001 / US-001 / NFR profile contract
+  - path: memory-bank/app/clarify/clarify-20261116-elms-admission-b2c-b2b-custom-fields.md
+    reason: Q9 docs before pay; Q15 unified profile; PD consent minimum
+  - path: elms/elms/lms/api.py
+    reason: existing get_learner_profile is progress projection — do not overload as PII SoT
+  - path: elms/elms/permissions.py
+    reason: Role Profile name «ELMS Learner Profile» — new DocType must not collide
+  - path: elms/elms/operations/page/elms_cabinet/
+    reason: Desk page DocType pattern
+  - path: elms/elms/public/js/desk-cabinet.js
+    reason: Desk JS conventions / tokens
+  produces:
+  - path: elms/elms/admission/__init__.py
+    reason: admission package
+  - path: elms/elms/admission/schemas.py
+    reason: Pydantic LearnerProfile DTO
+  - path: elms/elms/admission/api.py
+    reason: whitelist save_profile / get_profile
+  - path: elms/elms/admission/profile.py
+    reason: upsert + completeness + file requirements
+  - path: elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.json
+    reason: DocType ELMS Admission Profile
+  - path: elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.py
+    reason: DocType controller
+  - path: elms/elms/operations/page/elms_admission/elms_admission.json
+    reason: Desk page admission journey shell
+  - path: elms/elms/public/js/desk-admission.js
+    reason: select course → profile → upload wire
+  - path: elms/elms/public/css/desk-admission.css
+    reason: admission form styles
+  - path: elms/elms/desk/workspaces.py
+    reason: admission workspace card for Learner
+  - path: elms/elms/hooks.py
+    reason: page_js / app_include admission assets
+  - path: elms/elms/install.py
+    reason: DocPerm private files / profile if seeded here
+  - path: elms/elms/tests/test_admission_profile.py
+    reason: validation, uniqueness, ACL, consent, PII mask
+  - path: elms/elms/tests/test_admission_ui.py
+    reason: Desk call-site contracts for profile steps
+  - path: memory-bank/app/implement/T-A10-elms-b2c-admission-payment/s01-admission-profile-docs-consent-ui.yaml
+    reason: implement evidence contract
+  plan_refs: [FR-001, NFR-001, NFR-003, US-001, AC-006]
+
+as_built:
+- elms/elms/lms/api.get_learner_profile — progress/history projection, not passport PII SoT.
+- Role Profile document name «ELMS Learner Profile» exists; no Admission Profile DocType.
+- Desk learning catalog enroll_self has no profile/docs gate.
+- applications/ is Bitrix Application Link (T-A08) — do not merge Bitrix status into this SoT.
+
+delta:
+- Add ELMS Admission Profile DocType + Pydantic LearnerProfile + save_profile/get_profile.
+- Require three private scans + consent_version/timestamp for completeness.
+- Add Desk /app/elms-admission profile+upload steps wired to real whitelist APIs.
+- Enforce private file ACL; mask PII in admission logs.
+
+files:
+  - elms/elms/admission/__init__.py
+  - elms/elms/admission/schemas.py
+  - elms/elms/admission/api.py
+  - elms/elms/admission/profile.py
+  - elms/elms/elms_core/doctype/elms_admission_profile/__init__.py
+  - elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.json
+  - elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.py
+  - elms/elms/operations/page/elms_admission/__init__.py
+  - elms/elms/operations/page/elms_admission/elms_admission.json
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/public/js/elms-admission-page.js
+  - elms/elms/desk/workspaces.py
+  - elms/elms/hooks.py
+  - elms/elms/install.py
+  - elms/elms/tests/test_admission_profile.py
+  - elms/elms/tests/test_admission_ui.py
+  - memory-bank/app/implement/T-A10-elms-b2c-admission-payment/s01-admission-profile-docs-consent-ui.yaml
+deletes: []
+out_of_scope:
+  - create_payment / webhook / enroll after paid (s02)
+  - DENY free enroll_self purge (s03)
+  - Concrete acquiring vendor adapter
+  - 1С / Bitrix master status
+  - B2B blank / AI parse
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  design:
+    - .agents/skills/frontend-design/SKILL.md
+tdd:
+  - Add failing tests for LearnerProfile validation, required files, consent, unique user, private ACL, PII mask.
+  - Implement DocType + API + Desk profile/upload wired to save_profile.
+  - Run targeted pytest + JS syntax check.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py
+  - python3 -m py_compile elms/elms/admission/api.py elms/elms/admission/profile.py elms/elms/admission/schemas.py
+  - node --check elms/elms/public/js/desk-admission.js
+  - 'rg -n ''save_profile|get_profile|passport_scan|consent_version|elms-admission|LearnerProfile'' elms/elms/admission elms/elms/public/js/desk-admission.js elms/elms/desk/workspaces.py'
+checkpoints:
+  - id: cp1
+    criterion: Incomplete profile/files/consent → typed ValidationError; complete upsert persists one profile per user.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py
+  - id: cp2
+    criterion: Desk admission page calls real save_profile/get_profile; private file ACL and PII mask proven.
+    verify: 'rg -n ''save_profile|get_profile|passport_scan|consent_version|elms-admission|LearnerProfile'' elms/elms/admission elms/elms/public/js/desk-admission.js elms/elms/desk/workspaces.py'
+wire_complete:
+  call_sites:
+  - "Workspace admission -> /app/elms-admission -> desk-admission.js -> elms.admission.api.save_profile"
+  - "save_profile -> LearnerProfile validate -> ELMS Admission Profile + private File attach"
+  enforce_path: elms/elms/admission/api.py
+  dual_path_rg: 'rg -n "regex.*passport|проставить ПДн|free.?text.?profile" elms/elms/admission elms/elms/public/js/desk-admission.js'
+  instruction_rg: 'rg -n "анкета в чате|без сканов|пропустить документы" elms/elms/admission elms/elms/public/js/desk-admission.js'
+  deny_old_proven: true

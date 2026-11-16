@@ -2,7 +2,7 @@
 
 **Path:** `memory-bank/product/vision.md`  
 **Дата:** 2026-10-28  
-**Обновлено:** 2026-11-14 (рыночная модель: открытая платформа + компании-партнёры; слушатели ≠ сотрудники org)  
+**Обновлено:** 2026-11-16 (поступление: B2C оплата + B2B бланк/квоты; custom fields; 1С/Bitrix SoT вне текущего cut)  
 **Проект:** `/home/aero/PyProject/elms`  
 **Правила:** `rules/` (`elms-approach.mdc`, `elms-design.mdc`, `agents-overlay.md`) · Cursor symlink: `.cursor/rules.d/elms-*.mdc`
 

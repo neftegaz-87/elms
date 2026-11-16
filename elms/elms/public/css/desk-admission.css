@@ -1,0 +1,31 @@
+.elms-admission-page-wrapper .page-head { display: none; }
+.elms-admission-page-wrapper .layout-main-section { padding: 0 !important; border: 0 !important; background: transparent !important; }
+.elms-admission-shell { --admission-ink: #102a43; --admission-muted: #627487; --admission-line: #d5dfe8; --admission-paper: #f5f8fb; --admission-surface: #fff; --admission-action: #0d4cd3; --admission-good: #18794e; --admission-danger: #a12d29; min-height: calc(100vh - 60px); padding: 28px clamp(18px, 4vw, 52px) 48px; background: var(--admission-paper); color: var(--admission-ink); font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.elms-admission-header { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; max-width: 1080px; margin: 0 auto 22px; padding-bottom: 22px; border-bottom: 1px solid var(--admission-line); }
+.elms-admission-header h1, .elms-admission-header p { margin: 0; }
+.elms-admission-header h1 { font-size: clamp(25px, 4vw, 36px); line-height: 1.1; letter-spacing: -.02em; }
+.elms-admission-header p { max-width: 650px; margin-top: 8px; color: var(--admission-muted); font-size: 15px; }
+.elms-admission-kicker { margin-bottom: 8px; color: var(--admission-action); font: 600 11px/1.2 "IBM Plex Mono", monospace; letter-spacing: .14em; }
+.elms-admission-badge { padding: 7px 9px; border: 1px solid var(--admission-line); background: var(--admission-surface); color: var(--admission-muted); font: 600 11px/1.2 "IBM Plex Mono", monospace; }
+.elms-admission-route { display: flex; gap: 2px; max-width: 1080px; margin: 0 auto 16px; border-bottom: 1px solid var(--admission-line); }
+.elms-admission-route span { padding: 10px 14px; color: var(--admission-muted); font: 600 11px/1.2 "IBM Plex Mono", monospace; }
+.elms-admission-route .is-active { border-bottom: 2px solid var(--admission-action); color: var(--admission-action); }
+.elms-admission-status { max-width: 1080px; margin: 0 auto 14px; padding: 11px 14px; border-left: 3px solid var(--admission-line); background: var(--admission-surface); color: var(--admission-muted); }
+.elms-admission-status.is-pending { border-left-color: var(--admission-action); }
+.elms-admission-status.is-success { border-left-color: var(--admission-good); color: var(--admission-good); }
+.elms-admission-status.is-error { border-left-color: var(--admission-danger); color: var(--admission-danger); }
+.elms-admission-card { max-width: 1080px; margin: 0 auto 14px; padding: 18px; border: 1px solid var(--admission-line); background: var(--admission-surface); }
+.elms-admission-card-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; font-weight: 700; }
+.elms-admission-card-head small { color: var(--admission-muted); font-size: 12px; font-weight: 400; }
+.elms-admission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.elms-admission-field { display: grid; gap: 6px; color: var(--admission-muted); font-size: 12px; font-weight: 600; }
+.elms-admission-field input, .elms-admission-field select { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid var(--admission-line); background: #fff; color: var(--admission-ink); font: inherit; font-weight: 400; }
+.elms-admission-field input:focus, .elms-admission-field select:focus, .elms-admission-consent input:focus, .elms-admission-button:focus-visible { outline: 2px solid rgba(13, 76, 211, .25); outline-offset: 2px; border-color: var(--admission-action); }
+.elms-admission-files { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.elms-admission-consent label { display: flex; gap: 10px; align-items: flex-start; color: var(--admission-muted); font-size: 14px; }
+.elms-admission-consent input { margin-top: 3px; accent-color: var(--admission-action); }
+.elms-admission-actions { display: flex; align-items: center; gap: 14px; max-width: 1080px; margin: 18px auto 0; color: var(--admission-muted); font-size: 13px; }
+.elms-admission-button { padding: 10px 16px; border: 1px solid var(--admission-action); background: var(--admission-action); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.elms-admission-button:hover, .elms-admission-button:focus-visible { background: #0939a3; border-color: #0939a3; }
+.elms-admission-button:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 760px) { .elms-admission-header, .elms-admission-actions { display: grid; } .elms-admission-grid, .elms-admission-files { grid-template-columns: 1fr; } .elms-admission-route { overflow-x: auto; } }

@@ -1,0 +1,14 @@
+{
+ "doctype": "Page",
+ "module": "Operations",
+ "name": "elms-admission",
+ "page_name": "elms-admission",
+ "roles": [
+  {"role": "ELMS Learner"},
+  {"role": "ELMS Admin"},
+  {"role": "ELMS Operations User"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Поступление"
+}

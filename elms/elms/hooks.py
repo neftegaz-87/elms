@@ -32,7 +32,8 @@ app_include_css = [
 	"/assets/elms/css/desk-cabinet.css?v=elms-cabinet-20261114-5",
 "/assets/elms/css/desk-company-access.css?v=4",
 	"/assets/elms/css/desk-company-integrations.css?v=1",
-	"/assets/elms/css/desk-applications.css?v=1",
+"/assets/elms/css/desk-applications.css?v=1",
+	"/assets/elms/css/desk-admission.css?v=1",
 ]
 app_include_js = [
 	"/assets/elms/js/desk-learning.js?v=6",
@@ -43,7 +44,8 @@ app_include_js = [
 "/assets/elms/js/desk-cabinet.js?v=14",
 "/assets/elms/js/desk-company-access.js?v=4",
 	"/assets/elms/js/desk-company-integrations.js?v=1",
-	"/assets/elms/js/desk-applications.js?v=1",
+"/assets/elms/js/desk-applications.js?v=1",
+	"/assets/elms/js/desk-admission.js?v=1",
 ]
 
 doctype_js = {
@@ -63,6 +65,7 @@ page_js = {
 	"elms-company-integration-llm": "public/js/elms-company-integrations-page.js",
 	"elms-company-integration-bitrix24": "public/js/elms-company-integrations-page.js",
 	"elms-company-integration-custom-api": "public/js/elms-company-integrations-page.js",
+	"elms-admission": "public/js/elms-admission-page.js",
 }
 
 extend_bootinfo = [
@@ -122,8 +125,10 @@ permission_query_conditions = {
 }
 
 has_permission = {
-	**{doctype: "elms.tenant.has_tenant_permission" for doctype in _lms_tenant_doctypes},
+    **{doctype: "elms.tenant.has_tenant_permission" for doctype in _lms_tenant_doctypes},
 }
+
+has_permission["File"] = "elms.admission.profile.has_file_permission"
 
 for _doctype in _lms_tenant_doctypes:
 	if _doctype not in doc_events:

@@ -25,6 +25,7 @@ ELMS_OPERATIONS_SECTION_DOCTYPE: str = "ELMS Operations Section"
 ELMS_REVIEW_SECTION_DOCTYPE: str = "ELMS Review Section"
 ELMS_LMS_SECTION_DOCTYPE: str = "ELMS LMS Section"
 ELMS_SETTINGS_SECTION_DOCTYPE: str = "ELMS Settings Section"
+ELMS_ADMISSION_PROFILE_DOCTYPE: str = "ELMS Admission Profile"
 DESK_PAGE_DOCTYPE: str = "Page"
 
 DEFAULT_COURSE_CATEGORIES: tuple[str, ...] = (
@@ -248,6 +249,44 @@ def ensure_company_admin_lms_perms() -> None:
             frappe.delete_doc("Custom DocPerm", custom_perm, force=True, ignore_permissions=True)
 
     frappe.clear_cache()
+
+
+def ensure_admission_profile_permissions() -> None:
+    """Keep admission profiles readable by managers and writable only by the API learner boundary."""
+    if not frappe.db.exists("DocType", ELMS_ADMISSION_PROFILE_DOCTYPE):
+        frappe.throw(f"Required DocType '{ELMS_ADMISSION_PROFILE_DOCTYPE}' not found for admission profile permissions.")
+
+    permissions = (
+        {"role": ELMS_LEARNER_ROLE, "read": 1, "write": 1, "create": 0, "delete": 0},
+        {"role": ELMS_OPERATIONS_USER_ROLE, "read": 1, "write": 0, "create": 0, "delete": 0},
+        {"role": ELMS_ADMIN_ROLE, "read": 1, "write": 0, "create": 0, "delete": 0},
+        {"role": "System Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    )
+    for permission in permissions:
+        custom_perm_name = frappe.db.get_value(
+            "Custom DocPerm",
+            {"parent": ELMS_ADMISSION_PROFILE_DOCTYPE, "role": permission["role"], "permlevel": 0},
+            "name",
+        )
+        if custom_perm_name:
+            doc = frappe.get_doc("Custom DocPerm", custom_perm_name)
+            doc.update(permission)
+        else:
+            doc = frappe.new_doc("Custom DocPerm")
+            doc.update(
+                {
+                    "parent": ELMS_ADMISSION_PROFILE_DOCTYPE,
+                    "parenttype": "DocType",
+                    "parentfield": "permissions",
+                    "permlevel": 0,
+                    **permission,
+                }
+            )
+        doc.flags.ignore_permissions = True
+        if doc.is_new():
+            doc.insert()
+        else:
+            doc.save()
 
 
 def ensure_course_categories() -> None:
@@ -795,6 +834,7 @@ def after_migrate() -> None:
     from elms.tenant import backfill_lms_organizations, clear_platform_admin_organization_scopes, ensure_platform_owner
     ensure_platform_owner()
     ensure_company_admin_lms_perms()
+    ensure_admission_profile_permissions()
     ensure_desk_page_read_perm()
     ensure_access_model_perms()
     ensure_role_profiles()
@@ -828,6 +868,7 @@ def after_install() -> None:
     from elms.tenant import backfill_lms_organizations, clear_platform_admin_organization_scopes, ensure_platform_owner
     ensure_platform_owner()
     ensure_company_admin_lms_perms()
+    ensure_admission_profile_permissions()
     ensure_desk_page_read_perm()
     ensure_access_model_perms()
     ensure_role_profiles()

@@ -1,0 +1,1 @@
+"""Admission Desk page."""

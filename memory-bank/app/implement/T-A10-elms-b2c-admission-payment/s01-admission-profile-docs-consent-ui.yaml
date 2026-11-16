@@ -1,0 +1,86 @@
+schema: epic-implement/v1
+role: app
+step_id: s01
+plan_id: T-A10-elms-b2c-admission-payment
+task_id: T-A10-elms-b2c-admission-payment
+title: s01 — Admission profile, required scans, PD consent and Desk form IMPLEMENT
+level: L3
+status: in_progress
+date: 2026-11-16
+decompose_ref: memory-bank/app/plan/T-A10-elms-b2c-admission-payment/yaml/steps/s01-admission-profile-docs-consent-ui.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+
+files:
+  - elms/elms/admission/__init__.py
+  - elms/elms/admission/schemas.py
+  - elms/elms/admission/api.py
+  - elms/elms/admission/profile.py
+  - elms/elms/elms_core/doctype/elms_admission_profile/__init__.py
+  - elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.json
+  - elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.py
+  - elms/elms/operations/page/elms_admission/__init__.py
+  - elms/elms/operations/page/elms_admission/elms_admission.json
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/public/js/elms-admission-page.js
+  - elms/elms/desk/workspaces.py
+  - elms/elms/hooks.py
+  - elms/elms/install.py
+  - elms/elms/tests/test_admission_profile.py
+  - elms/elms/tests/test_admission_ui.py
+  - memory-bank/app/implement/T-A10-elms-b2c-admission-payment/s01-admission-profile-docs-consent-ui.yaml
+
+deletes: []
+
+done:
+  - "LearnerProfile validates passport, SNILS, consent and all three base64 scans before persistence; incomplete payloads raise typed validation errors."
+  - "save_admission_profile upserts one ELMS Admission Profile per authenticated learner and attaches each scan with is_private=1."
+  - "Admission Profile controller limits learner writes to its own record and manager roles to read-only access; safe_log_context excludes PII values."
+  - "Desk page selects an active published batch, renders profile/document/consent fields, and calls real get_profile/save_profile APIs."
+
+wire_complete:
+  call_sites:
+    - "Learner workspace -> /app/elms-admission -> desk-admission.js -> elms.admission.api.save_profile"
+    - "save_profile -> LearnerProfile validation -> ELMS Admission Profile + private File attachments"
+  enforce_path: elms/elms/admission/api.py
+  dual_path_rg: 'rg -n "regex.*passport|проставить ПДн|free.?text.?profile" elms/elms/admission elms/elms/public/js/desk-admission.js'
+  instruction_rg: 'rg -n "анкета в чате|без сканов|пропустить документы" elms/elms/admission elms/elms/public/js/desk-admission.js'
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py"
+  - "python3 -m py_compile elms/elms/admission/api.py elms/elms/admission/profile.py elms/elms/admission/schemas.py"
+  - "node --check elms/elms/public/js/desk-admission.js"
+  - "rg -n 'save_profile|get_profile|passport_scan|consent_version|elms-admission|LearnerProfile' elms/elms/admission elms/elms/public/js/desk-admission.js elms/elms/desk/workspaces.py"
+
+integration_check:
+  - "Learner workspace shortcut -> /app/elms-admission -> page_js -> desk-admission.js -> elms.admission.api.save_profile."
+  - "save_profile -> Pydantic LearnerProfile -> Admission Profile -> private File attachments; get_profile returns file metadata without file_url."
+  - "Guest and foreign learner access are denied by the server; Admin/Operations only read profiles."
+
+verification_results:
+  - "./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py => PASS (10 passed)"
+  - "python3 -m py_compile elms/elms/admission/api.py elms/elms/admission/profile.py elms/elms/admission/schemas.py => PASS"
+  - "node --check elms/elms/public/js/desk-admission.js => PASS"
+  - "rg -n 'save_profile|get_profile|passport_scan|consent_version|elms-admission|LearnerProfile' ... => PASS"
+
+checkpoints:
+  - id: cp1
+    criterion: Incomplete profile/files/consent raises typed ValidationError; complete upsert persists one profile per user with private files.
+    status: pending
+    verify: "./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py"
+  - id: cp2
+    criterion: Desk admission page calls real save_profile/get_profile; private file ACL and PII masking are proven.
+    status: pending
+    verify: "rg -n 'save_profile|get_profile|passport_scan|consent_version|elms-admission|LearnerProfile' elms/elms/admission elms/elms/public/js/desk-admission.js elms/elms/desk/workspaces.py"
+
+resume_from: cp1

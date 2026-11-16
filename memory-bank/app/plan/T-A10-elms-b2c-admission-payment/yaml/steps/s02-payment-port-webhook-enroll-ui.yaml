@@ -1,0 +1,205 @@
+schema: epic-decompose/v1
+role: app
+step_id: s02
+plan_id: T-A10-elms-b2c-admission-payment
+title: Payment port, webhook paid enroll and pay journey UI
+level: L3
+next_phase: APP IMPLEMENT
+status: ready
+visible_ui: yes
+needs_creative: no
+wire_complete_required: true
+
+goal: >-
+  Сделать единственный machine path оплаты B2C: abstract Payment Provider port
+  create_payment + signed webhook paid/failed; после paid — одно Active Enrollment;
+  Desk pay CTA → waiting → success со ссылкой в обучение.
+
+plan_contract:
+  fr_ids: [FR-002, FR-003, FR-004]
+  nfr_ids: [NFR-002, NFR-004]
+  us_ids: [US-002, US-003, US-004]
+  ac_ids: [AC-001, AC-002, AC-003, AC-004]
+  nouns:
+  - Payment Provider port
+  - create_payment
+  - parse_webhook
+  - PaymentEvent
+  - PaymentStatus Enum/Literal
+  - ELMS Payment
+  - provider_payment_id
+  - webhook event id idempotency
+  - enroll after paid
+  - Desk pay CTA waiting success
+  layout_paths:
+  - elms/elms/admission/payment.py
+  - elms/elms/admission/provider.py
+  - elms/elms/admission/webhook.py
+  - elms/elms/elms_core/doctype/elms_payment/
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/tests/test_admission_payment.py
+  - elms/elms/tests/test_admission_webhook.py
+  plan_jumps:
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:59-114
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:86-123
+  - memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md:138-147
+  ac_quotes:
+  - "AC-001: Given registered Learner + published batch; When profile incomplete; Then payment create rejected with typed error."
+  - "AC-002: Given complete profile+files+consent; When create_payment; Then Payment record pending and provider session returned."
+  - "AC-003: Given valid signed webhook paid; When handled; Then Enrollment Active exists exactly once for (user,batch)."
+  - "AC-004: Given webhook failed or unsigned; When handled; Then no Active Enrollment; error logged."
+  user_journey: >-
+    After complete profile (s01), Learner presses pay CTA on /app/elms-admission.
+    create_payment returns provider session/URL; UI shows waiting. Fake/test
+    webhook paid → Enrollment Active → success with learning link. failed/unsigned
+    → explicit error, no Active enrollment.
+  api:
+    create_payment:
+      method: elms.admission.api.create_payment
+      input: course, batch (amount/currency from batch/course meta or settings)
+      output: payment name, status=pending, provider_session
+      errors: ValidationError incomplete profile; DoesNotExist batch; ConfigurationError missing provider when payments enabled
+    payment_webhook:
+      method: elms.admission.api.payment_webhook
+      handler: elms.admission.webhook.handle_payment_webhook
+      call_site: >-
+        elms.admission.api.payment_webhook ->
+        elms.admission.webhook.handle_payment_webhook -> parse_webhook ->
+        paid -> elms.lms.api.enroll_learner once with payment ref
+      input: headers + raw body
+      output: ack; side-effect enroll once on paid
+      errors: reject invalid signature; ignore duplicate event id
+    authz: >-
+      create_payment = authenticated learner for self; webhook = signature verified
+      (no session). Admin/Ops may read ELMS Payment status (no local paid override).
+  roles:
+    learner: start own payment; see own status
+    webhook: provider signature only
+    admin: read payment+profile; FORBIDDEN set paid without event
+  persistence: >-
+    ELMS Payment stores user, batch, course, amount, currency, status Enum,
+    provider_payment_id, last_event_id. Paid → call enroll path once; Progress zero.
+  done: >-
+    AC-001..004 green with fake provider; UI pay/waiting/success wired; no dual
+    free-text paid SoT; missing adapter fail-closed when payments enabled.
+
+context:
+  consumes:
+  - path: memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md
+    reason: FR-002/003/004 payment+enroll+UI
+  - path: elms/elms/admission/api.py
+    reason: profile completeness gate from s01
+  - path: elms/elms/lms/api.py
+    reason: enroll_learner / Progress create — call after paid only
+  - path: elms/elms/lms/doctype/elms_enrollment/
+    reason: Active enrollment unique (user,batch)
+  - path: elms/elms/public/js/desk-admission.js
+    reason: extend s01 UI with pay/waiting/success
+  produces:
+  - path: elms/elms/admission/provider.py
+    reason: PaymentProvider protocol + fake adapter
+  - path: elms/elms/admission/payment.py
+    reason: create_payment orchestration + completeness gate
+  - path: elms/elms/admission/webhook.py
+    reason: parse_webhook signature + PaymentEvent + idempotent handle
+  - path: elms/elms/admission/api.py
+    reason: whitelist create_payment + webhook entry
+  - path: elms/elms/admission/schemas.py
+    reason: PaymentStatus / PaymentEvent / session DTOs
+  - path: elms/elms/elms_core/doctype/elms_payment/__init__.py
+    reason: package
+  - path: elms/elms/elms_core/doctype/elms_payment/elms_payment.json
+    reason: ELMS Payment DocType
+  - path: elms/elms/elms_core/doctype/elms_payment/elms_payment.py
+    reason: controller
+  - path: elms/elms/public/js/desk-admission.js
+    reason: pay CTA / waiting / success / error states
+  - path: elms/elms/public/css/desk-admission.css
+    reason: pay journey states
+  - path: elms/elms/hooks.py
+    reason: keep only the whitelist exposure for the canonical payment_webhook
+  - path: elms/elms/tests/test_admission_payment.py
+    reason: AC-001/002 create_payment
+  - path: elms/elms/tests/test_admission_webhook.py
+    reason: AC-003/004 signature idempotency failed
+  - path: elms/elms/tests/test_admission_ui.py
+    reason: pay journey Desk wire contracts
+  - path: memory-bank/app/implement/T-A10-elms-b2c-admission-payment/s02-payment-port-webhook-enroll-ui.yaml
+    reason: implement evidence contract
+  plan_refs: [FR-002, FR-003, FR-004, NFR-002, NFR-004, US-002, US-003, US-004, AC-001, AC-002, AC-003, AC-004]
+
+as_built:
+- No Payment DocType / provider port; enroll_self creates Active Enrollment immediately.
+- Bitrix Application Link (T-A08) is separate lead contour — not payment SoT.
+- s01 Admission Profile completeness helpers must exist before create_payment gate.
+
+delta:
+- Add PaymentProvider port + fake adapter; ELMS Payment DocType; create_payment gated on complete profile.
+- Add signed webhook handler → paid enroll once / failed no enroll; idempotent by event id.
+- Wire Desk pay CTA → waiting → success/error to real APIs.
+- Fail-closed when payments enabled and production adapter missing (no stub enroll).
+
+files:
+  - elms/elms/admission/provider.py
+  - elms/elms/admission/payment.py
+  - elms/elms/admission/webhook.py
+  - elms/elms/admission/api.py
+  - elms/elms/admission/schemas.py
+  - elms/elms/elms_core/doctype/elms_payment/__init__.py
+  - elms/elms/elms_core/doctype/elms_payment/elms_payment.json
+  - elms/elms/elms_core/doctype/elms_payment/elms_payment.py
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/hooks.py
+  - elms/elms/lms/api.py
+  - elms/elms/tests/test_admission_payment.py
+  - elms/elms/tests/test_admission_webhook.py
+  - elms/elms/tests/test_admission_ui.py
+  - memory-bank/app/implement/T-A10-elms-b2c-admission-payment/s02-payment-port-webhook-enroll-ui.yaml
+deletes: []
+out_of_scope:
+  - Free enroll_self leftover purge / catalog rewire (s03)
+  - YooKassa/Tinkoff production adapter as hard-dep
+  - 1С invoices
+  - Multi-course cart
+  - B2B subscription quota rules beyond calling existing enroll with optional subscription
+skills:
+  code_surface: ui
+  impl:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  design:
+    - .agents/skills/frontend-design/SKILL.md
+tdd:
+  - Red: incomplete profile rejects create_payment; complete → pending Payment+session.
+  - Red: signed paid → one Active Enrollment; unsigned/failed → none; duplicate event id no second enroll.
+  - Green: implement port+webhook+UI; targeted pytest + node --check.
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_admission_payment.py
+  - ./bin/pytest -q elms/elms/tests/test_admission_webhook.py
+  - ./bin/pytest -q elms/elms/tests/test_admission_payment.py elms/elms/tests/test_admission_webhook.py elms/elms/tests/test_admission_ui.py
+  - python3 -m py_compile elms/elms/admission/payment.py elms/elms/admission/webhook.py elms/elms/admission/provider.py
+  - node --check elms/elms/public/js/desk-admission.js
+  - 'rg -n ''create_payment|payment_webhook|waiting|ELMS Payment|PaymentStatus|parse_webhook|provider_payment_id'' elms/elms/admission elms/elms/public/js/desk-admission.js'
+checkpoints:
+  - id: cp1
+    criterion: AC-001/002 — profile gate + pending Payment + provider session.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_payment.py
+  - id: cp2
+    criterion: AC-003/004 — signed paid enroll once; failed/unsigned no Active; idempotent event id.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_webhook.py
+  - id: cp3
+    criterion: Desk pay CTA/waiting/success call real create_payment; no free-text paid SoT.
+    verify: 'rg -n ''create_payment|payment_webhook|waiting|ELMS Payment|PaymentStatus|parse_webhook|provider_payment_id'' elms/elms/admission elms/elms/public/js/desk-admission.js'
+wire_complete:
+  call_sites:
+  - "desk-admission.js pay CTA -> elms.admission.api.create_payment -> PaymentProvider.create_payment"
+  - "elms.admission.api.payment_webhook -> elms.admission.webhook.handle_payment_webhook -> parse_webhook -> paid -> elms.lms.api.enroll_learner once with payment ref"
+  enforce_path: elms/elms/admission/webhook.py
+  dual_path_rg: 'rg -n ''проставить оплачено|free.?text.?оплачен|local.?paid.?override'' elms/elms/admission elms/elms/public/js/desk-admission.js'
+  instruction_rg: 'rg -n ''считать оплаченным|без webhook|optional payment'' elms/elms/admission elms/elms/public/js/desk-admission.js'
+  deny_old_proven: true

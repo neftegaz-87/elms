@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["user", "fio_first_name", "fio_last_name", "fio_middle_name", "birth_date", "passport_series", "passport_number", "snils", "education_level", "profession", "phone", "email", "consent_version", "consent_timestamp", "passport_scan", "snils_scan", "education_doc_scan"],
+ "fields": [
+  {"fieldname": "user", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Learner", "options": "User", "reqd": 1, "unique": 1},
+  {"fieldname": "fio_first_name", "fieldtype": "Data", "label": "First name", "reqd": 1},
+  {"fieldname": "fio_last_name", "fieldtype": "Data", "in_list_view": 1, "label": "Last name", "reqd": 1},
+  {"fieldname": "fio_middle_name", "fieldtype": "Data", "label": "Middle name"},
+  {"fieldname": "birth_date", "fieldtype": "Date", "label": "Birth date", "reqd": 1},
+  {"fieldname": "passport_series", "fieldtype": "Data", "label": "Passport series", "reqd": 1},
+  {"fieldname": "passport_number", "fieldtype": "Data", "label": "Passport number", "reqd": 1},
+  {"fieldname": "snils", "fieldtype": "Data", "label": "SNILS", "reqd": 1},
+  {"fieldname": "education_level", "fieldtype": "Data", "label": "Education level", "reqd": 1},
+  {"fieldname": "profession", "fieldtype": "Data", "label": "Profession", "reqd": 1},
+  {"fieldname": "phone", "fieldtype": "Data", "label": "Phone", "reqd": 1},
+  {"fieldname": "email", "fieldtype": "Data", "label": "Email", "read_only": 1},
+  {"fieldname": "consent_version", "fieldtype": "Data", "label": "PD consent version", "reqd": 1},
+  {"fieldname": "consent_timestamp", "fieldtype": "Datetime", "label": "PD consent timestamp", "read_only": 1, "reqd": 1},
+  {"fieldname": "passport_scan", "fieldtype": "Attach", "label": "Passport scan", "read_only": 1},
+  {"fieldname": "snils_scan", "fieldtype": "Attach", "label": "SNILS scan", "read_only": 1},
+  {"fieldname": "education_doc_scan", "fieldtype": "Attach", "label": "Education document scan", "read_only": 1}
+ ],
+ "links": [],
+ "modified": "2026-11-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Admission Profile",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "if_owner": 1, "read": 1, "role": "ELMS Learner", "write": 1},
+  {"read": 1, "role": "ELMS Admin"},
+  {"read": 1, "role": "ELMS Operations User"},
+  {"read": 1, "role": "System Manager"}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "fio_last_name"
+}

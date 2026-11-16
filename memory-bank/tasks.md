@@ -19,12 +19,20 @@
 | T-A02 | elms-learning-core-flows | done | [plan](app/plan/T-A02-elms-learning-core-flows/md/plan.md) |
 | T-A05 | elms-learner-progress-and-quiz-player | done | [plan](app/plan/T-A05-elms-learner-progress-and-quiz-player/md/plan.md) |
 | T-A06 | elms-knowledge-assistant-omniroute | done | [plan](app/plan/T-A06-elms-knowledge-assistant-omniroute/md/plan.md) |
+| T-A07 | elms-b2b-org-keycloak-provisioning | done | [plan](app/plan/T-A07-elms-b2b-org-keycloak-provisioning/md/plan.md) |
+| T-A08 | elms-application-forms-bitrix-status | done | [plan](app/plan/T-A08-elms-application-forms-bitrix-status/md/plan.md) |
+| T-A09 | elms-company-admin-cabinet | done | [plan](app/plan/T-A09-elms-company-admin-cabinet/md/plan.md) |
+| T-A10 | elms-b2c-admission-payment | active | [plan](app/plan/T-A10-elms-b2c-admission-payment/md/plan.md) |
+| T-A11 | elms-ai-admission-parse | planned | [plan](app/plan/T-A11-elms-ai-admission-parse/md/plan.md) |
+| T-A12 | elms-b2b-batch-quotas | planned | [plan](app/plan/T-A12-elms-b2b-batch-quotas/md/plan.md) |
+| T-A13 | elms-custom-fields-course-program-batch | planned | [plan](app/plan/T-A13-elms-custom-fields-course-program-batch/md/plan.md) |
+| T-A14 | elms-admin-org-view-all | planned | [plan](app/plan/T-A14-elms-admin-org-view-all/md/plan.md) |
 
 ## Queues
 
 - BACK: [back/roadmap/queue.yaml](back/roadmap/queue.yaml) batches `elms-foundation`, `bitrix-rest`, `elms-production`
 - FRONT: [front/roadmap/queue.yaml](front/roadmap/queue.yaml) batch `elms-desk-shell`
-- APP: [app/roadmap/queue.yaml](app/roadmap/queue.yaml) batches `elms-auth-surface`, `elms-learning-core`, `elms-learner-progress`, `elms-knowledge-assistant`, `elms-b2b-access`
+- APP: [app/roadmap/queue.yaml](app/roadmap/queue.yaml) batches `elms-auth-surface`, `elms-learning-core`, `elms-learner-progress`, `elms-knowledge-assistant`, `elms-b2b-access`, `elms-admission-surfaces`
 
 ## Порядок IMPLEMENT
 
@@ -34,6 +42,8 @@
 
 | Дата | Событие |
 |------|---------|
+| 2026-11-16 | APP DECOMPOSE T-A10 PASS: s01 profile → s02 payment/webhook → s03 DENY free enroll; next APP IMPLEMENT s01 |
+| 2026-11-16 | APP PLAN multi-epic admission surfaces T-A10…T-A14; clarify done; head = T-A10; next APP DECOMPOSE T-A10 |
 | 2026-11-13 | APP DONE T-A06 knowledge assistant: Integration Settings URL+key, Desk assistant, QA PASS; head = T-A07 |
 | 2026-11-13 | APP queue: T-A05 → done (QA PASS 2026-11-12); head = T-A06 |
 | 2026-11-12 | Observability canon: ship-to-central Loki отменён; логи на хосте, чтение с ops (`decisions/observability-stack.md`); BACK PLAN T-B11 host-local-logs-read-contract; центр — репо `/home/aero/PyProject/observability` |

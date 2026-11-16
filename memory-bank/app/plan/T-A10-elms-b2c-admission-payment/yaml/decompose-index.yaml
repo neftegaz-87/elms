@@ -1,0 +1,201 @@
+schema: epic-decompose-index/v1
+plan_id: T-A10-elms-b2c-admission-payment
+level: L3
+sNN_cap: 3
+appetite:
+  timebox_days: 5
+  cut_list:
+  - Concrete YooKassa/Tinkoff production adapter as sole hard-dep (port + fake OK)
+  - 1С invoices / billing sync
+  - Multi-course cart
+  - B2B XLSX blank / AI parse (T-A11/T-A12)
+  - Bitrix status as master admission SoT
+  - Custom course/program/batch fields (T-A13)
+effort_probe:
+  outcomes:
+  - outcome: Learner Admission Profile upsert with required scans, PD consent and Desk
+      admission form steps before pay
+    hours_mid: 12.0
+    hours_range: 8-16
+    confidence: medium
+    notes: DocType ELMS Admission Profile, Pydantic LearnerProfile, file attach private,
+      consent version+ts, Desk UI select course→profile→upload
+  - outcome: Payment port create+webhook paid/failed creates one Active Enrollment
+      and UI pay waiting/success
+    hours_mid: 14.0
+    hours_range: 10-18
+    confidence: medium
+    notes: ELMS Payment, abstract provider+fake, create_payment gates on complete profile,
+      webhook signature+idempotency, enroll once, Desk pay CTA/waiting/success
+  - outcome: DENY B2C enroll without paid payment plus leftover free enroll_self purge
+    hours_mid: 8.0
+    hours_range: 6-12
+    confidence: medium
+    notes: enroll_self/enroll_learner B2C gate, catalog button rewire, Kind I rewrite,
+      leftover_sot rg
+  total_hours: 34.0
+  effort_hours_total: 34.0
+  effort_class: L
+  independent_outcomes: 3
+  split_seams: 2
+  sNN_cap: 3
+  sNN_target: 3
+split_rationale: >-
+  Three independently verifiable acceptance boundaries: (1) profile+docs+consent
+  can be saved and validated without payment; (2) payment create/webhook enroll
+  can be proven with fake provider once profile exists; (3) free B2C enroll path
+  DENY/purge is a separate leftover_sot enforce outcome. Each mixed shard keeps
+  backend+Desk UI+wire for its boundary — no BACK/FRONT/INTEG split.
+technology_axiom_lock:
+- Pydantic LearnerProfile DTO JSON on save_profile boundary; FORBIDDEN regex extract
+  prose passport into enum
+- PaymentStatus Literal/Enum from validated webhook JSON; FORBIDDEN free-text «оплачено»
+  UI as SoT
+- Enrollment Active for B2C only via server after paid payment_id link; FORBIDDEN desk
+  checkbox «считать оплаченным» without payment event
+- DocType name ELMS Admission Profile (avoid Role Profile document name collision
+  with «ELMS Learner Profile»); product noun remains Learner Profile
+steps:
+- id: s01
+  file: s01-admission-profile-docs-consent-ui.yaml
+  title: Admission profile, required scans, PD consent and Desk form
+  next_phase: APP IMPLEMENT
+  status: pending
+- id: s02
+  file: s02-payment-port-webhook-enroll-ui.yaml
+  title: Payment port, webhook paid enroll and pay journey UI
+  next_phase: APP IMPLEMENT
+  status: pending
+- id: s03
+  file: s03-deny-free-b2c-enroll-legacy-purge.yaml
+  title: DENY free B2C enroll and leftover SoT purge
+  next_phase: APP IMPLEMENT
+  status: pending
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Learner Profile fields, required scans, one profile per User, upsert API,
+    PD consent version+timestamp
+- id: FR-002
+  step: s02
+  description: Payment port create_payment + parse_webhook; Payment record; fake adapter;
+    fail-closed missing provider when payments enabled
+- id: FR-003
+  step: s02
+  description: Enroll after paid from payment meta; Progress zero; unique (user,batch)
+- id: FR-004
+  step: s02
+  description: >-
+    UI journey select course → profile form → upload → pay CTA → waiting →
+    success with learning link; empty/error states. Profile/upload surfaces
+    produced in s01; s02 wires full journey including pay/waiting/success to
+    real APIs (FR nouns not remapped)
+- id: NFR-001
+  step: s01
+  description: Private file access only owner/Admin/Operations
+- id: NFR-002
+  step: s02
+  description: Webhook signature verification mandatory
+- id: NFR-003
+  step: s01
+  description: PII masked in logs
+- id: NFR-004
+  step: s02
+  description: Idempotent webhook by event id
+- id: US-001
+  step: s01
+  description: Listener fills form and uploads scans before payment
+- id: US-002
+  step: s02
+  description: Listener gets payment session and after webhook sees enrollment
+- id: US-003
+  step: s02
+  description: failed/cancel → no Active enrollment
+- id: US-004
+  step: s02
+  description: Repeat webhook idempotent — one enrollment
+- id: US-005
+  step: s03
+  description: Admin/Ops see payment+profile; cannot substitute paid without payment event
+- id: AC-001
+  step: s02
+  description: Incomplete profile → create_payment rejected typed error
+- id: AC-002
+  step: s02
+  description: Complete profile+files+consent → Payment pending + provider session
+- id: AC-003
+  step: s02
+  description: Valid signed webhook paid → Enrollment Active exactly once
+- id: AC-004
+  step: s02
+  description: failed or unsigned webhook → no Active Enrollment
+- id: AC-005
+  step: s03
+  description: B2C enroll_learner/enroll_self without paid payment → DENY
+- id: AC-006
+  step: s01
+  description: Incomplete profile/files/consent → ValidationError; complete → one Admission Profile with private files
+stages_coverage:
+- stage: Stage s01 admission-profile-docs-consent-ui
+  step: s01
+- stage: Stage s02 payment-port-webhook-enroll-ui
+  step: s02
+- stage: Stage s03 deny-free-b2c-enroll-legacy-purge
+  step: s03
+outcome_map:
+- outcome: Learner Admission Profile upsert with required scans, PD consent and Desk
+    admission form steps before pay
+  step: s01
+- outcome: Payment port create+webhook paid/failed creates one Active Enrollment and
+    UI pay waiting/success
+  step: s02
+- outcome: DENY B2C enroll without paid payment plus leftover free enroll_self purge
+  step: s03
+replacement_cleanup:
+  s01:
+    replaces: Ad-hoc chat/paper passport collection with no typed profile SoT
+    target: ELMS Admission Profile + save_profile + private File attachments + Desk form
+    step: s01
+    policy: replace-in-epic
+  s02:
+    replaces: Manual «проставить оплачено» / free enroll after informal payment proof
+    target: Payment port + webhook paid → server enroll once
+    step: s02
+    policy: replace-in-epic
+  s03:
+    replaces: Free enroll_self / enroll_learner B2C without paid payment_id
+    target: DENY gate + catalog rewire to admission pay journey + Kind I rewrite
+    step: s03
+    policy: delete-in-epic
+  items:
+  - symbol: elms.lms.api.enroll_self free Active Enrollment without paid payment (B2C)
+    kind: A
+    replacement: require paid ELMS Payment for B2C path; route UI via admission journey
+    step: s03
+    policy: delete-in-epic
+  - symbol: desk-learning.js elms-catalog-enroll-btn → enroll_self bypass payment
+    kind: A
+    replacement: B2C catalog CTA opens admission/pay flow; paid batches cannot silent enroll
+    step: s03
+    policy: delete-in-epic
+  - symbol: Local UI/enum «оплачено» as enrollment SoT without payment event
+    kind: C
+    replacement: PaymentStatus from validated webhook only
+    step: s02
+    policy: delete-in-epic
+  - symbol: Soft missing payment provider → stub success enroll
+    kind: C
+    replacement: fail-closed when payments enabled and adapter missing
+    step: s02
+    policy: delete-in-epic
+  - symbol: Instruction/prose teaching free self-enroll or desk checkbox paid without payment
+    kind: I
+    replacement: Rewrite Desk copy/tests to admission profile→pay→webhook path
+    step: s03
+    policy: delete-in-epic
+  sunset:
+  - Free B2C enroll_self / enroll_learner without paid payment ref
+  - Catalog one-click enroll for payment-required batches
+  - Free-text / local paid flag as SoT
+  - Optional payment adapter silent PASS
+  - Kind I surfaces teaching free enroll or fake paid
