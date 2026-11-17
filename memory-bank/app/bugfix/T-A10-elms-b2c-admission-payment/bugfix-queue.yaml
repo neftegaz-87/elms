@@ -1,0 +1,155 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A10-elms-b2c-admission-payment
+role: app
+source_qa: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/qa-20261117-b2c-admission-payment3.yaml
+checklist_sha256: e3ed6e53be45f62e6fb54a8e30972b142f634cb6316eac1149abfb96af6789d2
+created_at: '2026-11-17T09:30:00Z'
+updated_at: '2026-11-17T13:46:31Z'
+current_id: BF-006
+verification:
+  status: pass
+  command: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k
+    10s 180s .venv/bin/python -
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  last_run_at: '2026-11-17T13:45:57Z'
+  evidence: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+    (VERIFY exit 0; timestamp 2026-11-17T12:37:10.213605Z)
+items:
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: 'ac_gap: live elms-admission Page is absent from the Frappe runtime'
+  blocker_ref: ac_gap_browser_page_missing | elms/elms/operations/page/elms_admission/elms_admission.json
+    | Install/sync the elms-admission Page record in the live Frappe runtime, reload
+    the Desk, then rerun the authenticated profile/upload/payment/webhook journey.
+  fix_plan_ref: Sync/install the standard Page record from elms/elms/operations/page/elms_admission/elms_admission.json
+    into the live site, reload Desk assets, and recapture the complete wire journey.
+  targets:
+  - elms/elms/operations/page/elms_admission/elms_admission.json
+  - elms/elms/hooks.py
+  - memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  verify: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k
+    10s 180s .venv/bin/python -
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  done_at: '2026-11-17T12:37:10.213605Z'
+  evidence: 'source/install wiring PASS; targeted admission UI tests: 7 OK; live migration
+    and authenticated route reload restored the Page record.'
+  notes: Root cause was a missing live Page record despite the source JSON and page_js
+    registration. hooks.py now synchronizes the standard Page on install and migrate.
+- id: BF-002
+  status: done
+  class: runtime_schema_gap
+  title: create_payment reads pricing columns absent from the live ELMS Batch/Course
+    schema
+  blocker_ref: runtime_schema_payment_amount | elms/elms/admission/payment.py | Guard
+    optional pricing-field reads by DocType metadata and use the configured payment
+    amount when no pricing field exists, then rerun the complete wire journey.
+  fix_plan_ref: Make _resolve_amount schema-aware for optional amount/price/course_fee/fee
+    fields; preserve the fail-closed validation when neither a supported field nor
+    payment_amount is configured.
+  targets:
+  - elms/elms/admission/payment.py
+  - elms/elms/tests/test_admission_payment.py
+  - memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  verify: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k
+    10s 180s .venv/bin/python -
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  done_at: '2026-11-17T12:37:10.213605Z'
+  evidence: ./bin/pytest -q elms/elms/tests/test_admission_payment.py (exit 0; 5 passed)
+  notes: After BF-001 restored the live Page, authenticated profile/upload passed
+    and create_payment failed with OperationalError 1054 because amount is not a column
+    on ELMS Batch. _resolve_amount is now schema-aware and the missing-column regression
+    is covered.
+- id: BF-003
+  status: done
+  class: runtime_doctype_gap
+  title: ELMS Payment DocType source/controller is absent from the live app module
+  blocker_ref: runtime_doctype_payment_missing | elms/elms/elms_core/doctype/elms_payment/
+    | Add the canonical ELMS Payment DocType JSON/controller under ELMS Core, migrate
+    the site, and rerun the signed payment/webhook journey.
+  fix_plan_ref: Restore the source-of-truth ELMS Payment DocType with the fields consumed
+    by admission payment/webhook and enrollment enforcement, then verify migration
+    and persistence on the live site.
+  targets:
+  - elms/elms/elms_core/doctype/elms_payment/elms_payment.json
+  - elms/elms/elms_core/doctype/elms_payment/elms_payment.py
+  - memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  verify: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k
+    10s 180s .venv/bin/python -
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  done_at: '2026-11-17T12:37:10.213605Z'
+  evidence: ./bin/pytest -q elms/elms/tests/test_admission_payment.py elms/elms/tests/test_admission_webhook.py
+    (exit 0; 9 passed)
+  notes: After the pricing lookup passed, create_payment failed because the live ELMS
+    Payment DocType resolves to frappe.core.doctype.elms_payment and the source controller/JSON
+    was absent. The ELMS Core DocType source/controller is restored.
+- id: BF-004
+  status: done
+  class: runtime_idempotency_gap
+  title: fresh fake payment provider instances reuse provider_payment_id
+  blocker_ref: runtime_fake_provider_duplicate_id | elms/elms/admission/provider.py
+    | Make locally configured fake payment identifiers unique across HTTP requests
+    so repeated create_payment calls cannot violate ELMS Payment uniqueness, then
+    rerun the payment/webhook regression and live wire journey.
+  fix_plan_ref: Use a request-independent unique fake provider payment identifier
+    and cover repeated provider instances with a regression assertion; preserve deterministic
+    signed webhook parsing.
+  targets:
+  - elms/elms/admission/provider.py
+  - elms/elms/tests/test_admission_payment.py
+  - memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  verify: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k
+    10s 180s .venv/bin/python -
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  done_at: '2026-11-17T12:37:10.213605Z'
+  evidence: ./bin/pytest -q elms/elms/tests/test_admission_payment.py elms/elms/tests/test_admission_webhook.py
+    (exit 0; 10 passed); live wire had previously exposed duplicate fake-payment-1.
+  notes: Discovered during the post-BF-003 authenticated wire verification; no existing
+    queue item owns provider identifier uniqueness.
+- id: BF-005
+  status: done
+  class: webhook_state_order_gap
+  title: paid webhook calls enrollment before persisting paid Payment state
+  blocker_ref: runtime_webhook_payment_state_order | elms/elms/admission/webhook.py
+    | Persist the verified paid Payment state before invoking enrollment enforcement,
+    with regression coverage for the signed paid webhook journey.
+  fix_plan_ref: Make the webhook state transition visible to the server-owned enrollment
+    gate before calling enroll_learner, while preserving signature validation, idempotency,
+    and failed-event behavior.
+  targets:
+  - elms/elms/admission/webhook.py
+  - elms/elms/tests/test_admission_webhook.py
+  - memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  verify: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k
+    10s 180s .venv/bin/python -
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  done_at: '2026-11-17T12:37:10.213605Z'
+  evidence: ./bin/pytest -q elms/elms/tests/test_admission_payment.py elms/elms/tests/test_admission_webhook.py
+    (exit 0; 11 passed); live signed paid webhook had previously exposed the unpersisted
+    state order.
+  notes: Discovered during BF-004 live wire verification after unique provider identifiers
+    were active.
+- id: BF-006
+  status: done
+  class: ac_gap
+  title: 'ac_gap: authenticated live admission journey is blocked by the missing elms-admission
+    Page'
+  blocker_ref: ac_gap_browser_page_missing | elms/elms/operations/page/elms_admission/elms_admission.json
+    | Install/sync the elms-admission Page record in the live Frappe runtime, reload
+    the Desk, then rerun the authenticated profile/upload/payment/webhook journey.
+  fix_plan_ref: Install or synchronize the standard Page record from elms/elms/operations/page/elms_admission/elms_admission.json
+    into the live Frappe runtime, reload Desk assets, and recapture the complete authenticated
+    wire journey.
+  targets:
+  - elms/elms/operations/page/elms_admission/elms_admission.json
+  - elms/elms/hooks.py
+  - memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  verify: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k
+    10s 180s .venv/bin/python -
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  done_at: '2026-11-17T13:45:57Z'
+  evidence: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+    (post-BUGFIX authenticated profile/upload/payment/webhook/enrollment journey passed;
+    typed runtime capture timestamp 2026-11-17T13:45:57Z.)
+  notes: Re-QA confirmed the live Page record is synchronized and the complete authenticated
+    journey is green.

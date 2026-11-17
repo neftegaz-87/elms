@@ -5,9 +5,50 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+
+
+class PaymentStatus(str, Enum):
+    """The only payment states accepted by the admission boundary."""
+
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class PaymentSession(BaseModel):
+    """Provider checkout details returned after a payment is created."""
+
+    model_config = ConfigDict(extra="allow")
+
+    provider_payment_id: str = Field(min_length=1)
+    payment_url: str = Field(min_length=1)
+    status: PaymentStatus = PaymentStatus.PENDING
+
+
+class PaymentEvent(BaseModel):
+    """Validated provider event used to mutate an ELMS Payment."""
+
+    model_config = ConfigDict(extra="allow")
+
+    event_id: str = Field(min_length=1, max_length=255)
+    provider_payment_id: str = Field(
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("provider_payment_id", "payment_id"),
+    )
+    status: PaymentStatus
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def payment_id(self) -> str:
+        """Compatibility name used by provider payloads."""
+
+        return self.provider_payment_id
 
 
 class AdmissionScan(BaseModel):

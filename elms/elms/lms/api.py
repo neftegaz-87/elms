@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 import frappe
 
+from elms.admission.enforce import require_paid_payment
+
 if not hasattr(frappe, "whitelist"):
     def _whitelist(*args, **kwargs):
         def decorator(f):
@@ -820,9 +822,19 @@ def enroll_learner(
     batch: str,
     subscription: Optional[str] = None,
     program_enrollment: Optional[str] = None,
+    payment_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Enroll a learner into an active batch with subscription quota enforcement."""
     session_user = _get_current_user()
+    payment_doc = None
+    if payment_id:
+        payment_doc = frappe.get_doc("ELMS Payment", payment_id)
+        if getattr(payment_doc, "status", None) != "paid":
+            frappe.throw(_("Enrollment requires a paid payment"), frappe.ValidationError)
+        if getattr(payment_doc, "user", None) != user or getattr(payment_doc, "batch", None) != batch:
+            frappe.throw(_("Payment does not match the enrollment"), frappe.ValidationError)
+        if session_user == "Guest":
+            session_user = user
     if session_user == "Guest":
         frappe.throw(_("Authentication required to enroll learners"), frappe.PermissionError)
 
@@ -840,6 +852,10 @@ def enroll_learner(
         frappe.throw(_("Batch {0} does not exist").format(batch), frappe.DoesNotExistError)
     batch_organization = frappe.db.get_value("ELMS Batch", batch, "organization")
     _require_company_admin_organization(batch_organization, session_user)
+
+    # Every B2C caller, including Admin/Ops, must reference a paid payment.
+    # The enforce module permits only an available B2B subscription to bypass it.
+    require_paid_payment(user=user, batch=batch, subscription=subscription)
 
     # Prevent duplicate active enrollment
     existing = frappe.db.get_value(
@@ -886,6 +902,8 @@ def enroll_learner(
     enrollment.organization = batch_organization
     enrollment.program_enrollment = program_enrollment or ""
     enrollment.subscription = subscription or ""
+    if payment_id and getattr(getattr(enrollment, "meta", None), "has_field", lambda _name: False)("payment_id"):
+        enrollment.payment_id = payment_id
     enrollment.enrollment_date = _today()
     enrollment.status = "Active"
     enrollment.flags.from_lms_api = True

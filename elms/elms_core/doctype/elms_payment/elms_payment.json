@@ -1,0 +1,130 @@
+{
+ "actions": [],
+ "creation": "2026-11-16 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "course",
+  "batch",
+  "amount",
+  "currency",
+  "status",
+  "provider_payment_id",
+  "provider_session_url",
+  "last_event_id"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Learner / User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "course",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Course",
+   "options": "ELMS Course",
+   "reqd": 1
+  },
+  {
+   "fieldname": "batch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Batch / Group",
+   "options": "ELMS Batch",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Currency",
+   "reqd": 1
+  },
+  {
+   "default": "pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Payment Status",
+   "options": "pending\npaid\nfailed\ncancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "provider_payment_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Provider Payment ID",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "provider_session_url",
+   "fieldtype": "Data",
+   "label": "Provider Session URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_event_id",
+   "fieldtype": "Data",
+   "label": "Last Webhook Event ID",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-16 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ELMS Core",
+ "name": "ELMS Payment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "ELMS Admin",
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS Operations User",
+   "write": 0
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "read": 1,
+   "role": "ELMS Learner",
+   "write": 0
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "read": 1,
+   "role": "System Manager",
+   "write": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "search_fields": "user, course, batch, status, provider_payment_id",
+ "show_title_field_in_link": 1,
+ "title_field": "provider_payment_id",
+ "states": []
+}

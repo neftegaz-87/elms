@@ -1,0 +1,223 @@
+schema: app-qa/v1
+role: app
+task_id: T-A10-elms-b2c-admission-payment
+plan_id: T-A10-elms-b2c-admission-payment
+epic_id: T-A10-elms-b2c-admission-payment
+date: '2026-11-17'
+reviewer: APP QA
+verdict: fail
+checklist_sha256: e3ed6e53be45f62e6fb54a8e30972b142f634cb6316eac1149abfb96af6789d2
+verify_scope: app_lanes
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/admission/
+      - elms/elms/elms_core/doctype/elms_admission_profile/
+      - elms/elms/elms_core/doctype/elms_payment/
+      - elms/elms/lms/api.py
+      - elms/elms/public/js/desk-admission.js
+      - elms/elms/public/js/desk-learning.js
+      - elms/elms/public/css/desk-admission.css
+      - elms/elms/desk/workspaces.py
+      - elms/elms/hooks.py
+      - elms/elms/install.py
+      - elms/elms/tests/test_admission_*.py
+      - elms/elms/tests/test_learning_ui.py
+      - elms/elms/tests/test_lms_core.py
+  surfaces_required: [backend, frontend_build, browser, live_smoke, wire_journey, leftover_sot]
+  surfaces_optional: [exploratory]
+  surfaces_skipped:
+    - surface: external_integration
+      reason: 'Concrete YooKassa/Tinkoff production adapter is out of scope; port, fake adapter, and signed webhook contract are selected.'
+    - surface: behavior_smoke
+      reason: 'No agent, hook dispatcher, or gate CLI behavior is introduced; webhook behavior is covered by backend and wire lanes.'
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, auth, roles, data, external_integration, async, security, accessibility, responsive, reliability, observability, content_i18n, brownfield, compatibility]
+  selected:
+    - {id: contract_acceptance, name: 'Contract and acceptance criteria tests', reason: 'AC-001..AC-006 and FR/NFR/US contract are in the three completed shards.', evidence: 'coverage_map plus backend and wire lanes'}
+    - {id: regression, name: 'Changed behavior and prior-defect regression tests', reason: 'Diff replaces free B2C enrollment with payment-gated enrollment and changes UI call sites.', evidence: 'backend admission, learning UI, and enrollment commands'}
+    - {id: backend_unit_component, name: 'Backend unit and component tests', reason: 'Profile, payment, webhook, and enrollment backend logic is in scope.', evidence: 'backend lane exact shard pytest commands'}
+    - {id: backend_integration_state, name: 'Backend integration and state tests', reason: 'Profile, Payment, files, Enrollment, and Progress persistence is in scope.', evidence: 'backend state assertions'}
+    - {id: api_contract, name: 'API contract, schema, status, and error tests', reason: 'save_profile, create_payment, payment_webhook, and enrollment are explicit contracts.', evidence: 'backend API tests and authenticated wire responses'}
+    - {id: data_persistence_migration, name: 'Data persistence, migration, idempotency, and rollback tests', reason: 'DocTypes, uniqueness, event idempotency, and one-enrollment state are in scope.', evidence: 'backend persistence and webhook assertions'}
+    - {id: frontend_build_assets, name: 'Frontend build, type, lint, and asset delivery tests', reason: 'Desk JS/CSS, page registration, and hooks are changed.', evidence: 'frontend_build syntax and wiring scans'}
+    - {id: browser_functional, name: 'Browser functional user-flow tests', reason: 'Profile, upload, pay, waiting, and success are user-visible.', evidence: 'typed browser runtime artifact'}
+    - {id: wire_journey, name: 'Real UI-to-API wire journey tests', reason: 'The flow crosses Desk UI, APIs, backend, and payment webhook.', evidence: 'typed authenticated runtime browser/API artifact'}
+    - {id: live_http_smoke, name: 'Live HTTP smoke tests', reason: 'Running Frappe and Keycloak-backed Desk runtime are required.', evidence: 'typed live_smoke artifact'}
+    - {id: negative_error_paths, name: 'Negative, validation, denial, timeout, and recovery tests', reason: 'Incomplete profile, webhook failure, missing provider, and unpaid enrollment are explicit denies.', evidence: 'negative-path tests and runtime observation'}
+    - {id: auth_session_rbac, name: 'Authentication, session, authorization, and role tests', reason: 'Learner, Admin/Operations, Guest, foreign access, and private files are in scope.', evidence: 'ACL tests and authenticated browser session'}
+    - {id: async_jobs_workers_webhooks, name: 'Async job, worker, queue, retry, and webhook tests', reason: 'Signed delivery and duplicate event handling are explicit obligations.', evidence: 'webhook signature/idempotency tests and wire response'}
+    - {id: security_owasp, name: 'Security and OWASP spot-check tests', reason: 'Auth, signatures, secrets, permissions, private files, and masked logs are in scope.', evidence: 'scoped review, ACL/signature tests, and source scans'}
+    - {id: accessibility, name: 'Accessibility and keyboard interaction tests', reason: 'Admission controls, files, consent, error, waiting, and success are visible.', evidence: 'browser journey accessibility checks'}
+    - {id: responsive_compatibility, name: 'Responsive, viewport, browser, and compatibility tests', reason: 'Desk admission has desktop and narrow viewport obligations.', evidence: 'browser journey viewport capture'}
+    - {id: visual_states, name: 'Visual states, layout, styling, and asset-cascade tests', reason: 'Profile, upload, pay, waiting, error, and success states changed.', evidence: 'browser state and computed-style capture'}
+    - {id: console_network, name: 'Browser console, network, and client-error tests', reason: 'Browser path must use real APIs without console errors or hidden mocks.', evidence: 'browser network/console capture'}
+    - {id: observability, name: 'Logging, metrics, tracing, and failure-observability tests', reason: 'PII masking and observable webhook failures are required.', evidence: 'PII-mask tests and runtime error capture'}
+    - {id: content_i18n, name: 'Content, localization, formatting, and empty-state tests', reason: 'Admission copy and state text are user-facing contracts.', evidence: 'UI contract tests and browser state capture'}
+    - {id: cleanup_sot, name: 'Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests', reason: 's03 purges free enroll_self, local paid flags, and instruction leftovers.', evidence: 'leftover_sot exact negative scans'}
+  not_applicable:
+    - {id: external_integration, name: 'Real external integration and provider tests', reason: 'Concrete payment vendor adapter is a non-goal; port/fake and signed webhook contracts are selected.'}
+    - {id: performance_resilience, name: 'Performance, timeout, retry, load, and resilience tests', reason: 'No performance/load SLO or retry worker is in this narrow slice; fail-closed and idempotency are selected.'}
+  not_run:
+    - {id: exploratory, name: 'Exploratory edge-case and usability tests', reason: 'Optional lane; deterministic browser and wire coverage address the declared acceptance surface.', next_action: 'Run a time-boxed manual learner usability pass with a seeded account in the next QA cycle.'}
+
+suite:
+  - 'backend: exact s01/s02/s03 verification commands passed; targeted total 17 + 3 + 4 + 32 + 3 assertions passed.'
+  - 'frontend_build: exact py_compile/node --check and scoped wiring scans passed.'
+  - 'browser: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py --smoke-only passed authenticated Learner login smoke; authenticated admission route returned live Page-not-found.'
+  - 'live_smoke: EVIDENCE_FILE=memory-bank/app/qa/T-A10-elms-b2c-admission-payment/live-smoke-20261117.json timeout -k 10s 300s bash scripts/live_smoke.sh passed exit 0.'
+  - 'leftover_sot: exact s03 require_paid_payment/catalog CTA/instruction scans passed with no forbidden matches.'
+  - 'wire_journey: set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python - authenticated as seeded Learner, but /app/elms-admission rendered "Страница elms-admission не найден" before profile/upload/payment/webhook.'
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: './bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py && ./bin/pytest -q elms/elms/tests/test_admission_payment.py && ./bin/pytest -q elms/elms/tests/test_admission_webhook.py && ./bin/pytest -q elms/elms/tests/test_admission_payment.py elms/elms/tests/test_admission_webhook.py elms/elms/tests/test_admission_ui.py && ./bin/pytest -q elms/elms/tests/test_admission_enroll_gate.py && ./bin/pytest -q elms/elms/tests/test_learning_ui.py elms/elms/tests/test_admission_enroll_gate.py && ./bin/pytest -q elms/elms/tests/test_admission_enroll_gate.py elms/elms/tests/test_learning_ui.py elms/elms/tests/test_admission_ui.py && ./bin/pytest -q elms/elms/tests/test_lms_core.py -k enroll'
+    evidence: '17 passed; 3 passed; 4 passed; 14 passed; 5 passed; 25 passed; 32 passed; 3 passed, 19 deselected.'
+    notes: 'Exact implement-shard verification commands passed; no full-suite claim under suite_scope app_lanes.'
+  - id: frontend_build
+    required: true
+    status: pass
+    command: 'python3 -m py_compile elms/elms/admission/api.py elms/elms/admission/profile.py elms/elms/admission/schemas.py && node --check elms/elms/public/js/desk-admission.js && python3 -m py_compile elms/elms/admission/payment.py elms/elms/admission/webhook.py elms/elms/admission/provider.py && rg -n scoped wiring scans'
+    evidence: 'All exact Python compile and JavaScript syntax checks plus positive/negative wiring scans exited 0.'
+    notes: 'hub-default Frappe Desk asset surface has no npm package; static delivery is exercised by live browser smoke.'
+  - id: browser
+    required: true
+    status: fail
+    command: 'set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py --smoke-only; set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -'
+    evidence: 'browser-artifacts/browser-evidence.json; memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json'
+    notes: 'Authenticated Learner login smoke passed after runtime bootstrap; live admission route is missing its Page record.'
+  - id: live_smoke
+    required: true
+    status: pass
+    command: 'EVIDENCE_FILE=memory-bank/app/qa/T-A10-elms-b2c-admission-payment/live-smoke-20261117.json timeout -k 10s 300s bash scripts/live_smoke.sh'
+    evidence: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/live-smoke-20261117.json
+    notes: 'Typed runtime HTTP capture: live_evidence=true, status=pass, exit_code=0.'
+  - id: leftover_sot
+    required: true
+    status: pass
+    command: 'rg -n require_paid_payment|subscription elms/elms/admission/enforce.py elms/elms/lms/api.py; rg -n elms-admission elms/elms/public/js/desk-learning.js && ! rg -n enroll_self elms/elms/public/js/desk-learning.js; rg -n forbidden instruction patterns; test $? -eq 1'
+    evidence: 'Exact s03 dual-path and instruction scans exited 0; no forbidden instruction matches were emitted.'
+    notes: 'Required enforcement/route scans passed and final scan is an inverted zero-match check.'
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ''
+    evidence: ''
+    notes: 'No agent/hook/gate FR trigger.'
+  - id: wire_journey
+    required: true
+    status: fail
+    command: 'set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -'
+    evidence: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+    notes: 'Typed live capture authenticated successfully, then observed Page-not-found for /app/elms-admission before profile/upload/payment/webhook.'
+  - id: exploratory
+    required: false
+    status: not_run
+    command: ''
+    evidence: ''
+    notes: 'Optional; next action is recorded in test_plan.not_run.'
+
+scope:
+  - 'epic: T-A10-elms-b2c-admission-payment'
+  - 'steps: s01 admission profile; s02 payment/webhook/enroll; s03 deny free B2C and purge legacy path'
+  - 'contract: FR-001..FR-004, NFR-001..NFR-004, US-001..US-005, AC-001..AC-006'
+ac_plus:
+  - 'AC-001: Incomplete profile rejects create_payment with typed error.'
+  - 'AC-002: Complete profile/files/consent creates pending Payment and provider session.'
+  - 'AC-003: Valid signed paid webhook creates exactly one Active Enrollment.'
+  - 'AC-004: Failed or unsigned webhook creates no Active Enrollment.'
+  - 'AC-005: B2C enroll_learner/enroll_self without paid payment is denied.'
+  - 'AC-006: Incomplete profile/files/consent fails validation; complete save persists one private Admission Profile per User.'
+ac_minus:
+  - 'No catalog or server path silently performs free B2C enrollment.'
+  - 'No local/free-text/manual paid override is an enrollment source of truth.'
+  - 'Missing payment provider fails closed instead of creating a free enrollment.'
+  - 'Admission scans are private and PII is not emitted in cleartext logs.'
+section_011:
+  - 'LearnerProfile crosses save_profile as validated JSON/Pydantic DTO.'
+  - 'PaymentStatus and PaymentEvent come from validated webhook JSON, not UI prose.'
+  - 'Active B2C Enrollment is server-created only after a paid payment_id link.'
+  - 'ELMS Admission Profile remains distinct from the ELMS Learner Profile Role Profile.'
+prior_blockers: []
+
+coverage_map:
+  - {id: AC-001, kind: AC, scenario: 'Incomplete profile to create_payment', evidence: 'test_admission_payment.py; 3 payment tests passed.', status: pass}
+  - {id: AC-002, kind: AC, scenario: 'Complete profile/files/consent creates pending Payment/provider session', evidence: 'test_admission_payment.py; passed.', status: pass}
+  - {id: AC-003, kind: AC, scenario: 'Signed paid webhook enrolls exactly once', evidence: 'test_admission_webhook.py; 4 webhook tests passed.', status: pass}
+  - {id: AC-004, kind: AC, scenario: 'Failed/unsigned webhook creates no Active Enrollment', evidence: 'test_admission_webhook.py; 4 webhook tests passed.', status: pass}
+  - {id: AC-005, kind: AC, scenario: 'Unpaid B2C enrollment is denied', evidence: 'test_admission_enroll_gate.py and test_lms_core.py -k enroll; 5 and 3 passed.', status: pass}
+  - {id: AC-006, kind: AC, scenario: 'Profile validation and private one-profile persistence', evidence: 'test_admission_profile.py and test_admission_ui.py; 17 passed.', status: pass}
+  - {id: BN-001, kind: BN, scenario: 'Guest/foreign profile and file access denied', evidence: 'Profile ACL assertions passed.', status: pass}
+  - {id: BN-002, kind: BN, scenario: 'Missing provider fails closed', evidence: 'Provider-required assertion passed.', status: pass}
+  - {id: BN-003, kind: BN, scenario: 'Catalog cannot bypass payment', evidence: 's03 CTA/instruction scans exited 0.', status: pass}
+  - {id: BN-004, kind: BN, scenario: 'Authenticated UI-to-API journey is observable', evidence: 'admission-wire-20261117.json reports Page-not-found for /app/elms-admission.', status: fail}
+
+review:
+  status: fail
+  findings:
+    - 'Authenticated live QA exposed a deployment/runtime gap: Page elms-admission is registered in source but absent from the live Frappe Page table.'
+    - 'No source-level backend or legacy-payment finding was observed in the scoped review.'
+test_audit:
+  status: pass
+  checks:
+    - 'Assertions exercise profile/payment/webhook/enrollment outcomes, not only status or build.'
+    - 'No route.fulfill or browser API mock hides production wire; runtime probe reached the real HTTP route.'
+    - 'No assert True, xfail, skip, or unbounded mock shortcut was found in scoped tests.'
+    - 'Exact implement-shard commands are recorded in backend/frontend_build/leftover_sot lanes.'
+  findings:
+    - 'Live wire probe authenticated against the real runtime and failed explicitly on the missing Page; no synthetic API or browser mock was used.'
+browser:
+  status: fail
+  stack_profile: hub-default
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json
+  last_run_at: '2026-11-17T07:27:41Z'
+  journeys:
+    - {id: JRN-T-A10-ADMISSION-001, status: fail, evidence: 'Authenticated /app/elms-admission rendered the Frappe Page-not-found state; runtime Page record is absent.'}
+  artifacts: [browser-artifacts/browser-evidence.json, memory-bank/app/qa/T-A10-elms-b2c-admission-payment/admission-wire-20261117.json, memory-bank/app/qa/T-A10-elms-b2c-admission-payment/live-smoke-20261117.json]
+retro:
+  status: done
+  defect_missed: 'Backend/static checks did not expose the deployment gap; authenticated live run exposed the absent Page.'
+  redundant_gate: 'None; generic login and health smoke do not replace the epic-specific wire journey.'
+  flaky_test: 'None observed in targeted suites or generic browser smoke.'
+  next_cycle_change: 'Install/sync the elms-admission Page in live Frappe, then rerun the complete authenticated profile/upload/pay/webhook journey.'
+sunset_inventory_scan:
+  status: pass
+  scanned_at: '2026-11-17T07:24:00Z'
+  rows: ['require_paid_payment/subscription enforcement passed.', 'Catalog CTA points to elms-admission and contains no enroll_self call.', 'Forbidden instruction scan returned zero matches.', 'B2C Active Enrollment is guarded by require_paid_payment.']
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+
+checks:
+  - 'all required lanes were executed and recorded as separate parent-owned evidence'
+  - 'suite_scope is app_lanes; no full suite claim is made'
+  - 'live_smoke is live HTTP, not ASGI mocks'
+  - 'browser and wire evidence are typed runtime captures; authenticated journey failed on the missing live Page'
+  - 'verify-qa returned FAIL for ac_gap_browser_page_missing; exact blocker is persisted for BUGFIX routing'
+  - 'bugfix queue BF-006 is open for ac_gap_browser_page_missing and requires runtime Page sync before rerun'
+issues: []
+blockers:
+  - 'ac_gap_browser_page_missing | elms/elms/operations/page/elms_admission/elms_admission.json | Install/sync the elms-admission Page record in the live Frappe runtime, reload the Desk, then rerun the authenticated profile/upload/payment/webhook journey.'
+fix_plan:
+  - 'ac_gap_browser_page_missing | elms/elms/operations/page/elms_admission/elms_admission.json | Install/sync the elms-admission Page record in the live Frappe runtime, reload the Desk, then rerun the authenticated profile/upload/payment/webhook journey.'
+limitations:
+  - 'Authenticated Learner credentials are provisioned; admission browser/wire P0 fails because live Frappe reports Page elms-admission not found.'
+live_smoke:
+  status: pass
+  command: 'EVIDENCE_FILE=memory-bank/app/qa/T-A10-elms-b2c-admission-payment/live-smoke-20261117.json timeout -k 10s 300s bash scripts/live_smoke.sh'
+  evidence_file: memory-bank/app/qa/T-A10-elms-b2c-admission-payment/live-smoke-20261117.json
+  last_run_at: '2026-11-17T07:25:03Z'
+  base_url: http://elms.localhost:8082
+  level: health
+  notes: 'live_evidence=true; status=pass; exit_code=0.'

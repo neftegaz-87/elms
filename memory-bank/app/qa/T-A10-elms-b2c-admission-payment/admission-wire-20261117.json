@@ -1,0 +1,63 @@
+{
+  "schema": "app-admission-wire-evidence/v1",
+  "status": "pass",
+  "live_evidence": true,
+  "evidence_type": "runtime_browser_wire",
+  "exit_code": 0,
+  "command": "set -a; . docker/.env.dev; set +a; NEFTEGAZ_BROWSER=chromium timeout -k 10s 180s .venv/bin/python -",
+  "base_url": "http://elms.localhost:8082",
+  "journey_id": "JRN-T-A10-ADMISSION-001",
+  "steps": [
+    {
+      "id": "login",
+      "status": "pass",
+      "url": "http://elms.localhost:8082/app"
+    },
+    {
+      "id": "admission_page",
+      "status": "pass",
+      "url": "http://elms.localhost:8082/app/elms-admission",
+      "options": 4
+    },
+    {
+      "id": "profile_upload",
+      "status": "pass",
+      "status_text": "Анкета сохранена. Документы приняты в приватное хранилище."
+    },
+    {
+      "id": "create_payment",
+      "status": "pass",
+      "payment": "2dok4ebukh",
+      "provider_payment_id": "fake-payment-568f932f31304622a47c537afbbf10c9"
+    },
+    {
+      "id": "payment_webhook",
+      "status": "pass",
+      "response": {
+        "ack": true,
+        "duplicate": false,
+        "event_id": "wire-c2e8ae29793c491999bf770c4b2e09a5",
+        "payment": "2dok4ebukh",
+        "status": "paid",
+        "enrollment": "2kk7p1nhtg"
+      }
+    },
+    {
+      "id": "enrollment",
+      "status": "pass",
+      "learning_link": "/app/elms-learning",
+      "enrollment": "2kk7p1nhtg"
+    }
+  ],
+  "artifacts": [
+    "browser-artifacts/admission-wire.png"
+  ],
+  "console_errors": [],
+  "request_failures": [
+    {
+      "url": "http://elms.localhost:8082/api/method/frappe.desk.desktop.get_desktop_page",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "timestamp": "2026-11-17T13:45:57Z"
+}

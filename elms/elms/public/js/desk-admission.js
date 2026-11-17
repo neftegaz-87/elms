@@ -1,7 +1,7 @@
 (function () {
 	"use strict";
 
-	var state = { root: null, catalog: [], profile: null, loading: false };
+	var state = { root: null, catalog: [], profile: null, payment: null, loading: false };
 
 	function esc(value) {
 		return String(value == null ? "" : value)
@@ -39,6 +39,18 @@
 	function selectedBatch(root) {
 		var select = root.querySelector("[data-admission-batch]");
 		return select ? select.value : "";
+	}
+
+	function routeBatch() {
+		var route = frappe.get_route && frappe.get_route();
+		if (route && route[0] === "elms-admission" && route[1]) return route[1];
+		return frappe.route_options && frappe.route_options.batch ? frappe.route_options.batch : "";
+	}
+
+	function selectedCourse(root) {
+		var batch = selectedBatch(root);
+		var item = state.catalog.find(function (course) { return course.batch === batch; });
+		return item ? item.course : "";
 	}
 
 	function fileAsPayload(input) {
@@ -92,8 +104,11 @@
 	function render(root) {
 		var profile = state.profile && state.profile.profile ? state.profile.profile : {};
 		var catalog = state.catalog || [];
+		var profileReady = Boolean(state.profile && state.profile.exists);
+		var requestedBatch = routeBatch();
 		var options = catalog.map(function (course) {
-			return '<option value="' + esc(course.batch) + '">' + esc(course.course_name || "Курс") + " — " + esc(course.batch_name || course.batch) + "</option>";
+			var selected = course.batch === requestedBatch ? " selected" : "";
+			return '<option value="' + esc(course.batch) + '"' + selected + '>' + esc(course.course_name || "Курс") + " — " + esc(course.batch_name || course.batch) + "</option>";
 		}).join("");
 		root.innerHTML = [
 			'<div class="elms-admission-shell">',
@@ -112,6 +127,7 @@
 			'<label class="elms-admission-field"><span>Документ об образовании</span><input name="education_doc_scan" type="file" accept="application/pdf,image/*" required></label>',
 			'</div></section>',
 			'<section class="elms-admission-card elms-admission-consent"><label><input name="consent_version" type="checkbox" value="pd-2026-01" required><span>Согласен на обработку персональных данных по тексту версии <strong>pd-2026-01</strong>.</span></label></section>',
+			'<section class="elms-admission-card elms-admission-payment" data-admission-payment data-payment-state="idle"' + (profileReady ? '' : ' hidden') + '><div class="elms-admission-card-head"><span>Оплата обучения</span><small data-admission-payment-status>Профиль проверен</small></div><p>Оплата создаётся через платёжный сервис. Зачисление появится только после подтверждённого webhook. Статус оплаты хранится в ELMS Payment; ручная отметка недоступна.</p><button type="button" class="elms-admission-button" data-admission-pay>Перейти к оплате</button><a class="elms-admission-learning-link" data-admission-learning-link hidden href="/app/elms-learning">Открыть обучение</a></section>',
 			'<div class="elms-admission-actions"><button type="submit" class="elms-admission-button is-primary" data-admission-submit>Сохранить анкету</button><span>После сохранения станет доступен следующий шаг — оплата.</span></div>',
 			'</form></div>',
 		].join("");
@@ -122,11 +138,80 @@
 			event.preventDefault();
 			save(root);
 		});
+		var payButton = root.querySelector("[data-admission-pay]");
+		if (payButton) payButton.addEventListener("click", function () { startPayment(root); });
+	}
+
+	function showPaymentAction(root) {
+		var section = root.querySelector("[data-admission-payment]");
+		if (section) section.hidden = false;
+	}
+
+	function paymentState(root, value) {
+		var section = root.querySelector("[data-admission-payment]");
+		if (section) section.setAttribute("data-payment-state", value);
+	}
+
+	function showPaymentSuccess(root, result) {
+		paymentState(root, "success");
+		var link = root.querySelector("[data-admission-learning-link]");
+		if (link) {
+			link.hidden = false;
+			link.href = result.learning_url || "/app/elms-learning";
+		}
+		status(root, "Оплата подтверждена сервером. Зачисление активно.", "is-success");
+	}
+
+	function startPayment(root) {
+		var button = root.querySelector("[data-admission-pay]");
+		var course = selectedCourse(root);
+		var batch = selectedBatch(root);
+		if (!course || !batch || state.loading) {
+			status(root, "Выберите доступный курс и поток перед оплатой.", "is-error");
+			return;
+		}
+		state.loading = true;
+		button.disabled = true;
+		paymentState(root, "waiting");
+		status(root, "Создаём платёж…", "is-pending");
+		call("elms.admission.api.create_payment", { course: course, batch: batch }, function (result, error) {
+			state.loading = false;
+			button.disabled = false;
+			if (error || !result) {
+				paymentState(root, "error");
+				status(root, errorText(error), "is-error");
+				return;
+			}
+			state.payment = result;
+			if (result.status === "paid" || result.enrollment) return showPaymentSuccess(root, result);
+			var session = result.provider_session || {};
+			var paymentStatus = root.querySelector("[data-admission-payment-status]");
+			if (paymentStatus) paymentStatus.textContent = "Ожидаем подтверждение оплаты";
+			status(root, "Платёж создан. Завершите оплату в платёжном сервисе — зачисление появится после webhook.", "is-pending");
+			if (session.payment_url) window.open(session.payment_url, "_blank", "noopener");
+			pollPayment(root);
+		});
+	}
+
+	function pollPayment(root) {
+		if (!state.payment || !state.payment.name) return;
+		window.setTimeout(function () {
+			call("elms.admission.api.get_payment_status", { payment: state.payment.name }, function (result, error) {
+				if (error || !result) return pollPayment(root);
+				state.payment = result;
+				if (result.status === "paid" && result.enrollment) return showPaymentSuccess(root, result);
+				pollPayment(root);
+			});
+		}, 3000);
 	}
 
 	function save(root) {
 		var button = root.querySelector("[data-admission-submit]");
 		if (state.loading) return;
+		if (!selectedBatch(root)) {
+			status(root, "Выберите курс и поток перед сохранением.", "is-error");
+			return;
+		}
 		state.loading = true;
 		button.disabled = true;
 		status(root, "Проверяем поля и загружаем документы…", "is-pending");
@@ -139,6 +224,7 @@
 			});
 		}).then(function (result) {
 			state.profile = { exists: true, profile: result };
+			showPaymentAction(root);
 			status(root, "Анкета сохранена. Документы приняты в приватное хранилище.", "is-success");
 		}).catch(function (error) {
 			status(root, errorText(error), "is-error");

@@ -1,7 +1,7 @@
 # Архитектурные паттерны системы (systemPatterns)
 
 **Дата:** 2026-11-01
-**Статус:** Базовые системные паттерны подтверждены по результатам T-A09 и T-A08 APP QA PASS, T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
+**Статус:** Базовые системные паттерны подтверждены по результатам T-A10, T-A09 и T-A08 APP QA PASS, T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
 
 ## 1. Slim Single-App Frappe Architecture
 
@@ -133,3 +133,11 @@
 - **Shared LMS read model:** roster rows join organization members to `ELMS Enrollment` and `ELMS Course Progress`; absent progress is represented by the documented `0.0` value, without introducing a parallel progress SoT.
 - **Server-side export and audit:** `export_org_progress` reuses the roster ACL/query, emits UTF-8 CSV, and records actor, organization, row count, and timestamp in `ELMS Cabinet Export Log`. Client DOM/table content is not used to generate CSV.
 - **Desk states and acceptance:** the cabinet has an explicit empty state with no fake rows. Required APP lanes (backend, frontend_build, browser, live_smoke, wire_journey, leftover_sot) and AC-001..AC-005 passed. Authenticated runtime wire evidence passed roster/export and no-DOM-only-CSV checks; Keycloak-only active credentials/preflight were required. Exploratory usability was not run as an optional next action, and no blockers remain.
+
+## 14. B2C Admission, Payment and Enrollment Gate (`T-A10`)
+
+- **Admission profile boundary:** `ELMS Admission Profile` is distinct from the `ELMS Learner Profile` role profile. `save_profile` accepts validated Pydantic `LearnerProfile` JSON, requires the declared profile fields, private admission scans and PD consent, and masks PII in logs.
+- **Payment event source of truth:** payment status and event data come from validated signed webhook JSON through the Payment Provider port. Missing provider configuration fails closed; UI prose, local flags and desk checkboxes cannot substitute for a payment event.
+- **Paid enrollment gate:** B2C Active `ELMS Enrollment` is server-created only after a verified `paid` event links a `payment_id`; webhook event handling is idempotent and failed/unsigned events do not create Active enrollment. Catalog and legacy free-enrollment paths remain denied.
+- **Live Page synchronization:** the standard `elms-admission` Page is source-controlled and synchronized by install/migrate wiring. The previously observed live Page regression is closed, and the authenticated runtime wire captured Page render, profile/private upload, payment creation, signed webhook and learning-link enrollment with no console errors.
+- **Acceptance boundary:** APP QA required backend, frontend_build, browser, live_smoke, wire_journey and leftover_sot lanes; all passed for AC-001..AC-006 and BN-001..BN-004. Concrete provider integration, 1С and exploratory usability remain outside this slice.

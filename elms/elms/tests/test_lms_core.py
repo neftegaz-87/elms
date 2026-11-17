@@ -168,15 +168,20 @@ class TestLMSCoreFlows(unittest.TestCase):
                 lms_api.enroll_learner(user="u3@example.ru", batch="BATCH-1", subscription="SUB-001")
 
     def test_lms_enrollment_lifecycle(self):
-        """FR-002 / TM-003: Verify successful enrollment and course progress creation."""
+        """A paid B2C enrollment creates enrollment and zeroed course progress."""
         created_docs = []
         def fake_factory(dt):
             d = FakeDoc(dt, _is_new=True)
             created_docs.append(d)
             return d
 
+        def get_value(doctype, filters_or_name, field=None, *args, **kwargs):
+            if doctype == "ELMS Payment":
+                return "PAYMENT-1"
+            return None
+
         with patch.object(frappe.db, "exists", return_value=True), \
-             patch.object(frappe.db, "get_value", return_value=None), \
+             patch.object(frappe.db, "get_value", side_effect=get_value), \
              patch.object(frappe, "new_doc", side_effect=fake_factory), \
              patch.object(lms_api, "_has_role", return_value=True):
 

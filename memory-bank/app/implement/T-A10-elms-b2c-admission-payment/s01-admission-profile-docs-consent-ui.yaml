@@ -5,7 +5,7 @@ plan_id: T-A10-elms-b2c-admission-payment
 task_id: T-A10-elms-b2c-admission-payment
 title: s01 — Admission profile, required scans, PD consent and Desk form IMPLEMENT
 level: L3
-status: in_progress
+status: completed
 date: 2026-11-16
 decompose_ref: memory-bank/app/plan/T-A10-elms-b2c-admission-payment/yaml/steps/s01-admission-profile-docs-consent-ui.yaml
 
@@ -68,7 +68,7 @@ integration_check:
   - "Guest and foreign learner access are denied by the server; Admin/Operations only read profiles."
 
 verification_results:
-  - "./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py => PASS (10 passed)"
+  - "./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py => PASS (17 passed)"
   - "python3 -m py_compile elms/elms/admission/api.py elms/elms/admission/profile.py elms/elms/admission/schemas.py => PASS"
   - "node --check elms/elms/public/js/desk-admission.js => PASS"
   - "rg -n 'save_profile|get_profile|passport_scan|consent_version|elms-admission|LearnerProfile' ... => PASS"
@@ -76,11 +76,11 @@ verification_results:
 checkpoints:
   - id: cp1
     criterion: Incomplete profile/files/consent raises typed ValidationError; complete upsert persists one profile per user with private files.
-    status: pending
+    status: done
     verify: "./bin/pytest -q elms/elms/tests/test_admission_profile.py elms/elms/tests/test_admission_ui.py"
   - id: cp2
     criterion: Desk admission page calls real save_profile/get_profile; private file ACL and PII masking are proven.
-    status: pending
+    status: done
     verify: "rg -n 'save_profile|get_profile|passport_scan|consent_version|elms-admission|LearnerProfile' elms/elms/admission elms/elms/public/js/desk-admission.js elms/elms/desk/workspaces.py"
 
 resume_from: cp1

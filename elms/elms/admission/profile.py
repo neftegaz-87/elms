@@ -141,9 +141,52 @@ def _attach_scan(scan: Any, fieldname: str, profile_name: str) -> Any:
     )
 
 
-def _profile_values(model: LearnerProfile, user: str) -> dict[str, Any]:
+def _previous_scan_files(profile_name: str) -> dict[str, list[str]]:
+    get_all = getattr(frappe, "get_all", None)
+    if not callable(get_all):
+        return {}
+
+    rows = get_all(
+        "File",
+        filters={
+            "attached_to_doctype": "ELMS Admission Profile",
+            "attached_to_name": profile_name,
+            "is_private": 1,
+        },
+        fields=["name", "attached_to_field"],
+        limit_page_length=50,
+    )
+    result: dict[str, list[str]] = {}
+    for row in rows or []:
+        fieldname = str(row.get("attached_to_field") or "")
+        file_name = str(row.get("name") or "")
+        if fieldname in REQUIRED_SCAN_FIELDS and file_name:
+            result.setdefault(fieldname, []).append(file_name)
+    return result
+
+
+def _delete_replaced_files(file_names: list[str], new_file_name: str) -> None:
+    delete_doc = getattr(frappe, "delete_doc", None)
+    if file_names and not callable(delete_doc):
+        raise RuntimeError("Frappe File deletion is unavailable while replacing an admission scan")
+    for file_name in file_names:
+        if file_name != new_file_name:
+            delete_doc("File", file_name, force=True, ignore_permissions=True)
+
+
+def _profile_values(
+    model: LearnerProfile,
+    user: str,
+    consent_timestamp: Any = None,
+) -> dict[str, Any]:
     values = model.model_dump(exclude=set(REQUIRED_SCAN_FIELDS))
-    values.update({"user": user, "email": _user_email(user), "consent_timestamp": _now()})
+    values.update(
+        {
+            "user": user,
+            "email": _user_email(user),
+            "consent_timestamp": consent_timestamp or _now(),
+        }
+    )
     return values
 
 
@@ -162,7 +205,15 @@ def save_admission_profile(payload: Any) -> dict[str, Any]:
     else:
         document = frappe.new_doc("ELMS Admission Profile")
 
-    document.update(_profile_values(model, user))
+    previous_files = _previous_scan_files(profile_name) if profile_name else {}
+    previous_consent_version = getattr(document, "consent_version", None)
+    previous_consent_timestamp = getattr(document, "consent_timestamp", None)
+    consent_timestamp = (
+        previous_consent_timestamp
+        if previous_consent_version == model.consent_version
+        else None
+    )
+    document.update(_profile_values(model, user, consent_timestamp))
     if profile_name:
         document.save(ignore_permissions=True)
     else:
@@ -174,6 +225,10 @@ def save_admission_profile(payload: Any) -> dict[str, Any]:
         file_url = getattr(attached, "file_url", None)
         if file_url:
             setattr(document, fieldname, file_url)
+        _delete_replaced_files(
+            previous_files.get(fieldname, []),
+            str(getattr(attached, "name", "")),
+        )
         files[fieldname] = {
             "name": str(getattr(attached, "name", "")),
             "file_name": str(getattr(attached, "file_name", "")),

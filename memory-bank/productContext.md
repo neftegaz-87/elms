@@ -1,7 +1,7 @@
 # Контекст продукта (productContext)
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-11-14 (после T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (после T-A07 APP QA PASS & context sync); 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
+**Обновлено:** 2026-11-17 (после T-A10 APP QA PASS & context sync); 2026-11-14 (после T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (после T-A07 APP QA PASS & context sync); 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
 
 ## Текущий срез (Current Wedge & Delivery Status)
 
@@ -67,6 +67,10 @@
     - Кабинет ограничен серверной membership-проверкой организации и соединяет `ELMS Organization Member` с `ELMS Enrollment` и `ELMS Course Progress`; UI имеет явное empty state без фиктивных строк.
     - `export_org_progress` использует тот же серверный ACL/read model, выдаёт UTF-8 CSV и записывает `ELMS Cabinet Export Log`; клиентский DOM не является источником CSV.
     - Authenticated runtime wire evidence подтвердил roster/export journey, HTTP 200, UTF-8/BOM и отсутствие DOM-only CSV. Для active runtime потребовались Keycloak-only credentials и preflight. Все required lanes (backend, frontend_build, browser, live_smoke, wire_journey, leftover_sot) прошли; AC-001..AC-005 passed; exploratory usability не запускался как optional next action; blockers отсутствуют.
+  - **Поступление B2C и оплата (`T-A10`):** завершены и приняты APP QA как вертикальный срез admission → payment → enrollment:
+    - Learner заполняет `ELMS Admission Profile`, загружает обязательные приватные сканы и фиксирует согласие ПДн; после полной валидации создаётся pending Payment через provider port. Только валидированный signed `paid` webhook создаёт ровно одно Active `ELMS Enrollment` и открывает ссылку обучения; бесплатный/ручной paid bypass запрещён.
+    - Runtime Page regression закрыта: стандартная `elms-admission` Page синхронизирована в live Frappe через install/migrate wiring. Полный authenticated wire journey profile/upload/payment/signed-webhook/enrollment прошёл; BF-001..BF-006 закрыты, live Page и payment state-order/idempotency blockers не воспроизводятся.
+    - QA PASS: required app lanes backend, frontend_build, browser, live_smoke, wire_journey и leftover_sot; AC-001..AC-006 и BN-001..BN-004 passed. Evidence: `memory-bank/app/qa/T-A10-elms-b2c-admission-payment/qa-20261117-b2c-admission-payment3.yaml`, `admission-wire-20261117.json`, `live-smoke-20261117.json`; конкретный эквайринг, 1С и exploratory usability остаются вне этого среза.
 - **Следующие шаги (Next Foundation Wedges):**
   - `T-F01` (Desk workspaces / role navigation): as-built закрыт — LMS/Operations/Settings workspaces, role filter, platform workspaces скрыты; login affordance закрыт в T-A01.
   - Прикладная синхронизация Bitrix24 (LMS / Operations интеграционные сценарии) на базе стабилизированного REST-транспорта `T-B04`.

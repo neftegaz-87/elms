@@ -194,7 +194,7 @@
 		var pane = state.root && state.root.querySelector("#elms-tab-catalog");
 		if (!pane) return;
 		var cards = state.catalog.map(catalogCard).join("");
-		pane.innerHTML = '<div class="elms-section-intro"><div><div class="elms-kicker">ОТКРЫТЫЙ КАТАЛОГ</div><h2>Курсы по нефтегазовой отрасли</h2><p>Выберите активный поток и запишитесь самостоятельно. Материалы в демо-каталоге предназначены для проверки сценария обучения.</p></div><span class="elms-count-badge">' + state.catalog.length + ' доступн.</span></div><div class="elms-catalog-grid">' + (cards || '<div class="elms-empty-state"><h3>Активных курсов пока нет</h3><p>Методист ещё не открыл поток для записи.</p></div>') + '</div>';
+		pane.innerHTML = '<div class="elms-section-intro"><div><div class="elms-kicker">ОТКРЫТЫЙ КАТАЛОГ</div><h2>Курсы по нефтегазовой отрасли</h2><p>Выберите активный поток, заполните анкету и завершите оплату. Зачисление появится после подтверждения платежа.</p></div><span class="elms-count-badge">' + state.catalog.length + ' доступн.</span></div><div class="elms-catalog-grid">' + (cards || '<div class="elms-empty-state"><h3>Активных курсов пока нет</h3><p>Методист ещё не открыл поток для записи.</p></div>') + '</div>';
 		pane.querySelectorAll(".elms-catalog-enroll-btn").forEach(function (button) {
 			button.addEventListener("click", function () { enrollInCatalog(button.getAttribute("data-batch")); });
 		});
@@ -261,13 +261,7 @@
 	}
 
 	function enrollInCatalog(batch) {
-		call("elms.lms.api.enroll_self", { batch: batch }, function (result) {
-			if (!result) return;
-			frappe.show_alert({ message: "Вы записаны на курс", indicator: "green" });
-			state.activeTab = "courses";
-			loadData();
-			switchTab("courses");
-		});
+		if (frappe.set_route) frappe.set_route("elms-admission", batch);
 	}
 
 	function courseCard(course) {
@@ -616,8 +610,8 @@
 	function openEnrollmentDialog() {
 		if (!frappe.ui || !frappe.ui.Dialog) return;
 		var dialog = new frappe.ui.Dialog({
-			title: "Оформить зачисление",
-			fields: [{ fieldname: "user", fieldtype: "Link", options: "User", label: "Слушатель", reqd: 1 }, { fieldname: "batch", fieldtype: "Link", options: "ELMS Batch", label: "Поток", reqd: 1 }, { fieldname: "subscription", fieldtype: "Link", options: "ELMS Subscription", label: "Подписка / квота" }],
+			title: "Оформить B2B зачисление",
+			fields: [{ fieldname: "user", fieldtype: "Link", options: "User", label: "Слушатель", reqd: 1 }, { fieldname: "batch", fieldtype: "Link", options: "ELMS Batch", label: "Поток", reqd: 1 }, { fieldname: "subscription", fieldtype: "Link", options: "ELMS Subscription", label: "B2B подписка / квота" }],
 			primary_action_label: "Зачислить",
 			primary_action: function (values) {
 				call("elms.lms.api.enroll_learner", values, function (result) {

@@ -68,6 +68,17 @@ page_js = {
 	"elms-admission": "public/js/elms-admission-page.js",
 }
 
+
+def sync_admission_page() -> None:
+	import frappe
+	from frappe.modules.import_file import import_file_by_path
+
+	import_file_by_path(
+		frappe.get_app_path("elms", "operations", "page", "elms_admission", "elms_admission.json"),
+		ignore_version=True,
+		reset_permissions=True,
+	)
+
 extend_bootinfo = [
 	"elms.sso.review.extend_bootinfo",
 	"elms.ai.boot.extend_bootinfo",
@@ -86,8 +97,14 @@ override_whitelisted_methods = {
 }
 update_website_context = ["elms.install.update_website_context"]
 
-after_install = "elms.install.after_install"
-after_migrate = "elms.install.after_migrate"
+after_install = [
+	"elms.install.after_install",
+	"elms.hooks.sync_admission_page",
+]
+after_migrate = [
+	"elms.install.after_migrate",
+	"elms.hooks.sync_admission_page",
+]
 on_login = "elms.install.on_login_sync_identity"
 
 doc_events = {

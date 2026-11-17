@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+epic_id: T-A10-elms-b2c-admission-payment
+plan_id: T-A10-elms-b2c-admission-payment
+step_id: s02
+role: app
+phase: IMPLEMENT
+status: completed
+done:
+  - AC-001/002
+  - AC-003/004
+  - Desk pay CTA/waiting/success
+integration_check:
+  - payment create and signed webhook tests pass
+  - payment provider compile and Desk JavaScript syntax checks pass
+
+plan_refs: [FR-002, FR-003, FR-004, NFR-002, NFR-004, US-002, US-003, US-004, AC-001, AC-002, AC-003, AC-004]
+
+files:
+  - elms/elms/admission/provider.py
+  - elms/elms/admission/payment.py
+  - elms/elms/admission/webhook.py
+  - elms/elms/admission/api.py
+  - elms/elms/admission/schemas.py
+  - elms/elms/elms_core/doctype/elms_payment/__init__.py
+  - elms/elms/elms_core/doctype/elms_payment/elms_payment.json
+  - elms/elms/elms_core/doctype/elms_payment/elms_payment.py
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/hooks.py
+  - elms/elms/lms/api.py
+  - elms/elms/tests/test_admission_payment.py
+  - elms/elms/tests/test_admission_webhook.py
+  - elms/elms/tests/test_admission_ui.py
+
+implementation:
+  - PaymentProvider port with deterministic signed fake adapter and fail-closed configuration.
+  - ELMS Payment pending record with typed status and provider session.
+  - Signed paid/failed webhook with event-id idempotency and payment-backed enrollment.
+  - Desk admission pay CTA with waiting, error, and learning-link success states.
+
+tests:
+  - ./bin/pytest -q elms/elms/tests/test_admission_payment.py
+  - ./bin/pytest -q elms/elms/tests/test_admission_webhook.py
+  - ./bin/pytest -q elms/elms/tests/test_admission_payment.py elms/elms/tests/test_admission_webhook.py elms/elms/tests/test_admission_ui.py
+  - python3 -m py_compile elms/elms/admission/payment.py elms/elms/admission/webhook.py elms/elms/admission/provider.py
+  - node --check elms/elms/public/js/desk-admission.js
+
+checkpoints:
+  - id: cp1
+    status: done
+    criterion: AC-001/002 — profile gate + pending Payment + provider session.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_payment.py
+  - id: cp2
+    status: done
+    criterion: AC-003/004 — signed paid enroll once; failed/unsigned no Active; idempotent event id.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_webhook.py
+  - id: cp3
+    status: done
+    criterion: Desk pay CTA/waiting/success call real create_payment; no free-text paid SoT.
+    verify: rg -n 'create_payment|payment_webhook|waiting|ELMS Payment|PaymentStatus|parse_webhook|provider_payment_id' elms/elms/admission elms/elms/public/js/desk-admission.js
+
+wire_complete:
+  status: completed
+  call_sites:
+    - desk-admission.js pay CTA -> elms.admission.api.create_payment -> PaymentProvider.create_payment
+    - elms.admission.api.payment_webhook -> elms.admission.webhook.handle_payment_webhook -> parse_webhook -> paid -> elms.lms.api.enroll_learner once with payment ref
+  enforce_path: elms/elms/admission/webhook.py
+  dual_path_rg: no_matches
+  instruction_rg: no_matches
+  deny_old_proven: true

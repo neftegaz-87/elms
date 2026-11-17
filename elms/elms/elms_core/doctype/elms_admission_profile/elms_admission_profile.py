@@ -45,7 +45,6 @@ def has_permission(doc: Any, ptype: str = "read", user: str | None = None) -> bo
     return "ELMS Learner" in roles and str(getattr(doc, "user", "")) == current_user and ptype in {
         "read",
         "write",
-        "create",
     }
 
 

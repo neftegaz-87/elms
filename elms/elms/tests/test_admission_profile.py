@@ -175,6 +175,7 @@ class TestAdmissionProfilePersistence(unittest.TestCase):
             "ops@example.test": ["ELMS Operations User"],
         }.get(user, []), create=True):
             self.assertTrue(admission_doctype.has_permission(own, "write", "learner@example.test"))
+            self.assertFalse(admission_doctype.has_permission(own, "create", "learner@example.test"))
             self.assertFalse(admission_doctype.has_permission(foreign, "read", "learner@example.test"))
             self.assertTrue(admission_doctype.has_permission(own, "read", "ops@example.test"))
             self.assertFalse(admission_doctype.has_permission(own, "write", "ops@example.test"))

@@ -21,17 +21,17 @@
       "name": "login_css_asset_linked",
       "status": "pass",
       "observed": [
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.5O32ZY5F.css",
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.BMAP3QZB.css",
         "http://elms.localhost:8082/assets/elms/css/login.css",
         "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1",
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.W7NGM4LD.css"
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.PL4IRSJZ.css"
       ]
     },
     {
       "name": "linked_stylesheets_are_available",
       "status": "pass",
       "observed": {
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.5O32ZY5F.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.BMAP3QZB.css": {
           "status": 200,
           "content_type": "text/css"
         },
@@ -43,7 +43,7 @@
           "status": 200,
           "content_type": "text/css"
         },
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.W7NGM4LD.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.PL4IRSJZ.css": {
           "status": 200,
           "content_type": "text/css"
         }
@@ -154,7 +154,7 @@
   "passed": true,
   "errors": [],
   "stylesheet_statuses": {
-    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.5O32ZY5F.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.BMAP3QZB.css": {
       "status": 200,
       "content_type": "text/css"
     },
@@ -166,7 +166,7 @@
       "status": 200,
       "content_type": "text/css"
     },
-    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.W7NGM4LD.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.PL4IRSJZ.css": {
       "status": 200,
       "content_type": "text/css"
     }
@@ -218,7 +218,7 @@
   "status": "pass",
   "evidence_type": "runtime_browser",
   "live_evidence": true,
-  "timestamp": "2026-11-14T13:48:59Z",
+  "timestamp": "2026-11-17T13:36:31Z",
   "command": "python3 scripts/run_browser_qa.py",
   "exit_code": 0
 }

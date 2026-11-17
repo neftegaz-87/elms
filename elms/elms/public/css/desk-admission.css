@@ -15,6 +15,9 @@
 .elms-admission-status.is-success { border-left-color: var(--admission-good); color: var(--admission-good); }
 .elms-admission-status.is-error { border-left-color: var(--admission-danger); color: var(--admission-danger); }
 .elms-admission-card { max-width: 1080px; margin: 0 auto 14px; padding: 18px; border: 1px solid var(--admission-line); background: var(--admission-surface); }
+.elms-admission-card[hidden] { display: none; }
+.elms-admission-payment p { margin: 0 0 14px; color: var(--admission-muted); }
+.elms-admission-learning-link { margin-left: 14px; color: var(--admission-action); font-weight: 700; }
 .elms-admission-card-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; font-weight: 700; }
 .elms-admission-card-head small { color: var(--admission-muted); font-size: 12px; font-weight: 400; }
 .elms-admission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }

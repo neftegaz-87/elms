@@ -1,14 +1,6 @@
 version: roadmap-queue/v2
 role: app
 queue:
-- id: T-A10
-  epic_id: T-A10-elms-b2c-admission-payment
-  kind: feature
-  plan: plan/T-A10-elms-b2c-admission-payment/md/plan.md
-  batch: elms-admission-surfaces
-  deps:
-  - T-A02
-  - T-A07
 - id: T-A11
   epic_id: T-A11-elms-ai-admission-parse
   kind: feature
@@ -98,6 +90,14 @@ done:
   deps:
   - T-A07
   - T-A05
+- id: T-A10
+  epic_id: T-A10-elms-b2c-admission-payment
+  kind: feature
+  plan: plan/T-A10-elms-b2c-admission-payment/md/plan.md
+  batch: elms-admission-surfaces
+  deps:
+  - T-A02
+  - T-A07
 batches:
   elms-auth-surface:
     title: ELMS Keycloak login surface and brokered SSO journey
@@ -125,5 +125,5 @@ batches:
   elms-admission-surfaces:
     title: Поступление B2C/B2B, AI-бланк, квоты, custom fields, admin view-all
     note: 'Multi-epic: T-A10 B2C pay→enroll; T-A11 AI parse бланка; T-A12 B2B+квоты;
-      T-A13 custom fields Course/Program/Batch; T-A14 admin view-all. 1С и Bitrix SoT
-      вне cut. Clarify 2026-11-16.'
+      T-A13 custom fields Course/Program/Batch; T-A14 admin view-all. 1С и Bitrix
+      SoT вне cut. Clarify 2026-11-16.'

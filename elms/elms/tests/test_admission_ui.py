@@ -43,6 +43,8 @@ class TestAdmissionUI(unittest.TestCase):
         self.assertIn("data-admission-course", self.js)
         self.assertIn("data-admission-batch", self.js)
         self.assertIn("data-admission-status", self.js)
+        self.assertIn("frappe.get_route", self.js)
+        self.assertIn('selected"', self.js)
 
     def test_admission_page_has_empty_error_and_keyboard_states(self):
         self.assertIn("Профиль ещё не заполнен", self.js)
@@ -54,6 +56,8 @@ class TestAdmissionUI(unittest.TestCase):
     def test_no_public_file_url_is_rendered_as_profile_data(self):
         self.assertNotIn("file_url", self.js)
         self.assertNotIn("/files/", self.js)
+        self.assertIn("ELMS Payment", self.js)
+        self.assertIn("ручная отметка недоступна", self.js)
 
     def test_consent_checkbox_cannot_submit_unchecked_version(self):
         self.assertIn('consent.checked ? consent.value : ""', self.js)
