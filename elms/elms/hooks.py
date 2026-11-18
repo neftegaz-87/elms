@@ -1,3 +1,6 @@
+import frappe
+
+
 app_name = "elms"
 app_title = "elms"
 app_publisher = "ELMS Team"
@@ -79,6 +82,43 @@ def sync_admission_page() -> None:
 		reset_permissions=True,
 	)
 
+
+def sync_admission_doctypes() -> None:
+	"""Register the admission import DocTypes before their controllers are used."""
+	from frappe.modules.import_file import import_file_by_path
+
+	for doctype in (
+		"elms_admission_credential",
+		"elms_admission_import_row",
+		"elms_admission_import",
+	):
+		import_file_by_path(
+			frappe.get_app_path("elms", "operations", "doctype", doctype, f"{doctype}.json"),
+			ignore_version=True,
+			reset_permissions=True,
+		)
+
+
+def sync_admission_page_on_session_creation(login_manager=None) -> None:
+	"""Repair stale Page role rows before a newly authenticated Desk session uses them."""
+
+	if not login_manager or getattr(login_manager, "user", None) in (None, "Guest"):
+		return
+
+	user_roles = set(frappe.get_roles(login_manager.user) or [])
+	if "ELMS Company Admin" not in user_roles:
+		return
+
+	page_roles = set(
+		frappe.get_all(
+			"Has Role",
+			filters={"parent": "elms-admission", "parenttype": "Page"},
+			pluck="role",
+		)
+	)
+	if "ELMS Company Admin" not in page_roles:
+		sync_admission_page()
+
 extend_bootinfo = [
 	"elms.sso.review.extend_bootinfo",
 	"elms.ai.boot.extend_bootinfo",
@@ -99,13 +139,16 @@ update_website_context = ["elms.install.update_website_context"]
 
 after_install = [
 	"elms.install.after_install",
+	"elms.hooks.sync_admission_doctypes",
 	"elms.hooks.sync_admission_page",
 ]
 after_migrate = [
 	"elms.install.after_migrate",
+	"elms.hooks.sync_admission_doctypes",
 	"elms.hooks.sync_admission_page",
 ]
 on_login = "elms.install.on_login_sync_identity"
+on_session_creation = ["elms.hooks.sync_admission_page_on_session_creation"]
 
 doc_events = {
 	"User": {

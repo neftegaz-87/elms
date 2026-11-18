@@ -1,0 +1,136 @@
+schema: epic-decompose-index/v1
+plan_id: T-A11-elms-ai-admission-parse
+level: L3
+sNN_cap: 3
+appetite:
+  timebox_days: 5
+  cut_list:
+  - B2B Enrollment creation, quota decrement, or T-A12 handoff execution
+  - B2C admission profile, payment, 1C billing, or Bitrix status SoT
+  - Custom fields for Course/Program/Batch
+  - OCR or non-tabular scans beyond the XLSX fixture contract
+  - Provider-specific AI transport configuration outside T-A06 OmniRoute patterns
+  rationale: 'One ship-ready import boundary is required before T-A12: the company
+    upload must become validated rows and admin-releasable synthetic credentials,
+    while enrollment remains an explicit downstream responsibility.'
+effort_probe:
+  outcomes:
+  - outcome: Admission XLSX import vertical slice with preview, errors, and synthetic
+      credentials
+    hours_mid: 32.0
+    hours_range: 24-40
+    confidence: medium
+    notes: Parent/row/credential DocTypes, fixture-backed Pydantic validation, bounded
+      OmniRoute parse call, idempotent file hash, Company Admin API/UI preview, one-time
+      credential reveal audit, export, and contract/browser evidence.
+  total_hours: 32.0
+  effort_hours_total: 32.0
+  effort_class: L
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 3
+  sNN_target: 1
+split_rationale: 'This is one cohesive machine boundary: upload, parse, validation,
+  persistence, preview, credential release, and export cannot be accepted independently
+  because T-A12 consumes the persisted structured rows. Keeping backend, Desk UI,
+  AI wire, and no-enrollment enforcement in one shard preserves the vertical slice.'
+technology_axiom_lock:
+- Pydantic AdmissionRow and typed import status are the only accepted validation/status
+  SoT; regex-only Excel scraping is forbidden.
+- The fixture blank-zayavka-2026.xlsx is the column/schema SoT, with an explicit schema_version;
+  ad-hoc aliases are forbidden.
+- OmniRoute/neftegaz-ai-layer produces structured JSON that is validated before any
+  row is presented as parsed.
+- Missing email produces deterministic synthetic identity data and an encrypted/Password
+  vault secret with one-time reveal audit.
+- This epic never creates, mutates, or calls an ELMS Enrollment API; rows are the
+  only T-A12 handoff.
+steps:
+- id: s01
+  file: s01-admission-import-vertical-slice.yaml
+  title: Company admission XLSX parse, preview, and synthetic credential vault
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Versioned fixture-backed header and row schema for org/INN/program/training
+    kind and learner columns
+- id: FR-002
+  step: s01
+  description: File hash, AI provider parse, typed DTO validation, persisted rows,
+    human preview, and bounded failure
+- id: FR-003
+  step: s01
+  description: Deterministic synthetic credentials for rows without email, with admin-only
+    one-time reveal or invite-token record
+- id: US-001
+  step: s01
+  description: Company Admin uploads a blank and sees a preview of parsed rows
+- id: US-002
+  step: s01
+  description: Company Admin sees row-level SNILS/date/schema errors
+- id: US-003
+  step: s01
+  description: Company Admin receives synthetic login/secret data for rows without
+    email
+- id: US-004
+  step: s01
+  description: Re-upload of the same file is idempotent or creates an explicit new
+    revision
+- id: NFR-PII
+  step: s01
+  description: Secrets are protected at rest and every credential reveal is audited
+- id: NFR-FAIL-CLOSED
+  step: s01
+  description: Parse timeout, corrupt input, provider failure, and invalid DTO never
+    surface silent success
+- id: NFR-NO-ENROLL
+  step: s01
+  description: Import APIs do not create Enrollment documents or call enrollment endpoints
+- id: AC-001
+  step: s01
+  description: Fixture parse maps header fields and extracts Сметанин FIO+SNILS
+- id: AC-002
+  step: s01
+  description: Successful row without email creates a synthetic identity listed for
+    admins
+- id: AC-003
+  step: s01
+  description: Corrupt file yields failed status with explicit error and no silent
+    partial success
+- id: AC-004
+  step: s01
+  description: Inspecting a parsed import proves zero Enrollment documents from this
+    epic APIs
+stages_coverage:
+- stage: Stage s01 admission-import-vertical-slice
+  step: s01
+outcome_map:
+- outcome: Admission XLSX import with validated preview rows
+  step: s01
+- outcome: Deterministic synthetic credentials with admin vault reveal audit
+  step: s01
+- outcome: Explicit no-enrollment boundary for T-A12
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Ad-hoc or unvalidated B2B spreadsheet handling before T-A12
+    target: ELMS Admission Import parent/rows plus credential vault as the sole handoff
+      SoT
+    step: s01
+    policy: replace in-epic
+  items:
+  - symbol: Direct ELMS Enrollment creation from admission parse
+    kind: B
+    replacement: Persist parsed rows only and hand off to T-A12
+    step: s01
+    policy: deny in-epic
+  - symbol: Plaintext synthetic credential persistence or unrestricted reveal
+    kind: C
+    replacement: Password/encrypted vault value, one-time reveal, and audit fields
+    step: s01
+    policy: replace in-epic
+  sunset:
+  - Import success without typed row validation
+  - Any new admission-parse path that treats preview as Enrollment

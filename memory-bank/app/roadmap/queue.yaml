@@ -1,14 +1,6 @@
 version: roadmap-queue/v2
 role: app
 queue:
-- id: T-A11
-  epic_id: T-A11-elms-ai-admission-parse
-  kind: feature
-  plan: plan/T-A11-elms-ai-admission-parse/md/plan.md
-  batch: elms-admission-surfaces
-  deps:
-  - T-A06
-  - T-A07
 - id: T-A12
   epic_id: T-A12-elms-b2b-batch-quotas
   kind: feature
@@ -97,6 +89,14 @@ done:
   batch: elms-admission-surfaces
   deps:
   - T-A02
+  - T-A07
+- id: T-A11
+  epic_id: T-A11-elms-ai-admission-parse
+  kind: feature
+  plan: plan/T-A11-elms-ai-admission-parse/md/plan.md
+  batch: elms-admission-surfaces
+  deps:
+  - T-A06
   - T-A07
 batches:
   elms-auth-surface:

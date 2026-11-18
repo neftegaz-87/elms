@@ -1,0 +1,324 @@
+schema: epic-decompose/v1
+role: app
+step_id: s01
+plan_id: T-A11-elms-ai-admission-parse
+title: Company admission XLSX parse, preview, and synthetic credential vault
+level: L3
+next_phase: APP IMPLEMENT
+status: pending
+backend: yes
+frontend: yes
+wire: yes
+visible_ui: yes
+needs_creative: false
+wire_complete_required: true
+
+goal: >-
+  Дать Company Admin своей организации единственный ship-ready путь: загрузить
+  канонический XLSX, получить bounded AI structured JSON, провалидировать каждую
+  строку Pydantic DTO, сохранить draft/parsed/failed import с preview и ошибками,
+  создать для строк без email синтетическую identity/credential запись с
+  детерминированными login/email и защищённым одноразовым invite_token через
+  vault, без создания Frappe User в этом эпике, и экспортировать проверенные
+  rows; Enrollment и quota остаются вне эпика.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003]
+  us_ids: [US-001, US-002, US-003, US-004]
+  ac_ids: [AC-001, AC-002, AC-003, AC-004]
+  nouns:
+    - ELMS Admission Import
+    - ELMS Admission Import Row
+    - ELMS Admission Credential
+    - schema_version
+    - import status draft/parsed/failed
+    - AdmissionHeader and AdmissionRow Pydantic DTOs
+    - file hash and explicit revision
+    - OmniRoute grounded parse
+    - row-level validation errors
+    - synthetic login/email and one-time secret reveal
+    - invite-token provisioning with protected one-time invite_token
+    - no Frappe User creation in this epic
+    - Company Admin preview and export
+    - T-A12 structured-row handoff
+  layout_paths:
+    - elms/elms/admission/import_schemas.py
+    - elms/elms/admission/import_service.py
+    - elms/elms/admission/import_api.py
+    - elms/elms/admission/credentials.py
+    - elms/elms/operations/doctype/elms_admission_import/
+    - elms/elms/operations/doctype/elms_admission_import_row/
+    - elms/elms/operations/doctype/elms_admission_credential/
+    - elms/elms/operations/page/elms_admission/
+    - elms/elms/public/js/desk-admission.js
+    - elms/elms/public/css/desk-admission.css
+    - elms/elms/tests/test_admission_import.py
+    - elms/elms/tests/test_admission_import_ui.py
+  plan_jumps:
+    - memory-bank/app/plan/T-A11-elms-ai-admission-parse/md/plan.md:1-71
+    - memory-bank/app/plan/T-A11-elms-ai-admission-parse/md/plan.md:72-121
+  ac_quotes:
+    - 'AC-001: Given blank-zayavka fixture; When parse; Then ≥ header fields mapped; sample Сметанин row extracts FIO+SNILS.'
+    - 'AC-002: Given row without email; When parse OK; Then synthetic identity created and listed for admin.'
+    - 'AC-003: Given corrupt file; When parse; Then import status failed with explicit error; no partial silent success presented as OK.'
+    - 'AC-004: Given parsed import; When inspect; Then zero Enrollment documents created by this epic APIs.'
+  user_journey: >-
+    Company Admin opens the admission import surface for the current organization,
+    uploads blank-zayavka-2026.xlsx, sees draft/parsed progress and a row preview,
+    corrects or exports only validated rows, and reveals synthetic credentials only
+    to an authorized admin. A corrupt file, provider timeout, or invalid row ends in
+    failed with explicit errors and no silent partial success. Re-uploading the same
+    hash returns the existing revision; a deliberate new upload is a new revision.
+  api:
+    upload_import:
+      method: elms.admission.import_api.upload_import
+      input: organization-scoped XLSX file, optional explicit new_revision flag
+      output: import name, status, schema_version, file_hash, revision, row_count
+      errors: PermissionError foreign organization; ValidationError wrong MIME/empty/corrupt file; provider/timeout failure
+    inspect_import:
+      method: elms.admission.import_api.inspect_import
+      input: import name and bounded page/filter parameters
+      output: header, typed row preview, row errors, status, revision, no raw secret
+      errors: PermissionError; DoesNotExist; stale or failed import remains explicit
+    export_import:
+      method: elms.admission.import_api.export_import
+      input: parsed import name and validated-row filter
+      output: admin-authorized export of structured rows, never Enrollment records
+      errors: PermissionError; ValidationError when import is not parsed
+    reveal_credential:
+      method: elms.admission.import_api.reveal_credential
+      input: credential row id and explicit one-time invite-token reveal intent
+      output: protected invite_token once plus revealed_by/revealed_at audit metadata
+      errors: PermissionError non-admin/foreign organization; ValidationError already revealed or invalid credential
+    credential_provisioning: >-
+      invite-token: create a synthetic identity/credential record with deterministic
+      login/email and a protected one-time invite_token; do not create a Frappe User
+      in this epic.
+    authz: >-
+      ELMS Company Admin may operate only on its own organization; ELMS Admin and
+      ELMS Operations User may inspect/export and reveal invite_token within their platform scope;
+      Guest, Learner, and foreign Company Admin are denied. UI is not the security
+      boundary. Import APIs never call enrollment methods.
+  persistence: >-
+    ELMS Admission Import stores organization, source file/hash, schema_version,
+    revision, typed status, header fields, parse error and timestamps. Child import
+    rows store normalized DTO fields, row status, source row number, deterministic
+    identity reference and row errors. ELMS Admission Credential stores a synthetic
+    identity/credential record with deterministic login/email, a protected encrypted
+    one-time invite_token, reveal audit, and parent row. This invite-token contract
+    does not create a Frappe User in this epic. Unique organization+file_hash returns
+    the existing import unless new_revision is explicit. No Enrollment link or
+    Enrollment insert is present in this boundary.
+  done: >-
+    Both supplied fixtures parse to typed rows with header fields and the Сметанин
+    FIO+SNILS assertion; invalid rows and corrupt files are visibly failed; rows
+    without email receive a synthetic identity/credential record with deterministic
+    login/email and a protected one-time invite_token reveal; no Frappe User is
+    created in this epic; same-file retries are idempotent or explicit revisions;
+    export and preview are organization-scoped; and static/runtime evidence proves
+    zero Enrollment calls or documents from this epic.
+
+context:
+  consumes:
+    - path: memory-bank/app/plan/T-A11-elms-ai-admission-parse/md/plan.md
+      reason: Epic contract, AC-001..004, no-enrollment boundary, and AI-before-T-A12 ordering
+    - path: memory-bank/app/clarify/clarify-20261116-elms-admission-b2c-b2b-custom-fields.md
+      reason: B2B XLSX fixture decisions, Q13=C AI ordering, Q17 invite-token provisioning
+    - path: memory-bank/app/clarify/fixtures-20261116-admission/blank-zayavka-2026.xlsx
+      reason: Canonical header/row column SoT and schema fixture
+    - path: memory-bank/app/clarify/fixtures-20261116-admission/sample-rpo-smetanin.xlsx
+      reason: Golden sample for FIO+SNILS extraction
+    - path: elms/elms/ai/omniroute.py
+      reason: Existing bounded OmniRoute transport pattern and provider configuration SoT
+    - path: elms/elms/admission/api.py
+      reason: Existing admission whitelist boundary to extend without merging B2C payment behavior
+    - path: elms/elms/tenant.py
+      reason: Organization scope enforcement for Company Admin and platform roles
+    - path: elms/elms/operations/page/elms_admission/
+      reason: Existing Desk admission page shell to extend with B2B import preview
+    - path: elms/elms/public/js/desk-admission.js
+      reason: Existing admission UI call-site and visual language
+    - path: elms/elms/lms/doctype/elms_enrollment/
+      reason: Negative boundary proof; this epic must not write or call Enrollment
+  produces:
+    - path: elms/elms/admission/import_schemas.py
+      reason: Pydantic header/row DTOs, status enum, and parser response envelope
+    - path: elms/elms/admission/import_service.py
+      reason: file hash/idempotency, bounded AI parse, fail-closed validation, persistence orchestration, and export projection
+    - path: elms/elms/admission/import_api.py
+      reason: organization-scoped upload, inspect, export, and credential reveal whitelist methods
+    - path: elms/elms/admission/credentials.py
+      reason: deterministic synthetic identity/credential generation, protected invite_token storage, one-time reveal audit, and no Frappe User creation
+    - path: elms/elms/operations/doctype/elms_admission_import/__init__.py
+      reason: Parent DocType package
+    - path: elms/elms/operations/doctype/elms_admission_import/elms_admission_import.json
+      reason: Import status, source/revision/hash, header, error, and organization fields
+    - path: elms/elms/operations/doctype/elms_admission_import/elms_admission_import.py
+      reason: Parent validation and organization permission controller
+    - path: elms/elms/operations/doctype/elms_admission_import_row/__init__.py
+      reason: Child row DocType package
+    - path: elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.json
+      reason: Typed normalized learner fields, row status, and errors child table
+    - path: elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.py
+      reason: Row validation/controller boundary
+    - path: elms/elms/operations/doctype/elms_admission_credential/__init__.py
+      reason: Credential vault DocType package
+    - path: elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.json
+      reason: Protected synthetic credential fields and reveal audit fields
+    - path: elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.py
+      reason: One-time reveal and protected persistence controller
+    - path: elms/elms/operations/page/elms_admission/elms_admission.json
+      reason: Desk route/metadata for Company Admin upload and preview surface
+    - path: elms/elms/public/js/desk-admission.js
+      reason: Upload, status polling, preview/errors, export, and credential reveal call sites
+    - path: elms/elms/public/css/desk-admission.css
+      reason: Scoped preview/error/credential states using ELMS tokens
+    - path: elms/elms/tests/test_admission_import.py
+      reason: DTO, fixture, provider failure, idempotency, synthetic credential, ACL, audit, and no-enrollment contracts
+    - path: elms/elms/tests/test_admission_import_ui.py
+      reason: Desk/API call-site and no-enrollment UI contract assertions
+    - path: memory-bank/app/implement/T-A11-elms-ai-admission-parse/s01-admission-import-vertical-slice.yaml
+      reason: Implement evidence contract for this shard
+  plan_refs: [FR-001, FR-002, FR-003, US-001, US-002, US-003, US-004, AC-001, AC-002, AC-003, AC-004]
+  files:
+    - elms/elms/admission/import_schemas.py
+    - elms/elms/admission/import_service.py
+    - elms/elms/admission/import_api.py
+    - elms/elms/admission/credentials.py
+    - elms/elms/operations/doctype/elms_admission_import/__init__.py
+    - elms/elms/operations/doctype/elms_admission_import/elms_admission_import.json
+    - elms/elms/operations/doctype/elms_admission_import/elms_admission_import.py
+    - elms/elms/operations/doctype/elms_admission_import_row/__init__.py
+    - elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.json
+    - elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.py
+    - elms/elms/operations/doctype/elms_admission_credential/__init__.py
+    - elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.json
+    - elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.py
+    - elms/elms/operations/page/elms_admission/elms_admission.json
+    - elms/elms/public/js/desk-admission.js
+    - elms/elms/public/css/desk-admission.css
+    - elms/elms/tests/test_admission_import.py
+    - elms/elms/tests/test_admission_import_ui.py
+    - memory-bank/app/implement/T-A11-elms-ai-admission-parse/s01-admission-import-vertical-slice.yaml
+
+as_built:
+  - Existing B2C admission profile/payment code must remain a separate path and is not an import DTO or Enrollment side effect.
+  - Existing OmniRoute client is reused as transport; this shard adds the grounded structured-parse contract, not a second provider configuration.
+  - Existing Desk admission route is the surface; no parallel FastAPI or foreign CRM/Bitrix import path is introduced.
+  - Invite-token provisioning is the concrete credential contract: deterministic synthetic login/email plus protected one-time invite_token; no Frappe User is created in this epic.
+  - T-A12 owns quota checks and Enrollment creation after this shard's structured rows are accepted.
+
+delta:
+  - Add versioned fixture schema and typed AdmissionHeader/AdmissionRow validation before persistence.
+  - Add organization-scoped import parent/child DocTypes with draft/parsed/failed status, hash idempotency, row errors, preview, and export.
+  - Add invite-token provisioning with deterministic synthetic identity/login/email, protected one-time invite_token, reveal audit, and no Frappe User creation.
+  - Wire Company Admin Desk upload/preview/error/export/reveal to whitelist APIs and prove no Enrollment path.
+
+files:
+  - elms/elms/admission/import_schemas.py
+  - elms/elms/admission/import_service.py
+  - elms/elms/admission/import_api.py
+  - elms/elms/admission/credentials.py
+  - elms/elms/operations/doctype/elms_admission_import/__init__.py
+  - elms/elms/operations/doctype/elms_admission_import/elms_admission_import.json
+  - elms/elms/operations/doctype/elms_admission_import/elms_admission_import.py
+  - elms/elms/operations/doctype/elms_admission_import_row/__init__.py
+  - elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.json
+  - elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.py
+  - elms/elms/operations/doctype/elms_admission_credential/__init__.py
+  - elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.json
+  - elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.py
+  - elms/elms/operations/page/elms_admission/elms_admission.json
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/tests/test_admission_import.py
+  - elms/elms/tests/test_admission_import_ui.py
+  - memory-bank/app/implement/T-A11-elms-ai-admission-parse/s01-admission-import-vertical-slice.yaml
+
+deletes: []
+
+out_of_scope:
+  - ELMS Enrollment creation, quota decrement, course/batch selection for enrollment, or T-A12 confirm action
+  - B2C profile/payment/webhook and any free-enroll migration from T-A10
+  - 1C invoices, Bitrix status master, CRM/ERP imports, or acting-as submission for a foreign organization
+  - OCR, PDF/image parsing, arbitrary column aliasing, and AI-generated values not backed by the schema
+
+skills:
+  code_surface: mixed
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+    - .agents/skills/frontend-testing/SKILL.md
+    - .agents/skills/frontend-patterns/SKILL.md
+    - .agents/skills/next-best-practices/SKILL.md
+    - .agents/skills/vercel-react-best-practices/SKILL.md
+    - .agents/skills/vercel-composition-patterns/SKILL.md
+    - .agents/skills/playwright-best-practices/SKILL.md
+    - .agents/skills/playwright-generate-test/SKILL.md
+    - .agents/skills/web-design-guidelines/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+  design:
+    - .agents/skills/frontend-design/SKILL.md # surface=product_ui groups=D0
+    - .agents/skills/impeccable/SKILL.md # surface=product_ui groups=D0
+    - .agents/skills/emil-design-eng/SKILL.md # surface=product_ui groups=D0
+  omit_justification:
+    fastapi-templates: Frappe whitelist/Document API is the backend boundary; no FastAPI routes, DI, or OpenAPI contract is introduced.
+    async-python-patterns: Existing OmniRoute transport is synchronous and the shard has no async handler or websocket task.
+    sqlalchemy-postgres: Persistence is Frappe DocTypes; no SQLAlchemy ORM or Alembic migration is in scope.
+    supabase-postgres-best-practices: No Supabase or raw PostgreSQL integration is introduced.
+    websocket-engineer: Upload status is bounded request/polling, not a websocket/fanout surface.
+    python-observability: Existing provider correlation/error pattern is reused; new metrics/health surface is not part of the plan.
+    python-performance-optimization: Fixture-sized XLSX import has no hot-path/downsampling requirement.
+    python-configuration: AI configuration remains the existing T-A06 Integration Settings SoT; this shard adds no environment/config surface.
+    playwright-generate-test: The UI contract uses the existing Desk test harness and targeted call-site assertions; no new standalone Playwright spec is required by this shard.
+    vercel-react-view-transitions: The existing Frappe Desk page is vanilla JS; no View Transitions API is used.
+    ui-ux-pro-max: This is a scoped product UI extension under the existing ELMS design language, not a new style encyclopedia/UX audit.
+
+tdd:
+  - Red: reject wrong MIME, empty/corrupt XLSX, unsupported schema version, malformed AI JSON, and invalid SNILS/date with typed failed status and no parsed success.
+  - Red: parse both supplied fixtures and assert mapped headers plus the Сметанин FIO+SNILS golden row.
+  - Red: missing email creates a deterministic unique synthetic identity/credential record with login/email and protected one-time invite_token; no Frappe User is created; repeat parse is idempotent by organization/file hash unless a new revision is explicit.
+  - Red: Company Admin scope, foreign organization, Learner/Guest denial, reveal audit, export authorization, and no Enrollment calls/documents.
+  - Green: implement DocTypes, DTO/service/API, Desk preview/export/reveal, and scoped styles; run targeted tests, syntax, compile, and leftover checks.
+
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py
+  - python3 -m py_compile elms/elms/admission/import_schemas.py elms/elms/admission/import_service.py elms/elms/admission/import_api.py elms/elms/admission/credentials.py
+  - node --check elms/elms/public/js/desk-admission.js
+  - 'rg -n ''ELMS Admission Import|upload_import|inspect_import|reveal_credential|synthetic|invite-token|invite_token|schema_version'' elms/elms/admission elms/elms/operations/doctype/elms_admission_import elms/elms/operations/doctype/elms_admission_import_row elms/elms/operations/doctype/elms_admission_credential elms/elms/public/js/desk-admission.js'
+  - '! rg -n ''frappe\.get_doc\(.*User|insert.*Frappe User|create.*Frappe User'' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py'
+  - "! rg -n 'Enrollment|enroll_' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+
+checkpoints:
+  - id: cp1
+    criterion: Fixture headers and Сметанин FIO+SNILS map to typed DTO rows; corrupt/invalid input is failed closed.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py
+  - id: cp2
+    criterion: Organization-scoped parent/child import persists draft/parsed/failed, hash retries are idempotent or explicit revisions, and preview/export are real API paths.
+    verify: python3 -m py_compile elms/elms/admission/import_schemas.py elms/elms/admission/import_service.py elms/elms/admission/import_api.py elms/elms/admission/credentials.py
+  - id: cp3
+    criterion: Missing email creates a deterministic synthetic identity/credential record with protected one-time invite_token and reveal audit, without a Frappe User; foreign/learner access is denied.
+    verify: ./bin/pytest -q elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py
+  - id: cp4
+    criterion: Desk upload/preview/errors/export/reveal call sites parse and contain no Enrollment handoff.
+    verify: node --check elms/elms/public/js/desk-admission.js
+  - id: cp5
+    criterion: New import APIs and DocTypes are present, invite-token provisioning is explicit with no Frappe User creation, and the import boundary has no Enrollment/enroll call.
+    verify: "! rg -n 'Enrollment|enroll_' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+
+wire_complete:
+  call_sites:
+    - Company Admin admission page -> upload_import -> organization/file-hash authorization
+    - upload_import -> existing OmniRoute client -> structured JSON -> AdmissionHeader/AdmissionRow DTO validation
+    - validated DTOs -> ELMS Admission Import + child rows -> parsed preview; any failure -> failed status with row/file errors
+    - missing email -> deterministic synthetic identity/credential generator -> ELMS Admission Credential login/email + protected invite_token field -> one-time reveal audit; no Frappe User
+    - parsed rows -> export_import -> structured handoff artifact only; no Enrollment call
+  enforce_path: elms/elms/admission/import_api.py
+  dual_path_rg: "! rg -n 'Enrollment|enroll_' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+  instruction_rg: 'rg -n ''silent|без email|synthetic|credential|invite-token|invite_token|no Frappe User|export|preview'' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/public/js/desk-admission.js'
+  deny_old_proven: true

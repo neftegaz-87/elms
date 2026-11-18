@@ -40,6 +40,7 @@ SoT правим **только здесь**. Подключение к runtime 
 ```bash
 ln -sfn ../../rules/elms-approach.mdc .cursor/rules.d/elms-approach.mdc
 ln -sfn ../../rules/elms-design.mdc   .cursor/rules.d/elms-design.mdc
+ln -sfn ../../rules/elms-testing.mdc  .cursor/rules.d/elms-testing.mdc
 ```
 
 3. Frontmatter `.mdc`: `alwaysApply: true`.
@@ -67,7 +68,8 @@ Codex **не** читает `.cursor/rules.d/*.mdc`.
 |------|------------|
 | `elms-approach.mdc` | продукт Operations+LMS; роли из LMS/`elms`; ERP/CRM только паттерны Frappe |
 | `elms-design.mdc` | UI: neftegaz-ai-layer + родной LMS |
-| `agents-overlay.md` | что из hub `AGENTS.md` не канон; стиль кода/тестов |
+| `elms-testing.mdc` | разрешённые команды проверок (pytest / run_browser_qa / live_smoke); запрет bench/pnpm playwright |
+| `agents-overlay.md` | что из hub `AGENTS.md` не канон; стиль кода/тестов → ссылка на `elms-testing.mdc` |
 
 Продуктовый SoT рядом: `memory-bank/product/` (`modules.md`, `vision.md`, `design.md`).
 

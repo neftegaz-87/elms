@@ -1,0 +1,38 @@
+---
+description: HARD — разрешённые проверки ELMS (совпадают с QA / рабочей машиной)
+alwaysApply: true
+---
+
+# ELMS — канон проверок (HARD)
+
+SoT запуска тестов **этого** репо. Не выдумывать `bench` / голый `pnpm playwright`.
+
+## Разрешено (и это же писать в DECOMPOSE `verify:` / IMPLEMENT `tests:`)
+
+| Назначение | Форма команды |
+|------------|---------------|
+| Юнит / API targeted | `./bin/pytest -q <пути к тестам>` или `timeout -k 10s 300s .venv/bin/pytest -q <пути>` |
+| Синтаксис Python | `python3 -m py_compile <модули>` |
+| Синтаксис Desk JS | `node --check <файл.js>` |
+| Браузер / wire journey | `NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py` (+ `--smoke-only` если нужен только smoke) |
+| Live HTTP smoke | `timeout -k 10s 300s bash scripts/live_smoke.sh` |
+| Статический leftover / wire | `rg` / `! rg` по путям шага |
+
+Лимит процесса: внешний `timeout -k 10s 300s` (кроме `./bin/pytest`, у него лимит уже в wrapper).
+
+## FORBIDDEN в plan/decompose/implement verify
+
+1. `bench` / `bench run-tests` / `FrappeTestCase` как **единственный** способ targeted-проверки в шаге.
+2. `pnpm exec playwright` / `npm exec playwright` / `@playwright/test` CLI **без** вашего harness (`scripts/run_browser_qa.py`).
+3. Команды, которых нет в корне репо (нет `package.json` frontend playwright workspace — не выдумывать).
+4. Разные наборы «для implement» и «для QA»: implement targeted = те же инструменты, что QA lanes; QA может добавить full/live, но **не другой стек**.
+
+## Откуда брать образец
+
+Рабочий эталон: шаги/QA эпика admission import — `./bin/pytest`, `py_compile`, `node --check`, `scripts/run_browser_qa.py`, `scripts/live_smoke.sh`.
+
+## Связь
+
+- Продукт/lookup: `rules/elms-approach.mdc`
+- Overlay: `rules/agents-overlay.md`
+- Не путать с hub CRM Playwright из harness AGENTS.

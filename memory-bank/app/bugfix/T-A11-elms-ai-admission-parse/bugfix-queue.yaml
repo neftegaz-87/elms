@@ -1,0 +1,154 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A11-elms-ai-admission-parse
+role: app
+status: closed
+source_qa: memory-bank/app/qa/T-A11-elms-ai-admission-parse/qa-20261118-admission-import-app-lanes-boundary-fail.yaml
+checklist_sha256: f3c8fc8d386d306c28e2fbcf036b6a88249e2aec67009b39637b0b938bbb91c0
+created_at: '2026-11-17T16:15:07Z'
+updated_at: '2026-11-18T07:18:16Z'
+current_id: BF-006
+verification:
+  status: pass
+  command: timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: browser-artifacts/qa-20261118-admission-live-smoke.json
+  last_run_at: '2026-11-18T07:18:16Z'
+  evidence: 'Exact VERIFY exited 0 with browser-artifacts/qa-20261118-admission-live-smoke.json
+    timestamp 2026-11-18T07:18:16Z: typed sso-browser-api-trace/v1 evidence recorded
+    status=pass, live_evidence=true, and exit_code=0 for Keycloak discovery, Frappe
+    login surface, SSO authorization, and organization access checks.'
+items:
+- id: BF-001
+  status: done
+  class: product_bugfix
+  title: 'product_bugfix: authenticated admission parse has no configured LLM provider'
+  blocker_ref: lane:wire_journey|product_runtime|authenticated admission page and
+    controller now load, but upload/inspect returns explicit LLM integration is not
+    configured for this organization; export then returns HTTP 417
+  fix_plan_ref: Configure the deterministic in-scope browser test provider and make
+    the wire probe exercise a genuine invalid row plus the valid parse/export/one-time-reveal
+    journey; then write a fresh typed runtime capture.
+  targets:
+  - scripts/run_browser_qa.py
+  - browser-artifacts/browser-evidence.json
+  - browser-artifacts/qa-20261117-admission-live-smoke.json
+  - elms/elms/operations/page/elms_admission/elms_admission.json
+  - elms/elms/hooks.py
+  - elms/elms/admission/import_api.py
+  - elms/elms/admission/import_service.py
+  - elms/elms/admission/credentials.py
+  verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence_file: browser-artifacts/browser-evidence.json
+  done_at: '2026-11-18T00:39:07Z'
+  evidence: 'Exact VERIFY exited 0 with browser-artifacts/browser-evidence.json timestamp
+    2026-11-17T23:14:39Z: non-smoke authenticated Company Admin journey configured
+    the deterministic provider, rejected an invalid row explicitly, parsed a valid
+    row, exported it with HTTP 200, audited one-time reveal with HTTP 200 and invite
+    token, and recorded no browser console or request failures.'
+  notes: 'Two accepted runtime-bootstrap cycles were exhausted. The first fix exposed
+    a harness-only residual: the blank fixture produced a successful zero-row import.
+    The single allowed respawn changed the probe to an in-memory invalid row while
+    retaining the valid journey; no further bootstrap is needed.'
+- id: BF-002
+  status: done
+  class: product_bugfix
+  title: 'product_bugfix: non-smoke browser lane does not execute the admission feature
+    journey'
+  blocker_ref: lane:wire_journey|suite_red|non-smoke browser command omits the authenticated
+    admission feature journey
+  fix_plan_ref: Provide an explicit non-smoke feature-journey entrypoint for upload,
+    invalid-row preview, valid parse, export, and one-time reveal; then rerun wire_journey
+    with typed evidence.
+  targets:
+  - scripts/run_browser_qa.py
+  - browser-artifacts/browser-evidence.json
+  verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence_file: browser-artifacts/browser-evidence.json
+  done_at: '2026-11-18T00:39:07Z'
+  evidence: 'Exact VERIFY exited 0 with browser-artifacts/browser-evidence.json timestamp
+    2026-11-17T23:14:39Z: non-smoke authenticated Company Admin journey configured
+    the deterministic provider, rejected an invalid row explicitly, parsed a valid
+    row, exported it with HTTP 200, audited one-time reveal with HTTP 200 and invite
+    token, and recorded no browser console or request failures.'
+  notes: The non-smoke entrypoint now starts the deterministic provider, executes
+    the admission feature journey after authentication, and records the exact declared
+    VERIFY command in its typed evidence.
+- id: BF-003
+  status: done
+  class: product_bugfix
+  title: 'product_bugfix: live HTTP smoke acceptance is not closed'
+  blocker_ref: live_smoke:qa_live_smoke_not_pass|scripts/live_smoke.sh|required live
+    HTTP smoke has no accepted passing typed evidence
+  fix_plan_ref: Execute the declared live HTTP smoke against the active ELMS service,
+    ensure the lane records typed evidence_file when it covers the feature, and rerun
+    APP QA after the fix.
+  targets:
+  - scripts/live_smoke.sh
+  - memory-bank/app/qa/T-A11-elms-ai-admission-parse/qa-20261118-admission-import-app-lanes-live-smoke-fail.yaml
+  verify: timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: browser-artifacts/qa-20261118-admission-live-smoke.json
+  done_at: '2026-11-18T07:18:16Z'
+  evidence: 'Exact VERIFY exited 0 with browser-artifacts/qa-20261118-admission-live-smoke.json
+    timestamp 2026-11-18T06:50:52Z: typed sso-browser-api-trace/v1 evidence recorded
+    live_evidence=true, status=pass, and exit_code=0 for Keycloak discovery, Frappe
+    login surface, SSO authorization, and organization access checks.'
+  notes: The live smoke entrypoint now persists typed evidence to its default evidence_file;
+    the next APP QA must rerun the charter and write a new dated artifact.
+- id: BF-004
+  status: cancelled
+  class: product_bugfix
+  title: 'product_bugfix: live HTTP smoke acceptance remains unaccepted'
+  blocker_ref: live_smoke:qa_live_smoke_not_pass|scripts/live_smoke.sh|required live
+    HTTP smoke must produce accepted typed passing evidence
+  fix_plan_ref: Repair the live smoke acceptance/evidence path, execute the exact
+    live smoke command, and persist accepted typed evidence; then rerun APP QA and
+    write a new dated artifact.
+  targets:
+  - scripts/live_smoke.sh
+  - browser-artifacts/qa-20261118-admission-live-smoke.json
+  verify: timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: browser-artifacts/qa-20261118-admission-live-smoke.json
+  notes: 'Obsolete false positive: hub previously rejected absorbed live_smoke status
+    n/a as qa_live_smoke_not_pass. Gate fixed 2026-11-18; cancelled so APP QA can
+    PASS with absorbed live_smoke n/a.'
+- id: BF-005
+  status: done
+  class: product_bugfix
+  title: 'product_bugfix: live HTTP smoke acceptance was rejected by the QA boundary'
+  blocker_ref: live_smoke:qa_live_smoke_not_pass|scripts/live_smoke.sh|required live
+    HTTP smoke must produce accepted typed passing evidence
+  fix_plan_ref: Repair the live-smoke acceptance path, execute the declared command,
+    persist accepted typed evidence, and rerun APP QA with a new dated artifact.
+  targets:
+  - scripts/live_smoke.sh
+  - browser-artifacts/qa-20261118-admission-live-smoke.json
+  - memory-bank/app/qa/T-A11-elms-ai-admission-parse/qa-20261118-admission-import-app-lanes-rejected-pass-fail.yaml
+  verify: timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: browser-artifacts/qa-20261118-admission-live-smoke.json
+  done_at: '2026-11-18T07:18:16Z'
+  evidence: 'Exact VERIFY exited 0 with browser-artifacts/qa-20261118-admission-live-smoke.json
+    timestamp 2026-11-18T06:50:52Z: typed sso-browser-api-trace/v1 evidence recorded
+    status=pass, live_evidence=true, and exit_code=0 for Keycloak discovery, Frappe
+    login surface, SSO authorization, and organization access checks.'
+  notes: Repaired the live-smoke acceptance path so the declared command persists
+    accepted typed evidence by default; this was not a runtime-bootstrap gap.
+- id: BF-006
+  status: done
+  class: product_bugfix
+  title: 'product_bugfix: live HTTP smoke acceptance remains rejected by the QA boundary'
+  blocker_ref: live_smoke:qa_live_smoke_not_pass|scripts/live_smoke.sh|required live
+    HTTP smoke must produce accepted typed passing evidence
+  fix_plan_ref: Repair the live-smoke acceptance path, execute the declared command,
+    persist accepted typed evidence, and rerun APP QA with a new dated artifact.
+  targets:
+  - scripts/live_smoke.sh
+  - browser-artifacts/qa-20261118-admission-live-smoke.json
+  verify: timeout -k 10s 300s bash scripts/live_smoke.sh
+  evidence_file: browser-artifacts/qa-20261118-admission-live-smoke.json
+  done_at: '2026-11-18T07:18:16Z'
+  evidence: 'Exact VERIFY exited 0 with browser-artifacts/qa-20261118-admission-live-smoke.json
+    timestamp 2026-11-18T07:18:16Z: typed sso-browser-api-trace/v1 evidence recorded
+    status=pass, live_evidence=true, and exit_code=0 for Keycloak discovery, Frappe
+    login surface, SSO authorization, and organization access checks.'
+  notes: Boundary-rejected PASS is recorded as a concrete QA/product blocker; this
+    is not a runtime-bootstrap gap. The exact VERIFY was rerun after the acceptance-path
+    repair and produced fresh typed passing evidence.

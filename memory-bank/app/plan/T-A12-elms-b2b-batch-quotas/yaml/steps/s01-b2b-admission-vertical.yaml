@@ -1,0 +1,194 @@
+schema: epic-decompose/v1
+epic_id: T-A12-elms-b2b-batch-quotas
+plan_id: T-A12-elms-b2b-batch-quotas
+step_id: s01-b2b-admission-vertical
+role: app
+next_phase: APP IMPLEMENT
+title: B2B parsed import confirmation with quota-safe enrollment
+goal: >-
+  Let a Company Admin confirm a parsed B2B import into quota-safe Active
+  enrollments with an auditable, explicit result report.
+delta:
+  - Add the missing B2B admission confirmation contract on top of T-A11 parsed imports and T-A09 cabinet ownership, including quota, catalog, and org guards.
+as_built:
+  - T-A11 supplies parsed import rows and T-A09 supplies the company cabinet entry; this shard adds the confirmation transaction and its API/UI checks.
+out_of_scope:
+  - AI parsing or import normalization
+  - B2C payment and payment-provider integration
+  - Custom fields epic work
+  - Platform admin acting-as submission
+  - 1C or Bitrix integration
+objective: >-
+  Deliver the Company Admin confirm flow from a parsed import preview through
+  Active ELMS Enrollment creation, Learner Profile snapshot, seat accounting,
+  catalog resolution, organization isolation, audit, and an explicit result
+  report in both API and cabinet UI.
+surfaces:
+  backend: yes
+  frontend: yes
+  visible_ui: yes
+  wire: yes
+design_surface: product_ui
+plan_contract:
+  source: memory-bank/app/plan/T-A12-elms-b2b-batch-quotas/md/plan.md
+  level: L3
+  ac_ids:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+  ac_quotes:
+    - id: AC-001
+      quote: >-
+        Given parsed import + seats≥N; When confirm N rows; Then N Active
+        enrollments; seats_used += N.
+    - id: AC-002
+      quote: >-
+        Given seats < N; When confirm; Then typed error; no over-quota
+        enrollments.
+    - id: AC-003
+      quote: >-
+        Given flag can_use_owner_catalog=false; When row targets owner course;
+        Then row error.
+    - id: AC-004
+      quote: >-
+        Given other org import id; When confirm as Company Admin; Then 403.
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+  nfr_ids:
+    - NFR-001
+    - NFR-002
+    - NFR-003
+  layout:
+    type: vertical_slice
+    entrypoint: confirm_admission_import
+    contract_boundary: API plus Company cabinet confirm and result report
+    persistence: ELMS Enrollment, ELMS Subscription, Learner Profile, audit
+requirements:
+  - Parsed import status is required; optional row_ids select only rows from that import.
+  - Company Admin may confirm only an import owned by the actor organization; platform admin acting-as is denied.
+  - Every selected valid row creates or links a Learner, snapshots unified profile data, creates Active enrollment, and records the actor/import/count audit.
+  - Subscription selection uses the explicit subscription_id carried by the import; missing subscription_id, no active match, or multiple matching active subscriptions are rejected with typed errors, and unit coverage verifies each case.
+  - Confirmation is atomic all-or-none: validate every selected row and quota before writes; any quota, no-match, or ambiguous-row failure rolls back Learner, Enrollment, seats_used, and audit writes, with no enrolled rows returned.
+  - Resolve an exact normalized (program, training_kind) pair to one active Course and then one active Batch belonging to that Course; no-match and multiple-match cases return typed row errors, and unit coverage verifies precedence, no-match, and ambiguity alongside can_use_owner_catalog and can_publish_own.
+  - The cabinet shows preview data and remaining seats before confirm and renders the explicit success/error report after confirm.
+  - PII profile writes use the existing B2C controls; no new external provider or acting-as path is introduced.
+files:
+  - elms/elms/lms/api/admission.py
+  - elms/elms/lms/api/schemas/admission.py
+  - elms/elms/lms/services/b2b_admission.py
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+  - elms/elms/lms/page/elms-learning/elms-learning.js
+  - elms/elms/lms/page/elms-learning/elms-learning.html
+  - elms/tests/test_b2b_batch_quotas.py
+  - elms/tests/e2e/b2b-batch-quotas.spec.js
+context:
+  consumes:
+    - memory-bank/app/plan/T-A12-elms-b2b-batch-quotas/md/plan.md
+    - T-A11 parsed import status and row contract
+    - T-A09 Company cabinet entry and organization ownership context
+    - ELMS Subscription seats_used/total_seats persistence
+    - existing ELMS enrollment, Learner Profile, and B2C PII control contracts
+  produces:
+    - elms/elms/lms/api/admission.py
+    - elms/elms/lms/api/schemas/admission.py
+    - elms/elms/lms/services/b2b_admission.py
+    - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+    - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+    - elms/elms/lms/page/elms-learning/elms-learning.js
+    - elms/elms/lms/page/elms-learning/elms-learning.html
+    - elms/tests/test_b2b_batch_quotas.py
+    - elms/tests/e2e/b2b-batch-quotas.spec.js
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+  - python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py
+  - node --check elms/elms/lms/page/elms-learning/elms-learning.js
+  - NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+checkpoints:
+  - id: backend-unit
+    verify: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+    outcome: API and unit contract covers all four ACs, atomic rollback and quota behavior, deterministic subscription/course resolution, and typed row errors.
+  - id: nfr-audit-traceability
+    verify: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+    outcome: NFR-002 is verified by asserting the persisted audit actor, source import, and confirmed row count for each successful confirmation.
+  - id: nfr-pii-traceability
+    verify: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+    outcome: NFR-003 is verified by asserting Learner Profile writes use the existing B2C PII controls and introduce no external-provider or acting-as path.
+  - id: browser-acceptance
+    verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+    outcome: Company cabinet confirms the parsed import and renders the result report.
+  - id: syntax
+    verify: python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py
+    outcome: New Python modules compile before integration tests.
+  - id: desk-js-syntax
+    verify: node --check elms/elms/lms/page/elms-learning/elms-learning.js
+    outcome: Company cabinet Desk JS parses.
+tdd:
+  - RED: Add API/unit tests for parsed-only confirm, Active enrollments, seat delta, typed QuotaExceeded, catalog flag denial, and cross-organization 403.
+  - RED: Add browser coverage for preview remaining seats, confirm action, and explicit success/error report.
+  - GREEN: Implement the typed JSON confirm payload and server transaction through the canonical enroll_learner path.
+  - GREEN: Wire the cabinet controls to the same confirm contract and preserve fail-closed errors.
+  - REFACTOR: Keep quota, resolver, organization ownership, audit, and profile snapshot rules in one reusable admission service boundary.
+  - REFACTOR: Keep UI as a caller of the server contract; no client-side security or quota authority.
+deletes: []
+replacement_cleanup:
+  status: not_applicable
+  paths: []
+skills:
+  code_surface: mixed
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/frontend-testing/SKILL.md
+    - .agents/skills/frontend-patterns/SKILL.md
+    - .agents/skills/next-best-practices/SKILL.md
+    - .agents/skills/vercel-react-best-practices/SKILL.md
+    - .agents/skills/vercel-composition-patterns/SKILL.md
+    - .agents/skills/playwright-best-practices/SKILL.md
+    - .agents/skills/playwright-generate-test/SKILL.md
+    - .agents/skills/web-design-guidelines/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+  design:
+    - .agents/skills/frontend-design/SKILL.md
+    - .agents/skills/impeccable/SKILL.md
+    - .agents/skills/emil-design-eng/SKILL.md
+  design_groups:
+    - D0
+  omit_justification:
+    fastapi-templates: Frappe whitelist and Document APIs are the backend boundary; no FastAPI route or dependency-injection surface.
+    async-python-patterns: The Frappe transaction is synchronous and has no async I/O, concurrent handler, or websocket task.
+    sqlalchemy-postgres: Persistence uses Frappe DocTypes and the existing ELMS Subscription/Enrollment contracts, not SQLAlchemy or Alembic.
+    supabase-postgres-best-practices: No Supabase or direct Postgres SQL surface is planned.
+    websocket-engineer: Confirm is request/response with a persisted report, not realtime fanout or websocket state.
+    python-performance-optimization: The shard has no measured hot-path, streaming, or downsampling requirement.
+    python-configuration: No new environment or settings surface is introduced.
+    python-observability: The plan requires audit records, not a new metrics/health/structured-logging subsystem.
+    python-resilience: No external provider, retry, timeout, or circuit-breaker boundary is introduced.
+    full-output-enforcement: No full unabridged UI dump is required; browser evidence is limited to the acceptance flow.
+    vercel-react-view-transitions: The surface is an existing Frappe Desk page and does not use the View Transitions API.
+    ui-ux-pro-max: This is an existing product UI extension using the ELMS/neftegaz visual canon, not a style encyclopedia or new UX system.
+  notes:
+    - surface=product_ui groups=D0
+    - FRONT Core Next/Vercel paths are retained because the APP gate requires the full FRONT union even for a Frappe Desk surface.
+    - No session skill is placed in impl or design.
+dependencies:
+  - T-A11 parsed import contract
+  - T-A09 Company cabinet surface
+  - Existing ELMS Subscription, Enrollment, Learner Profile, and audit contracts
+split:
+  independent_outcomes:
+    - API and browser confirm of a parsed import with atomic Active enrollments and seat delta.
+    - Typed fail-closed quota and course/organization policy errors.
+  split_seams: []
+  rationale: >-
+    Keep this as one mixed vertical slice because the product outcome is only
+    valid when parsing state, ownership, mapping, quota, enrollment, audit, and
+    cabinet reporting are committed and observed through the same confirm path.

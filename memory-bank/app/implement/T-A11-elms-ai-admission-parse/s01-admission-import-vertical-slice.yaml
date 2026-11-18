@@ -1,0 +1,110 @@
+schema: epic-implement/v1
+role: app
+step_id: s01
+plan_id: T-A11-elms-ai-admission-parse
+task_id: T-A11-elms-ai-admission-parse
+title: s01 — Company admission XLSX parse, preview, and synthetic credential vault IMPLEMENT
+level: L3
+status: completed
+date: 2026-11-17
+decompose_ref: memory-bank/app/plan/T-A11-elms-ai-admission-parse/yaml/steps/s01-admission-import-vertical-slice.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/frontend-patterns/SKILL.md
+  - .agents/skills/next-best-practices/SKILL.md
+  - .agents/skills/vercel-react-best-practices/SKILL.md
+  - .agents/skills/vercel-composition-patterns/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/playwright-generate-test/SKILL.md
+  - .agents/skills/web-design-guidelines/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/impeccable/SKILL.md
+  - .agents/skills/emil-design-eng/SKILL.md
+
+files:
+  - elms/elms/admission/import_schemas.py
+  - elms/elms/admission/import_service.py
+  - elms/elms/admission/import_api.py
+  - elms/elms/admission/credentials.py
+  - elms/elms/operations/doctype/elms_admission_import/__init__.py
+  - elms/elms/operations/doctype/elms_admission_import/elms_admission_import.json
+  - elms/elms/operations/doctype/elms_admission_import/elms_admission_import.py
+  - elms/elms/operations/doctype/elms_admission_import_row/__init__.py
+  - elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.json
+  - elms/elms/operations/doctype/elms_admission_import_row/elms_admission_import_row.py
+  - elms/elms/operations/doctype/elms_admission_credential/__init__.py
+  - elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.json
+  - elms/elms/operations/doctype/elms_admission_credential/elms_admission_credential.py
+  - elms/elms/operations/page/elms_admission/elms_admission.json
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/tests/test_admission_import.py
+  - elms/elms/tests/test_admission_import_ui.py
+  - memory-bank/app/implement/T-A11-elms-ai-admission-parse/s01-admission-import-vertical-slice.yaml
+
+deletes: []
+
+done:
+  - "Canonical XLSX headers and rows are grounded through OmniRoute and validated by typed AdmissionHeader/AdmissionRow DTOs before persistence."
+  - "Organization-scoped ELMS Admission Import parent/rows persist draft, parsed, or failed outcomes with file-hash idempotency and explicit revisions."
+  - "Missing-email rows receive deterministic synthetic login/email records with protected one-time invite_token reveal audit; no learner secret is in preview."
+  - "Company Admin Desk upload, preview, row errors, export, and credential reveal are wired to whitelisted APIs."
+
+integration_check:
+  - "Company Admin upload is organization-scoped and same-file retries return the existing revision unless new_revision is explicit."
+  - "OmniRoute structured JSON is validated before a row becomes parsed; corrupt files, provider failures, and row errors remain explicit failed outcomes."
+  - "Preview and export expose structured rows only, while invite-token reveal is explicit, authorized, and one-time."
+  - "The import boundary contains no forbidden downstream enrollment call or document creation path."
+
+wire_complete:
+  call_sites:
+    - Company Admin admission page -> upload_import -> organization/file-hash authorization
+    - upload_import -> existing OmniRoute client -> structured JSON -> AdmissionHeader/AdmissionRow validation
+    - validated DTOs -> ELMS Admission Import + child rows -> parsed preview; failures -> failed status and row errors
+    - missing email -> deterministic synthetic identity -> protected invite_token -> one-time reveal audit
+    - parsed rows -> export_import -> structured handoff artifact only
+  enforce_path: elms/elms/admission/import_api.py
+  dual_path_rg: "! rg -n 'Enrollment|enroll_' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+  instruction_rg: "rg -n 'silent|без email|synthetic|credential|invite-token|invite_token|preview|export' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/public/js/desk-admission.js"
+  deny_old_proven: true
+
+tests:
+  - "./bin/pytest -q elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py"
+  - "python3 -m py_compile elms/elms/admission/import_schemas.py elms/elms/admission/import_service.py elms/elms/admission/import_api.py elms/elms/admission/credentials.py"
+  - "node --check elms/elms/public/js/desk-admission.js"
+  - "rg -n 'ELMS Admission Import|upload_import|inspect_import|reveal_credential|synthetic|invite-token|invite_token|schema_version' elms/elms/admission elms/elms/operations/doctype/elms_admission_import elms/elms/operations/doctype/elms_admission_import_row elms/elms/operations/doctype/elms_admission_credential elms/elms/public/js/desk-admission.js"
+  - "! rg -n 'frappe\\.get_doc\\(.*User|insert.*Frappe User|create.*Frappe User' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+  - "! rg -n 'Enrollment|enroll_' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+
+checkpoints:
+  - id: cp1
+    criterion: Fixture headers and Сметанин FIO+SNILS map to typed DTO rows; corrupt/invalid input fails closed.
+    status: done
+    verify: "./bin/pytest -q elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py"
+  - id: cp2
+    criterion: Organization-scoped parent/child import persists draft/parsed/failed, hash retries are idempotent or explicit revisions, and preview/export are real API paths.
+    status: done
+    verify: "python3 -m py_compile elms/elms/admission/import_schemas.py elms/elms/admission/import_service.py elms/elms/admission/import_api.py elms/elms/admission/credentials.py"
+  - id: cp3
+    criterion: Missing email creates deterministic synthetic identity with protected one-time invite_token and reveal audit; foreign access is denied.
+    status: done
+    verify: "./bin/pytest -q elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py"
+  - id: cp4
+    criterion: Desk upload/preview/errors/export/reveal call sites parse and remain accessible.
+    status: done
+    verify: "node --check elms/elms/public/js/desk-admission.js"
+  - id: cp5
+    criterion: New import APIs and DocTypes are present, invite-token provisioning is explicit, and the import boundary has no forbidden downstream path.
+    status: done
+    verify: "! rg -n 'Enrollment|enroll_' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+
+resume_from: cp1

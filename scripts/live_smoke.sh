@@ -10,8 +10,8 @@ KEYCLOAK_BASE_URL="${KEYCLOAK_BASE_URL:-$KEYCLOAK_PUBLIC_URL}"
 REALM="${KEYCLOAK_REALM:-elms}"
 CLIENT_ID="${KEYCLOAK_CLIENT_ID:-elms-frappe}"
 CURL_TIMEOUT="${CURL_TIMEOUT:-15}"
-EVIDENCE_FILE="${EVIDENCE_FILE:-}"
-LIVE_SMOKE_COMMAND="${LIVE_SMOKE_COMMAND:-bash scripts/live_smoke.sh}"
+EVIDENCE_FILE="${EVIDENCE_FILE:-browser-artifacts/qa-20261118-admission-live-smoke.json}"
+LIVE_SMOKE_COMMAND="${LIVE_SMOKE_COMMAND:-timeout -k 10s 300s bash scripts/live_smoke.sh}"
 
 for dependency in curl python3; do
     if ! command -v "$dependency" >/dev/null 2>&1; then
@@ -38,6 +38,7 @@ for name, evidence_name in (
     ("discovery", "keycloak_discovery"),
     ("frappe_login", "frappe_login_page"),
     ("authorization", "keycloak_authorization"),
+    ("access_page", "organization_access"),
 ):
     headers_path = pathlib.Path(temp_dir) / f"{name}.headers"
     body_path = pathlib.Path(temp_dir) / f"{name}.body"
@@ -272,7 +273,7 @@ if "yandex" in html or "kc_idp_hint" in html:
     raise SystemExit("live_smoke: organization access route exposes a removed external IdP path")
 PY
 
-python3 - "$EVIDENCE_FILE" "$timestamp" "$ELMS_BASE_URL" "$KEYCLOAK_BASE_URL" "$REALM" "$discovery_url" "$discovery_status" "$TEMP_DIR/discovery.headers" "$TEMP_DIR/discovery.body" "$frappe_login_url" "$frappe_login_status" "$frappe_location" "$TEMP_DIR/frappe_login.headers" "$TEMP_DIR/frappe_login.body" "$authorization_status" "$TEMP_DIR/authorization.headers" "$TEMP_DIR/authorization.body" "$LIVE_SMOKE_COMMAND" <<'PY'
+python3 - "$EVIDENCE_FILE" "$timestamp" "$ELMS_BASE_URL" "$KEYCLOAK_BASE_URL" "$REALM" "$discovery_url" "$discovery_status" "$TEMP_DIR/discovery.headers" "$TEMP_DIR/discovery.body" "$frappe_login_url" "$frappe_login_status" "$frappe_location" "$TEMP_DIR/frappe_login.headers" "$TEMP_DIR/frappe_login.body" "$authorization_status" "$TEMP_DIR/authorization.headers" "$TEMP_DIR/authorization.body" "$access_url" "$access_status" "$TEMP_DIR/access_page.headers" "$TEMP_DIR/access_page.body" "$LIVE_SMOKE_COMMAND" <<'PY'
 import json
 import pathlib
 import sys
@@ -295,6 +296,10 @@ import sys
     authorization_status,
     authorization_headers_file,
     authorization_body_file,
+    access_url,
+    access_status,
+    access_headers_file,
+    access_body_file,
     command,
 ) = sys.argv[1:]
 
@@ -326,6 +331,7 @@ evidence = {
         "keycloak_discovery": raw_response(discovery_headers_file, discovery_body_file),
         "frappe_login_page": raw_response(frappe_login_headers_file, frappe_login_body_file),
         "keycloak_authorization": raw_response(authorization_headers_file, authorization_body_file),
+        "organization_access": raw_response(access_headers_file, access_body_file),
     },
     "journeys": [
         {
@@ -350,6 +356,15 @@ evidence = {
                 "headers": {},
             },
         },
+        {
+            "journey_id": "JRN-SSO-001B",
+            "name": "Organization access route reachability",
+            "url": access_url,
+            "status": "pass",
+            "response": {
+                "status_code": int(access_status),
+            },
+        },
     ],
     "checks": [
         {
@@ -370,6 +385,12 @@ evidence = {
             "url": frappe_location,
             "status_code": int(authorization_status),
             "assertion": "Keycloak authorization endpoint is reachable without an external IdP hint or broker route",
+        },
+        {
+            "name": "organization_access",
+            "url": access_url,
+            "status_code": int(access_status),
+            "assertion": "Organization access route is reachable without an external IdP hint or broker route",
         },
     ],
     "legacy_broker": {

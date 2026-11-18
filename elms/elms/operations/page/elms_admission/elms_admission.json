@@ -5,6 +5,7 @@
  "page_name": "elms-admission",
  "roles": [
   {"role": "ELMS Learner"},
+  {"role": "ELMS Company Admin"},
   {"role": "ELMS Admin"},
   {"role": "ELMS Operations User"}
  ],

@@ -29,6 +29,7 @@ Hub CRM-секции **не канон**. Схема: `rules/README.md`.
 | **Роли, DocPerm, атрибуты, учебный домен, LMS** | `elms/elms/lms/`, `elms/elms/` (SSO/roles), `memory-bank/product/modules.md` | `crm/`, ERPNext RBAC, CRM DocTypes |
 | Паттерны **фреймворка** Frappe | `frappe/` + при необходимости read-only `frappe-erp-crm` **только каркас** | бизнес-логику / роли CRM как продукт |
 | UI | `rules/elms-design.mdc` · neftegaz-ai-layer + родной LMS | CRM / ERPNext Desk brand |
+| Команды проверок / тестов в шагах | `rules/elms-testing.mdc` | `bench run-tests`, голый `pnpm`/`npm` playwright |
 
 ## FORBIDDEN
 

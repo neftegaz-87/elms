@@ -21,17 +21,17 @@
       "name": "login_css_asset_linked",
       "status": "pass",
       "observed": [
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.BMAP3QZB.css",
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.UKW5BN4I.css",
         "http://elms.localhost:8082/assets/elms/css/login.css",
         "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1",
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.PL4IRSJZ.css"
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.Y6XTUYOZ.css"
       ]
     },
     {
       "name": "linked_stylesheets_are_available",
       "status": "pass",
       "observed": {
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.BMAP3QZB.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.UKW5BN4I.css": {
           "status": 200,
           "content_type": "text/css"
         },
@@ -43,7 +43,7 @@
           "status": 200,
           "content_type": "text/css"
         },
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.PL4IRSJZ.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.Y6XTUYOZ.css": {
           "status": 200,
           "content_type": "text/css"
         }
@@ -148,13 +148,36 @@
     {
       "name": "valid_keycloak_credentials_reach_app",
       "status": "pass",
-      "observed": "http://elms.localhost:8082/app"
+      "observed": {
+        "url": "http://elms.localhost:8082/app/lms",
+        "auth": null,
+        "wait_error": "TimeoutError",
+        "app_session": true
+      }
+    },
+    {
+      "name": "admission_test_provider_configured",
+      "status": "pass",
+      "observed": {
+        "status": "pass",
+        "base_url": "http://host.docker.internal:46395/v1",
+        "model": "elms-admission-parser-v1",
+        "organization": "Демонстрационный контур НефтеГаз"
+      }
     }
   ],
   "passed": true,
   "errors": [],
+  "runtime_activation": {
+    "status": "pass",
+    "source": "docker/.env.dev",
+    "username_present": true,
+    "password_present": true,
+    "role": "ELMS Company Admin",
+    "authenticated": true
+  },
   "stylesheet_statuses": {
-    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.BMAP3QZB.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.UKW5BN4I.css": {
       "status": 200,
       "content_type": "text/css"
     },
@@ -166,7 +189,7 @@
       "status": 200,
       "content_type": "text/css"
     },
-    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.PL4IRSJZ.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.Y6XTUYOZ.css": {
       "status": 200,
       "content_type": "text/css"
     }
@@ -214,11 +237,141 @@
     "display": "block",
     "minHeight": "44px"
   },
-  "screenshot": "/home/aero/PyProject/NEFTEGAZ/elms/browser-artifacts/login-page.png",
+  "admission_provider": {
+    "status": "pass",
+    "base_url": "http://host.docker.internal:46395/v1",
+    "model": "elms-admission-parser-v1",
+    "organization": "Демонстрационный контур НефтеГаз"
+  },
+  "journeys": [
+    {
+      "journey_id": "JRN-A11-ADMISSION-IMPORT",
+      "name": "Authenticated Company Admin admission upload, preview/errors, export, and one-time reveal",
+      "url": "http://elms.localhost:8082/app/elms-admission",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "company_admin_role_present",
+          "status": "pass",
+          "observed": [
+            "ELMS Company Admin",
+            "All",
+            "Guest",
+            "Desk User"
+          ]
+        },
+        {
+          "name": "admission_import_surface_loaded",
+          "status": "pass",
+          "observed": "http://elms.localhost:8082/app/elms-admission"
+        },
+        {
+          "name": "preview_errors_are_explicit",
+          "status": "pass",
+          "observed": {
+            "status_text": "Одна или несколько строк не прошли проверку; исправьте ошибки и загрузите файл снова",
+            "status_class": "elms-admission-import-status is-error",
+            "row_states": [
+              "invalid"
+            ],
+            "row_errors": [
+              "Value error, СНИЛС должен содержать 11 цифр"
+            ]
+          }
+        },
+        {
+          "name": "parsed_preview_loaded",
+          "status": "pass",
+          "observed": {
+            "status_text": "Проверка завершена. Можно экспортировать validated rows.",
+            "status_class": "elms-admission-import-status is-success",
+            "row_states": [
+              "valid"
+            ],
+            "row_errors": []
+          }
+        },
+        {
+          "name": "validated_rows_exported",
+          "status": "pass",
+          "observed": {
+            "method": "elms.admission.import_api.export_import",
+            "status": 200,
+            "name": "ADMISSION-0052"
+          }
+        },
+        {
+          "name": "one_time_credential_reveal_audited",
+          "status": "pass",
+          "observed": {
+            "reveal_button_present": true,
+            "token_rendered": true,
+            "reveal_button_removed": true,
+            "response": {
+              "method": "elms.admission.import_api.reveal_credential",
+              "status": 200,
+              "name": "CREDENTIAL-0053",
+              "invite_token_present": true
+            }
+          }
+        },
+        {
+          "name": "browser_runtime_errors_absent",
+          "status": "pass",
+          "observed": {
+            "console_errors": [],
+            "request_failures": []
+          }
+        }
+      ],
+      "api_requests": [
+        {
+          "method": "elms.admission.import_api.upload_import",
+          "status": "failed",
+          "name": "ADMISSION-0051",
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.inspect_import",
+          "status": "failed",
+          "name": "ADMISSION-0051",
+          "total_rows": 1,
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.upload_import",
+          "status": "parsed",
+          "name": "ADMISSION-0052",
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.inspect_import",
+          "status": "parsed",
+          "name": "ADMISSION-0052",
+          "total_rows": 1,
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.export_import",
+          "status": 200,
+          "name": "ADMISSION-0052"
+        },
+        {
+          "method": "elms.admission.import_api.reveal_credential",
+          "status": 200,
+          "name": "CREDENTIAL-0053",
+          "invite_token_present": true
+        }
+      ],
+      "console_errors": [],
+      "request_failures": [],
+      "errors": []
+    }
+  ],
   "status": "pass",
   "evidence_type": "runtime_browser",
   "live_evidence": true,
-  "timestamp": "2026-11-17T13:36:31Z",
-  "command": "python3 scripts/run_browser_qa.py",
+  "timestamp": "2026-11-18T07:30:34Z",
+  "command": "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py",
   "exit_code": 0
 }

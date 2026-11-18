@@ -1,7 +1,7 @@
 # Технический контекст
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-11-17 (T-A10 APP QA PASS & context sync); 2026-11-14 (T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (T-A07 APP QA PASS & context sync); 2026-11-12 (observability: logs stay local / center reads); 2026-11-01 (observability stack decision); 2026-10-31 (T-B08 QA PASS & context sync; T-B07 QA PASS & context sync; T-B06 QA PASS & context sync; T-B05 QA PASS & context sync; T-A01 APP QA PASS; T-B04 QA PASS; T-B03 re-QA PASS & context sync)
+**Обновлено:** 2026-11-18 (T-A11 APP QA PASS & context sync); 2026-11-17 (T-A10 APP QA PASS & context sync); 2026-11-14 (T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (T-A07 APP QA PASS & context sync); 2026-11-12 (observability: logs stay local / center reads); 2026-11-01 (observability stack decision); 2026-10-31 (T-B08 QA PASS & context sync; T-B07 QA PASS & context sync; T-B06 QA PASS & context sync; T-B05 QA PASS & context sync; T-A01 APP QA PASS; T-B04 QA PASS; T-B03 re-QA PASS & context sync)
 
 ## Стек
 
@@ -133,6 +133,8 @@ elms/                    # repo root
     app/context-sync/T-A07-elms-b2b-org-keycloak-provisioning/ # canonical sync report
     app/qa/T-A09-elms-company-admin-cabinet/ # accepted typed QA evidence
     app/context-sync/T-A09-elms-company-admin-cabinet/ # canonical sync report
+    app/qa/T-A11-elms-ai-admission-parse/ # accepted typed QA evidence
+    app/context-sync/T-A11-elms-ai-admission-parse/ # canonical sync report
 ```
 
 ## Эталон паттернов (read-only)
@@ -171,6 +173,7 @@ elms/                    # repo root
 24. B2B access and Keycloak provisioning (`T-A07`): `ELMS Organization` / membership / `ELMS Invite Log` задают организационную границу; `ELMS Company Admin` и Role Profile работают через User Permission scope. `create_organization`, `assign_company_admin`, `invite_org_user` и `migrate_yandex_users` — canonical whitelist methods. Invite success требует durable Frappe state, Keycloak Admin API provisioning и `UPDATE_PASSWORD`; provider failure is fail-closed, re-invite idempotent, password не возвращается. Realm/runtime — Keycloak-only, а live browser/API evidence подтвердил organization, denial, invite, password setup и login journey.
 25. Company Admin cabinet (`T-A09`): `get_org_roster` и `export_org_progress` применяют server-side membership ACL; roster joins `ELMS Organization Member` → `ELMS Enrollment` → `ELMS Course Progress`, а missing progress документирован как `0.0`. Кабинет показывает empty state без fake rows. Export повторяет roster read model, генерирует UTF-8 CSV server-side и пишет `ELMS Cabinet Export Log`; DOM-only CSV запрещён. Authenticated runtime wire evidence прошёл roster/export journey и no-DOM-only-CSV check; active runtime использовал Keycloak-only credentials и preflight.
 26. B2C admission/payment (`T-A10`): `ELMS Admission Profile` принимает валидированный Pydantic `LearnerProfile` JSON, обязательные приватные сканы и согласие ПДн; это отдельная сущность от role profile. Payment Provider остаётся port/fake-контрактом: статус и событие приходят только из проверенного webhook JSON, missing provider fail-closed, а Active `ELMS Enrollment` создаётся сервером только после `paid` payment link и идемпотентно. Стандартная `elms-admission` Page синхронизируется install/migrate hooks; authenticated live profile/upload/payment/signed-webhook/enrollment wire journey подтвердил исправление runtime Page regression. Конкретный эквайринг и 1С остаются вне эпика.
+27. B2B admission import (`T-A11`): fixture-backed Pydantic `AdmissionHeader`/`AdmissionRow` и explicit `schema_version` — validation SoT перед persistence; organization/file-hash scope хранит draft/parsed/failed import revisions. Missing email получает deterministic synthetic identity, а invite token хранится в protected vault value с one-time reveal audit. `upload_import`, preview/inspect, export и credential reveal — whitelisted API/Desk paths; import boundary не создаёт и не вызывает `ELMS Enrollment`, передавая только structured rows T-A12. APP QA PASS подтверждён required backend/frontend_build/wire_journey lanes и typed live wire evidence.
 
 ## Board actors (Bitrix)
 
@@ -197,8 +200,9 @@ elms/                    # repo root
 | CI release and rollback | `memory-bank/back/plan/T-B08-elms-cicd-release-rollback/md/plan.md` | done (as-built T-B08, QA PASS) |
 | Company Admin cabinet | `memory-bank/app/plan/T-A09-elms-company-admin-cabinet/md/plan.md` | done (as-built T-A09, QA PASS) |
 | B2C admission/payment | `memory-bank/app/plan/T-A10-elms-b2c-admission-payment/md/plan.md` | done (as-built T-A10, QA PASS) |
+| B2B admission import | `memory-bank/app/plan/T-A11-elms-ai-admission-parse/md/plan.md` | done (as-built T-A11, QA PASS) |
 
-## Тестовое покрытие (as-built T-A10 + T-A09 + T-A07 + T-B08 + T-B07 + T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
+## Тестовое покрытие (as-built T-A11 + T-A10 + T-A09 + T-A07 + T-B08 + T-B07 + T-B06 + T-B05 + T-A01 + T-B04 + T-B03 re-QA)
 
 Исторический foundation-срез содержит 88 автоматических тестов: 51 в ELMS/Frappe suite и 37 в Bitrix suite; T-B06 QA дополнительно подтвердил полный прогон `87 passed, 2 skipped` и инфраструктурный прогон `27 passed`.
 - **Frappe / ELMS app suite:**
@@ -223,6 +227,7 @@ elms/                    # repo root
 - T-A08 APP QA: app_lanes required lanes backend, frontend_build, browser, live_smoke, wire_journey и leftover_sot — PASS; AC-001..AC-005 — PASS. Public individual/legal forms create Bitrix Leads via `crm.lead.add` and persist `bitrix_id` fail-closed; `crm.lead.get.STATUS_ID` is the sole status SoT and ELMS keeps snapshot-only fields. Evidence is recorded in the QA YAML, typed browser evidence and live-smoke YAML; live Bitrix sandbox is out of scope and provider calls are mocked.
 - T-A09 APP QA: required lanes backend, frontend_build, browser, live_smoke, wire_journey и leftover_sot — PASS; AC-001..AC-005 — PASS. Company Admin cabinet enforces server-side organization membership, joins members to enrollment/course progress, renders empty state, and exports server-side UTF-8 CSV with `ELMS Cabinet Export Log` audit. Authenticated runtime wire evidence passed roster/export and no-DOM-only-CSV checks; Keycloak-only active runtime credentials/preflight were required. Exploratory usability was not run as optional next action; blockers are empty.
 - T-A10 APP QA: required lanes backend, frontend_build, browser, live_smoke, wire_journey и leftover_sot — PASS; AC-001..AC-006 и BN-001..BN-004 — PASS. Authenticated live wire evidence passed Learner login, `elms-admission` Page render, profile/private upload, payment creation, signed paid webhook and Active Enrollment learning link with no console errors; the live Page regression and BF-001..BF-006 queue are closed. Evidence: `memory-bank/app/qa/T-A10-elms-b2c-admission-payment/qa-20261117-b2c-admission-payment3.yaml`, `admission-wire-20261117.json`, `live-smoke-20261117.json`.
+- T-A11 APP QA: required lanes backend, frontend_build, leftover_sot и wire_journey — PASS; 11 backend tests, Python/JS syntax checks, forbidden-path scan и authenticated Company Admin wire journey passed; AC-001..AC-004 — PASS. Browser/live_smoke are n/a because wire absorbed them; typed wire evidence is `browser-qa-trace/v1`, `status=pass`, `live_evidence=true`, `exit_code=0`, timestamp `2026-11-18T07:30:34Z`, journey `JRN-A11-ADMISSION-IMPORT`. Evidence: `memory-bank/app/qa/T-A11-elms-ai-admission-parse/qa-20261118-admission-import-app-lanes-reqa.yaml`, `browser-artifacts/browser-evidence.json`, `browser-artifacts/qa-20261118-admission-live-smoke.json`; BF-001..BF-006 closed/cancelled, no blockers, retro has no missed defect, redundant gate, flaky test or next-cycle change.
 
 ## Государственные требования и сертификационные правила
 

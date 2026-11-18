@@ -1,7 +1,7 @@
 (function () {
 	"use strict";
 
-	var state = { root: null, catalog: [], profile: null, payment: null, loading: false };
+	var state = { root: null, catalog: [], profile: null, payment: null, loading: false, admissionImport: null };
 
 	function esc(value) {
 		return String(value == null ? "" : value)
@@ -51,6 +51,117 @@
 		var batch = selectedBatch(root);
 		var item = state.catalog.find(function (course) { return course.batch === batch; });
 		return item ? item.course : "";
+	}
+
+	function canManageImport() {
+		var roles = frappe.user_roles || [];
+		return roles.indexOf("ELMS Company Admin") !== -1 || roles.indexOf("ELMS Admin") !== -1 || roles.indexOf("ELMS Operations User") !== -1;
+	}
+
+	function importMarkup() {
+		if (!canManageImport()) return "";
+		return [
+			'<section class="elms-admission-import" data-admission-import>',
+				'<div class="elms-admission-import-heading"><div><span class="elms-admission-section-label">B2B / admission desk</span><h2>Загрузка заявки организации</h2><p>Канонический XLSX станет проверяемым preview. Непрошедшие строки останутся с явной ошибкой.</p></div><span class="elms-admission-import-version">admission-xlsx-v1</span></div>',
+			'<form data-admission-import-form class="elms-admission-import-form"><label class="elms-admission-field"><span>Файл заявки</span><input data-admission-import-file type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></label><label class="elms-admission-checkbox"><input data-admission-new-revision type="checkbox"><span>Создать новую ревизию при повторной загрузке</span></label><button type="submit" class="elms-admission-button is-primary">Загрузить и разобрать</button></form>',
+			'<div class="elms-admission-import-status" data-admission-import-status aria-live="polite" hidden></div>',
+			'<div class="elms-admission-import-result" data-admission-import-result hidden><div class="elms-admission-import-toolbar"><div><strong data-admission-import-title>Preview</strong><span data-admission-import-meta></span></div><div class="elms-admission-import-actions"><button type="button" class="elms-admission-button" data-admission-import-export>Экспорт проверенных строк</button><button type="button" class="elms-admission-button is-subtle" data-admission-import-refresh>Обновить preview</button></div></div><div class="elms-admission-import-table-wrap"><table class="elms-admission-import-table"><thead><tr><th>Строка</th><th>ФИО</th><th>СНИЛС</th><th>Программа</th><th>Статус</th><th>Учётные данные</th></tr></thead><tbody data-admission-import-rows></tbody></table></div></div>',
+			'</section>'
+		].join("");
+	}
+
+	function importStatus(root, message, kind) {
+		var node = root.querySelector("[data-admission-import-status]");
+		if (!node) return;
+		node.textContent = message || "";
+		node.className = "elms-admission-import-status" + (kind ? " " + kind : "");
+		node.hidden = !message;
+	}
+
+	function renderImportPreview(root, result) {
+		var section = root.querySelector("[data-admission-import-result]");
+		var body = root.querySelector("[data-admission-import-rows]");
+		if (!section || !body || !result) return;
+		state.admissionImport = result;
+		section.hidden = false;
+		var title = root.querySelector("[data-admission-import-title]");
+		var meta = root.querySelector("[data-admission-import-meta]");
+		if (title) title.textContent = "Preview " + (result.name || "");
+		if (meta) meta.textContent = " · " + (result.status || "draft") + " · ревизия " + (result.revision || 1) + " · строк " + (result.total_rows || 0);
+		body.innerHTML = (result.rows || []).map(function (row) {
+			var errors = (row.errors || []).join("; ");
+			var credential = row.credential ? '<button type="button" class="elms-admission-reveal" data-admission-reveal data-credential="' + esc(row.credential) + '">Показать invite-token</button><span class="elms-admission-token" data-admission-token="' + esc(row.credential) + '"></span>' : "—";
+			return '<tr class="is-' + esc(row.status || "invalid") + '"><td>' + esc(row.source_row_number) + '</td><td><strong>' + esc(row.fio) + '</strong><small>' + esc(row.profession || "") + '</small></td><td>' + esc(row.snils || "") + '</td><td>' + esc(row.program || "") + '</td><td><span class="elms-admission-row-state">' + esc(row.status || "invalid") + '</span><small>' + esc(errors) + '</small></td><td>' + credential + '</td></tr>';
+		}).join("") || '<tr><td colspan="6" class="elms-admission-empty">Проверенных строк пока нет.</td></tr>';
+		Array.prototype.forEach.call(root.querySelectorAll("[data-admission-reveal]"), function (button) {
+			button.addEventListener("click", function () { revealImportCredential(root, button); });
+		});
+	}
+
+	function inspectImport(root, importName) {
+		if (!importName) return;
+		call("elms.admission.import_api.inspect_import", { import_name: importName, page: 1, page_length: 100 }, function (result, error) {
+			if (error || !result) return importStatus(root, errorText(error), "is-error");
+			renderImportPreview(root, result);
+			importStatus(root, result.status === "parsed" ? "Проверка завершена. Можно экспортировать validated rows." : (result.parse_error || "Импорт завершён с ошибками."), result.status === "parsed" ? "is-success" : "is-error");
+		});
+	}
+
+	function revealImportCredential(root, button) {
+		button.disabled = true;
+		call("elms.admission.import_api.reveal_credential", { credential: button.getAttribute("data-credential"), reveal_intent: true }, function (result, error) {
+			if (error || !result) {
+				button.disabled = false;
+				return importStatus(root, errorText(error), "is-error");
+			}
+			var token = root.querySelector('[data-admission-token="' + button.getAttribute("data-credential") + '"]');
+			if (token) token.textContent = " · " + result.invite_token;
+			button.remove();
+			importStatus(root, "Invite-token раскрыт один раз и записан в аудит.", "is-success");
+		});
+	}
+
+	function exportImport(root) {
+		if (!state.admissionImport || !state.admissionImport.name) return;
+		call("elms.admission.import_api.export_import", { import_name: state.admissionImport.name }, function (result, error) {
+			if (error || !result) return importStatus(root, errorText(error), "is-error");
+			var blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+			var link = document.createElement("a");
+			link.href = URL.createObjectURL(blob);
+			link.download = (state.admissionImport.name || "admission-import") + ".json";
+			link.click();
+			URL.revokeObjectURL(link.href);
+			importStatus(root, "Экспорт проверенных строк подготовлен.", "is-success");
+		});
+	}
+
+	function wireImport(root) {
+		var form = root.querySelector("[data-admission-import-form]");
+		if (!form) return;
+		form.addEventListener("submit", function (event) {
+			event.preventDefault();
+			var input = root.querySelector("[data-admission-import-file]");
+			var button = form.querySelector("button[type='submit']");
+			if (!input.files || !input.files[0]) return importStatus(root, "Прикрепите XLSX-файл заявки.", "is-error");
+			button.disabled = true;
+			importStatus(root, "Загружаем файл и ждём bounded AI parse…", "is-pending");
+			fileAsPayload(input).then(function (file) {
+				return new Promise(function (resolve, reject) {
+					call("elms.admission.import_api.upload_import", { file_name: file.file_name, content: file.content, content_type: file.content_type, new_revision: root.querySelector("[data-admission-new-revision]").checked }, function (result, error) {
+						if (error || !result) reject(error || new Error("Пустой ответ сервера"));
+						else resolve(result);
+					});
+				});
+			}).then(function (result) {
+				inspectImport(root, result.name);
+			}).catch(function (error) {
+				importStatus(root, errorText(error), "is-error");
+			}).then(function () { button.disabled = false; });
+		});
+		var exportButton = root.querySelector("[data-admission-import-export]");
+		if (exportButton) exportButton.addEventListener("click", function () { exportImport(root); });
+		var refreshButton = root.querySelector("[data-admission-import-refresh]");
+		if (refreshButton) refreshButton.addEventListener("click", function () { inspectImport(root, state.admissionImport && state.admissionImport.name); });
 	}
 
 	function fileAsPayload(input) {
@@ -114,6 +225,7 @@
 			'<div class="elms-admission-shell">',
 			'<header class="elms-admission-header"><div><div class="elms-admission-kicker">ПОСТУПЛЕНИЕ / 01</div><h1>Анкета слушателя</h1><p>Заполните профиль и приложите документы. Оплата откроется после проверки анкеты.</p></div><span class="elms-admission-badge">LearnerProfile</span></header>',
 			'<div class="elms-admission-route" aria-label="Порядок поступления"><span class="is-active">01 Анкета</span><span>02 Документы</span><span>03 Оплата</span></div>',
+			importMarkup(),
 			'<div class="elms-admission-status" data-admission-status aria-live="polite" hidden></div>',
 			'<form data-admission-form novalidate>',
 			'<section class="elms-admission-card"><div class="elms-admission-card-head"><span>Выбор обучения</span><small>Опубликованный поток</small></div>',
@@ -134,6 +246,7 @@
 		var consent = root.querySelector("[name='consent_version']");
 		if (consent && profile.consent_version) consent.checked = true;
 		var form = root.querySelector("[data-admission-form]");
+		wireImport(root);
 		form.addEventListener("submit", function (event) {
 			event.preventDefault();
 			save(root);

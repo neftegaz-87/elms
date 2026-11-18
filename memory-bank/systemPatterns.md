@@ -1,7 +1,7 @@
 # Архитектурные паттерны системы (systemPatterns)
 
-**Дата:** 2026-11-01
-**Статус:** Базовые системные паттерны подтверждены по результатам T-A10, T-A09 и T-A08 APP QA PASS, T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
+**Дата:** 2026-11-18
+**Статус:** Базовые системные паттерны подтверждены по результатам T-A11, T-A10, T-A09 и T-A08 APP QA PASS, T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
 
 ## 1. Slim Single-App Frappe Architecture
 
@@ -141,3 +141,11 @@
 - **Paid enrollment gate:** B2C Active `ELMS Enrollment` is server-created only after a verified `paid` event links a `payment_id`; webhook event handling is idempotent and failed/unsigned events do not create Active enrollment. Catalog and legacy free-enrollment paths remain denied.
 - **Live Page synchronization:** the standard `elms-admission` Page is source-controlled and synchronized by install/migrate wiring. The previously observed live Page regression is closed, and the authenticated runtime wire captured Page render, profile/private upload, payment creation, signed webhook and learning-link enrollment with no console errors.
 - **Acceptance boundary:** APP QA required backend, frontend_build, browser, live_smoke, wire_journey and leftover_sot lanes; all passed for AC-001..AC-006 and BN-001..BN-004. Concrete provider integration, 1С and exploratory usability remain outside this slice.
+
+## 15. B2B Admission Import and No-Enrollment Handoff (`T-A11`)
+
+- **Typed import boundary:** Fixture-backed `AdmissionHeader`/`AdmissionRow` DTOs and explicit `schema_version` are the validation SoT; raw or regex-only spreadsheet handling cannot mark rows parsed.
+- **Organization-scoped persistence:** ELMS Admission Import stores draft/parsed/failed parent and child-row outcomes, keys retries by organization/file hash, and requires an explicit revision for a new parse.
+- **Credential privacy:** Missing-email rows receive deterministic synthetic identity data; the protected invite token is revealed only through an authorized one-time audit path and is absent from preview data.
+- **Downstream handoff:** Upload/inspect/export/reveal stay on whitelisted API/Desk paths and emit structured rows only. The import boundary must not create or call `ELMS Enrollment`; T-A12 owns enrollment.
+- **Acceptance boundary:** APP QA PASS covered required backend, frontend_build, leftover_sot and wire_journey lanes; browser/live_smoke were n/a because wire absorbed the feature journey and preflight. AC-001..AC-004, organization authz and provider/error recovery all passed; typed wire evidence is `browser-qa-trace/v1` with `status=pass`, `live_evidence=true` and `exit_code=0`. BF-001..BF-006 are closed/cancelled; exploratory coverage remained optional/not_run and no blockers remain.

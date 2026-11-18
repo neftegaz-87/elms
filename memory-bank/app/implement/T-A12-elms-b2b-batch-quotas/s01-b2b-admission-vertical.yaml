@@ -1,0 +1,100 @@
+schema: epic-implement/v1
+role: app
+step_id: s01-b2b-admission-vertical
+plan_id: T-A12-elms-b2b-batch-quotas
+task_id: T-A12-elms-b2b-batch-quotas
+title: B2B parsed import confirmation with quota-safe enrollment IMPLEMENT
+level: L3
+status: in_progress
+date: 2026-11-18
+decompose_ref: memory-bank/app/plan/T-A12-elms-b2b-batch-quotas/yaml/steps/s01-b2b-admission-vertical.yaml
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/frontend-testing/SKILL.md
+  - .agents/skills/frontend-patterns/SKILL.md
+  - .agents/skills/next-best-practices/SKILL.md
+  - .agents/skills/vercel-react-best-practices/SKILL.md
+  - .agents/skills/vercel-composition-patterns/SKILL.md
+  - .agents/skills/playwright-best-practices/SKILL.md
+  - .agents/skills/playwright-generate-test/SKILL.md
+  - .agents/skills/web-design-guidelines/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/impeccable/SKILL.md
+  - .agents/skills/emil-design-eng/SKILL.md
+
+files:
+  - elms/elms/lms/api/admission.py
+  - elms/elms/lms/api/schemas/admission.py
+  - elms/elms/lms/services/b2b_admission.py
+  - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+  - elms/elms/lms/page/elms-learning/elms-learning.js
+  - elms/elms/lms/page/elms-learning/elms-learning.html
+  - elms/elms/tests/test_b2b_batch_quotas.py
+  - elms/elms/tests/e2e/b2b-batch-quotas.spec.js
+
+deletes: []
+
+done:
+  - API and cabinet confirm flow are wired through the atomic B2B admission service.
+  - Quota, subscription, catalog, organization, audit, profile, and rollback rules are implemented.
+
+integration_check:
+  - API confirm_admission_import delegates to B2BAdmissionService.confirm.
+  - B2BAdmissionService.confirm reserves quota and calls enroll_learner.
+  - Company cabinet confirm action calls the same API contract and renders its result report.
+
+wire_complete:
+  call_sites:
+    - elms/elms/lms/api/admission.py:confirm_admission_import
+    - elms/elms/lms/services/b2b_admission.py:B2BAdmissionService.confirm
+    - elms/elms/lms/page/elms-learning/elms-learning.js:confirm_admission_import
+  enforce_path: elms/elms/lms/services/b2b_admission.py
+  instruction_rg: "rg -n 'confirm_admission_import|B2BAdmissionService|enroll_learner' elms/elms/lms/api/admission.py elms/elms/lms/services/b2b_admission.py elms/elms/lms/page/elms-learning/elms-learning.js"
+  dual_path_rg: "rg -n 'confirm_admission_import|B2BAdmissionService|enroll_learner' elms/elms/lms/api/admission.py elms/elms/lms/services/b2b_admission.py elms/elms/lms/page/elms-learning/elms-learning.js"
+  deny_old_proven: true
+
+tests:
+  - command: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+    status: in_progress
+  - command: python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py
+    status: in_progress
+  - command: node --check elms/elms/lms/page/elms-learning/elms-learning.js
+    status: in_progress
+  - command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+    status: in_progress
+
+checkpoints:
+  - id: backend-unit
+    criterion: API and unit contract covers parsed-only confirmation, typed quota/catalog/organization errors, deterministic subscription and course resolution, atomic rollback, audit, and profile snapshots.
+    status: done
+    verify: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+  - id: nfr-audit-traceability
+    criterion: Successful confirmation persists the actor, source import, and confirmed row count in the audit record.
+    status: done
+    verify: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+  - id: nfr-pii-traceability
+    criterion: Learner profile snapshots stay inside the existing admission profile boundary and add no external provider or acting-as path.
+    status: done
+    verify: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
+  - id: browser-acceptance
+    criterion: Company cabinet previews remaining seats, confirms the parsed import, and renders an explicit result report.
+    status: done
+    verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  - id: syntax
+    criterion: New Python admission modules compile.
+    status: done
+    verify: python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py
+  - id: desk-js-syntax
+    criterion: Company cabinet Desk JS parses.
+    status: done
+    verify: node --check elms/elms/lms/page/elms-learning/elms-learning.js
+
+resume_from: backend-unit

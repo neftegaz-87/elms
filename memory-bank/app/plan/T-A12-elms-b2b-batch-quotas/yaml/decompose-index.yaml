@@ -1,0 +1,68 @@
+schema: epic-decompose-index/v1
+epic_id: T-A12-elms-b2b-batch-quotas
+plan_id: T-A12-elms-b2b-batch-quotas
+role: app
+phase: DECOMPOSE
+next_phase: APP IMPLEMENT
+plan: memory-bank/app/plan/T-A12-elms-b2b-batch-quotas/md/plan.md
+level: L3
+sNN_cap: 3
+requirements_coverage:
+  - id: AC-001
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: AC-002
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: AC-003
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: AC-004
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: FR-001
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: FR-002
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: FR-003
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: FR-004
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: NFR-001
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: NFR-002
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+  - id: NFR-003
+    step: s01-b2b-admission-vertical
+    step_id: s01-b2b-admission-vertical
+steps:
+  - step_id: s01-b2b-admission-vertical
+    id: s01-b2b-admission-vertical
+    title: B2B parsed import confirmation with quota-safe enrollment
+    next_phase: APP IMPLEMENT
+    status: pending
+    file: yaml/steps/s01-b2b-admission-vertical.yaml
+    ac_ids:
+      - AC-001
+      - AC-002
+      - AC-003
+      - AC-004
+    outcome: Confirm parsed B2B import into active enrollments with atomic quota and boundary enforcement.
+    effort_probe:
+      independent_outcomes:
+        - Company Admin confirms a parsed import or selected rows and receives an explicit result report.
+        - Quota accounting, course resolution, catalog flags, and organization ownership are enforced by the same server transaction.
+        - Company cabinet previews remaining seats and presents success or typed row/batch errors.
+      split_seams: []
+    split_rationale: >-
+      The API, enrollment transaction, quota guard, catalog resolver, organization
+      guard, cabinet controls, and browser/API checks form one acceptance boundary:
+      a confirm cannot be trusted unless all of them are wired together. Splitting
+      backend, UI, or policy guards would create an untestable partial confirm
+      contract. L3 permits three shards, but no independent seam exists here.

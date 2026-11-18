@@ -1,0 +1,201 @@
+schema: app-qa/v1
+role: app
+task_id: T-A11-elms-ai-admission-parse
+plan_id: T-A11-elms-ai-admission-parse
+epic_id: T-A11-elms-ai-admission-parse
+date: 2026-11-18
+reviewer: APP QA
+verdict: pass
+checklist_sha256: f3c8fc8d386d306c28e2fbcf036b6a88249e2aec67009b39637b0b938bbb91c0
+verify_scope: app_lanes
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/admission/import_schemas.py
+      - elms/elms/admission/import_service.py
+      - elms/elms/admission/import_api.py
+      - elms/elms/admission/credentials.py
+      - elms/elms/operations/doctype/elms_admission_import/
+      - elms/elms/operations/doctype/elms_admission_import_row/
+      - elms/elms/operations/doctype/elms_admission_credential/
+      - elms/elms/operations/page/elms_admission/
+      - elms/elms/public/js/desk-admission.js
+      - elms/elms/public/css/desk-admission.css
+      - elms/elms/tests/test_admission_import.py
+      - elms/elms/tests/test_admission_import_ui.py
+  surfaces_required: [backend, frontend_build, wire_journey]
+  surfaces_optional: [exploratory]
+  surfaces_skipped:
+    - "browser — absorbed_into_wire_journey (authenticated feature journey covers login + UI + API)"
+    - "live_smoke — absorbed_into_wire_preflight (diff_aware; health/preflight is inside wire setup)"
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, wire, auth, data, external_integration, security, reliability]
+  selected:
+    - {id: contract_acceptance, lane: [backend, wire_journey], reason: "AC/FR behavior is in scope", status: pass, evidence: "11 backend tests + browser-artifacts/browser-evidence.json"}
+    - {id: regression, lane: [backend, wire_journey], reason: "current diff and closed prior blockers require re-QA", status: pass, evidence: "11 backend tests + fresh typed wire capture"}
+    - {id: backend_unit_component, lane: [backend], reason: "DTO, parsing, validation, and credential logic are in scope", status: pass, evidence: "11 passed in targeted backend suite"}
+    - {id: backend_integration_state, lane: [backend], reason: "Frappe DocType persistence and permission boundaries are in scope", status: pass, evidence: "11 passed in targeted backend suite"}
+    - {id: api_contract, lane: [backend, wire_journey], reason: "upload/inspect/export/reveal whitelist APIs are in scope", status: pass, evidence: "11 passed + typed upload/inspect/export/reveal requests in browser-artifacts/browser-evidence.json"}
+    - {id: data_persistence_migration, lane: [backend, wire_journey], reason: "import hash/revision, rows, and credential state are in scope", status: pass, evidence: "11 passed + parsed preview/export/reveal runtime capture"}
+    - {id: frontend_build_assets, lane: [frontend_build], reason: "Desk page JS/CSS/metadata are in the current surface", status: pass, evidence: "py_compile and node --check both exited 0"}
+    - {id: wire_journey, lane: [wire_journey], reason: "implement shard declares wire_complete and feature journey", status: pass, evidence: "browser-artifacts/browser-evidence.json, browser-qa-trace/v1, live_evidence=true"}
+    - {id: negative_error_paths, lane: [backend, wire_journey], reason: "invalid rows, corrupt/provider failure, denial, and one-time reveal are contract behavior", status: pass, evidence: "11 passed + preview_errors_are_explicit runtime check"}
+    - {id: auth_session_rbac, lane: [wire_journey], reason: "authenticated Company Admin journey and organization scope are in scope", status: pass, evidence: "runtime_activation authenticated=true, role=ELMS Company Admin"}
+    - {id: external_integration, lane: [wire_journey], reason: "bounded OmniRoute deterministic provider is exercised by the feature journey", status: pass, evidence: "admission_provider status=pass in browser-artifacts/browser-evidence.json"}
+    - {id: security_owasp, lane: [backend, wire_journey], reason: "organization authorization, protected token, and no-enrollment boundary are in scope", status: pass, evidence: "11 passed + exact no-User/no-Enrollment scans + one-time reveal runtime check"}
+    - {id: console_network, lane: [wire_journey], reason: "wire evidence includes browser console/request failure checks", status: pass, evidence: "console_errors=[] and request_failures=[] in typed wire capture"}
+    - {id: performance_resilience, lane: [backend], reason: "bounded provider failure/timeout behavior is covered by targeted backend tests", status: pass, evidence: "11 passed in targeted backend suite"}
+    - {id: observability, lane: [backend, wire_journey], reason: "explicit failed status, row errors, and reveal audit are contract evidence", status: pass, evidence: "11 passed + failed/parsed status and reveal audit in wire capture"}
+    - {id: cleanup_sot, lane: [leftover_sot], reason: "plan sunset and no-enrollment ownership require leftover scan", status: pass, evidence: "positive contract rg and both forbidden-path negative rg checks exited 0"}
+  not_applicable:
+    - {id: browser_functional, reason: absorbed_into_wire_journey}
+    - {id: live_http_smoke, reason: absorbed_into_wire_preflight_for_diff_aware_wire}
+    - {id: async_jobs_workers_webhooks, reason: "no async worker, queue, retry delivery, or webhook is in the shard"}
+    - {id: accessibility, reason: "diff_aware has no executable accessibility lane or command"}
+    - {id: responsive_compatibility, reason: "diff_aware has no executable viewport/client-matrix lane or command"}
+    - {id: visual_states, reason: "diff_aware has no executable visual-regression lane or command"}
+    - {id: content_i18n, reason: "no locale/content acceptance lane is declared by the shard"}
+    - {id: exploratory, reason: "optional exploratory lane is not selected; required feature journey is executable"}
+  not_run: []
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: "./bin/pytest -q elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py"
+    evidence: "11 passed in 0.09s"
+    notes: "targeted DTO/parser, persistence, API, authorization, credential, and UI contract tests"
+  - id: frontend_build
+    required: true
+    status: pass
+    command: "python3 -m py_compile elms/elms/admission/import_schemas.py elms/elms/admission/import_service.py elms/elms/admission/import_api.py elms/elms/admission/credentials.py; node --check elms/elms/public/js/desk-admission.js"
+    evidence: "python3 -m py_compile exited 0; node --check exited 0"
+    notes: "Desk asset check per hub-default; no project frontend stack profile exists"
+  - id: browser
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_journey
+  - id: live_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_preflight
+  - id: leftover_sot
+    required: true
+    status: pass
+    command: "rg -n 'ELMS Admission Import|upload_import|inspect_import|reveal_credential|synthetic|invite-token|invite_token|schema_version' elms/elms/admission elms/elms/operations/doctype/elms_admission_import elms/elms/operations/doctype/elms_admission_import_row elms/elms/operations/doctype/elms_admission_credential elms/elms/public/js/desk-admission.js; ! rg -n 'frappe\\.get_doc\\(.*User|insert.*Frappe User|create.*Frappe User' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py; ! rg -n 'Enrollment|enroll_' elms/elms/admission/import_api.py elms/elms/admission/import_service.py elms/elms/admission/credentials.py"
+    evidence: "positive contract rg matched; no Frappe User creation rg exited 0; no Enrollment/enroll_ rg exited 0"
+    notes: "plan sunset/no-enrollment boundary is clean"
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: "no agent/hook/gate functional requirement"
+  - id: wire_journey
+    required: true
+    status: pass
+    command: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py"
+    evidence: "browser-artifacts/browser-evidence.json; typed browser-qa-trace/v1 timestamp 2026-11-18T07:30:34Z; exit_code 0; live_evidence=true"
+    notes: "authenticated Company Admin feature journey; --smoke-only is forbidden"
+  - id: exploratory
+    required: false
+    status: skipped
+    command: ""
+    evidence: ""
+    notes: "optional; not selected in diff_aware"
+
+scope:
+  - "task: T-A11-elms-ai-admission-parse"
+  - "implement shard: memory-bank/app/implement/T-A11-elms-ai-admission-parse/s01-admission-import-vertical-slice.yaml"
+  - "current working-tree diff: elms/elms/operations/page/elms_admission/elms_admission.json, elms/elms/public/css/desk-admission.css, elms/elms/public/js/desk-admission.js"
+  - "prior bugfix SoT: closed BF-001..BF-006; no open product blocker"
+
+ac_plus: []
+ac_minus: []
+section_011: []
+
+coverage_map:
+  - {id: AC-001, kind: AC, scenario: "fixture parse maps headers and Сметанин FIO+SNILS", evidence: "./bin/pytest ...; 11 passed", status: pass}
+  - {id: AC-002, kind: AC, scenario: "missing-email row gets synthetic identity and one-time admin reveal", evidence: "browser-artifacts/browser-evidence.json → JRN-A11-ADMISSION-IMPORT → one_time_credential_reveal_audited", status: pass}
+  - {id: AC-003, kind: AC, scenario: "corrupt/provider/invalid input fails explicitly without silent success", evidence: "./bin/pytest ...; browser-artifacts/browser-evidence.json → preview_errors_are_explicit", status: pass}
+  - {id: AC-004, kind: AC, scenario: "parsed import creates zero Enrollment documents/calls", evidence: "negative rg checks exit 0; browser-artifacts/browser-evidence.json → export_import API only", status: pass}
+
+review:
+  status: pass
+  scope: "diff-aware mixed admission import surface"
+  findings: []
+  notes: "Targeted contract/static review plus authenticated feature journey found no actionable finding."
+
+test_audit:
+  status: pass
+  checks:
+    - "assertions exercise outcome, not only status/build"
+    - "no global API mocking hides production wire"
+    - "skips/xfails and route.fulfill bounded"
+    - "browser/API test included in declared CI job"
+  findings: []
+  notes: "Backend assertions passed; wire used the real authenticated Desk/API path with deterministic provider activation and recorded no console/request failures."
+
+browser:
+  status: n/a
+  stack_profile: hub-default
+  evidence_file: ""
+  last_run_at: ""
+  journeys: []
+  artifacts: []
+  notes: absorbed_into_wire_journey
+
+retro:
+  status: done
+  defect_missed: none
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: none
+
+sunset_inventory_scan:
+  status: pass
+  scanned_at: "2026-11-18T07:30:34Z"
+  rows:
+    - "typed import/credential contract markers present"
+    - "no Frappe User creation path"
+    - "no Enrollment/enroll_ path"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: pass
+  rows: []
+
+checks:
+  - all required lanes pass
+  - charter announced before probes
+  - wire is feature journey, not login smoke-only
+  - no duplicate browser+wire login lanes in diff_aware
+  - verify-qa PASS
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+live_smoke:
+  status: n/a
+  command: ""
+  evidence_file: ""
+  last_run_at: ""
+  base_url: ""
+  level: health
+  notes: absorbed_into_wire_preflight

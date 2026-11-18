@@ -8,7 +8,7 @@ Codex в **этом** каталоге читает `AGENTS.override.md` **вм�
 Продуктовые инструкции лежат в **`rules/`** (SoT для агентов этого репо).
 
 1. Прочитай и следуй: `rules/README.md`
-2. Затем: `rules/elms-approach.mdc`, `rules/elms-design.mdc`, `rules/agents-overlay.md`
+2. Затем: `rules/elms-approach.mdc`, `rules/elms-design.mdc`, `rules/elms-testing.mdc`, `rules/agents-overlay.md`
 3. Модули/роли: `memory-bank/product/modules.md`
 
 **Открыт elms → канон = `rules/`. Не копай CRM/ERP за ролями и доменом.**

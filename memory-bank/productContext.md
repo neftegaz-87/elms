@@ -1,7 +1,7 @@
 # Контекст продукта (productContext)
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-11-17 (после T-A10 APP QA PASS & context sync); 2026-11-14 (после T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (после T-A07 APP QA PASS & context sync); 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
+**Обновлено:** 2026-11-18 (после T-A11 APP QA PASS & context sync); 2026-11-17 (после T-A10 APP QA PASS & context sync); 2026-11-14 (после T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (после T-A07 APP QA PASS & context sync); 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
 
 ## Текущий срез (Current Wedge & Delivery Status)
 
@@ -71,6 +71,11 @@
     - Learner заполняет `ELMS Admission Profile`, загружает обязательные приватные сканы и фиксирует согласие ПДн; после полной валидации создаётся pending Payment через provider port. Только валидированный signed `paid` webhook создаёт ровно одно Active `ELMS Enrollment` и открывает ссылку обучения; бесплатный/ручной paid bypass запрещён.
     - Runtime Page regression закрыта: стандартная `elms-admission` Page синхронизирована в live Frappe через install/migrate wiring. Полный authenticated wire journey profile/upload/payment/signed-webhook/enrollment прошёл; BF-001..BF-006 закрыты, live Page и payment state-order/idempotency blockers не воспроизводятся.
     - QA PASS: required app lanes backend, frontend_build, browser, live_smoke, wire_journey и leftover_sot; AC-001..AC-006 и BN-001..BN-004 passed. Evidence: `memory-bank/app/qa/T-A10-elms-b2c-admission-payment/qa-20261117-b2c-admission-payment3.yaml`, `admission-wire-20261117.json`, `live-smoke-20261117.json`; конкретный эквайринг, 1С и exploratory usability остаются вне этого среза.
+  - **Импорт поступления B2B (`T-A11`):** завершён и принят APP QA как вертикальный срез Company Admin XLSX admission import:
+    - Fixture-backed typed headers/rows проходят Pydantic validation перед organization-scoped persistence; draft/parsed/failed outcomes, file-hash idempotency и explicit revisions сохраняются в ELMS Admission Import.
+    - Missing-email rows получают deterministic synthetic identity с защищённым одноразовым invite-token reveal/audit; Desk upload, preview, row errors, export и credential reveal используют whitelisted API.
+    - Import boundary передаёт только validated structured rows к T-A12: Enrollment documents/API calls запрещены, provider/corrupt/invalid failures остаются явными failed outcomes.
+    - QA PASS: required app lanes backend, frontend_build, leftover_sot и wire_journey; AC-001..AC-004, organization authz и provider/error recovery passed. Browser и live_smoke — n/a: они absorbed into wire journey/preflight. Evidence: `memory-bank/app/qa/T-A11-elms-ai-admission-parse/qa-20261118-admission-import-app-lanes-reqa.yaml`, `browser-artifacts/browser-evidence.json`, `browser-artifacts/qa-20261118-admission-live-smoke.json`; BF-001..BF-006 closed/cancelled, blockers отсутствуют, exploratory coverage optional и не запускалась.
 - **Следующие шаги (Next Foundation Wedges):**
   - `T-F01` (Desk workspaces / role navigation): as-built закрыт — LMS/Operations/Settings workspaces, role filter, platform workspaces скрыты; login affordance закрыт в T-A01.
   - Прикладная синхронизация Bitrix24 (LMS / Operations интеграционные сценарии) на базе стабилизированного REST-транспорта `T-B04`.

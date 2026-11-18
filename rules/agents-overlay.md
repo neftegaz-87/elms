@@ -29,7 +29,9 @@ Operations + LMS на Frappe Framework, app `elms`. Не CRM и не ERPNext.
 
 - Образец — соседний код в **`elms/`**, не `crm/`.
 - API: `@frappe.whitelist()` + Document API; без параллельного FastAPI.
-- Тесты: `FrappeTestCase` / bench `run-tests --app elms`.
+- **Проверки / тесты:** только канон `rules/elms-testing.mdc`  
+  (`./bin/pytest`, `py_compile`, `node --check`, `scripts/run_browser_qa.py`, `scripts/live_smoke.sh`).  
+  **FORBIDDEN** писать в decompose/implement: `bench run-tests`, голый `pnpm`/`npm` playwright.
 - UI: scoped CSS app `elms`; не CRM Playwright runtime из hub AGENTS.
 
 ## Git Flow и ветки
