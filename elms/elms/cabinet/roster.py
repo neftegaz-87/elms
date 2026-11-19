@@ -116,6 +116,35 @@ def _member_count(organization: str) -> int:
     return int(count(MEMBER_DOCTYPE, filters={"organization": organization}) or 0)
 
 
+def _record_organization_view(actor: str, organization: str) -> None:
+    """Persist the read event in the existing ELMS User Activity journal."""
+    get_doc = getattr(frappe, "get_doc", None)
+    if not callable(get_doc):
+        return
+    now_datetime = getattr(getattr(frappe, "utils", None), "now_datetime", None)
+    values = {
+        "doctype": "ELMS User Activity",
+        "user": actor,
+        "organization": organization,
+        "activity_type": "Organization View",
+        "timestamp": now_datetime() if callable(now_datetime) else None,
+        "reference_doctype": ORGANIZATION_DOCTYPE,
+        "reference_name": organization,
+        "ip_address": getattr(getattr(frappe, "local", None), "request_ip", "127.0.0.1"),
+    }
+    activity = get_doc(values)
+    for field, value in values.items():
+        if field != "doctype":
+            setattr(activity, field, value)
+    insert = getattr(activity, "insert", None)
+    if not callable(insert):
+        _throw("Не удалось записать аудит просмотра организации", frappe.ValidationError)
+    try:
+        insert(ignore_permissions=True)
+    except TypeError:
+        insert()
+
+
 def _user_map(user_names: list[str]) -> dict[str, dict[str, Any]]:
     if not user_names:
         return {}
@@ -227,7 +256,7 @@ def build_org_roster(
             ).as_dict()
         )
 
-    return {
+    result = {
         "organization": resolved_organization,
         "total": _member_count(resolved_organization),
         "page": page_number,
@@ -235,3 +264,5 @@ def build_org_roster(
         "rows": roster_rows,
         "empty": not roster_rows,
     }
+    _record_organization_view(current_user, resolved_organization)
+    return result

@@ -21,17 +21,17 @@
       "name": "login_css_asset_linked",
       "status": "pass",
       "observed": [
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.UKW5BN4I.css",
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.3527DYAJ.css",
         "http://elms.localhost:8082/assets/elms/css/login.css",
         "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1",
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.Y6XTUYOZ.css"
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.BDGFCM43.css"
       ]
     },
     {
       "name": "linked_stylesheets_are_available",
       "status": "pass",
       "observed": {
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.UKW5BN4I.css": {
+        "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1": {
           "status": 200,
           "content_type": "text/css"
         },
@@ -39,11 +39,11 @@
           "status": 200,
           "content_type": "text/css"
         },
-        "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.BDGFCM43.css": {
           "status": 200,
           "content_type": "text/css"
         },
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.Y6XTUYOZ.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.3527DYAJ.css": {
           "status": 200,
           "content_type": "text/css"
         }
@@ -160,7 +160,7 @@
       "status": "pass",
       "observed": {
         "status": "pass",
-        "base_url": "http://host.docker.internal:46395/v1",
+        "base_url": "http://host.docker.internal:43835/v1",
         "model": "elms-admission-parser-v1",
         "organization": "Демонстрационный контур НефтеГаз"
       }
@@ -168,6 +168,30 @@
   ],
   "passed": true,
   "errors": [],
+  "ac_disposition": {
+    "task_id": "T-A13-elms-custom-fields-course-program-batch",
+    "in_scope": [
+      {
+        "journey_id": "JRN-T-A13-CUSTOM-FIELDS-001",
+        "area": "custom_fields",
+        "disposition": "in_scope"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "area": "admission",
+        "journey_id": "JRN-A11-ADMISSION-IMPORT",
+        "disposition": "separate_provenance",
+        "provenance": "independent A11 admission wire coverage retained in the shared browser harness",
+        "t_a13_bugfix_impact": "none",
+        "evidence": [
+          "The T-A13 journey is independently identified as JRN-T-A13-CUSTOM-FIELDS-001.",
+          "The T-A13 journey exercises only custom-field definition and Course-value save/readback checks.",
+          "Admission coverage is independently identified as JRN-A11-ADMISSION-IMPORT."
+        ]
+      }
+    ]
+  },
   "runtime_activation": {
     "status": "pass",
     "source": "docker/.env.dev",
@@ -177,7 +201,7 @@
     "authenticated": true
   },
   "stylesheet_statuses": {
-    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.UKW5BN4I.css": {
+    "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1": {
       "status": 200,
       "content_type": "text/css"
     },
@@ -185,11 +209,11 @@
       "status": 200,
       "content_type": "text/css"
     },
-    "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.BDGFCM43.css": {
       "status": 200,
       "content_type": "text/css"
     },
-    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.Y6XTUYOZ.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.3527DYAJ.css": {
       "status": 200,
       "content_type": "text/css"
     }
@@ -239,7 +263,7 @@
   },
   "admission_provider": {
     "status": "pass",
-    "base_url": "http://host.docker.internal:46395/v1",
+    "base_url": "http://host.docker.internal:43835/v1",
     "model": "elms-admission-parser-v1",
     "organization": "Демонстрационный контур НефтеГаз"
   },
@@ -264,6 +288,34 @@
           "name": "admission_import_surface_loaded",
           "status": "pass",
           "observed": "http://elms.localhost:8082/app/elms-admission"
+        },
+        {
+          "name": "b2b_fixture_course_fields_present",
+          "status": "pass",
+          "observed": {
+            "ok": true,
+            "organization": "Демонстрационный контур НефтеГаз",
+            "organization_status": "Active",
+            "course": "kbf7g0su5o",
+            "course_organization": "Демонстрационный контур НефтеГаз",
+            "course_code": "ELMS-T-A12-B2B-WIRE-COURSE",
+            "course_status": "Active",
+            "program": "60ci3sog6k",
+            "training_kind": "повышение квалификации",
+            "batch": "okqdn99qoi",
+            "batch_organization": "Демонстрационный контур НефтеГаз",
+            "batch_course": "kbf7g0su5o",
+            "batch_status": "Active",
+            "active_batch_count": 1,
+            "subscription_id": "oksfhv7aoo",
+            "subscription_organization": "Демонстрационный контур НефтеГаз",
+            "subscription_course": "kbf7g0su5o",
+            "subscription_status": "Active",
+            "total_seats": 100,
+            "seats_used": 27,
+            "available_seats": 73,
+            "selection_rule": "deterministic authenticated-organization course, exactly one active batch, and available active course-linked subscription"
+          }
         },
         {
           "name": "preview_errors_are_explicit",
@@ -297,7 +349,8 @@
           "observed": {
             "method": "elms.admission.import_api.export_import",
             "status": 200,
-            "name": "ADMISSION-0052"
+            "http_status": 200,
+            "name": "ADMISSION-0211"
           }
         },
         {
@@ -310,7 +363,8 @@
             "response": {
               "method": "elms.admission.import_api.reveal_credential",
               "status": 200,
-              "name": "CREDENTIAL-0053",
+              "http_status": 200,
+              "name": "CREDENTIAL-0212",
               "invite_token_present": true
             }
           }
@@ -328,39 +382,445 @@
         {
           "method": "elms.admission.import_api.upload_import",
           "status": "failed",
-          "name": "ADMISSION-0051",
+          "http_status": 200,
+          "name": "ADMISSION-0210",
           "row_count": 1
         },
         {
           "method": "elms.admission.import_api.inspect_import",
           "status": "failed",
-          "name": "ADMISSION-0051",
+          "http_status": 200,
+          "name": "ADMISSION-0210",
           "total_rows": 1,
           "row_count": 1
         },
         {
           "method": "elms.admission.import_api.upload_import",
           "status": "parsed",
-          "name": "ADMISSION-0052",
+          "http_status": 200,
+          "name": "ADMISSION-0211",
           "row_count": 1
         },
         {
           "method": "elms.admission.import_api.inspect_import",
           "status": "parsed",
-          "name": "ADMISSION-0052",
+          "http_status": 200,
+          "name": "ADMISSION-0211",
           "total_rows": 1,
           "row_count": 1
         },
         {
           "method": "elms.admission.import_api.export_import",
           "status": 200,
-          "name": "ADMISSION-0052"
+          "http_status": 200,
+          "name": "ADMISSION-0211"
         },
         {
           "method": "elms.admission.import_api.reveal_credential",
           "status": 200,
-          "name": "CREDENTIAL-0053",
+          "http_status": 200,
+          "name": "CREDENTIAL-0212",
           "invite_token_present": true
+        },
+        {
+          "method": "elms.lms.api.admission.preview_admission_import",
+          "status": "preview",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0211",
+          "selected_count": 1,
+          "enrolled_count": 0,
+          "remaining_seats": 73,
+          "enrolled_statuses": [],
+          "error_codes": []
+        },
+        {
+          "method": "elms.lms.api.admission.confirm_admission_import",
+          "status": "confirmed",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0211",
+          "selected_count": 1,
+          "enrolled_count": 1,
+          "remaining_seats": 72,
+          "enrolled_statuses": [
+            "Active"
+          ],
+          "error_codes": []
+        }
+      ],
+      "console_errors": [],
+      "request_failures": [],
+      "errors": []
+    },
+    {
+      "journey_id": "JRN-T-A12-B2B-CONFIRM-001",
+      "name": "Authenticated Company Admin confirms parsed import into quota-safe Active enrollments and sees result report",
+      "url": "http://elms.localhost:8082/app/elms-learning",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "parsed_import_id_available",
+          "status": "pass",
+          "observed": "ADMISSION-0211"
+        },
+        {
+          "name": "company_admin_confirm_surface_loaded",
+          "status": "pass",
+          "observed": "http://elms.localhost:8082/app/elms-learning"
+        },
+        {
+          "name": "parsed_import_subscription_persisted",
+          "status": "pass",
+          "observed": {
+            "ok": true,
+            "organization": "Демонстрационный контур НефтеГаз",
+            "course": "kbf7g0su5o",
+            "subscription_id": "oksfhv7aoo",
+            "total_seats": 100,
+            "seats_used": 27,
+            "available_seats": 73,
+            "selection_rule": "deterministic active Company Admin subscription with available seats linked to the prepared course",
+            "persisted": true,
+            "error": null
+          }
+        },
+        {
+          "name": "confirm_preview_exposes_remaining_quota",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "method": "elms.lms.api.admission.preview_admission_import",
+              "status": "preview",
+              "http_status": 200,
+              "ok": true,
+              "import_id": "ADMISSION-0211",
+              "selected_count": 1,
+              "enrolled_count": 0,
+              "remaining_seats": 73,
+              "enrolled_statuses": [],
+              "error_codes": []
+            },
+            "preview_text": "Выбрано строк: 1. Осталось мест: 73.ne87f48oif: 60ci3sog6k"
+          }
+        },
+        {
+          "name": "parsed_import_confirm_enabled",
+          "status": "pass",
+          "observed": true
+        },
+        {
+          "name": "confirmed_rows_are_quota_safe_active_enrollments",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "method": "elms.lms.api.admission.confirm_admission_import",
+              "status": "confirmed",
+              "http_status": 200,
+              "ok": true,
+              "import_id": "ADMISSION-0211",
+              "selected_count": 1,
+              "enrolled_count": 1,
+              "remaining_seats": 72,
+              "enrolled_statuses": [
+                "Active"
+              ],
+              "error_codes": []
+            },
+            "enrolled_statuses": [
+              "Active"
+            ],
+            "preview_remaining_seats": 73
+          }
+        },
+        {
+          "name": "confirm_result_report_is_explicit",
+          "status": "pass",
+          "observed": {
+            "success_report": true,
+            "error_report": false,
+            "result_text": "Зачислено: 1. Осталось мест: 72. Статус всех зачислений: Active."
+          }
+        },
+        {
+          "name": "browser_runtime_errors_absent",
+          "status": "pass",
+          "observed": {
+            "console_errors": [],
+            "request_failures": []
+          }
+        }
+      ],
+      "api_requests": [
+        {
+          "method": "elms.lms.api.admission.preview_admission_import",
+          "status": "preview",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0211",
+          "selected_count": 1,
+          "enrolled_count": 0,
+          "remaining_seats": 73,
+          "enrolled_statuses": [],
+          "error_codes": []
+        },
+        {
+          "method": "elms.lms.api.admission.confirm_admission_import",
+          "status": "confirmed",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0211",
+          "selected_count": 1,
+          "enrolled_count": 1,
+          "remaining_seats": 72,
+          "enrolled_statuses": [
+            "Active"
+          ],
+          "error_codes": []
+        }
+      ],
+      "console_errors": [],
+      "request_failures": [],
+      "errors": []
+    },
+    {
+      "journey_id": "JRN-T-A13-CUSTOM-FIELDS-001",
+      "name": "Authenticated Company Admin defines a Course field and saves/readbacks its Additional value",
+      "url": "http://elms.localhost:8082/app/elms-custom-fields",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "custom_fields_authenticated_organization_resolved",
+          "status": "pass",
+          "observed": {
+            "ok": true,
+            "organization": "Демонстрационный контур НефтеГаз",
+            "error": null
+          }
+        },
+        {
+          "name": "custom_fields_course_owned_by_authenticated_organization",
+          "status": "pass",
+          "observed": {
+            "course": "kbf7g0su5o",
+            "organization": "Демонстрационный контур НефтеГаз",
+            "course_organization": "Демонстрационный контур НефтеГаз",
+            "course_code": "ELMS-T-A12-B2B-WIRE-COURSE",
+            "status": "Active"
+          }
+        },
+        {
+          "name": "custom_fields_previous_fixture_removed",
+          "status": "pass",
+          "observed": {
+            "definition": {
+              "organization": "Демонстрационный контур НефтеГаз",
+              "applies_to": "ELMS Course",
+              "field_key": "qa_t_a13_wire",
+              "label": "T-A13 Browser Additional",
+              "field_type": "text",
+              "options": [],
+              "required": false,
+              "active": true,
+              "schema_version": 1,
+              "name": "bsuumfmu2u"
+            },
+            "cleanup": {
+              "ok": true,
+              "message": {
+                "name": "bsuumfmu2u",
+                "organization": "Демонстрационный контур НефтеГаз",
+                "status": "deleted"
+              }
+            }
+          }
+        },
+        {
+          "name": "custom_fields_definition_surface_loaded",
+          "status": "pass",
+          "observed": "http://elms.localhost:8082/app/elms-custom-fields"
+        },
+        {
+          "name": "custom_field_definition_api_succeeded",
+          "status": "pass",
+          "observed": {
+            "http_status": 200
+          }
+        },
+        {
+          "name": "custom_field_definition_saved_and_read_back",
+          "status": "pass",
+          "observed": {
+            "http_status": 200,
+            "definition": {
+              "organization": "Демонстрационный контур НефтеГаз",
+              "applies_to": "ELMS Course",
+              "field_key": "qa_t_a13_wire",
+              "label": "T-A13 Browser Additional",
+              "field_type": "text",
+              "options": [],
+              "required": false,
+              "active": true,
+              "schema_version": 1,
+              "name": "nfqv3q7ulg"
+            },
+            "ui_list_contains_key": [
+              "T-A13 Browser Additional (qa_t_a13_wire, text)Удалить"
+            ]
+          }
+        },
+        {
+          "name": "course_additional_field_control_rendered",
+          "status": "pass",
+          "observed": "http://elms.localhost:8082/app/elms-course/kbf7g0su5o"
+        },
+        {
+          "name": "course_additional_value_saved_and_read_back",
+          "status": "pass",
+          "observed": {
+            "save_http_status": 200,
+            "form_api_readback": {
+              "qa_t_a13_wire": "T-A13 authenticated Course readback"
+            },
+            "course_document_readback": {
+              "qa_t_a13_wire": "T-A13 authenticated Course readback"
+            },
+            "course": "kbf7g0su5o",
+            "organization": "Демонстрационный контур НефтеГаз"
+          }
+        },
+        {
+          "name": "browser_runtime_errors_absent",
+          "status": "pass",
+          "observed": {
+            "console_errors": [],
+            "request_failures": []
+          }
+        }
+      ],
+      "api_requests": [
+        {
+          "method": "elms.access.api.get_company_access_context",
+          "status": 200,
+          "http_status": 200,
+          "organization": "Демонстрационный контур НефтеГаз"
+        },
+        {
+          "method": "frappe.client.get",
+          "status": 200,
+          "http_status": 200,
+          "doctype": "ELMS Course",
+          "name": "kbf7g0su5o",
+          "custom_field_values": "{\"qa_t_a13_wire\":\"T-A13 authenticated Course readback\"}"
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_schema",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "definition_count": 1,
+          "field_keys": [
+            "qa_t_a13_wire"
+          ]
+        },
+        {
+          "method": "elms.access.api.get_company_access_context",
+          "status": 200,
+          "http_status": 200,
+          "organization": "Демонстрационный контур НефтеГаз"
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_schema",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "definition_count": 0,
+          "field_keys": []
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_schema",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "definition_count": 0,
+          "field_keys": []
+        },
+        {
+          "method": "elms.lms.api.custom_fields.save_custom_field_definition",
+          "status": 200,
+          "http_status": 200,
+          "definition": {
+            "name": "nfqv3q7ulg",
+            "organization": "Демонстрационный контур НефтеГаз",
+            "applies_to": "ELMS Course",
+            "field_key": "qa_t_a13_wire",
+            "label": "T-A13 Browser Additional",
+            "field_type": "text",
+            "schema_version": 1
+          }
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_schema",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "definition_count": 1,
+          "field_keys": [
+            "qa_t_a13_wire"
+          ]
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_schema",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "definition_count": 1,
+          "field_keys": [
+            "qa_t_a13_wire"
+          ]
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_form_data",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "target_name": "kbf7g0su5o",
+          "stored_values": {
+            "qa_t_a13_wire": "T-A13 authenticated Course readback"
+          }
+        },
+        {
+          "method": "frappe.desk.form.save.savedocs",
+          "status": 200,
+          "http_status": 200
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_form_data",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "target_name": "kbf7g0su5o",
+          "stored_values": {
+            "qa_t_a13_wire": "T-A13 authenticated Course readback"
+          }
+        },
+        {
+          "method": "elms.lms.api.custom_fields.get_custom_field_form_data",
+          "status": 200,
+          "http_status": 200,
+          "target_doctype": "ELMS Course",
+          "target_name": "kbf7g0su5o",
+          "stored_values": {
+            "qa_t_a13_wire": "T-A13 authenticated Course readback"
+          }
+        },
+        {
+          "method": "frappe.client.get",
+          "status": 200,
+          "http_status": 200,
+          "doctype": "ELMS Course",
+          "name": "kbf7g0su5o",
+          "custom_field_values": "{\"qa_t_a13_wire\":\"T-A13 authenticated Course readback\"}"
         }
       ],
       "console_errors": [],
@@ -371,7 +831,7 @@
   "status": "pass",
   "evidence_type": "runtime_browser",
   "live_evidence": true,
-  "timestamp": "2026-11-18T07:30:34Z",
+  "timestamp": "2026-11-19T10:57:56Z",
   "command": "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py",
   "exit_code": 0
 }

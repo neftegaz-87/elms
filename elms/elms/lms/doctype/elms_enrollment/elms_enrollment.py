@@ -35,10 +35,17 @@ def enroll_learner(
 		raise ValueError("Enrollment must be created through the quota admission boundary")
 	user = _ensure_learner(learner_data, source_import)
 	profile = _save_profile_snapshot(user, learner_data)
+	organization = (
+		frappe.db.get_value("ELMS Batch", batch, "organization")
+		or frappe.db.get_value("ELMS Course", course, "organization")
+	)
+	if not organization:
+		raise ValueError("Enrollment organization cannot be resolved from batch/course")
 	enrollment = frappe.get_doc(
 		{
 			"doctype": "ELMS Enrollment",
-			"learner": user,
+			"organization": organization,
+			"user": user,
 			"course": course,
 			"batch": batch,
 			"subscription": subscription,
@@ -53,6 +60,7 @@ def enroll_learner(
 		"name": enrollment.name,
 		"status": enrollment.status,
 		"learner": user,
+		"user": user,
 	}
 
 
@@ -78,15 +86,32 @@ def _ensure_learner(data: dict[str, Any], source_import: str) -> str:
 
 
 def _save_profile_snapshot(user: str, data: dict[str, Any]) -> dict[str, Any]:
-	profile_data = {"doctype": "ELMS Learner Profile", "user": user, **data}
-	profile_name = frappe.db.exists("ELMS Learner Profile", {"user": user})
+	mapped = {
+		"user": user,
+		"email": data.get("email") or frappe.db.get_value("User", user, "email") or "",
+		"fio_last_name": data.get("last_name") or "",
+		"fio_first_name": data.get("first_name") or data.get("full_name") or "",
+		"fio_middle_name": data.get("middle_name") or "",
+		"phone": data.get("phone") or "",
+		"snils": data.get("snils") or "",
+		"passport_number": data.get("passport_number") or "",
+		"education_level": data.get("education") or "",
+		"profession": data.get("profession") or "",
+	}
+	profile_name = frappe.db.exists("ELMS Admission Profile", {"user": user})
 	if profile_name:
-		profile = frappe.get_doc("ELMS Learner Profile", profile_name)
-		for field, value in data.items():
+		profile = frappe.get_doc("ELMS Admission Profile", profile_name)
+		for field, value in mapped.items():
+			if field == "user" or value in (None, ""):
+				continue
 			setattr(profile, field, value)
+		profile.flags.from_b2b_admission = True
+		profile.flags.ignore_mandatory = True
 		profile.save(ignore_permissions=True)
 	else:
-		profile = frappe.get_doc(profile_data)
+		profile = frappe.get_doc({"doctype": "ELMS Admission Profile", **mapped})
+		profile.flags.from_b2b_admission = True
+		profile.flags.ignore_mandatory = True
 		profile.insert(ignore_permissions=True)
 	return {key: value for key, value in data.items() if value not in (None, "")}
 

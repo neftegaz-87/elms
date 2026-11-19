@@ -1,22 +1,6 @@
 version: roadmap-queue/v2
 role: app
 queue:
-- id: T-A12
-  epic_id: T-A12-elms-b2b-batch-quotas
-  kind: feature
-  plan: plan/T-A12-elms-b2b-batch-quotas/md/plan.md
-  batch: elms-admission-surfaces
-  deps:
-  - T-A11
-  - T-A07
-  - T-A09
-- id: T-A13
-  epic_id: T-A13-elms-custom-fields-course-program-batch
-  kind: feature
-  plan: plan/T-A13-elms-custom-fields-course-program-batch/md/plan.md
-  batch: elms-admission-surfaces
-  deps:
-  - T-A02
 - id: T-A14
   epic_id: T-A14-elms-admin-org-view-all
   kind: feature
@@ -98,6 +82,22 @@ done:
   deps:
   - T-A06
   - T-A07
+- id: T-A12
+  epic_id: T-A12-elms-b2b-batch-quotas
+  kind: feature
+  plan: plan/T-A12-elms-b2b-batch-quotas/md/plan.md
+  batch: elms-admission-surfaces
+  deps:
+  - T-A11
+  - T-A07
+  - T-A09
+- id: T-A13
+  epic_id: T-A13-elms-custom-fields-course-program-batch
+  kind: feature
+  plan: plan/T-A13-elms-custom-fields-course-program-batch/md/plan.md
+  batch: elms-admission-surfaces
+  deps:
+  - T-A02
 batches:
   elms-auth-surface:
     title: ELMS Keycloak login surface and brokered SSO journey

@@ -3,6 +3,9 @@
 import frappe
 from frappe.model.document import Document
 
+from elms.lms.custom_fields import validate_document_values
+
 
 class ELMSBatch(Document):
-	pass
+	def validate(self) -> None:
+		validate_document_values(self)

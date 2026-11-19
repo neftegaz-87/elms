@@ -7,14 +7,20 @@
   "organization",
   "course_name",
   "course_code",
+  "program",
+  "training_kind",
   "category",
   "academic_hours",
   "column_break_1",
   "is_published",
+  "status",
   "passing_percentage",
   "section_break_desc",
   "short_description",
-  "description"
+  "description",
+  "section_break_custom_fields",
+  "custom_field_values",
+  "custom_field_schema_version"
  ],
  "fields": [
   {
@@ -41,6 +47,20 @@
    "in_standard_filter": 1,
    "label": "Course Code",
    "unique": 1
+  },
+  {
+   "fieldname": "program",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Program"
+  },
+  {
+   "fieldname": "training_kind",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Training Kind"
   },
   {
    "default": "Охрана труда (ПП РФ № 2464)",
@@ -71,6 +91,15 @@
    "label": "Is Published"
   },
   {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nActive\nArchived"
+  },
+  {
    "default": 80,
    "fieldname": "passing_percentage",
    "fieldtype": "Float",
@@ -90,6 +119,24 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Detailed Syllabus & Objectives"
+  },
+  {
+   "fieldname": "section_break_custom_fields",
+   "fieldtype": "Section Break",
+   "label": "Additional fields"
+  },
+  {
+   "fieldname": "custom_field_values",
+   "fieldtype": "JSON",
+   "hidden": 1,
+   "label": "Additional fields values"
+  },
+  {
+   "default": 1,
+   "fieldname": "custom_field_schema_version",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Additional fields schema version"
   }
  ],
  "links": [],
@@ -140,6 +187,6 @@
  "sort_order": "DESC",
  "show_title_field_in_link": 1,
  "states": [],
- "search_fields": "course_name, course_code, category",
+ "search_fields": "course_name, course_code, program, training_kind, category, status",
  "title_field": "course_name"
 }

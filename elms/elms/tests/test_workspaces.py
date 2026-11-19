@@ -32,8 +32,8 @@ class TestELMSWorkspaces(unittest.TestCase):
             ELMS_WORKSPACE_DEFINITIONS[1]["roles"],
             ("ELMS Admin", "ELMS Operations User", "ELMS Company Admin", "ELMS Instructor", "ELMS Methodologist"),
         )
-        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[2]["roles"], ("ELMS Admin", "ELMS Company Admin"))
-        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[3]["roles"], ("ELMS Admin",))
+        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[2]["roles"], ("ELMS Admin", "ELMS Operations User", "ELMS Company Admin"))
+        self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[3]["roles"], ("ELMS Admin", "ELMS Operations User"))
         self.assertEqual(ELMS_WORKSPACE_DEFINITIONS[4]["roles"], ("ELMS Admin", "System Manager"))
 
     def test_lms_workspace_uses_canonical_elms_display_label(self):
@@ -94,7 +94,7 @@ class TestELMSWorkspaces(unittest.TestCase):
         self.assertIn("/app/elms-cabinet", [shortcut["url"] for shortcut in company["shortcuts"]])
         self.assertIn("/app/elms-company-access", [shortcut["url"] for shortcut in company["shortcuts"]])
         access = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "B2B Access")
-        self.assertEqual(access["roles"], ("ELMS Admin",))
+        self.assertEqual(access["roles"], ("ELMS Admin", "ELMS Operations User"))
 
     def test_learner_gets_the_shared_lms_workspace_without_management_links(self):
         page = {"links": _workspace_links_for_test(), "content": _workspace_content("LMS", ELMS_WORKSPACE_DEFINITIONS[0]["links"], ELMS_WORKSPACE_DEFINITIONS[0]["shortcuts"])}

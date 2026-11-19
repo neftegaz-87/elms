@@ -36,7 +36,8 @@ app_include_css = [
 "/assets/elms/css/desk-company-access.css?v=4",
 	"/assets/elms/css/desk-company-integrations.css?v=1",
 "/assets/elms/css/desk-applications.css?v=1",
-	"/assets/elms/css/desk-admission.css?v=1",
+"/assets/elms/css/desk-admission.css?v=1",
+	"/assets/elms/css/custom-fields.css?v=1",
 ]
 app_include_js = [
 	"/assets/elms/js/desk-learning.js?v=6",
@@ -48,13 +49,17 @@ app_include_js = [
 "/assets/elms/js/desk-company-access.js?v=4",
 	"/assets/elms/js/desk-company-integrations.js?v=1",
 "/assets/elms/js/desk-applications.js?v=1",
-	"/assets/elms/js/desk-admission.js?v=1",
+"/assets/elms/js/desk-admission.js?v=1",
+	"/assets/elms/js/custom-fields.js?v=1",
 ]
 
 doctype_js = {
     "Role": "public/js/role.js",
     "Role Profile": "public/js/role-profile.js",
     "User Group": "public/js/user-group.js",
+	"ELMS Course": "public/js/custom-fields.js",
+	"ELMS Program": "public/js/custom-fields.js",
+	"ELMS Batch": "public/js/custom-fields.js",
 }
 
 page_js = {
@@ -69,6 +74,7 @@ page_js = {
 	"elms-company-integration-bitrix24": "public/js/elms-company-integrations-page.js",
 	"elms-company-integration-custom-api": "public/js/elms-company-integrations-page.js",
 	"elms-admission": "public/js/elms-admission-page.js",
+	"elms-custom-fields": "public/js/elms-custom-fields-page.js",
 }
 
 
@@ -177,6 +183,7 @@ _lms_tenant_doctypes = (
 	"ELMS Quiz",
 	"ELMS Quiz Question",
 	"ELMS Quiz Attempt",
+	"ELMS Custom Field Definition",
 )
 
 permission_query_conditions = {

@@ -8,6 +8,7 @@ from typing import Any
 
 import frappe
 
+from elms.access.api import require_organization_mutation_access
 from elms.lms.api.schemas.admission import AdmissionResult, AdmissionRowError
 from elms.lms.doctype.elms_enrollment.elms_enrollment import enroll_learner
 from elms.lms.doctype.elms_subscription.elms_subscription import QuotaExceededError, reserve_seats
@@ -139,7 +140,7 @@ class B2BAdmissionService:
 			)
 			frappe.db.set_value(IMPORT_DOCTYPE, import_id, "status", "Confirmed")
 		except AdmissionPolicyError as exc:
-			frappe.db.rollback(savepoint)
+			frappe.db.rollback(save_point=savepoint)
 			return self._rejected(
 				import_id,
 				[AdmissionRowError(code=exc.code, message=exc.message, row_id=exc.row_id)],
@@ -147,7 +148,7 @@ class B2BAdmissionService:
 				remaining_seats=remaining,
 			)
 		except QuotaExceededError as exc:
-			frappe.db.rollback(savepoint)
+			frappe.db.rollback(save_point=savepoint)
 			return self._rejected(
 				import_id,
 				AdmissionRowError(code="QUOTA_EXCEEDED", message=str(exc)),
@@ -155,7 +156,7 @@ class B2BAdmissionService:
 				remaining_seats=remaining,
 			)
 		except Exception:
-			frappe.db.rollback(savepoint)
+			frappe.db.rollback(save_point=savepoint)
 			raise
 
 		return self._result(
@@ -186,7 +187,7 @@ class B2BAdmissionService:
 
 	def _assert_company_admin(self) -> None:
 		roles = set(frappe.get_roles(self.user))
-		if COMPANY_ADMIN_ROLE not in roles or "ELMS Admin" in roles or "ELMS Operations User" in roles:
+		if COMPANY_ADMIN_ROLE not in roles or roles.intersection({"ELMS Admin", "ELMS Operations User", "Administrator", "System Manager"}):
 			raise AdmissionPolicyError(
 				"ACTOR_ROLE_FORBIDDEN",
 				"Подтверждать B2B импорт может только Company Admin своей организации",
@@ -197,7 +198,7 @@ class B2BAdmissionService:
 			return self.organization
 		organization = frappe.db.get_value(
 			"ELMS Organization Member",
-			{"user": self.user, "status": "Active"},
+			{"user": self.user},
 			"organization",
 		)
 		if not organization:
@@ -206,6 +207,13 @@ class B2BAdmissionService:
 				"У Company Admin не определена активная организация",
 			)
 		self.organization = organization
+		try:
+			require_organization_mutation_access(organization, self.user)
+		except frappe.PermissionError as exc:
+			raise AdmissionPolicyError(
+				"ORGANIZATION_FORBIDDEN",
+				"Импорт принадлежит другой организации",
+			) from exc
 		return organization
 
 	def _organization_flags(self) -> tuple[bool, bool]:
@@ -224,7 +232,7 @@ class B2BAdmissionService:
 		rows = frappe.get_all(
 			SUBSCRIPTION_DOCTYPE,
 			filters={"organization": self._actor_organization(), "status": "Active"},
-			fields=["name", "subscription_id", "organization", "status", "total_seats", "seats_used"],
+			fields=["name", "organization", "status", "total_seats", "seats_used"],
 			limit_page_length=0,
 		)
 		matches = [
@@ -294,8 +302,8 @@ class B2BAdmissionService:
 	def _resolve_course_and_batch(self, program: str, training_kind: str) -> tuple[dict[str, Any], dict[str, Any]]:
 		courses = frappe.get_all(
 			COURSE_DOCTYPE,
-			filters={"status": "Active"},
-			fields=["name", "program", "training_kind", "organization", "course_name"],
+			filters={"status": "Active", "is_published": 1},
+			fields=["name", "program", "training_kind", "organization", "course_name", "is_published"],
 			limit_page_length=0,
 		)
 		matches = [
@@ -452,9 +460,10 @@ def _record_admission_audit(
 			"doctype": "ELMS User Activity",
 			"user": actor,
 			"organization": organization,
-			"event": "b2b_admission_confirmed",
-			"source_import": source_import,
-			"confirmed_row_count": confirmed_count,
+			"activity_type": f"B2B Admission Confirmed ({confirmed_count})",
+			"timestamp": frappe.utils.now_datetime(),
+			"reference_doctype": "ELMS Admission Import",
+			"reference_name": source_import,
 		}
 	)
 	audit.insert(ignore_permissions=True)

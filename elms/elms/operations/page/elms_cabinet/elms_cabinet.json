@@ -5,6 +5,7 @@
  "page_name": "elms-cabinet",
  "roles": [
   {"role": "ELMS Admin"},
+  {"role": "ELMS Operations User"},
   {"role": "ELMS Company Admin"}
  ],
  "standard": "Yes",

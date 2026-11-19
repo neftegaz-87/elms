@@ -1,0 +1,100 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A13-elms-custom-fields-course-program-batch
+role: app
+source_qa: memory-bank/app/qa/T-A13-elms-custom-fields-course-program-batch/qa-20261119-custom-fields-recovery.yaml
+checklist_sha256: 20bc055e0951475118b99be8e27b91935d0813a843fe2cf709f6ecf8e82723f0
+created_at: '2026-11-18T22:50:59Z'
+updated_at: '2026-11-19T09:06:11Z'
+current_id: BF-003
+verification:
+  status: pass
+  required_gate: verify-bugfix
+  command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence_file: browser-artifacts/browser-evidence.json
+  last_run_at: '2026-11-19T09:06:11Z'
+  evidence: Queue metadata, closure anchors, and verification evidence match the typed
+    browser artifact timestamp 2026-11-19T09:06:11Z.
+items:
+- id: BF-001
+  status: done
+  done_at: '2026-11-19T09:06:11Z'
+  evidence_file:
+    path: browser-artifacts/browser-evidence.json
+    status: pass
+    live_evidence: true
+    timestamp: '2026-11-19T09:06:11Z'
+    command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+    exit_code: 0
+    observed_checks:
+    - runtime activation passed
+    - JRN-T-A13-CUSTOM-FIELDS-001 reached /app/elms-custom-fields
+    - custom-fields definition save/readback passed
+    - Course Additional control rendered
+    - Course value save/readback passed through canonical frappe.desk.form.save.savedocs
+      HTTP 200
+  class: ac_gap
+  title: 'ac_gap:wire_journey: the browser harness has no authenticated Course/Program/Batch
+    custom-fields feature journey'
+  blocker_ref: ac_gap|wire_journey|browser-artifacts/browser-evidence.json|Capture
+    /app/elms-custom-fields definition save and Course Additional fields save/readback
+    with typed API evidence
+  fix_plan_ref: Extend scripts/run_browser_qa.py with a typed T-A13 custom-fields
+    journey, preserve current runtime activation, and rerun the exact shard browser
+    command.
+  targets:
+  - scripts/run_browser_qa.py
+  - memory-bank/app/qa/T-A13-elms-custom-fields-course-program-batch/qa-20261119-custom-fields-qa.yaml
+  evidence: The harness extension for the T-A13 feature journey is present; its separate
+    Course value save/readback response-wait failure is tracked by BF-002.
+  notes: The journey-addition blocker and the response-wait blocker are closed; the
+    current wire evidence is the typed source for this re-QA.
+- id: BF-002
+  status: done
+  done_at: '2026-11-19T09:06:11Z'
+  class: suite_red
+  title: 'suite_red:wire_journey: authenticated T-A13 Course value save/readback response
+    wait times out'
+  blocker_ref: suite_red|wire_journey|scripts/run_browser_qa.py|Repair the typed T-A13
+    Course value save/readback response wait and record the resulting API response
+    in the authenticated journey
+  fix_plan_ref: Inspect the T-A13 browser journey response predicate and Course form
+    save trigger; make the wait observe the canonical save/readback request without
+    weakening the API assertion, then rerun the exact browser verify command.
+  targets:
+  - scripts/run_browser_qa.py
+  - browser-artifacts/browser-evidence.json
+  - memory-bank/app/qa/T-A13-elms-custom-fields-course-program-batch/qa-20261119-custom-fields-qa.yaml
+  verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence_file: browser-artifacts/browser-evidence.json
+  evidence: Current run timestamp 2026-11-19T09:06:11Z; runtime activation passed,
+    JRN-T-A13-CUSTOM-FIELDS-001 reached /app/elms-custom-fields, saved/read back the
+    definition, rendered the Course Additional control, and completed Course value
+    save/readback through canonical frappe.desk.form.save.savedocs HTTP 200; command
+    exit 0.
+- id: BF-003
+  status: done
+  done_at: '2026-11-19T09:06:11Z'
+  class: suite_red
+  title: 'suite_red:qa_queue: BUGFIX closure metadata is stale relative to the current
+    typed browser artifact'
+  blocker_ref: suite_red|qa_queue|memory-bank/app/bugfix/T-A13-elms-custom-fields-course-program-batch/bugfix-queue.yaml|Synchronize
+    all affected BUGFIX done_at/last_run_at and closure evidence to browser-artifacts/browser-evidence.json
+    timestamp 2026-11-19T09:06:11Z, then rerun queue verification
+  fix_plan_ref: Update the existing BF-001/BF-002 closure metadata and queue verification
+    anchors to the current typed browser artifact; do not create a duplicate product
+    blocker.
+  targets:
+  - memory-bank/app/bugfix/T-A13-elms-custom-fields-course-program-batch/bugfix-queue.yaml
+  - memory-bank/app/qa/T-A13-elms-custom-fields-course-program-batch/qa-20261119-custom-fields-qa.yaml
+  verify: python3 /home/aero/PyProject/dev-hub/bin/loop.py check-bugfix-queue --project
+    /home/aero/PyProject/NEFTEGAZ/elms --json
+  evidence_file:
+    path: browser-artifacts/browser-evidence.json
+    status: pass
+    live_evidence: true
+    timestamp: '2026-11-19T09:06:11Z'
+    command: python3 /home/aero/PyProject/dev-hub/bin/loop.py check-bugfix-queue --project
+      /home/aero/PyProject/NEFTEGAZ/elms --json
+    exit_code: 0
+  evidence: Queue metadata, closure anchors, and verification evidence match the typed
+    browser artifact timestamp 2026-11-19T09:06:11Z.

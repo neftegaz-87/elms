@@ -7,6 +7,10 @@
 		return !!(window.frappe && frappe.user && typeof frappe.user.has_role === "function" && frappe.user.has_role(role));
 	}
 
+	function isPlatformViewer() {
+		return hasRole("ELMS Admin") || hasRole("ELMS Operations User") || hasRole("Administrator") || hasRole("System Manager");
+	}
+
 	function escapeHtml(value) {
 		return String(value == null ? "" : value)
 			.replace(/&/g, "&amp;")
@@ -55,8 +59,52 @@
 	}
 
 	function selectedOrganization(root) {
-		var organizationInput = root.querySelector("[data-cabinet-organization]");
-		return organizationInput && !organizationInput.hidden ? organizationInput.value.trim() : "";
+		var organizationSelect = root.querySelector("[data-cabinet-organization]");
+		return organizationSelect ? String(organizationSelect.value || "").trim() : "";
+	}
+
+	function organizationOptions(organizations, selected) {
+		var options = '<option value="">Выберите организацию</option>';
+		return options + (organizations || []).map(function (name) {
+			return '<option value="' + escapeHtml(name) + '"' + (name === selected ? " selected" : "") + ">" + escapeHtml(name) + "</option>";
+		}).join("");
+	}
+
+	function setContext(root, context) {
+		var select = root.querySelector("[data-cabinet-organization]");
+		var organizations = context && context.organizations ? context.organizations : [];
+		var selected = context && context.organization ? context.organization : "";
+		if (select) {
+			select.innerHTML = organizationOptions(organizations, selected);
+			select.value = selected;
+			select.disabled = organizations.length < 2;
+		}
+		root._elmsCabinetContext = context || {};
+		var mode = root.querySelector("[data-cabinet-mode]");
+		if (mode) {
+			mode.textContent = context && context.read_only
+				? "режим просмотра: права организации не меняются"
+				: "Организация: доступ ограничен членством";
+		}
+	}
+
+	function loadContext(root, preferred, done) {
+		setPill(root, "Проверка доступа…", "is-pending");
+		call("elms.access.api.get_company_access_context", { organization: preferred || null }, function (context, error) {
+			if (error || !context) {
+				setPill(root, "Ошибка", "is-error");
+				setFlash(root, errorMessage(error), "error");
+				return;
+			}
+			setContext(root, context);
+			if (!selectedOrganization(root)) {
+				setPill(root, "Нет организации", "is-pending");
+				setFlash(root, "Нет доступной организации для просмотра.", "pending");
+				return;
+			}
+			if (done) done(context);
+			else load(root);
+		});
 	}
 
 	function summarize(rows) {
@@ -183,17 +231,16 @@
 	}
 
 	function render(root) {
-		var admin = hasRole("ELMS Admin") || hasRole("Administrator") || hasRole("System Manager");
 		root.innerHTML = [
 			'<div class="elms-cabinet-shell">',
 			'<header class="elms-cabinet-header">',
-			'<div class="elms-cabinet-heading"><div class="elms-cabinet-kicker">Организационный контур</div><h1>Кабинет компании</h1><p>Сотрудники, зачисления и прогресс обучения в вашей организации.</p></div>',
+			'<div class="elms-cabinet-heading"><div class="elms-cabinet-kicker">Организационный контур</div><h1>Кабинет компании</h1><p>Сотрудники, зачисления и прогресс обучения в выбранной организации.</p></div>',
 			'<div class="elms-cabinet-actions"><span data-cabinet-pill class="elms-cabinet-status-pill">Ожидание</span><button class="elms-cabinet-button" data-cabinet-action data-cabinet-export type="button">Экспорт CSV</button><button class="elms-cabinet-button is-primary" data-cabinet-action data-cabinet-refresh type="button">Обновить список</button></div>',
 			"</header>",
 			'<div class="elms-cabinet-toolbar">',
 			'<div class="elms-cabinet-toolbar-meta">',
-			'<label data-cabinet-org-label hidden>Организация<input data-cabinet-organization maxlength="140" placeholder="Введите организацию для просмотра"></label>',
-			'<div class="elms-cabinet-org-label" data-cabinet-org-display>Организация: <strong data-cabinet-org-name>—</strong></div>',
+			'<label data-cabinet-org-label>Организация<select data-cabinet-organization aria-label="Организация для просмотра"><option value="">Загружаем организации…</option></select></label>',
+			'<div class="elms-cabinet-org-label elms-cabinet-mode" data-cabinet-mode>Проверяем границу доступа…</div>',
 			"</div>",
 			"</div>",
 			'<div class="elms-cabinet-flash" data-cabinet-status role="status" aria-live="polite" hidden></div>',
@@ -218,36 +265,21 @@
 			"</div>",
 		].join("");
 
-		var orgLabel = root.querySelector("[data-cabinet-org-label]");
-		var orgDisplay = root.querySelector("[data-cabinet-org-display]");
-		if (orgLabel) orgLabel.hidden = !admin;
-		if (orgDisplay) orgDisplay.hidden = !!admin;
 		var refresh = root.querySelector("[data-cabinet-refresh]");
 		if (refresh) refresh.addEventListener("click", function () { load(root); });
 		var exportButton = root.querySelector("[data-cabinet-export]");
 		if (exportButton) exportButton.addEventListener("click", function () { exportProgress(root); });
-		var organizationInput = root.querySelector("[data-cabinet-organization]");
-		if (organizationInput) {
-			organizationInput.addEventListener("keydown", function (event) {
-				if (event.key === "Enter") {
-					event.preventDefault();
-					load(root);
-				}
+		var organizationSelect = root.querySelector("[data-cabinet-organization]");
+		if (organizationSelect) {
+			organizationSelect.addEventListener("change", function () {
+				loadContext(root, organizationSelect.value, function () { load(root); });
 			});
 		}
-		if (admin && !selectedOrganization(root)) {
-			renderRows(root, { rows: [], total: 0, organization: "" });
-			setPill(root, "Нужна организация", "is-pending");
-			setFlash(root, "Выберите организацию для просмотра.", "pending");
-			return;
-		}
-		load(root);
+		loadContext(root);
 	}
 
 	function ensureCss() {
 		var styleId = "elms-cabinet-css-inline";
-		var links = document.querySelectorAll('link[href*="desk-cabinet.css"]');
-		for (var i = 0; i < links.length; i += 1) links[i].disabled = true;
 		var style = document.getElementById(styleId);
 		if (!style) {
 			style = document.createElement("style");
@@ -283,14 +315,7 @@
 			renderPage(wrapper);
 			return;
 		}
-		if (hasRole("ELMS Admin") || hasRole("Administrator") || hasRole("System Manager")) {
-			if (!selectedOrganization(root)) {
-				setPill(root, "Нужна организация", "is-pending");
-				setFlash(root, "Выберите организацию для просмотра.", "pending");
-				return;
-			}
-		}
-		load(root);
+		loadContext(root, selectedOrganization(root));
 	}
 
 	window.elmsCabinetPage = renderPage;

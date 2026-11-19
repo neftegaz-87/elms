@@ -1,0 +1,569 @@
+{
+  "schema": "browser-qa-trace/v1",
+  "base_url": "http://elms.localhost:8082",
+  "checks": [
+    {
+      "name": "login_page_status_200",
+      "status": "pass",
+      "observed": 200
+    },
+    {
+      "name": "login_page_title",
+      "status": "pass",
+      "observed": "Login"
+    },
+    {
+      "name": "login_heading_uses_elms_brand",
+      "status": "pass",
+      "observed": "Вход на сайт elms"
+    },
+    {
+      "name": "login_css_asset_linked",
+      "status": "pass",
+      "observed": [
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.RSGT5KDR.css",
+        "http://elms.localhost:8082/assets/elms/css/login.css",
+        "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1",
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.5MYDE2IJ.css"
+      ]
+    },
+    {
+      "name": "linked_stylesheets_are_available",
+      "status": "pass",
+      "observed": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.RSGT5KDR.css": {
+          "status": 200,
+          "content_type": "text/css"
+        },
+        "http://elms.localhost:8082/assets/elms/css/login.css": {
+          "status": 200,
+          "content_type": "text/css"
+        },
+        "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1": {
+          "status": 200,
+          "content_type": "text/css"
+        },
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.5MYDE2IJ.css": {
+          "status": 200,
+          "content_type": "text/css"
+        }
+      }
+    },
+    {
+      "name": "login_surface_neftegaz_contract",
+      "status": "pass",
+      "observed": {
+        "body": {
+          "height": "800px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgb(245, 247, 250)",
+          "borderColor": "rgb(11, 31, 51)",
+          "color": "rgb(11, 31, 51)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "card": {
+          "height": "259px",
+          "borderRadius": "3px",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "borderColor": "rgb(213, 220, 227)",
+          "color": "rgb(11, 31, 51)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "input": {
+          "height": "44px",
+          "borderRadius": "3px",
+          "backgroundColor": "rgb(234, 242, 255)",
+          "borderColor": "rgb(13, 76, 211)",
+          "color": "rgb(11, 31, 51)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "primary_button": {
+          "height": "44px",
+          "borderRadius": "3px",
+          "backgroundColor": "rgb(13, 76, 211)",
+          "borderColor": "rgb(10, 63, 176)",
+          "color": "rgb(255, 255, 255)",
+          "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+        },
+        "email_link": null
+      }
+    },
+    {
+      "name": "email_link_login_path_absent",
+      "status": "pass",
+      "observed": null
+    },
+    {
+      "name": "standard_login_form_present",
+      "status": "pass",
+      "observed": {
+        "forms": 1,
+        "buttons": 1
+      }
+    },
+    {
+      "name": "keycloak_login_js_asset_linked",
+      "status": "pass",
+      "observed": [
+        "http://elms.localhost:8082/assets/frappe/dist/js/file_uploader.bundle.R2SJHSNK.js",
+        "http://elms.localhost:8082/assets/frappe/dist/js/frappe-web.bundle.BNEBYLYP.js",
+        "http://elms.localhost:8082/website_script.js",
+        "http://elms.localhost:8082/assets/elms/js/login-keycloak.js?v=3",
+        "http://elms.localhost:8082/assets/elms/js/apply-forms.js?v=1"
+      ]
+    },
+    {
+      "name": "btn_keycloak_absent",
+      "status": "pass",
+      "observed": 0
+    },
+    {
+      "name": "no_direct_yandex_button",
+      "status": "pass"
+    },
+    {
+      "name": "btn_geometry_44px_3px",
+      "status": "pass",
+      "observed": {
+        "height": "44px",
+        "borderRadius": "3px"
+      }
+    },
+    {
+      "name": "btn_color_cobalt_action",
+      "status": "pass",
+      "observed": {
+        "backgroundColor": "rgb(13, 76, 211)",
+        "color": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "invalid_credentials_stay_on_login",
+      "status": "pass",
+      "observed": {
+        "url": "http://elms.localhost:8082/login#login",
+        "invalid_state": true
+      }
+    },
+    {
+      "name": "valid_keycloak_credentials_reach_app",
+      "status": "pass",
+      "observed": {
+        "url": "http://elms.localhost:8082/app/lms",
+        "auth": null,
+        "wait_error": "TimeoutError",
+        "app_session": true
+      }
+    },
+    {
+      "name": "admission_test_provider_configured",
+      "status": "pass",
+      "observed": {
+        "status": "pass",
+        "base_url": "http://host.docker.internal:44581/v1",
+        "model": "elms-admission-parser-v1",
+        "organization": "Демонстрационный контур НефтеГаз"
+      }
+    }
+  ],
+  "passed": true,
+  "errors": [],
+  "runtime_activation": {
+    "status": "pass",
+    "source": "docker/.env.dev",
+    "username_present": true,
+    "password_present": true,
+    "role": "ELMS Company Admin",
+    "authenticated": true
+  },
+  "stylesheet_statuses": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.RSGT5KDR.css": {
+      "status": 200,
+      "content_type": "text/css"
+    },
+    "http://elms.localhost:8082/assets/elms/css/login.css": {
+      "status": 200,
+      "content_type": "text/css"
+    },
+    "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1": {
+      "status": 200,
+      "content_type": "text/css"
+    },
+    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.5MYDE2IJ.css": {
+      "status": 200,
+      "content_type": "text/css"
+    }
+  },
+  "surface_styles": {
+    "body": {
+      "height": "800px",
+      "borderRadius": "0px",
+      "backgroundColor": "rgb(245, 247, 250)",
+      "borderColor": "rgb(11, 31, 51)",
+      "color": "rgb(11, 31, 51)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "card": {
+      "height": "259px",
+      "borderRadius": "3px",
+      "backgroundColor": "rgb(255, 255, 255)",
+      "borderColor": "rgb(213, 220, 227)",
+      "color": "rgb(11, 31, 51)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "input": {
+      "height": "44px",
+      "borderRadius": "3px",
+      "backgroundColor": "rgb(234, 242, 255)",
+      "borderColor": "rgb(13, 76, 211)",
+      "color": "rgb(11, 31, 51)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "primary_button": {
+      "height": "44px",
+      "borderRadius": "3px",
+      "backgroundColor": "rgb(13, 76, 211)",
+      "borderColor": "rgb(10, 63, 176)",
+      "color": "rgb(255, 255, 255)",
+      "fontFamily": "\"Source Sans 3\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "email_link": null
+  },
+  "computed_style": {
+    "height": "44px",
+    "borderRadius": "3px",
+    "backgroundColor": "rgb(13, 76, 211)",
+    "color": "rgb(255, 255, 255)",
+    "display": "block",
+    "minHeight": "44px"
+  },
+  "admission_provider": {
+    "status": "pass",
+    "base_url": "http://host.docker.internal:44581/v1",
+    "model": "elms-admission-parser-v1",
+    "organization": "Демонстрационный контур НефтеГаз"
+  },
+  "journeys": [
+    {
+      "journey_id": "JRN-A11-ADMISSION-IMPORT",
+      "name": "Authenticated Company Admin admission upload, preview/errors, export, and one-time reveal",
+      "url": "http://elms.localhost:8082/app/elms-admission",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "company_admin_role_present",
+          "status": "pass",
+          "observed": [
+            "ELMS Company Admin",
+            "All",
+            "Guest",
+            "Desk User"
+          ]
+        },
+        {
+          "name": "admission_import_surface_loaded",
+          "status": "pass",
+          "observed": "http://elms.localhost:8082/app/elms-admission"
+        },
+        {
+          "name": "b2b_fixture_course_fields_present",
+          "status": "pass",
+          "observed": {
+            "ok": true,
+            "organization": "Демонстрационный контур НефтеГаз",
+            "organization_status": "Active",
+            "course": "kbf7g0su5o",
+            "course_organization": "Демонстрационный контур НефтеГаз",
+            "course_code": "ELMS-T-A12-B2B-WIRE-COURSE",
+            "course_status": "Active",
+            "program": "T-A12 B2B wire program",
+            "training_kind": "повышение квалификации",
+            "batch": "okqdn99qoi",
+            "batch_organization": "Демонстрационный контур НефтеГаз",
+            "batch_course": "kbf7g0su5o",
+            "batch_status": "Active",
+            "active_batch_count": 1,
+            "subscription_id": "oksfhv7aoo",
+            "subscription_organization": "Демонстрационный контур НефтеГаз",
+            "subscription_course": "kbf7g0su5o",
+            "subscription_status": "Active",
+            "total_seats": 100,
+            "seats_used": 2,
+            "available_seats": 98,
+            "selection_rule": "deterministic authenticated-organization course, exactly one active batch, and available active course-linked subscription"
+          }
+        },
+        {
+          "name": "preview_errors_are_explicit",
+          "status": "pass",
+          "observed": {
+            "status_text": "Одна или несколько строк не прошли проверку; исправьте ошибки и загрузите файл снова",
+            "status_class": "elms-admission-import-status is-error",
+            "row_states": [
+              "invalid"
+            ],
+            "row_errors": [
+              "Value error, СНИЛС должен содержать 11 цифр"
+            ]
+          }
+        },
+        {
+          "name": "parsed_preview_loaded",
+          "status": "pass",
+          "observed": {
+            "status_text": "Проверка завершена. Можно экспортировать validated rows.",
+            "status_class": "elms-admission-import-status is-success",
+            "row_states": [
+              "valid"
+            ],
+            "row_errors": []
+          }
+        },
+        {
+          "name": "validated_rows_exported",
+          "status": "pass",
+          "observed": {
+            "method": "elms.admission.import_api.export_import",
+            "status": 200,
+            "http_status": 200,
+            "name": "ADMISSION-0136"
+          }
+        },
+        {
+          "name": "one_time_credential_reveal_audited",
+          "status": "pass",
+          "observed": {
+            "reveal_button_present": true,
+            "token_rendered": true,
+            "reveal_button_removed": true,
+            "response": {
+              "method": "elms.admission.import_api.reveal_credential",
+              "status": 200,
+              "http_status": 200,
+              "name": "CREDENTIAL-0137",
+              "invite_token_present": true
+            }
+          }
+        },
+        {
+          "name": "browser_runtime_errors_absent",
+          "status": "pass",
+          "observed": {
+            "console_errors": [],
+            "request_failures": []
+          }
+        }
+      ],
+      "api_requests": [
+        {
+          "method": "elms.admission.import_api.upload_import",
+          "status": "failed",
+          "http_status": 200,
+          "name": "ADMISSION-0135",
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.inspect_import",
+          "status": "failed",
+          "http_status": 200,
+          "name": "ADMISSION-0135",
+          "total_rows": 1,
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.upload_import",
+          "status": "parsed",
+          "http_status": 200,
+          "name": "ADMISSION-0136",
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.inspect_import",
+          "status": "parsed",
+          "http_status": 200,
+          "name": "ADMISSION-0136",
+          "total_rows": 1,
+          "row_count": 1
+        },
+        {
+          "method": "elms.admission.import_api.export_import",
+          "status": 200,
+          "http_status": 200,
+          "name": "ADMISSION-0136"
+        },
+        {
+          "method": "elms.admission.import_api.reveal_credential",
+          "status": 200,
+          "http_status": 200,
+          "name": "CREDENTIAL-0137",
+          "invite_token_present": true
+        },
+        {
+          "method": "elms.lms.api.admission.preview_admission_import",
+          "status": "preview",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0136",
+          "selected_count": 1,
+          "enrolled_count": 0,
+          "remaining_seats": 98,
+          "enrolled_statuses": [],
+          "error_codes": []
+        },
+        {
+          "method": "elms.lms.api.admission.confirm_admission_import",
+          "status": "confirmed",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0136",
+          "selected_count": 1,
+          "enrolled_count": 1,
+          "remaining_seats": 97,
+          "enrolled_statuses": [
+            "Active"
+          ],
+          "error_codes": []
+        }
+      ],
+      "console_errors": [],
+      "request_failures": [],
+      "errors": []
+    },
+    {
+      "journey_id": "JRN-T-A12-B2B-CONFIRM-001",
+      "name": "Authenticated Company Admin confirms parsed import into quota-safe Active enrollments and sees result report",
+      "url": "http://elms.localhost:8082/app/elms-learning",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "parsed_import_id_available",
+          "status": "pass",
+          "observed": "ADMISSION-0136"
+        },
+        {
+          "name": "company_admin_confirm_surface_loaded",
+          "status": "pass",
+          "observed": "http://elms.localhost:8082/app/elms-learning"
+        },
+        {
+          "name": "parsed_import_subscription_persisted",
+          "status": "pass",
+          "observed": {
+            "ok": true,
+            "organization": "Демонстрационный контур НефтеГаз",
+            "course": "kbf7g0su5o",
+            "subscription_id": "oksfhv7aoo",
+            "total_seats": 100,
+            "seats_used": 2,
+            "available_seats": 98,
+            "selection_rule": "deterministic active Company Admin subscription with available seats linked to the prepared course",
+            "persisted": true,
+            "error": null
+          }
+        },
+        {
+          "name": "confirm_preview_exposes_remaining_quota",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "method": "elms.lms.api.admission.preview_admission_import",
+              "status": "preview",
+              "http_status": 200,
+              "ok": true,
+              "import_id": "ADMISSION-0136",
+              "selected_count": 1,
+              "enrolled_count": 0,
+              "remaining_seats": 98,
+              "enrolled_statuses": [],
+              "error_codes": []
+            },
+            "preview_text": "Выбрано строк: 1. Осталось мест: 98.6a7l782ffs: T-A12 B2B wire program"
+          }
+        },
+        {
+          "name": "parsed_import_confirm_enabled",
+          "status": "pass",
+          "observed": true
+        },
+        {
+          "name": "confirmed_rows_are_quota_safe_active_enrollments",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "method": "elms.lms.api.admission.confirm_admission_import",
+              "status": "confirmed",
+              "http_status": 200,
+              "ok": true,
+              "import_id": "ADMISSION-0136",
+              "selected_count": 1,
+              "enrolled_count": 1,
+              "remaining_seats": 97,
+              "enrolled_statuses": [
+                "Active"
+              ],
+              "error_codes": []
+            },
+            "enrolled_statuses": [
+              "Active"
+            ],
+            "preview_remaining_seats": 98
+          }
+        },
+        {
+          "name": "confirm_result_report_is_explicit",
+          "status": "pass",
+          "observed": {
+            "success_report": true,
+            "error_report": false,
+            "result_text": "Зачислено: 1. Осталось мест: 97. Статус всех зачислений: Active."
+          }
+        },
+        {
+          "name": "browser_runtime_errors_absent",
+          "status": "pass",
+          "observed": {
+            "console_errors": [],
+            "request_failures": []
+          }
+        }
+      ],
+      "api_requests": [
+        {
+          "method": "elms.lms.api.admission.preview_admission_import",
+          "status": "preview",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0136",
+          "selected_count": 1,
+          "enrolled_count": 0,
+          "remaining_seats": 98,
+          "enrolled_statuses": [],
+          "error_codes": []
+        },
+        {
+          "method": "elms.lms.api.admission.confirm_admission_import",
+          "status": "confirmed",
+          "http_status": 200,
+          "ok": true,
+          "import_id": "ADMISSION-0136",
+          "selected_count": 1,
+          "enrolled_count": 1,
+          "remaining_seats": 97,
+          "enrolled_statuses": [
+            "Active"
+          ],
+          "error_codes": []
+        }
+      ],
+      "console_errors": [],
+      "request_failures": [],
+      "errors": []
+    }
+  ],
+  "status": "pass",
+  "evidence_type": "runtime_browser",
+  "live_evidence": true,
+  "timestamp": "2026-11-18T21:44:05Z",
+  "command": "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py",
+  "exit_code": 0
+}

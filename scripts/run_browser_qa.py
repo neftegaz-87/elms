@@ -14,12 +14,72 @@ import re
 import shlex
 import sys
 from threading import Thread
+from urllib.parse import quote
+from xml.etree import ElementTree
 from zipfile import ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACTS_DIR = ROOT / "browser-artifacts"
 RUNTIME_ENV_KEYS = ("ELMS_BROWSER_TEST_USERNAME", "ELMS_BROWSER_TEST_PASSWORD")
 ENV_REFERENCE = re.compile(r"\$(?:\{(?P<braced>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<bare>[A-Za-z_][A-Za-z0-9_]*))")
+LOGIN_READY_SELECTOR = ".for-login .page-card-head h4"
+LOGIN_NAVIGATION_TIMEOUT_MS = 30000
+LOGIN_READINESS_TIMEOUT_MS = 20000
+LOGIN_READINESS_ATTEMPTS = 3
+LOGIN_READINESS_RETRY_DELAY_MS = 500
+LOGIN_WAIT_UNTIL = "domcontentloaded"
+
+
+class LoginReadinessError(RuntimeError):
+    """Raised when the login page does not expose its real ready marker in time."""
+
+
+def _login_selector_present(page) -> bool:
+    try:
+        return page.locator(LOGIN_READY_SELECTOR).count() > 0
+    except Exception:
+        return False
+
+
+def _navigate_to_login(page, login_url: str):
+    last_error = None
+    response = None
+
+    for attempt in range(1, LOGIN_READINESS_ATTEMPTS + 1):
+        try:
+            if attempt == 1:
+                response = page.goto(
+                    login_url,
+                    timeout=LOGIN_NAVIGATION_TIMEOUT_MS,
+                    wait_until=LOGIN_WAIT_UNTIL,
+                )
+            else:
+                response = page.reload(
+                    timeout=LOGIN_NAVIGATION_TIMEOUT_MS,
+                    wait_until=LOGIN_WAIT_UNTIL,
+                )
+        except Exception as exc:
+            last_error = exc
+
+        try:
+            page.locator(LOGIN_READY_SELECTOR).first.wait_for(
+                state="visible",
+                timeout=LOGIN_READINESS_TIMEOUT_MS,
+            )
+            return response
+        except Exception as exc:
+            last_error = exc
+            if attempt < LOGIN_READINESS_ATTEMPTS:
+                page.wait_for_timeout(LOGIN_READINESS_RETRY_DELAY_MS)
+
+    detail = "unknown error"
+    if last_error is not None:
+        detail = f"{type(last_error).__name__}: {str(last_error).splitlines()[0]}"
+    raise LoginReadinessError(
+        f"Login page readiness was not achieved after {LOGIN_READINESS_ATTEMPTS} bounded "
+        f"attempts for {LOGIN_READY_SELECTOR!r}; the page-ready selector remained "
+        f"unavailable. Last probe error: {detail}"
+    ) from last_error
 
 
 def _expand_env_references(value: str, file_values: dict[str, str]) -> str:
@@ -86,6 +146,10 @@ def _method_name(url: str) -> str | None:
     return url.split(marker, 1)[1].split("?", 1)[0]
 
 
+def _is_post_response(response, method: str) -> bool:
+    return response.request.method == "POST" and _method_name(response.url) == method
+
+
 def _app_session_reached(page) -> bool:
     try:
         return bool(page.evaluate("() => window.location.pathname.startsWith('/app')"))
@@ -100,16 +164,41 @@ def _app_session_reached(page) -> bool:
 
 def _record_admission_response(response, requests: list[dict]) -> None:
     method = _method_name(response.url)
-    if not method or "admission.import_api" not in method:
+    tracked = method and (
+        "admission.import_api" in method
+        or method.endswith("elms.lms.api.admission.preview_admission_import")
+        or method.endswith("elms.lms.api.admission.confirm_admission_import")
+    )
+    if not tracked:
         return
-    entry = {"method": method, "status": response.status}
+    entry = {"method": method, "status": response.status, "http_status": response.status}
     try:
         payload = response.json()
         message = payload.get("message") if isinstance(payload, dict) else None
         if isinstance(message, dict):
-            for key in ("name", "status", "total_rows", "row_count"):
+            for key in (
+                "name",
+                "status",
+                "ok",
+                "import_id",
+                "total_rows",
+                "row_count",
+                "selected_count",
+                "enrolled_count",
+                "remaining_seats",
+            ):
                 if key in message:
                     entry[key] = message[key]
+            enrolled_rows = message.get("enrolled_rows")
+            if isinstance(enrolled_rows, list):
+                entry["enrolled_statuses"] = [
+                    row.get("status") for row in enrolled_rows if isinstance(row, dict)
+                ]
+            errors = message.get("errors")
+            if isinstance(errors, list):
+                entry["error_codes"] = [
+                    error.get("code") for error in errors if isinstance(error, dict)
+                ]
             if method.endswith("reveal_credential"):
                 entry["invite_token_present"] = bool(message.get("invite_token"))
     except Exception:
@@ -120,6 +209,116 @@ def _record_admission_response(response, requests: list[dict]) -> None:
 def _api_request(requests: list[dict], suffix: str) -> dict | None:
     matches = [entry for entry in requests if entry["method"].endswith(suffix)]
     return matches[-1] if matches else None
+
+
+def _attach_latest_active_subscription(
+    page,
+    import_id: str,
+    preferred_subscription_id: str | None = None,
+    preferred_course_id: str | None = None,
+) -> dict:
+    """Bind the parsed import to the scoped active quota used by this wire run."""
+
+    return page.evaluate(
+        """
+        async ({importId, preferredSubscriptionId, preferredCourseId}) => {
+            const invoke = (method, args) => new Promise((resolve) => {
+                frappe.call({
+                    method,
+                    args,
+                    callback: (response) => resolve({ok: true, message: response && response.message}),
+                    error: (error) => resolve({ok: false, error: (error && (error.message || error.exception)) || "request failed"}),
+                });
+            });
+            const imported = await invoke("frappe.client.get", {
+                doctype: "ELMS Admission Import",
+                name: importId,
+            });
+            const importDoc = imported.ok && imported.message;
+            if (!importDoc || !importDoc.organization) {
+                return {ok: false, error: imported.error || "Parsed import organization is unavailable"};
+            }
+
+            const snapshot = await invoke("elms.lms.api.get_learning_admin_data", {});
+            const subscriptions = snapshot.ok && snapshot.message && Array.isArray(snapshot.message.subscriptions)
+                ? snapshot.message.subscriptions
+                : [];
+            const active = subscriptions.filter((row) => {
+                const total = Number(row.total_seats || 0);
+                const used = Number(row.seats_used || 0);
+                return row.status === "Active"
+                    && total > used
+                    && (!preferredCourseId || row.course === preferredCourseId);
+            });
+            if (!active.length) {
+                return {
+                    ok: false,
+                    organization: importDoc.organization,
+                    course: preferredCourseId,
+                    error: "No active Company Admin subscription with available seats linked to the prepared course",
+                };
+            }
+            const selected = active.find((row) => row.name === preferredSubscriptionId) || active[0];
+            const selectedDoc = await invoke("frappe.client.get", {
+                doctype: "ELMS Subscription",
+                name: selected.name,
+            });
+            const subscription = selectedDoc.ok && selectedDoc.message;
+            const totalSeats = Number(subscription && subscription.total_seats);
+            const seatsUsed = Number(subscription && subscription.seats_used);
+            const availableSeats = totalSeats - seatsUsed;
+            if (
+                !subscription
+                || subscription.organization !== importDoc.organization
+                || subscription.status !== "Active"
+                || !subscription.course
+                || (preferredCourseId && subscription.course !== preferredCourseId)
+                || !Number.isFinite(availableSeats)
+                || availableSeats <= 0
+            ) {
+                return {
+                    ok: false,
+                    organization: importDoc.organization,
+                    course: preferredCourseId,
+                    subscription_id: selected.name,
+                    error: selectedDoc.error || "Selected subscription is not an active available quota owned by the parsed import organization and prepared course",
+                };
+            }
+
+            const saved = await invoke("frappe.client.set_value", {
+                doctype: "ELMS Admission Import",
+                name: importId,
+                fieldname: "subscription_id",
+                value: selected.name,
+            });
+            if (!saved.ok) {
+                return {ok: false, organization: importDoc.organization, subscription_id: selected.name, error: saved.error || "Subscription association failed"};
+            }
+            const readback = await invoke("frappe.client.get", {
+                doctype: "ELMS Admission Import",
+                name: importId,
+            });
+            const persisted = readback.ok && readback.message && readback.message.subscription_id === selected.name;
+            return {
+                ok: Boolean(persisted),
+                organization: importDoc.organization,
+                course: subscription.course,
+                subscription_id: selected.name,
+                total_seats: totalSeats,
+                seats_used: seatsUsed,
+                available_seats: availableSeats,
+                selection_rule: "deterministic active Company Admin subscription with available seats linked to the prepared course",
+                persisted,
+                error: persisted ? null : (readback.error || "Subscription association readback did not persist"),
+            };
+        }
+        """,
+        {
+            "importId": import_id,
+            "preferredSubscriptionId": preferred_subscription_id,
+            "preferredCourseId": preferred_course_id,
+        },
+    )
 
 
 def _response_observation(response) -> dict:
@@ -140,6 +339,433 @@ def _response_observation(response) -> dict:
 
 ADMISSION_PROVIDER_API_KEY = "elms-admission-browser-qa-v1"
 ADMISSION_PROVIDER_MODEL = "elms-admission-parser-v1"
+B2B_WIRE_COURSE_CODE = "ELMS-T-A12-B2B-WIRE-COURSE"
+B2B_WIRE_COURSE_NAME = "T-A12 B2B wire course"
+B2B_WIRE_PROGRAM = "T-A12 B2B wire program"
+B2B_WIRE_TRAINING_KIND = "повышение квалификации"
+B2B_WIRE_BATCH_NAME = "T-A12 B2B wire batch"
+B2B_WIRE_BATCH_ORDER = "T-A12-B2B-WIRE"
+B2B_WIRE_SUBSCRIPTION_CONTRACT = "T-A12-B2B-WIRE"
+B2B_WIRE_TOTAL_SEATS = 100
+B2B_WIRE_PLATFORM_OWNER = "Демонстрационный контур НефтеГаз"
+T_A13_CUSTOM_FIELD_KEY = "qa_t_a13_wire"
+T_A13_CUSTOM_FIELD_LABEL = "T-A13 Browser Additional"
+T_A13_CUSTOM_FIELD_VALUE = "T-A13 authenticated Course readback"
+
+
+def _set_ac_disposition(results: dict) -> None:
+    """Keep unrelated admission coverage separate from the T-A13 AC report."""
+
+    results["ac_disposition"] = {
+        "task_id": "T-A13-elms-custom-fields-course-program-batch",
+        "in_scope": [
+            {
+                "journey_id": "JRN-T-A13-CUSTOM-FIELDS-001",
+                "area": "custom_fields",
+                "disposition": "in_scope",
+            }
+        ],
+        "out_of_scope": [
+            {
+                "area": "admission",
+                "journey_id": "JRN-A11-ADMISSION-IMPORT",
+                "disposition": "separate_provenance",
+                "provenance": "independent A11 admission wire coverage retained in the shared browser harness",
+                "t_a13_bugfix_impact": "none",
+                "evidence": [
+                    "The T-A13 journey is independently identified as JRN-T-A13-CUSTOM-FIELDS-001.",
+                    "The T-A13 journey exercises only custom-field definition and Course-value save/readback checks.",
+                    "Admission coverage is independently identified as JRN-A11-ADMISSION-IMPORT.",
+                ],
+            }
+        ],
+    }
+
+
+def _ensure_platform_owner_admission_flags() -> None:
+    import subprocess
+
+    sql = (
+        "SET SQL_SAFE_UPDATES=0; "
+        "UPDATE `tabELMS Organization` "
+        "SET can_publish_own = 1, can_use_owner_catalog = 1 "
+        f"WHERE name = '{B2B_WIRE_PLATFORM_OWNER}'"
+    )
+    commands = [
+        [
+            "bash",
+            "scripts/docker-up.sh",
+            "dev",
+            "exec",
+            "-T",
+            "backend",
+            "bench",
+            "--site",
+            "elms.localhost",
+            "mariadb",
+            "-e",
+            sql,
+        ],
+        [
+            "bash",
+            "scripts/docker-up.sh",
+            "dev",
+            "exec",
+            "-T",
+            "backend",
+            "bench",
+            "--site",
+            "elms.localhost",
+            "clear-cache",
+        ],
+    ]
+    for command in commands:
+        completed = subprocess.run(
+            command,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout or "").strip()
+            raise RuntimeError(
+                "Failed to ensure platform-owner admission flags "
+                f"(exit {completed.returncode}): {detail}"
+            )
+
+
+def _wire_course_setup(page) -> dict:
+    return page.evaluate(
+        """
+        async ({courseCode, courseName, program, trainingKind, batchName, batchOrder, subscriptionContract, totalSeats}) => {
+            const invoke = (method, args) => new Promise((resolve) => {
+                let settled = false;
+                const finish = (value) => {
+                    if (!settled) {
+                        settled = true;
+                        resolve(value);
+                    }
+                };
+                try {
+                    frappe.call({
+                        method,
+                        args,
+                        callback: (response) => finish({ok: true, message: response && response.message}),
+                        error: (error) => finish({ok: false, error: (error && (error.message || error.exception)) || "request failed"}),
+                    });
+                } catch (error) {
+                    finish({ok: false, error: (error && error.message) || "request failed"});
+                }
+            });
+            const fail = (organization, error, details = {}) => ({ok: false, organization, error, ...details});
+            const context = await invoke("elms.access.api.get_company_access_context", {});
+            const organization = context.ok && context.message && String(context.message.organization || "").trim();
+            if (!organization) {
+                return fail("", context.error || "Company Admin organization is not resolved");
+            }
+            const organizationDocResult = await invoke("frappe.client.get", {
+                doctype: "ELMS Organization",
+                name: organization,
+            });
+            const organizationDoc = organizationDocResult.ok && organizationDocResult.message;
+            if (!organizationDoc || organizationDoc.name !== organization) {
+                return fail(organization, organizationDocResult.error || "Authenticated organization could not be read");
+            }
+            if (String(organizationDoc.status || "").trim() !== "Active") {
+                return fail(organization, "Authenticated organization is not active", {organization_status: organizationDoc.status});
+            }
+            const organizationInn = String(organizationDoc.inn || "").trim();
+            if (!organizationInn) {
+                return fail(organization, "Authenticated organization has no persisted INN");
+            }
+            if (!Number(organizationDoc.can_publish_own || 0)) {
+                return fail(
+                    organization,
+                    "Wire organization must have can_publish_own=1 before org-owned course admission",
+                    {can_publish_own: organizationDoc.can_publish_own},
+                );
+            }
+
+            const programListResult = await invoke("frappe.client.get_list", {
+                doctype: "ELMS Program",
+                filters: {organization, program_name: program},
+                fields: ["name", "organization", "program_name"],
+                order_by: "modified desc",
+                limit_page_length: 20,
+            });
+            if (!programListResult.ok || !Array.isArray(programListResult.message)) {
+                return fail(organization, programListResult.error || "Prepared program lookup failed");
+            }
+            if (programListResult.message.length > 1) {
+                return fail(organization, "Prepared program name is ambiguous", {
+                    program_candidates: programListResult.message.map((row) => row.name),
+                });
+            }
+            let programDoc = programListResult.message.length === 1 ? programListResult.message[0] : null;
+            if (!programDoc) {
+                const createdProgram = await invoke("frappe.client.insert", {
+                    doc: {
+                        doctype: "ELMS Program",
+                        organization,
+                        program_name: program,
+                        program_code: `${courseCode}-PROGRAM`,
+                        total_hours: 16,
+                        is_published: 1,
+                        description: "Deterministic T-A12 B2B wire fixture program.",
+                    },
+                });
+                if (!createdProgram.ok || !createdProgram.message) {
+                    return fail(organization, createdProgram.error || "Prepared program creation failed");
+                }
+                programDoc = createdProgram.message;
+            }
+            if (
+                !programDoc
+                || programDoc.organization !== organization
+                || programDoc.program_name !== program
+            ) {
+                return fail(organization, "Prepared program readback failed closed", {
+                    program: programDoc && programDoc.name,
+                    program_organization: programDoc && programDoc.organization,
+                    program_name: programDoc && programDoc.program_name,
+                });
+            }
+            const programValue = programDoc.name;
+
+            const courseListResult = await invoke("frappe.client.get_list", {
+                doctype: "ELMS Course",
+                filters: {organization, course_code: courseCode},
+                fields: ["name", "organization", "course_code"],
+                order_by: "modified desc",
+                limit_page_length: 20,
+            });
+            if (!courseListResult.ok || !Array.isArray(courseListResult.message)) {
+                return fail(organization, courseListResult.error || "Prepared course lookup failed");
+            }
+            if (courseListResult.message.length > 1) {
+                return fail(organization, "Prepared course code is ambiguous", {
+                    course_candidates: courseListResult.message.map((row) => row.name),
+                });
+            }
+            let courseId = courseListResult.message.length === 1 ? courseListResult.message[0].name : null;
+            if (!courseId) {
+                const createdCourse = await invoke("elms.lms.api.save_course", {
+                    course_name: courseName,
+                    course_code: courseCode,
+                    academic_hours: 16,
+                    is_published: 1,
+                    passing_percentage: 80,
+                    short_description: "Deterministic T-A12 B2B wire fixture course",
+                    description: "Harness-owned course used only by the authenticated B2B wire lane.",
+                });
+                if (!createdCourse.ok || !createdCourse.message || !createdCourse.message.name) {
+                    return fail(organization, createdCourse.error || "Prepared course creation failed");
+                }
+                courseId = createdCourse.message.name;
+            }
+
+            for (const [fieldname, value] of [["program", programValue], ["training_kind", trainingKind], ["status", "Active"]]) {
+                const savedField = await invoke("frappe.client.set_value", {
+                    doctype: "ELMS Course",
+                    name: courseId,
+                    fieldname,
+                    value,
+                });
+                if (!savedField.ok) {
+                    return fail(organization, savedField.error || `Prepared course ${fieldname} persistence failed`, {course: courseId});
+                }
+            }
+            const courseResult = await invoke("frappe.client.get", {
+                doctype: "ELMS Course",
+                name: courseId,
+            });
+            const course = courseResult.ok && courseResult.message;
+            const persistedProgram = String(course && course.program || "").trim();
+            const persistedTrainingKind = String(course && course.training_kind || "").trim();
+            const persistedCourseStatus = String(course && course.status || "").trim();
+            const courseReady = Boolean(
+                course
+                && course.name === courseId
+                && course.organization === organization
+                && course.course_code === courseCode
+                && persistedProgram === programValue
+                && persistedTrainingKind === trainingKind
+                && persistedCourseStatus === "Active"
+            );
+            if (!courseReady) {
+                return fail(organization, courseResult.error || "Prepared course readback failed closed", {
+                    course: courseId,
+                    course_organization: course && course.organization,
+                    course_code: course && course.course_code,
+                    program: persistedProgram,
+                    training_kind: persistedTrainingKind,
+                    course_status: persistedCourseStatus,
+                });
+            }
+
+            const listActiveBatches = async () => invoke("frappe.client.get_list", {
+                doctype: "ELMS Batch",
+                filters: {course: courseId, status: "Active"},
+                fields: ["name", "organization", "course", "status", "batch_name"],
+                order_by: "modified asc",
+                limit_page_length: 20,
+            });
+            let activeBatchResult = await listActiveBatches();
+            if (!activeBatchResult.ok || !Array.isArray(activeBatchResult.message)) {
+                return fail(organization, activeBatchResult.error || "Prepared batch lookup failed", {course: courseId});
+            }
+            if (activeBatchResult.message.length > 1) {
+                return fail(organization, "Prepared course has multiple active batches", {
+                    course: courseId,
+                    active_batch_count: activeBatchResult.message.length,
+                    active_batch_candidates: activeBatchResult.message.map((row) => row.name),
+                });
+            }
+            let batchId = activeBatchResult.message.length === 1 ? activeBatchResult.message[0].name : null;
+            if (!batchId) {
+                const createdBatch = await invoke("elms.lms.api.save_batch", {
+                    batch_name: batchName,
+                    course: courseId,
+                    start_date: new Date().toISOString().slice(0, 10),
+                    end_date: "2099-12-31",
+                    organization,
+                    order_number: batchOrder,
+                    status: "Active",
+                });
+                if (!createdBatch.ok || !createdBatch.message || !createdBatch.message.name) {
+                    return fail(organization, createdBatch.error || "Prepared active batch creation failed", {course: courseId});
+                }
+                batchId = createdBatch.message.name;
+                activeBatchResult = await listActiveBatches();
+            }
+            if (!activeBatchResult.ok || !Array.isArray(activeBatchResult.message) || activeBatchResult.message.length !== 1) {
+                return fail(organization, "Prepared course does not have exactly one active batch after setup", {
+                    course: courseId,
+                    active_batch_count: Array.isArray(activeBatchResult.message) ? activeBatchResult.message.length : null,
+                    active_batch_candidates: Array.isArray(activeBatchResult.message) ? activeBatchResult.message.map((row) => row.name) : [],
+                });
+            }
+            const batchResult = await invoke("frappe.client.get", {doctype: "ELMS Batch", name: batchId});
+            const batch = batchResult.ok && batchResult.message;
+            if (!batch || batch.name !== batchId || batch.organization !== organization || batch.course !== courseId || batch.status !== "Active") {
+                return fail(organization, batchResult.error || "Prepared active batch ownership readback failed", {
+                    course: courseId,
+                    batch: batchId,
+                    batch_organization: batch && batch.organization,
+                    batch_course: batch && batch.course,
+                    batch_status: batch && batch.status,
+                });
+            }
+
+            const subscriptionListResult = await invoke("frappe.client.get_list", {
+                doctype: "ELMS Subscription",
+                filters: {organization, course: courseId},
+                fields: ["name", "organization", "course", "contract_number", "total_seats", "seats_used", "status"],
+                order_by: "modified asc",
+                limit_page_length: 50,
+            });
+            if (!subscriptionListResult.ok || !Array.isArray(subscriptionListResult.message)) {
+                return fail(organization, subscriptionListResult.error || "Prepared subscription lookup failed", {course: courseId});
+            }
+            const allSubscriptions = subscriptionListResult.message;
+            const targetSubscription = allSubscriptions.find((row) => row.contract_number === subscriptionContract);
+            const availableSubscriptions = allSubscriptions
+                .filter((row) => row.status === "Active" && Number(row.total_seats) > Number(row.seats_used))
+                .sort((left, right) => String(left.name).localeCompare(String(right.name)));
+            let subscriptionId = availableSubscriptions.length ? availableSubscriptions[0].name : null;
+            if (!subscriptionId && targetSubscription) {
+                return fail(organization, "Deterministic wire subscription exists but has no available active seats", {
+                    course: courseId,
+                    subscription_id: targetSubscription.name,
+                    subscription_status: targetSubscription.status,
+                    total_seats: targetSubscription.total_seats,
+                    seats_used: targetSubscription.seats_used,
+                });
+            }
+            if (!subscriptionId) {
+                const createdSubscription = await invoke("elms.lms.api.save_subscription", {
+                    company_name: String(organizationDoc.organization_name || organization).trim(),
+                    inn: organizationInn,
+                    course: courseId,
+                    organization,
+                    contract_number: subscriptionContract,
+                    total_seats: totalSeats,
+                    valid_from: new Date().toISOString().slice(0, 10),
+                    valid_to: "2099-12-31",
+                    status: "Active",
+                });
+                if (!createdSubscription.ok || !createdSubscription.message || !createdSubscription.message.name) {
+                    return fail(organization, createdSubscription.error || "Prepared active subscription creation failed", {course: courseId});
+                }
+                subscriptionId = createdSubscription.message.name;
+            }
+            const subscriptionResult = await invoke("frappe.client.get", {
+                doctype: "ELMS Subscription",
+                name: subscriptionId,
+            });
+            const subscription = subscriptionResult.ok && subscriptionResult.message;
+            const subscriptionTotalSeats = Number(subscription && subscription.total_seats);
+            const subscriptionSeatsUsed = Number(subscription && subscription.seats_used);
+            const availableSeats = subscriptionTotalSeats - subscriptionSeatsUsed;
+            const subscriptionReady = Boolean(
+                subscription
+                && subscription.name === subscriptionId
+                && subscription.organization === organization
+                && subscription.course === courseId
+                && subscription.status === "Active"
+                && Number.isFinite(availableSeats)
+                && availableSeats > 0
+            );
+            if (!subscriptionReady) {
+                return fail(organization, subscriptionResult.error || "Prepared subscription ownership/quota readback failed", {
+                    course: courseId,
+                    subscription_id: subscriptionId,
+                    subscription_organization: subscription && subscription.organization,
+                    subscription_course: subscription && subscription.course,
+                    subscription_status: subscription && subscription.status,
+                    total_seats: subscriptionTotalSeats,
+                    seats_used: subscriptionSeatsUsed,
+                    available_seats: availableSeats,
+                });
+            }
+            return {
+                ok: true,
+                organization,
+                organization_status: organizationDoc.status,
+                course: courseId,
+                course_organization: course.organization,
+                course_code: course.course_code,
+                course_status: persistedCourseStatus,
+                program: persistedProgram,
+                training_kind: persistedTrainingKind,
+                batch: batchId,
+                batch_organization: batch.organization,
+                batch_course: batch.course,
+                batch_status: batch.status,
+                active_batch_count: 1,
+                subscription_id: subscriptionId,
+                subscription_organization: subscription.organization,
+                subscription_course: subscription.course,
+                subscription_status: subscription.status,
+                total_seats: subscriptionTotalSeats,
+                seats_used: subscriptionSeatsUsed,
+                available_seats: availableSeats,
+                selection_rule: "deterministic authenticated-organization course, exactly one active batch, and available active course-linked subscription",
+            };
+        }
+        """,
+        {
+            "courseCode": B2B_WIRE_COURSE_CODE,
+            "courseName": B2B_WIRE_COURSE_NAME,
+            "program": B2B_WIRE_PROGRAM,
+            "trainingKind": B2B_WIRE_TRAINING_KIND,
+            "batchName": B2B_WIRE_BATCH_NAME,
+            "batchOrder": B2B_WIRE_BATCH_ORDER,
+            "subscriptionContract": B2B_WIRE_SUBSCRIPTION_CONTRACT,
+            "totalSeats": B2B_WIRE_TOTAL_SEATS,
+        },
+    )
 
 
 def _start_admission_test_provider() -> tuple[ThreadingHTTPServer, Thread, str]:
@@ -237,10 +863,75 @@ def _configure_admission_test_provider(page, base_url: str) -> dict:
     )
 
 
-def _invalid_admission_fixture(valid_fixture: Path) -> dict[str, object]:
+def _fixture_bytes(fixture: Path | dict[str, object]) -> bytes:
+    if isinstance(fixture, Path):
+        return fixture.read_bytes()
+    content = fixture.get("buffer")
+    if not isinstance(content, bytes):
+        raise RuntimeError("Admission fixture buffer is unavailable")
+    return content
+
+
+def _admission_fixture_with_course_fields(
+    valid_fixture: Path,
+    *,
+    program: str,
+    training_kind: str,
+) -> dict[str, object]:
+    if not program or not training_kind:
+        raise RuntimeError("Admission fixture requires non-empty course program and training kind")
+    with ZipFile(BytesIO(_fixture_bytes(valid_fixture))) as source:
+        entries = {name: source.read(name) for name in source.namelist()}
+    sheet_name = "xl/worksheets/sheet1.xml"
+    if sheet_name not in entries:
+        raise RuntimeError("Valid admission fixture does not contain the first worksheet")
+
+    namespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    root = ElementTree.fromstring(entries[sheet_name])
+    first_data_row = None
+    for row in root.iter(f"{{{namespace}}}row"):
+        number_cell = next(
+            (cell for cell in row if cell.attrib.get("r", "").startswith("B")),
+            None,
+        )
+        value = next((node.text for node in number_cell or [] if node.tag.rsplit("}", 1)[-1] == "v"), None)
+        if value == "1":
+            first_data_row = row
+            break
+    if first_data_row is None:
+        raise RuntimeError("Valid admission fixture does not contain a first data row")
+
+    row_number = first_data_row.attrib.get("r")
+    if not row_number:
+        raise RuntimeError("Valid admission fixture first data row has no row number")
+    for column, value in (("J", program), ("K", training_kind)):
+        reference = f"{column}{row_number}"
+        cell = next((item for item in first_data_row if item.attrib.get("r") == reference), None)
+        if cell is None:
+            cell = ElementTree.SubElement(first_data_row, f"{{{namespace}}}c", {"r": reference})
+        cell.attrib["t"] = "inlineStr"
+        for child in list(cell):
+            cell.remove(child)
+        inline = ElementTree.SubElement(cell, f"{{{namespace}}}is")
+        text = ElementTree.SubElement(inline, f"{{{namespace}}}t")
+        text.text = value
+    entries[sheet_name] = ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
+
+    workbook = BytesIO()
+    with ZipFile(workbook, "w", compression=ZIP_DEFLATED) as target:
+        for name, content in entries.items():
+            target.writestr(name, content)
+    return {
+        "name": "admission-b2b-compatible.xlsx",
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "buffer": workbook.getvalue(),
+    }
+
+
+def _invalid_admission_fixture(valid_fixture: Path | dict[str, object]) -> dict[str, object]:
     """Return an in-memory copy of the valid workbook with one invalid row value."""
 
-    with ZipFile(valid_fixture) as source:
+    with ZipFile(BytesIO(_fixture_bytes(valid_fixture))) as source:
         entries = {name: source.read(name) for name in source.namelist()}
     shared_strings = entries.get("xl/sharedStrings.xml", b"")
     marker = b"<t>125-609-984 78</t>"
@@ -259,11 +950,12 @@ def _invalid_admission_fixture(valid_fixture: Path) -> dict[str, object]:
     }
 
 
-def _run_admission_wire(page, base_url: str, results: dict) -> bool:
+def _run_admission_wire(
+    page, base_url: str, results: dict
+) -> tuple[bool, str | None, str | None, str | None]:
     admission_url = f"{base_url.rstrip('/')}/app/elms-admission"
     fixture_dir = ROOT / "memory-bank" / "app" / "clarify" / "fixtures-20261116-admission"
-    valid_fixture = fixture_dir / "sample-rpo-smetanin.xlsx"
-    invalid_fixture = _invalid_admission_fixture(valid_fixture)
+    source_fixture = fixture_dir / "sample-rpo-smetanin.xlsx"
     journey = {
         "journey_id": "JRN-A11-ADMISSION-IMPORT",
         "name": "Authenticated Company Admin admission upload, preview/errors, export, and one-time reveal",
@@ -276,6 +968,9 @@ def _run_admission_wire(page, base_url: str, results: dict) -> bool:
         "errors": [],
     }
     requests = journey["api_requests"]
+    valid_import_id: str | None = None
+    preferred_subscription_id: str | None = None
+    preferred_course_id: str | None = None
 
     def on_console(message) -> None:
         if message.type == "error":
@@ -325,6 +1020,24 @@ def _run_admission_wire(page, base_url: str, results: dict) -> bool:
         check("company_admin_role_present", "ELMS Company Admin" in roles, roles)
         check("admission_import_surface_loaded", True, page.url)
 
+        fixture_setup = _wire_course_setup(page)
+        fixture_ready = bool(
+            fixture_setup.get("ok")
+            and fixture_setup.get("program")
+            and fixture_setup.get("training_kind")
+        )
+        check("b2b_fixture_course_fields_present", fixture_ready, fixture_setup)
+        if not fixture_ready:
+            return False, None, None, None
+        preferred_subscription_id = fixture_setup["subscription_id"]
+        preferred_course_id = fixture_setup["course"]
+        valid_fixture = _admission_fixture_with_course_fields(
+            source_fixture,
+            program=fixture_setup["program"],
+            training_kind=fixture_setup["training_kind"],
+        )
+        invalid_fixture = _invalid_admission_fixture(valid_fixture)
+
         invalid_preview = upload_fixture(invalid_fixture, True)
         invalid_response = _api_request(requests, "upload_import")
         invalid_inspect = _api_request(requests, "inspect_import")
@@ -344,6 +1057,7 @@ def _run_admission_wire(page, base_url: str, results: dict) -> bool:
         valid_preview = upload_fixture(valid_fixture, True)
         valid_upload = _api_request(requests, "upload_import")
         valid_inspect = _api_request(requests, "inspect_import")
+        valid_import_id = valid_upload.get("name") if valid_upload else None
         parsed = bool(
             valid_inspect
             and valid_inspect.get("status") == "parsed"
@@ -392,6 +1106,527 @@ def _run_admission_wire(page, base_url: str, results: dict) -> bool:
         )
         check("browser_runtime_errors_absent", not journey["console_errors"] and not journey["request_failures"], {"console_errors": journey["console_errors"], "request_failures": journey["request_failures"]})
         journey["status"] = "pass" if not journey["errors"] else "fail"
+        return journey["status"] == "pass", valid_import_id, preferred_subscription_id, preferred_course_id
+    except Exception as exc:
+        journey["errors"].append(str(exc))
+        return False, valid_import_id, preferred_subscription_id, preferred_course_id
+    finally:
+        results.setdefault("journeys", []).append(journey)
+
+
+def _run_b2b_confirm_wire(
+    page,
+    base_url: str,
+    import_id: str | None,
+    preferred_subscription_id: str | None,
+    preferred_course_id: str | None,
+    results: dict,
+) -> bool:
+    """Exercise the authenticated T-A12 confirmation boundary through the cabinet UI."""
+
+    learning_url = f"{base_url.rstrip('/')}/app/elms-learning"
+    journey = {
+        "journey_id": "JRN-T-A12-B2B-CONFIRM-001",
+        "name": "Authenticated Company Admin confirms parsed import into quota-safe Active enrollments and sees result report",
+        "url": learning_url,
+        "status": "fail",
+        "checks": [],
+        "api_requests": [],
+        "console_errors": [],
+        "request_failures": [],
+        "errors": [],
+    }
+    requests = journey["api_requests"]
+
+    def on_console(message) -> None:
+        if message.type == "error":
+            journey["console_errors"].append(message.text)
+
+    def on_request_failed(request) -> None:
+        journey["request_failures"].append({"url": request.url, "failure": request.failure})
+
+    def check(name: str, passed: bool, observed) -> None:
+        journey["checks"].append({"name": name, "status": "pass" if passed else "fail", "observed": observed})
+        if not passed:
+            journey["errors"].append(f"{name}: {observed}")
+
+    page.on("response", lambda response: _record_admission_response(response, requests))
+    page.on("console", on_console)
+    page.on("requestfailed", on_request_failed)
+
+    try:
+        check("parsed_import_id_available", bool(import_id), import_id)
+        if not import_id:
+            return False
+
+        page.goto(learning_url, timeout=30000, wait_until="networkidle")
+        page.wait_for_selector(".elms-manager-tab:not([hidden])", state="visible", timeout=30000)
+        page.locator(".elms-manager-tab").click()
+        page.wait_for_selector("[data-admission-import]", state="visible", timeout=30000)
+        check("company_admin_confirm_surface_loaded", True, page.url)
+
+        subscription_setup = _attach_latest_active_subscription(
+            page,
+            import_id,
+            preferred_subscription_id,
+            preferred_course_id,
+        )
+        check("parsed_import_subscription_persisted", bool(subscription_setup.get("ok")), subscription_setup)
+        if not subscription_setup.get("ok"):
+            return False
+
+        page.locator("[data-admission-import]").fill(import_id)
+        page.evaluate(
+            """() => {
+                const preview = document.querySelector('[data-admission-preview]');
+                if (preview) preview.textContent = '';
+                const result = document.querySelector('[data-admission-result]');
+                if (result) result.textContent = '';
+            }"""
+        )
+        preview_before = len(requests)
+        page.locator("[data-admission-preview-action]").click()
+        page.wait_for_function(
+            """() => {
+                const node = document.querySelector('[data-admission-preview]');
+                return node && node.textContent.includes('Осталось мест');
+            }""",
+            timeout=90000,
+        )
+        page.wait_for_timeout(250)
+        preview_response = _api_request(requests[preview_before:], "preview_admission_import")
+        preview_text = page.locator("[data-admission-preview]").text_content() or ""
+        preview_remaining = preview_response.get("remaining_seats") if preview_response else None
+        preview_selected = preview_response.get("selected_count") if preview_response else None
+        preview_ok = bool(
+            preview_response
+            and preview_response.get("http_status") == 200
+            and preview_response.get("status") == "preview"
+            and isinstance(preview_selected, int)
+            and preview_selected > 0
+            and isinstance(preview_remaining, int)
+            and preview_remaining >= preview_selected
+            and "Осталось мест" in preview_text
+        )
+        check(
+            "confirm_preview_exposes_remaining_quota",
+            preview_ok,
+            {
+                "response": preview_response,
+                "preview_text": preview_text,
+            },
+        )
+
+        confirm_button = page.locator("[data-admission-confirm]")
+        check("parsed_import_confirm_enabled", confirm_button.is_enabled(), confirm_button.is_enabled())
+        confirm_before = len(requests)
+        confirm_button.click()
+        page.wait_for_function(
+            """() => {
+                const node = document.querySelector('[data-admission-result]');
+                return node && node.textContent.trim().length > 0;
+            }""",
+            timeout=90000,
+        )
+        page.wait_for_timeout(250)
+        confirm_response = _api_request(requests[confirm_before:], "confirm_admission_import")
+        result_panel = page.locator("[data-admission-result]")
+        result_text = result_panel.text_content() or ""
+        enrolled_statuses = confirm_response.get("enrolled_statuses", []) if confirm_response else []
+        enrolled_count = confirm_response.get("enrolled_count") if confirm_response else None
+        remaining_seats = confirm_response.get("remaining_seats") if confirm_response else None
+        selected_count = confirm_response.get("selected_count") if confirm_response else None
+        quota_safe_active = bool(
+            confirm_response
+            and confirm_response.get("http_status") == 200
+            and confirm_response.get("ok") is True
+            and confirm_response.get("status") == "confirmed"
+            and isinstance(selected_count, int)
+            and selected_count > 0
+            and isinstance(enrolled_count, int)
+            and enrolled_count == selected_count
+            and enrolled_count == len(enrolled_statuses)
+            and enrolled_count > 0
+            and all(status == "Active" for status in enrolled_statuses)
+            and isinstance(preview_remaining, int)
+            and isinstance(remaining_seats, int)
+            and remaining_seats == preview_remaining - enrolled_count
+            and remaining_seats >= 0
+        )
+        check(
+            "confirmed_rows_are_quota_safe_active_enrollments",
+            quota_safe_active,
+            {
+                "response": confirm_response,
+                "enrolled_statuses": enrolled_statuses,
+                "preview_remaining_seats": preview_remaining,
+            },
+        )
+
+        success_report = "Зачислено:" in result_text and "Осталось мест:" in result_text
+        error_report = result_panel.locator(".text-danger").count() > 0
+        check(
+            "confirm_result_report_is_explicit",
+            success_report or error_report,
+            {
+                "success_report": success_report,
+                "error_report": error_report,
+                "result_text": result_text,
+            },
+        )
+        check(
+            "browser_runtime_errors_absent",
+            not journey["console_errors"] and not journey["request_failures"],
+            {"console_errors": journey["console_errors"], "request_failures": journey["request_failures"]},
+        )
+        journey["status"] = "pass" if not journey["errors"] else "fail"
+        return journey["status"] == "pass"
+    except Exception as exc:
+        journey["errors"].append(str(exc))
+        return False
+    finally:
+        results.setdefault("journeys", []).append(journey)
+
+
+def _record_custom_fields_response(response, requests: list[dict]) -> None:
+    method = _method_name(response.url)
+    tracked_methods = {
+        "elms.access.api.get_company_access_context",
+        "elms.lms.api.custom_fields.get_custom_field_schema",
+        "elms.lms.api.custom_fields.save_custom_field_definition",
+        "elms.lms.api.custom_fields.get_custom_field_form_data",
+        "frappe.client.get",
+        "frappe.client.get_list",
+        "frappe.desk.form.save.savedocs",
+    }
+    if method not in tracked_methods:
+        return
+    entry = {"method": method, "status": response.status, "http_status": response.status}
+    try:
+        payload = response.json()
+        message = payload.get("message") if isinstance(payload, dict) else None
+        if method.endswith("get_company_access_context") and isinstance(message, dict):
+            entry["organization"] = message.get("organization")
+        elif method.endswith("get_custom_field_schema") and isinstance(message, dict):
+            definitions = message.get("definitions")
+            entry["target_doctype"] = message.get("target_doctype")
+            entry["definition_count"] = len(definitions) if isinstance(definitions, list) else None
+            entry["field_keys"] = [
+                definition.get("field_key")
+                for definition in definitions
+                if isinstance(definition, dict)
+            ] if isinstance(definitions, list) else []
+        elif method.endswith("save_custom_field_definition") and isinstance(message, dict):
+            definition = message.get("definition")
+            if isinstance(definition, dict):
+                entry["definition"] = {
+                    key: definition.get(key)
+                    for key in ("name", "organization", "applies_to", "field_key", "label", "field_type", "schema_version")
+                }
+        elif method.endswith("get_custom_field_form_data") and isinstance(message, dict):
+            entry["target_doctype"] = message.get("target_doctype")
+            entry["target_name"] = message.get("target_name")
+            entry["stored_values"] = message.get("stored_values")
+        elif method == "frappe.desk.form.save.savedocs" and isinstance(message, dict):
+            entry["doctype"] = message.get("doctype")
+            entry["name"] = message.get("name")
+            entry["custom_field_values"] = message.get("custom_field_values")
+        elif method == "frappe.client.get" and isinstance(message, dict):
+            entry["doctype"] = message.get("doctype")
+            entry["name"] = message.get("name")
+            entry["custom_field_values"] = message.get("custom_field_values")
+    except Exception:
+        entry["json"] = False
+    requests.append(entry)
+
+
+def _run_t_a13_custom_fields_wire(
+    page,
+    base_url: str,
+    preferred_course_id: str | None,
+    results: dict,
+) -> bool:
+    """Exercise the authenticated T-A13 definition and Course-value wire boundary."""
+
+    custom_fields_url = f"{base_url.rstrip('/')}/app/elms-custom-fields"
+    journey = {
+        "journey_id": "JRN-T-A13-CUSTOM-FIELDS-001",
+        "name": "Authenticated Company Admin defines a Course field and saves/readbacks its Additional value",
+        "url": custom_fields_url,
+        "status": "fail",
+        "checks": [],
+        "api_requests": [],
+        "console_errors": [],
+        "request_failures": [],
+        "errors": [],
+    }
+    requests = journey["api_requests"]
+
+    def on_console(message) -> None:
+        if message.type == "error":
+            journey["console_errors"].append(message.text)
+
+    def on_request_failed(request) -> None:
+        journey["request_failures"].append({"url": request.url, "failure": request.failure})
+
+    def check(name: str, passed: bool, observed) -> None:
+        journey["checks"].append({"name": name, "status": "pass" if passed else "fail", "observed": observed})
+        if not passed:
+            journey["errors"].append(f"{name}: {observed}")
+
+    def api_call(method: str, args: dict) -> dict:
+        return page.evaluate(
+            """
+            async ({method, args}) => new Promise((resolve) => {
+                let settled = false;
+                const finish = (value) => {
+                    if (!settled) {
+                        settled = true;
+                        resolve(value);
+                    }
+                };
+                try {
+                    frappe.call({
+                        method,
+                        args,
+                        callback: (response) => finish({ok: true, message: response && response.message}),
+                        error: (error) => finish({ok: false, error: (error && (error.message || error.exception)) || "request failed"}),
+                    });
+                } catch (error) {
+                    finish({ok: false, error: (error && error.message) || "request failed"});
+                }
+            })
+            """,
+            {"method": method, "args": args},
+        )
+
+    page.on("response", lambda response: _record_custom_fields_response(response, requests))
+    page.on("console", on_console)
+    page.on("requestfailed", on_request_failed)
+
+    try:
+        context = api_call("elms.access.api.get_company_access_context", {})
+        organization = str((context.get("message") or {}).get("organization") or "").strip() if context.get("ok") else ""
+        check(
+            "custom_fields_authenticated_organization_resolved",
+            bool(organization),
+            {"ok": context.get("ok"), "organization": organization, "error": context.get("error")},
+        )
+        if not organization:
+            return False
+
+        course_id = preferred_course_id
+        if course_id:
+            course_result = api_call("frappe.client.get", {"doctype": "ELMS Course", "name": course_id})
+        else:
+            course_result = api_call(
+                "frappe.client.get_list",
+                {
+                    "doctype": "ELMS Course",
+                    "filters": {"organization": organization, "status": "Active"},
+                    "fields": ["name", "organization", "course_code", "status"],
+                    "order_by": "modified desc",
+                    "limit_page_length": 20,
+                },
+            )
+        course_message = course_result.get("message") if course_result.get("ok") else None
+        course = course_message if isinstance(course_message, dict) else (
+            course_message[0] if isinstance(course_message, list) and course_message else None
+        )
+        course_id = str((course or {}).get("name") or "").strip()
+        course_ready = bool(course_id and course and course.get("organization") == organization)
+        check(
+            "custom_fields_course_owned_by_authenticated_organization",
+            course_ready,
+            {
+                "course": course_id,
+                "organization": organization,
+                "course_organization": (course or {}).get("organization"),
+                "course_code": (course or {}).get("course_code"),
+                "status": (course or {}).get("status"),
+            },
+        )
+        if not course_ready:
+            return False
+
+        existing_schema = api_call(
+            "elms.lms.api.custom_fields.get_custom_field_schema",
+            {"target_doctype": "ELMS Course", "organization": organization},
+        )
+        existing_definitions = (existing_schema.get("message") or {}).get("definitions", []) if existing_schema.get("ok") else []
+        existing = next(
+            (
+                definition for definition in existing_definitions
+                if isinstance(definition, dict) and definition.get("field_key") == T_A13_CUSTOM_FIELD_KEY
+            ),
+            None,
+        )
+        if existing and existing.get("name"):
+            cleanup = api_call(
+                "elms.lms.api.custom_fields.delete_custom_field_definition",
+                {"name": existing["name"], "organization": organization},
+            )
+            check(
+                "custom_fields_previous_fixture_removed",
+                bool(cleanup.get("ok")),
+                {"definition": existing, "cleanup": cleanup},
+            )
+            if not cleanup.get("ok"):
+                return False
+
+        page.goto(custom_fields_url, timeout=30000, wait_until="domcontentloaded")
+        page.wait_for_selector(".elms-custom-fields-page", state="visible", timeout=30000)
+        page.wait_for_function(
+            """() => {
+                const select = document.querySelector('.elms-custom-fields-toolbar select');
+                return select && select.value;
+            }""",
+            timeout=30000,
+        )
+        check("custom_fields_definition_surface_loaded", True, page.url)
+
+        toolbar_selects = page.locator(".elms-custom-fields-toolbar select")
+        target_select = toolbar_selects.nth(1)
+        target_select.select_option("ELMS Course")
+        definition_inputs = page.locator(".elms-custom-fields-definition-form input[type='text']")
+        definition_inputs.nth(0).fill(T_A13_CUSTOM_FIELD_KEY)
+        definition_inputs.nth(1).fill(T_A13_CUSTOM_FIELD_LABEL)
+        page.locator(".elms-custom-fields-definition-form select").select_option("text")
+        save_definition = page.locator(".elms-custom-fields-save")
+        with page.expect_response(
+            lambda response: _is_post_response(
+                response,
+                "elms.lms.api.custom_fields.save_custom_field_definition",
+            ),
+            timeout=30000,
+        ) as definition_response_info:
+            save_definition.click()
+        definition_response = definition_response_info.value
+        check(
+            "custom_field_definition_api_succeeded",
+            definition_response.status == 200,
+            {"http_status": definition_response.status},
+        )
+        if definition_response.status != 200:
+            return False
+        page.wait_for_function(
+            """(fieldKey) => Array.from(document.querySelectorAll('.elms-custom-fields-list-item'))
+                .some((item) => item.textContent.includes(fieldKey))""",
+            arg=T_A13_CUSTOM_FIELD_KEY,
+            timeout=30000,
+        )
+        definition_schema = api_call(
+            "elms.lms.api.custom_fields.get_custom_field_schema",
+            {"target_doctype": "ELMS Course", "organization": organization},
+        )
+        definition_data = (definition_schema.get("message") or {}).get("definitions", []) if definition_schema.get("ok") else []
+        persisted_definition = next(
+            (
+                definition for definition in definition_data
+                if isinstance(definition, dict) and definition.get("field_key") == T_A13_CUSTOM_FIELD_KEY
+            ),
+            None,
+        )
+        definition_saved = bool(
+            definition_response.status == 200
+            and persisted_definition
+            and persisted_definition.get("organization") == organization
+            and persisted_definition.get("applies_to") == "ELMS Course"
+            and persisted_definition.get("field_type") == "text"
+        )
+        check(
+            "custom_field_definition_saved_and_read_back",
+            definition_saved,
+            {
+                "http_status": definition_response.status,
+                "definition": persisted_definition,
+                "ui_list_contains_key": page.locator(".elms-custom-fields-list-item").all_text_contents(),
+            },
+        )
+        if not definition_saved:
+            return False
+
+        course_url = f"{base_url.rstrip('/')}/app/elms-course/{quote(course_id, safe='')}"
+        page.goto(course_url, timeout=30000, wait_until="domcontentloaded")
+        page.wait_for_selector(".form-page", state="visible", timeout=30000)
+        page.wait_for_selector(
+            f".elms-custom-field-control[data-field-key='{T_A13_CUSTOM_FIELD_KEY}']",
+            state="visible",
+            timeout=30000,
+        )
+        course_control = page.locator(f".elms-custom-field-control[data-field-key='{T_A13_CUSTOM_FIELD_KEY}']")
+        check("course_additional_field_control_rendered", course_control.count() == 1, page.url)
+        course_control.fill(T_A13_CUSTOM_FIELD_VALUE)
+        course_control.dispatch_event("change")
+        course_control.fill("")
+        course_control.dispatch_event("change")
+        course_control.fill(T_A13_CUSTOM_FIELD_VALUE)
+        course_control.dispatch_event("change")
+        page.wait_for_function(
+            """(fieldKey, expected) => {
+                const raw = window.cur_frm && window.cur_frm.doc && window.cur_frm.doc.custom_field_values;
+                let values = raw;
+                if (typeof raw === 'string') {
+                    try { values = JSON.parse(raw); } catch (error) { return false; }
+                }
+                return values && values[fieldKey] === expected;
+            }""",
+            arg=(T_A13_CUSTOM_FIELD_KEY, T_A13_CUSTOM_FIELD_VALUE),
+            timeout=30000,
+        )
+        save_course = page.locator("button.primary-action").first
+        with page.expect_response(
+            lambda response: _is_post_response(response, "frappe.desk.form.save.savedocs"),
+            timeout=30000,
+        ) as course_save_response_info:
+            save_course.click()
+        course_save_response = course_save_response_info.value
+        page.wait_for_function(
+            """() => window.cur_frm && !window.cur_frm.is_dirty()""",
+            timeout=30000,
+        )
+        form_readback = api_call(
+            "elms.lms.api.custom_fields.get_custom_field_form_data",
+            {
+                "target_doctype": "ELMS Course",
+                "target_name": course_id,
+                "organization": organization,
+            },
+        )
+        raw_readback = api_call("frappe.client.get", {"doctype": "ELMS Course", "name": course_id})
+        form_data = form_readback.get("message") if form_readback.get("ok") else None
+        raw_course = raw_readback.get("message") if raw_readback.get("ok") else None
+        stored_values = (form_data or {}).get("stored_values") if isinstance(form_data, dict) else None
+        raw_values = (raw_course or {}).get("custom_field_values") if isinstance(raw_course, dict) else None
+        if isinstance(raw_values, str):
+            try:
+                raw_values = json.loads(raw_values)
+            except (TypeError, ValueError):
+                raw_values = None
+        value_saved = bool(
+            course_save_response.status == 200
+            and isinstance(stored_values, dict)
+            and stored_values.get(T_A13_CUSTOM_FIELD_KEY) == T_A13_CUSTOM_FIELD_VALUE
+            and isinstance(raw_values, dict)
+            and raw_values.get(T_A13_CUSTOM_FIELD_KEY) == T_A13_CUSTOM_FIELD_VALUE
+        )
+        check(
+            "course_additional_value_saved_and_read_back",
+            value_saved,
+            {
+                "save_http_status": course_save_response.status,
+                "form_api_readback": stored_values,
+                "course_document_readback": raw_values,
+                "course": course_id,
+                "organization": organization,
+            },
+        )
+        check(
+            "browser_runtime_errors_absent",
+            not journey["console_errors"] and not journey["request_failures"],
+            {"console_errors": journey["console_errors"], "request_failures": journey["request_failures"]},
+        )
+        journey["status"] = "pass" if not journey["errors"] else "fail"
         return journey["status"] == "pass"
     except Exception as exc:
         journey["errors"].append(str(exc))
@@ -421,6 +1656,7 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
         "passed": True,
         "errors": [],
     }
+    _set_ac_disposition(results)
     runtime_ready = all(os.environ.get(key) for key in RUNTIME_ENV_KEYS)
     results["runtime_activation"] = {
         "status": "pass" if runtime_ready else "fail",
@@ -435,6 +1671,13 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
             "Company Admin browser activation is unavailable; set ELMS_BROWSER_TEST_USERNAME/PASSWORD "
             "or provide ELMS_BROWSER_ENV_FILE"
         )
+
+    if not smoke_only and runtime_ready:
+        try:
+            _ensure_platform_owner_admission_flags()
+        except Exception as exc:
+            results["passed"] = False
+            results["errors"].append(str(exc))
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -453,7 +1696,7 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
         try:
             # 1. Navigate to login
             login_url = f"{base_url.rstrip('/')}/login"
-            response = page.goto(login_url, timeout=15000, wait_until="networkidle")
+            response = _navigate_to_login(page, login_url)
             status_code = response.status if response else 0
 
             check_status = {
@@ -479,7 +1722,9 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                 results["errors"].append(f"Title is '{title}', expected to contain 'Login'")
 
             # 3. Check ELMS branding in the standard Frappe login heading
-            heading = page.locator(".for-login .page-card-head h4").first.text_content() or ""
+            login_heading = page.locator(LOGIN_READY_SELECTOR).first
+            login_heading.wait_for(state="visible", timeout=15000)
+            heading = login_heading.text_content(timeout=5000) or ""
             has_elms_brand = "elms" in heading.lower()
             check_branding = {
                 "name": "login_heading_uses_elms_brand",
@@ -744,7 +1989,7 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
             test_username = os.environ.get("ELMS_BROWSER_TEST_USERNAME")
             test_password = os.environ.get("ELMS_BROWSER_TEST_PASSWORD")
             if test_username and test_password:
-                page.goto(login_url, timeout=15000, wait_until="networkidle")
+                _navigate_to_login(page, login_url)
                 page.wait_for_timeout(500)
                 login_form = page.locator(".for-login form.form-login").first
                 login_form.locator("#login_email").fill(test_username)
@@ -826,6 +2071,7 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                         }
                     ]
                 if success:
+                    custom_course_id = None
                     provider_setup = {"ok": False, "error": "Admission test provider is unavailable"}
                     try:
                         provider_setup = _configure_admission_test_provider(page, provider_base_url)
@@ -844,7 +2090,18 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                     }
                     results["checks"].append(provider_check)
                     if provider_setup.get("ok"):
-                        if not _run_admission_wire(page, base_url, results):
+                        a11_passed, import_id, subscription_id, course_id = _run_admission_wire(page, base_url, results)
+                        custom_course_id = course_id
+                        if not a11_passed:
+                            results["passed"] = False
+                        if not _run_b2b_confirm_wire(
+                            page,
+                            base_url,
+                            import_id,
+                            subscription_id,
+                            course_id,
+                            results,
+                        ):
                             results["passed"] = False
                     else:
                         results["passed"] = False
@@ -858,6 +2115,8 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                                 "errors": [str(provider_setup.get("error") or "Admission test provider setup failed")],
                             }
                         ]
+                    if not _run_t_a13_custom_fields_wire(page, base_url, custom_course_id, results):
+                        results["passed"] = False
             else:
                 results["journeys"] = [
                     {
@@ -869,6 +2128,17 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                     }
                 ]
 
+        except LoginReadinessError as exc:
+            message = str(exc)
+            results["passed"] = False
+            results["checks"].append(
+                {
+                    "name": "login_page_readiness",
+                    "status": "fail",
+                    "observed": message,
+                }
+            )
+            results["errors"].append(message)
         finally:
             browser.close()
             if provider_server is not None:

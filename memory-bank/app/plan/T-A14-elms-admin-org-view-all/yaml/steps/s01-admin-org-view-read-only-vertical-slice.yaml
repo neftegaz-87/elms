@@ -1,0 +1,441 @@
+schema: epic-decompose/v1
+epic_id: T-A14-elms-admin-org-view-all
+plan_id: T-A14-elms-admin-org-view-all
+step_id: s01
+role: app
+next_phase: APP IMPLEMENT
+title: Admin organization selector, read-only roster, audit, and mutate-as DENY
+level: L2
+status: pending
+needs_creative: false
+visible_ui: yes
+surfaces:
+  backend: yes
+  frontend: yes
+  visible_ui: yes
+  wire: yes
+design_surface: product_ui
+wire_complete_required: true
+
+goal: >-
+  Дать ELMS Admin и ELMS Operations User серверный выбор любой организации и
+  read-only просмотр её существующего roster/export в кабинете, сохранив
+  Company Admin только в своей организации. Выбранная org не меняет сессию и
+  не открывает submit/import confirmation, B2C acting-as enrollment или invite;
+  успешный просмотр фиксируется в ELMS User Activity.
+
+delta:
+  - Add a platform-view organization directory contract by extending the existing get_company_access_context response for ELMS Admin/Operations without granting them mutation-as capability.
+  - Replace the cabinet free-text organization field with server-provided organization options and a selected read context; keep get_org_roster and export_org_progress as the only roster/read model.
+  - Extend the view guard so platform viewer roles can read a selected organization, while add a distinct mutation guard that requires Company Admin membership in that organization.
+  - Record actor, selected organization, activity type Organization View, reference organization, and timestamp in the existing ELMS User Activity DocType after an authorized roster view.
+  - Close platform viewer mutation paths for B2B import upload/confirmation, B2C enroll_learner acting for another user, and invite_org_user; preserve Company Admin own-org behavior and explicit 403 states.
+  - Update Desk cabinet, admission/import, and access surfaces with the server-backed selector, «режим просмотра» copy, no acting-as controls, keyboard-visible states, and scoped ELMS product styling.
+  - Add backend, UI, wire, and browser-harness contract tests for all three ACs, audit persistence, no session swap, and leftover mutate-as paths.
+
+as_built:
+  - elms/elms/access/api.py exposes get_company_access_context and require_organization_access, but the platform viewer set is not consistently separated from mutation authorization.
+  - elms/elms/cabinet/roster.py and desk-cabinet.js already reuse the T-A09 roster/export model, but the admin control is a free-text organization input and there is no Organization View audit event.
+  - elms/elms/admission/import_api.py permits platform-admin upload/read resolution, invite_org_user uses the general view guard, and lms/api/__init__.py permits platform roles to call enroll_learner for another user.
+  - elms/elms/lms/services/b2b_admission.py already has a Company Admin-only confirmation policy; this slice makes the selected platform-view boundary explicit and regression-tested rather than relying on UI state.
+  - ELMS User Activity already stores organization, user, activity_type, timestamp, reference_doctype, reference_name, and IP address and is the existing audit/retention path.
+
+out_of_scope:
+  - Impersonation, session User swap, acting-as identity, or synthetic Company Admin sessions.
+  - Submit admission, confirm B2B import, B2C enrollment, invite, or any other company mutation from a platform viewer context.
+  - Changing Company Admin permissions, organization membership semantics, roster DTO shape, export format, or progress source of truth beyond this ACL boundary.
+  - A new organization roster/read model, a new audit DocType, or a parallel activity/event store.
+  - Cross-organization Company Admin access, learner self-enrollment, payment provider behavior, 1С, Bitrix, or CRM/ERP roles.
+
+plan_contract:
+  source: memory-bank/app/plan/T-A14-elms-admin-org-view-all/md/plan.md
+  level: L2
+  fr_ids: [FR-001, FR-002, FR-003, FR-004]
+  nfr_ids: [NFR-001, NFR-002]
+  ac_ids: [AC-001, AC-002, AC-003]
+  ac_quotes:
+    - id: AC-001
+      quote: 'Admin lists all orgs and opens roster of org X.'
+    - id: AC-002
+      quote: 'Admin confirm_admission_import for org X → 403.'
+    - id: AC-003
+      quote: 'Company Admin still cannot see other orgs.'
+  nouns:
+    - ELMS Admin
+    - ELMS Operations User
+    - ELMS Organization
+    - ELMS Company Admin
+    - organization directory
+    - selected organization view context
+    - get_company_access_context
+    - get_org_roster
+    - export_org_progress
+    - confirm_admission_import
+    - enroll_learner
+    - invite_org_user
+    - Organization View
+    - ELMS User Activity
+    - режим просмотра
+  layout_paths:
+    - elms/elms/access/api.py
+    - elms/elms/cabinet/roster.py
+    - elms/elms/lms/api/__init__.py
+    - elms/elms/lms/api/admission.py
+    - elms/elms/lms/services/b2b_admission.py
+    - elms/elms/admission/import_api.py
+    - elms/elms/operations/page/elms_cabinet/elms_cabinet.json
+    - elms/elms/public/js/desk-cabinet.js
+    - elms/elms/public/js/desk-admission.js
+    - elms/elms/public/js/desk-access.js
+    - elms/elms/public/css/desk-cabinet.css
+    - elms/elms/public/css/desk-admission.css
+    - elms/elms/public/css/desk-access.css
+    - elms/elms/desk/workspaces.py
+    - elms/elms/lms/doctype/elms_user_activity/
+    - elms/elms/tests/test_admin_org_view.py
+    - elms/elms/tests/test_cabinet_roster.py
+    - elms/elms/tests/test_cabinet_ui.py
+    - elms/elms/tests/test_company_access.py
+    - elms/elms/tests/test_access_invite.py
+    - elms/elms/tests/test_admission_import.py
+    - elms/elms/tests/test_admission_import_ui.py
+    - elms/elms/tests/test_b2b_batch_quotas.py
+    - elms/elms/tests/test_access_ui.py
+    - elms/elms/tests/test_workspaces.py
+  plan_jumps:
+    - memory-bank/app/plan/T-A14-elms-admin-org-view-all/md/plan.md:10-72
+    - memory-bank/app/plan/T-A14-elms-admin-org-view-all/md/plan.md:41-70
+  user_journey: >-
+    ELMS Admin or ELMS Operations User opens the existing cabinet, receives the
+    organization list from get_company_access_context, selects org X, and the
+    page calls get_org_roster/export_org_progress with X. The server rechecks
+    the view capability, records Organization View, and renders the roster with
+    «режим просмотра». A platform viewer attempting confirm_admission_import,
+    import upload, B2C enrollment for another user, or invite_org_user receives
+    403 before mutation. A Company Admin receives only its membership org and a
+    foreign-org roster remains denied.
+  api:
+    organization_context:
+      method: elms.access.api.get_company_access_context
+      input: optional selected organization for re-authorization
+      output: organizations, selected organization, platform_viewer, and read-only capability state
+      errors: PermissionError for a Company Admin foreign organization
+    roster:
+      method: elms.cabinet.api.get_org_roster
+      input: organization, optional status_filter, page, page_size
+      output: existing OrgRosterDTO rows and organization context, plus audited Organization View
+      errors: PermissionError for unauthorized organization; DoesNotExistError for an unknown organization
+    export:
+      method: elms.cabinet.api.export_org_progress
+      input: selected organization and existing status filter
+      output: existing server-generated CSV for the authorized organization
+      errors: same organization view guard and export contract as T-A09
+    mutation_guards:
+      methods:
+        - elms.lms.api.admission.confirm_admission_import
+        - elms.admission.import_api.upload_import
+        - elms.lms.api.enroll_learner
+        - elms.access.api.invite_org_user
+      rule: Platform viewer is read-only; only Company Admin membership in the target organization may mutate-as.
+  roles:
+    platform_viewer: ELMS Admin and ELMS Operations User may list/read selected organizations; no mutation-as.
+    company_admin: ELMS Company Admin may read and mutate only an organization where the current user is an explicit member.
+    denied: Guest, ELMS Learner, Company Admin for a foreign organization, and platform viewers on company mutation paths.
+  persistence: >-
+    Roster and export remain read-only over the T-A09 organization member,
+    enrollment, and course-progress sources. View events are inserted into the
+    existing ELMS User Activity DocType with user, organization, activity_type,
+    reference_doctype/reference_name, IP, and timestamp. No session identity or
+    parallel audit/read-model store is persisted.
+  security: >-
+    require_organization_access is the view boundary and a separate
+    require_organization_mutation_access is the mutation boundary. The selected
+    organization is always re-authorized server-side. UI selection and hidden
+    controls are presentation only.
+  ui_contract:
+    route: /app/elms-cabinet
+    selector: Server-provided organization select; no free-text org input or client-only all-org list.
+    required:
+      - ELMS Admin and ELMS Operations User see all organizations.
+      - Company Admin sees only its own organization and cannot select another.
+      - Roster/export show explicit «режим просмотра» for platform viewers.
+      - No session swap, invite, submit, confirm, or acting-as control is rendered in the read-only context.
+      - Existing focus-visible, aria-live, empty, error, and responsive states remain intact.
+    design: Existing ELMS/neftegaz product_ui Desk surface with scoped CSS; no SPA or new brand language.
+  done: >-
+    AC-001 proves an Admin/Operations actor lists all organizations and reads org
+    X through the existing roster/export path with an Organization View audit.
+    AC-002 proves confirm_admission_import and the other mutate-as paths return
+    403 without writes for a platform viewer. AC-003 proves a Company Admin sees
+    only its own org. Static leftover checks prove no session swap, free-text
+    directory, client-only ACL, or parallel audit/read model remains.
+
+requirements:
+  - get_company_access_context returns all organization options only to platform viewers and membership organizations only to Company Admins.
+  - get_org_roster and export_org_progress reuse the existing T-A09 server read model and re-authorize every selected organization.
+  - Organization View is recorded only after an authorized view and uses ELMS User Activity as the sole audit SoT.
+  - Platform viewer roles cannot upload/confirm admission imports, enroll another user through the B2C manager path, or invite a user into a selected organization.
+  - Company Admin mutation paths require explicit membership in the target organization; UI filtering is never the security boundary.
+  - The selected organization never changes frappe.session.user, Keycloak identity, User Permission, or role/profile state.
+  - Desk labels and controls communicate read-only «режим просмотра» and do not expose platform mutate-as actions.
+  - Company Admin own-organization roster behavior and foreign-organization denial remain unchanged.
+  - No second roster query, progress source, view audit DocType, or client-side user list is introduced.
+
+context:
+  consumes:
+    - path: memory-bank/app/plan/T-A14-elms-admin-org-view-all/md/plan.md
+      reason: Canonical FR/NFR/AC, read-only decision, mutation DENY, and QA charter.
+    - path: memory-bank/product/modules.md
+      reason: 'ELMS actor/role canon: ELMS Admin/Operations platform actor and Company Admin own-org boundary.'
+    - path: rules/elms-approach.mdc
+      reason: ELMS/Frappe product boundary and forbidden CRM/ERP role lookup.
+    - path: rules/elms-design.mdc
+      reason: Existing neftegaz-ai-layer plus LMS Desk visual canon.
+    - path: rules/elms-testing.mdc
+      reason: Allowed targeted, syntax, wire, and browser-harness checks.
+    - path: elms/elms/access/api.py
+      reason: Existing organization context, membership, view ACL, invite boundary, and role profiles.
+    - path: elms/elms/cabinet/api.py
+      reason: T-A09 get_org_roster/export_org_progress whitelist boundary.
+    - path: elms/elms/cabinet/roster.py
+      reason: T-A09 roster DTO/query and organization access resolution.
+    - path: elms/elms/lms/api/__init__.py
+      reason: B2C enroll_learner acting-user permission path and existing activity helper.
+    - path: elms/elms/lms/api/admission.py
+      reason: confirm_admission_import whitelist boundary.
+    - path: elms/elms/lms/services/b2b_admission.py
+      reason: Company Admin-only B2B import confirmation policy.
+    - path: elms/elms/admission/import_api.py
+      reason: Upload/inspect/export organization resolution and platform-operation write path.
+    - path: elms/elms/operations/page/elms_cabinet/elms_cabinet.json
+      reason: Existing cabinet roles and route metadata.
+    - path: elms/elms/public/js/desk-cabinet.js
+      reason: Existing free-text selector, roster/export call sites, and read/error UI.
+    - path: elms/elms/public/js/desk-admission.js
+      reason: Existing B2B import controls rendered for platform roles.
+    - path: elms/elms/public/js/desk-access.js
+      reason: Existing organization selector and invite-as-company controls.
+    - path: elms/elms/desk/workspaces.py
+      reason: Existing cabinet/access workspace role visibility and links.
+    - path: elms/elms/lms/doctype/elms_user_activity/
+      reason: Existing immutable activity audit fields and retention path.
+    - path: elms/elms/tests/test_cabinet_roster.py
+      reason: Existing two-organization roster and foreign-access tests.
+    - path: elms/elms/tests/test_cabinet_ui.py
+      reason: Existing cabinet call-site, empty-state, and CSS contract tests.
+    - path: elms/elms/tests/test_company_access.py
+      reason: Existing organization context and Company Admin profile tests.
+    - path: elms/elms/tests/test_access_invite.py
+      reason: Existing invite/Keycloak mutation contract tests.
+    - path: elms/elms/tests/test_admission_import.py
+      reason: Existing organization-scoped import upload tests.
+    - path: elms/elms/tests/test_b2b_batch_quotas.py
+      reason: Existing B2B confirmation denial and audit tests.
+  produces:
+    - path: elms/elms/access/api.py
+      reason: Separate platform-view and Company Admin mutation authorization plus context capability response.
+    - path: elms/elms/cabinet/roster.py
+      reason: Selected-org read authorization and Organization View audit on the canonical roster path.
+    - path: elms/elms/lms/api/__init__.py
+      reason: B2C manager enrollment denies platform viewer acting-as while preserving learner self/webhook behavior.
+    - path: elms/elms/lms/api/admission.py
+      reason: Admission confirmation boundary is wired to the explicit Company Admin mutation policy.
+    - path: elms/elms/lms/services/b2b_admission.py
+      reason: B2B confirm remains Company Admin own-org only under the shared mutation contract.
+    - path: elms/elms/admission/import_api.py
+      reason: Import upload/confirmation-related organization resolution denies platform viewer writes.
+    - path: elms/elms/operations/page/elms_cabinet/elms_cabinet.json
+      reason: Cabinet route admits platform viewers and preserves Company Admin access.
+    - path: elms/elms/public/js/desk-cabinet.js
+      reason: Server-backed org selector, read-only copy, roster/export wire, and no free-text mutation affordance.
+    - path: elms/elms/public/js/desk-admission.js
+      reason: Platform viewer admission surface is read-only and does not render upload/confirm-as-company controls.
+    - path: elms/elms/public/js/desk-access.js
+      reason: Platform viewer invite-as-company control is removed or marked read-only while Company Admin own-org invite remains.
+    - path: elms/elms/public/css/desk-cabinet.css
+      reason: Scoped selector/read-only/focus states for the existing cabinet surface.
+    - path: elms/elms/public/css/desk-admission.css
+      reason: Scoped read-only admission/import state styling.
+    - path: elms/elms/public/css/desk-access.css
+      reason: Scoped permission/read-only state styling for access surface.
+    - path: elms/elms/desk/workspaces.py
+      reason: Platform-view cabinet/access navigation is visible to ELMS Operations User without company mutation links.
+    - path: elms/elms/tests/test_admin_org_view.py
+      reason: Cross-surface platform-view, audit, no-session-swap, and mutation-denial regression tests.
+    - path: elms/elms/tests/test_cabinet_roster.py
+      reason: Admin/Operations all-org read, audit, and Company Admin foreign-org regression tests.
+    - path: elms/elms/tests/test_cabinet_ui.py
+      reason: Server-backed selector, read-only copy, no free-text input, and route contract tests.
+    - path: elms/elms/tests/test_company_access.py
+      reason: Organization directory role filtering and mutation capability response tests.
+    - path: elms/elms/tests/test_access_invite.py
+      reason: Platform viewer invite-as-company 403 before Frappe/Keycloak mutation.
+    - path: elms/elms/tests/test_admission_import.py
+      reason: Platform viewer upload/read-only import boundary tests.
+    - path: elms/elms/tests/test_admission_import_ui.py
+      reason: No platform upload/confirm controls and explicit read-only copy contract.
+    - path: elms/elms/tests/test_b2b_batch_quotas.py
+      reason: confirm_admission_import platform-view 403 and Company Admin own-org continuity.
+    - path: elms/elms/tests/test_access_ui.py
+      reason: Access/invite surface role and read-only state contract.
+    - path: elms/elms/tests/test_workspaces.py
+      reason: Cabinet visibility and workspace role contract.
+  plan_refs: [FR-001, FR-002, FR-003, FR-004, NFR-001, NFR-002, AC-001, AC-002, AC-003]
+
+files:
+  - elms/elms/access/api.py
+  - elms/elms/cabinet/roster.py
+  - elms/elms/lms/api/__init__.py
+  - elms/elms/lms/api/admission.py
+  - elms/elms/lms/services/b2b_admission.py
+  - elms/elms/admission/import_api.py
+  - elms/elms/operations/page/elms_cabinet/elms_cabinet.json
+  - elms/elms/public/js/desk-cabinet.js
+  - elms/elms/public/js/desk-admission.js
+  - elms/elms/public/js/desk-access.js
+  - elms/elms/public/css/desk-cabinet.css
+  - elms/elms/public/css/desk-admission.css
+  - elms/elms/public/css/desk-access.css
+  - elms/elms/desk/workspaces.py
+  - elms/elms/tests/test_admin_org_view.py
+  - elms/elms/tests/test_cabinet_roster.py
+  - elms/elms/tests/test_cabinet_ui.py
+  - elms/elms/tests/test_company_access.py
+  - elms/elms/tests/test_access_invite.py
+  - elms/elms/tests/test_admission_import.py
+  - elms/elms/tests/test_admission_import_ui.py
+  - elms/elms/tests/test_b2b_batch_quotas.py
+  - elms/elms/tests/test_access_ui.py
+  - elms/elms/tests/test_workspaces.py
+deletes: []
+
+skills:
+  code_surface: mixed
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/frontend-testing/SKILL.md
+    - .agents/skills/frontend-patterns/SKILL.md
+    - .agents/skills/next-best-practices/SKILL.md
+    - .agents/skills/vercel-react-best-practices/SKILL.md
+    - .agents/skills/vercel-composition-patterns/SKILL.md
+    - .agents/skills/playwright-best-practices/SKILL.md
+    - .agents/skills/web-design-guidelines/SKILL.md
+    - .agents/skills/verification-before-completion/SKILL.md
+  design:
+    - .agents/skills/frontend-design/SKILL.md
+    - .agents/skills/impeccable/SKILL.md
+    - .agents/skills/emil-design-eng/SKILL.md
+  design_groups:
+    - D0
+  omit_justification:
+    fastapi-templates: Frappe whitelist and Document APIs are the backend boundary; no FastAPI route or dependency-injection surface is introduced.
+    async-python-patterns: Frappe calls, DocType writes, and Desk calls are synchronous; no async handler, concurrent task, or websocket exists.
+    sqlalchemy-postgres: Persistence remains Frappe DocTypes and existing read queries; no SQLAlchemy or Alembic model is added.
+    supabase-postgres-best-practices: No Supabase or direct SQL persistence is introduced by this slice.
+    websocket-engineer: Organization selection, roster, export, and guards are request/response calls without realtime fanout.
+    python-performance-optimization: No new measured hot path, streaming, or downsampling requirement exists; roster/export limits remain T-A09.
+    python-configuration: No environment, deployment, or provider configuration surface is added.
+    python-observability: Organization View uses the existing audit DocType; no new metrics, health, or logging subsystem is needed.
+    python-resilience: No external provider boundary is added; Keycloak invite behavior is only denied before its existing path.
+    playwright-generate-test: Browser acceptance uses the existing ELMS harness and existing Desk route; no new Playwright spec generator path is introduced.
+    vercel-react-view-transitions: The UI is an existing Frappe Desk page with vanilla JavaScript and does not use View Transitions API.
+    full-output-enforcement: Acceptance needs focused selector, read-only, roster, and denial states rather than a full unabridged UI dump.
+    ui-ux-pro-max: This is an existing product_ui extension using the ELMS/neftegaz visual canon, not a new style encyclopedia or redesign.
+  notes:
+    - surface=product_ui groups=D0
+    - BACK defaults for FastAPI, async, SQL, provider resilience, and new observability are omitted because this is a synchronous Frappe ACL/read-model slice.
+    - FRONT Next/Vercel core paths remain in the allowlist because APP requires the full FRONT union even for Desk JavaScript.
+    - No session skill is placed in impl or design.
+
+tdd:
+  - RED: Add tests for Admin/Operations all-org directory, selected-org roster/export, Organization View audit, and no session-user swap.
+  - RED: Add tests proving Company Admin receives only membership organizations and foreign roster access remains PermissionError.
+  - RED: Add tests proving platform viewers receive 403 before import upload/confirm, B2C acting enrollment, and invite-as-company writes; preserve learner self/webhook and Company Admin own-org behavior.
+  - RED: Add UI contract tests for server-backed select, «режим просмотра», removed free-text organization input, no platform mutation controls, focus/aria states, and workspace roles.
+  - GREEN: Implement shared view/mutation guards, selected-org roster audit, and all-org context response without session mutation.
+  - GREEN: Wire cabinet/access/admission surfaces and existing roster/export APIs to the selected read context; keep mutation callers server-authoritative.
+  - REFACTOR: Keep T-A09 roster/progress/export and ELMS User Activity as the sole read/audit sources and remove any client-trusted or parallel path.
+
+verify:
+  - ./bin/pytest -q elms/elms/tests/test_admin_org_view.py elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_cabinet_ui.py
+  - ./bin/pytest -q elms/elms/tests/test_company_access.py elms/elms/tests/test_access_invite.py elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py
+  - ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py
+  - ./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'enroll_learner or organization or b2c'
+  - ./bin/pytest -q elms/elms/tests/test_admin_org_view.py elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_company_access.py
+  - ./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_admission_import.py elms/elms/tests/test_b2b_batch_quotas.py elms/elms/tests/test_admin_org_view.py
+  - ./bin/pytest -q elms/elms/tests/test_cabinet_ui.py elms/elms/tests/test_admission_import_ui.py elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py
+  - python3 -m py_compile elms/elms/access/api.py elms/elms/cabinet/roster.py elms/elms/lms/api/__init__.py elms/elms/lms/api/admission.py elms/elms/lms/services/b2b_admission.py elms/elms/admission/import_api.py
+  - node --check elms/elms/public/js/desk-cabinet.js
+  - node --check elms/elms/public/js/desk-admission.js
+  - node --check elms/elms/public/js/desk-access.js
+  - >-
+    rg -n 'get_company_access_context|get_org_roster|export_org_progress|Organization View|режим просмотра|require_organization_mutation_access'
+    elms/elms/access/api.py elms/elms/cabinet/roster.py elms/elms/cabinet/api.py
+    elms/elms/public/js/desk-cabinet.js elms/elms/public/js/desk-admission.js
+    elms/elms/public/js/desk-access.js elms/elms/lms/api/__init__.py
+    elms/elms/lms/services/b2b_admission.py elms/elms/admission/import_api.py
+  - >-
+    rg -n 'Organization View|ELMS User Activity|frappe\.session\.user|session\.user'
+    elms/elms/cabinet/roster.py elms/elms/access/api.py
+    elms/elms/lms/doctype/elms_user_activity
+  - >-
+    ! rg -n 'frappe\.session\.user\s*=|frappe\.local\.session\.user\s*='
+    elms/elms/access/api.py elms/elms/cabinet/roster.py elms/elms/lms/api/__init__.py
+    elms/elms/lms/services/b2b_admission.py elms/elms/admission/import_api.py
+    elms/elms/public/js/desk-cabinet.js elms/elms/public/js/desk-admission.js
+    elms/elms/public/js/desk-access.js
+  - >-
+    ! rg -n 'Введите организацию для просмотра|data-cabinet-organization.*input'
+    elms/elms/public/js/desk-cabinet.js
+  - NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+
+checkpoints:
+  - id: cp1-org-directory-and-roster
+    criterion: Admin/Operations receives server-backed all-org options, opens org X through get_org_roster/export, and Company Admin remains own-org-only.
+    verify: ./bin/pytest -q elms/elms/tests/test_admin_org_view.py elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_company_access.py
+  - id: cp2-view-audit-and-no-impersonation
+    criterion: Authorized Organization View creates the existing ELMS User Activity event and no session User or role/profile state is swapped.
+    verify: >-
+      rg -n 'Organization View|ELMS User Activity|frappe\.session\.user|session\.user'
+      elms/elms/cabinet/roster.py elms/elms/access/api.py
+      elms/elms/lms/doctype/elms_user_activity
+  - id: cp3-mutate-deny
+    criterion: Platform viewer confirm/import, B2C acting enrollment, and invite-as-company paths return 403 before mutation; Company Admin own-org path remains valid.
+    verify: ./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_admission_import.py elms/elms/tests/test_b2b_batch_quotas.py elms/elms/tests/test_admin_org_view.py
+  - id: cp4-read-only-ui
+    criterion: Cabinet, admission, and access surfaces expose «режим просмотра», use server organization options, and render no platform mutate-as control.
+    verify: ./bin/pytest -q elms/elms/tests/test_cabinet_ui.py elms/elms/tests/test_admission_import_ui.py elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py
+  - id: cp5-syntax-and-wire
+    criterion: Python/Desk assets parse and all selected-org, guard, audit, and legacy-path checks pass.
+    verify: python3 -m py_compile elms/elms/access/api.py elms/elms/cabinet/roster.py elms/elms/lms/api/__init__.py elms/elms/lms/api/admission.py elms/elms/lms/services/b2b_admission.py elms/elms/admission/import_api.py
+  - id: cp6-browser
+    criterion: Existing ELMS browser harness can exercise organization selection, read-only roster, empty/error states, and no mutate-as affordance on the local stack.
+    verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+
+wire_complete:
+  call_sites:
+    - 'B2B Access/get_company_access_context -> server organization options -> elms-cabinet selector -> elms.cabinet.api.get_org_roster/export_org_progress'
+    - 'Selected roster view -> require_organization_access -> T-A09 roster/progress read model -> ELMS User Activity Organization View audit'
+    - 'Platform viewer admission/import surface -> no upload/confirm control -> server import/mutation guard -> 403 before write'
+    - 'confirm_admission_import -> B2BAdmissionService.confirm -> Company Admin membership mutation guard -> enrollments/quota only for own org'
+    - 'B2C enroll_learner for another user -> organization mutation guard -> 403 for platform viewer; payment webhook/self enrollment keeps its existing learner identity path'
+    - 'invite_org_user -> Company Admin mutation guard -> Frappe/Keycloak provision only after authorization'
+  enforce_path: elms/elms/access/api.py, elms/elms/cabinet/roster.py, elms/elms/lms/api/__init__.py, elms/elms/lms/services/b2b_admission.py, elms/elms/admission/import_api.py
+  dual_path_rg: >-
+    rg -n 'get_company_access_context|get_org_roster|export_org_progress|require_organization_access|require_organization_mutation_access|Organization View|confirm_admission_import|enroll_learner|invite_org_user'
+    elms/elms/access/api.py elms/elms/cabinet/roster.py elms/elms/cabinet/api.py
+    elms/elms/lms/api/__init__.py elms/elms/lms/api/admission.py
+    elms/elms/lms/services/b2b_admission.py elms/elms/admission/import_api.py
+    elms/elms/public/js/desk-cabinet.js elms/elms/public/js/desk-admission.js
+    elms/elms/public/js/desk-access.js
+  instruction_rg: >-
+    rg -n 'режим просмотра|view.?only|acting.?as|имперм|подтвердить|пригласить'
+    elms/elms/public/js/desk-cabinet.js elms/elms/public/js/desk-admission.js
+    elms/elms/public/js/desk-access.js elms/elms/lms/api/__init__.py
+    elms/elms/lms/services/b2b_admission.py elms/elms/admission/import_api.py
+  deny_old_proven: true

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 import frappe
 
+from elms.access.api import require_organization_mutation_access
 from elms.admission.enforce import require_paid_payment
 
 if not hasattr(frappe, "whitelist"):
@@ -823,6 +824,8 @@ def enroll_learner(
     subscription: Optional[str] = None,
     program_enrollment: Optional[str] = None,
     payment_id: Optional[str] = None,
+    source_import: Optional[str] = None,
+    quota_reserved: bool = False,
 ) -> Dict[str, Any]:
     """Enroll a learner into an active batch with subscription quota enforcement."""
     session_user = _get_current_user()
@@ -838,9 +841,10 @@ def enroll_learner(
     if session_user == "Guest":
         frappe.throw(_("Authentication required to enroll learners"), frappe.PermissionError)
 
-    # Permission check: ELMS Admin or ELMS Operations User can enroll learners
-    company_admin_can_manage_user = _is_company_admin(session_user) and user in _company_admin_users(session_user)
-    if not (_has_role("ELMS Admin") or _has_role("ELMS Operations User") or company_admin_can_manage_user or session_user == user):
+    # A platform viewer may never enroll another user in a selected organization.
+    # Company Admin is authorized only after the batch organization is checked.
+    company_admin_actor = _is_company_admin(session_user)
+    if not (company_admin_actor or session_user == user):
         frappe.throw(_("Permission denied to enroll learner"), frappe.PermissionError)
 
     # Validate User exists
@@ -851,7 +855,8 @@ def enroll_learner(
     if not frappe.db.exists("ELMS Batch", batch):
         frappe.throw(_("Batch {0} does not exist").format(batch), frappe.DoesNotExistError)
     batch_organization = frappe.db.get_value("ELMS Batch", batch, "organization")
-    _require_company_admin_organization(batch_organization, session_user)
+    if company_admin_actor:
+        require_organization_mutation_access(batch_organization, session_user)
 
     # Every B2C caller, including Admin/Ops, must reference a paid payment.
     # The enforce module permits only an available B2B subscription to bypass it.
@@ -870,7 +875,7 @@ def enroll_learner(
         )
 
     # Quota validation if subscription is provided
-    if subscription:
+    if subscription and not quota_reserved:
         if not frappe.db.exists("ELMS Subscription", subscription):
             frappe.throw(_("Subscription {0} does not exist").format(subscription), frappe.DoesNotExistError)
 

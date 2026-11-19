@@ -2,16 +2,53 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+import sys
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
+import frappe
 
-from elms.lms.api.schemas.admission import AdmissionConfirmRequest
+for _frappe_name in ("get_doc", "get_all", "get_roles"):
+	if not hasattr(frappe, _frappe_name):
+		setattr(frappe, _frappe_name, Mock())
+if not hasattr(frappe, "db"):
+	frappe.db = SimpleNamespace(
+		get_value=Mock(),
+		savepoint=Mock(),
+		rollback=Mock(),
+		set_value=Mock(),
+	)
+
+# Keep the test boundary pointed at the schema package when the legacy
+# ``elms.lms.api`` module shadows the sibling ``lms/api`` package directory.
+_api_package = sys.modules.get("elms.lms.api")
+_created_api_package = _api_package is None
+if "frappe.model.document" not in sys.modules:
+	_frappe_model = sys.modules.setdefault("frappe.model", ModuleType("frappe.model"))
+	_frappe_document = ModuleType("frappe.model.document")
+	_frappe_document.Document = object
+	sys.modules["frappe.model.document"] = _frappe_document
+	setattr(_frappe_model, "document", _frappe_document)
+if _api_package is None:
+	_api_package = ModuleType("elms.lms.api")
+	_api_package.__path__ = [str(Path(__file__).resolve().parents[1] / "lms" / "api")]
+	sys.modules["elms.lms.api"] = _api_package
+elif not hasattr(_api_package, "__path__"):
+	_api_package.__path__ = [str(Path(__file__).resolve().parents[1] / "lms" / "api")]
+
+from elms.lms.api.schemas.admission import AdmissionConfirmRequest, parse_admission_request
 from elms.lms.services.b2b_admission import (
 	B2BAdmissionService,
 	AdmissionPolicyError,
 )
+
+# The schema import above only needs a package-shaped parent.  Do not leave
+# that lightweight shim in sys.modules: later tests exercise the real LMS API
+# package and must not inherit a partially initialized module.
+if _created_api_package and "elms.lms.api" in sys.modules:
+	del sys.modules["elms.lms.api"]
 
 
 def _row(row_id: str = "row-1", *, program: str = "Safety", training_kind: str = "DPO") -> SimpleNamespace:
@@ -48,7 +85,7 @@ def _base_patches(import_doc: SimpleNamespace):
 	course = {"name": "COURSE-1", "program": "safety", "training_kind": "dpo", "organization": None}
 	batch = {"name": "BATCH-1", "course": "COURSE-1", "status": "Active"}
 	subscription = {"name": "SUB-1", "subscription_id": "SUB-1", "status": "Active", "total_seats": 3, "seats_used": 1}
-	return (
+	return [
 		patch("elms.lms.services.b2b_admission.frappe.get_doc", return_value=import_doc),
 		patch(
 			"elms.lms.services.b2b_admission.frappe.get_all",
@@ -69,7 +106,7 @@ def _base_patches(import_doc: SimpleNamespace):
 		patch("elms.lms.services.b2b_admission.frappe.db.rollback"),
 		patch("elms.lms.services.b2b_admission.frappe.db.set_value"),
 		patch("elms.lms.services.b2b_admission.reserve_seats", return_value=1),
-	)
+	]
 
 
 def test_request_accepts_only_parsed_import_selection() -> None:
@@ -77,6 +114,22 @@ def test_request_accepts_only_parsed_import_selection() -> None:
 
 	assert request.import_id == "IMP-1"
 	assert request.row_ids == ["row-1"]
+
+
+def test_parse_admission_request_strips_frappe_transport_keys() -> None:
+	request = parse_admission_request(
+		payload='{"import_id":"IMP-1"}',
+		cmd="elms.lms.api.admission.preview_admission_import",
+		csrf_token="token",
+	)
+
+	assert request.import_id == "IMP-1"
+	assert request.row_ids is None
+
+
+def test_parse_admission_request_rejects_unknown_product_fields() -> None:
+	with pytest.raises(Exception):
+		parse_admission_request(import_id="IMP-1", unexpected_field="x")
 
 
 def test_confirm_creates_active_enrollment_report_and_audit() -> None:
@@ -271,7 +324,7 @@ def test_confirm_rolls_back_when_enrollment_fails_after_quota_reservation() -> N
 	assert result.ok is False
 	assert result.enrolled_count == 0
 	assert result.errors[0].code == "ENROLLMENT_REJECTED"
-	rollback.assert_called_once_with("b2b_admission_confirm")
+	rollback.assert_called_once_with(save_point="b2b_admission_confirm")
 	assert enroll.call_count == 2
 	audit.assert_not_called()
 

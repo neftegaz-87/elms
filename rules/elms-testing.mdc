@@ -20,19 +20,60 @@ SoT запуска тестов **этого** репо. Не выдумыват
 
 Лимит процесса: внешний `timeout -k 10s 300s` (кроме `./bin/pytest`, у него лимит уже в wrapper).
 
+## HARD — `make local.restart`: один раз на фазу, не на каждый browser
+
+Код `elms` смонтирован томом. Живой backend может держать старый Python в памяти — поэтому restart нужен, но **дорого** (~минута). Его нельзя крутить в петле с каждым `run_browser_qa`.
+
+### Когда ОБЯЗАТЕЛЬНО (ровно один раз)
+
+1. **В начале APP QA** (до первого live/wire/`run_browser_qa` / `live_smoke` в этой QA-сессии).
+2. **В начале APP BUGFIX** — только если с прошлого restart в этой фазе ещё не было restart **и** нужны live/wire проверки.
+
+```bash
+make local.restart
+```
+
+Дождаться healthy backend → дальше все browser/live прогоны **без** повторного restart.
+
+### Когда FORBIDDEN повторять
+
+1. **FORBIDDEN** `make local.restart` перед каждым `run_browser_qa` / каждым retry wire.
+2. **FORBIDDEN** restart → browser FAIL → снова restart → снова browser (петля). После одного restart чинить harness/код и **перегонять только browser**.
+3. **FORBIDDEN** restart из‑за правок только `scripts/run_browser_qa.py` / evidence / markdown (harness на хосте, сервис не устарел).
+4. **FORBIDDEN** вместо одного restart сразу `make local.rebuild` «на всякий».
+
+### Исключение — второй restart (редко)
+
+Только если **после** обязательного однократного restart live всё ещё доказывает stale Python (старый endpoint / модуль), и в этой сессии правили `elms/elms/**/*.py` whitelist/API. Тогда **один** дополнительный restart + запись в evidence. Не третий, не «пока не green».
+
+`make local.rebuild` — только если и после второго restart код явно не смонтирован.
+
+### Targeted без live
+
+`./bin/pytest`, `py_compile`, `node --check` — **без** `make local.restart`.
+
+### Diagnose before reclassify (BUGFIX)
+
+Если wire упал **без** нового evidence, а последний emitted `evidence-*.json` уже показывает product traceback (500 / pydantic / API) — **это** blocker.  
+**FORBIDDEN** переписывать queue на `harness_probe_race` / login selector только из‑за более нового TimeoutError без evidence.
+
 ## FORBIDDEN в plan/decompose/implement verify
 
 1. `bench` / `bench run-tests` / `FrappeTestCase` как **единственный** способ targeted-проверки в шаге.
 2. `pnpm exec playwright` / `npm exec playwright` / `@playwright/test` CLI **без** вашего harness (`scripts/run_browser_qa.py`).
 3. Команды, которых нет в корне репо (нет `package.json` frontend playwright workspace — не выдумывать).
 4. Разные наборы «для implement» и «для QA»: implement targeted = те же инструменты, что QA lanes; QA может добавить full/live, но **не другой стек**.
+5. APP QA live/wire **без** одного `make local.restart` в начале QA-сессии.
+6. Повторный `make local.restart` на каждый browser/wire retry (см. секцию выше).
 
 ## Откуда брать образец
 
-Рабочий эталон: шаги/QA эпика admission import — `./bin/pytest`, `py_compile`, `node --check`, `scripts/run_browser_qa.py`, `scripts/live_smoke.sh`.
+Рабочий эталон: шаги/QA эпика admission import — `./bin/pytest`, `py_compile`, `node --check`, `scripts/run_browser_qa.py`, `scripts/live_smoke.sh`.  
+В начале APP QA — **один** `make local.restart`, дальше только проверки.
 
 ## Связь
 
 - Продукт/lookup: `rules/elms-approach.mdc`
 - Overlay: `rules/agents-overlay.md`
+- Операции docker: `Makefile` (`local.restart`), `docker/README.md`
 - Не путать с hub CRM Playwright из harness AGENTS.

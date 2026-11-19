@@ -105,7 +105,8 @@
 	font-weight: 600;
 }
 
-.elms-cabinet-toolbar input {
+.elms-cabinet-toolbar input,
+.elms-cabinet-toolbar select {
 	min-height: 38px;
 	padding: 8px 10px;
 	border: 1px solid var(--cabinet-line);
@@ -117,10 +118,21 @@
 }
 
 .elms-cabinet-toolbar input:focus,
+.elms-cabinet-toolbar select:focus,
 .elms-cabinet-button:focus-visible {
 	outline: 2px solid rgba(13, 76, 211, 0.22);
 	outline-offset: 1px;
 	border-color: var(--cabinet-action);
+}
+
+.elms-cabinet-toolbar select:disabled {
+	opacity: 0.8;
+	cursor: not-allowed;
+}
+
+.elms-cabinet-mode {
+	color: var(--cabinet-muted);
+	font-size: 13px;
 }
 
 .elms-cabinet-org-label {

@@ -28,6 +28,7 @@
 		relationshipGroups: [],
 		relationshipSearch: "",
 		relationshipType: "",
+		admission: { importId: "", preview: null, result: null, error: null, previewing: false, confirming: false },
 		admin: { can_manage: false, can_view_learner_profile: false, courses: [], batches: [], subscriptions: [], enrollments: [], quizzes: [], programs: [], users: [] }
 	};
 
@@ -482,11 +483,87 @@
 		});
 	}
 
+	function admissionReportErrors(report) {
+		return report && Array.isArray(report.errors) ? report.errors.map(function (error) {
+			return error && (error.message || error.code) ? (error.message || error.code) : String(error || "Неизвестная ошибка");
+		}) : [];
+	}
+
+	function admissionErrorMarkup(report, fallback) {
+		var errors = admissionReportErrors(report);
+		if (!errors.length) errors.push(fallback);
+		return '<div class="elms-error-state text-danger"><b>' + esc(fallback) + '</b><ul>' + errors.map(function (error) { return '<li>' + esc(error) + '</li>'; }).join("") + '</ul></div>';
+	}
+
+	function admissionPreviewIsValid(report) {
+		return Boolean(report && report.ok === true && report.status === "preview" && Number(report.selected_count) > 0 && Number.isFinite(Number(report.remaining_seats)) && Number(report.remaining_seats) >= Number(report.selected_count));
+	}
+
+	function admissionConfirmIsValid(report) {
+		var rows = report && Array.isArray(report.enrolled_rows) ? report.enrolled_rows : [];
+		return Boolean(report && report.ok === true && report.status === "confirmed" && Number(report.enrolled_count) > 0 && Number(report.selected_count) === Number(report.enrolled_count) && rows.length === Number(report.enrolled_count) && rows.every(function (row) { return row && row.status === "Active"; }) && Number.isFinite(Number(report.remaining_seats)) && Number(report.remaining_seats) >= 0);
+	}
+
+	function renderAdmissionSurface() {
+		var admission = state.admission;
+		var preview = admission.preview;
+		var previewRows = preview && Array.isArray(preview.rows) ? preview.rows.map(function (row) {
+			return '<li>' + esc(row.full_name || row.row_id || "Строка") + ': ' + esc(row.program || "—") + '</li>';
+		}).join("") : "";
+		var previewMarkup = preview ? (admissionPreviewIsValid(preview)
+			? '<p>Выбрано строк: <strong>' + esc(preview.selected_count) + '</strong>. Осталось мест: <strong>' + esc(preview.remaining_seats) + '</strong>.</p>' + (previewRows ? '<ul>' + previewRows + '</ul>' : "")
+			: admissionErrorMarkup(preview, "Предварительный просмотр не прошёл проверку квоты")) : '<p class="elms-muted">Введите ID разобранного импорта и проверьте строки перед зачислением.</p>';
+		var resultMarkup = "";
+		if (admission.error) resultMarkup = admissionErrorMarkup(null, admission.error);
+		else if (admission.result) resultMarkup = admissionConfirmIsValid(admission.result)
+			? '<p class="text-success">Зачислено: <strong>' + esc(admission.result.enrolled_count) + '</strong>. Осталось мест: <strong>' + esc(admission.result.remaining_seats) + '</strong>. Статус всех зачислений: <strong>Active</strong>.</p>'
+			: admissionErrorMarkup(admission.result, "Подтверждение не выполнено: зачисления не прошли quota-safe проверку");
+		var canConfirm = admissionPreviewIsValid(preview) && !admission.confirming && !admissionConfirmIsValid(admission.result);
+		return '<section class="elms-b2b-admission" data-b2b-admission><div class="elms-kicker">B2B ЗАЧИСЛЕНИЕ</div><h3>Подтверждение заявки организации</h3><p class="elms-muted">Проверьте разобранные строки и доступные места перед зачислением.</p><div class="form-group"><label for="b2b-admission-import">Импорт</label><input id="b2b-admission-import" class="form-control" data-admission-import value="' + esc(admission.importId) + '" placeholder="ID разобранного импорта" /></div><div class="b2b-admission-preview" data-admission-preview aria-live="polite">' + previewMarkup + '</div><div class="form-footer"><button class="elms-btn-secondary" type="button" data-action="admission-preview" data-admission-preview-action' + (admission.previewing ? ' disabled' : '') + '>Показать предварительный просмотр</button><button class="elms-btn-action" type="button" data-action="admission-confirm" data-admission-confirm' + (canConfirm ? '' : ' disabled') + '>Подтвердить зачисление</button></div><div class="b2b-admission-result" data-admission-result aria-live="polite">' + resultMarkup + '</div></section>';
+	}
+
+	function previewAdmissionImport(container) {
+		var input = container.querySelector("[data-admission-import]");
+		state.admission.importId = input ? input.value.trim() : "";
+		state.admission.preview = null;
+		state.admission.result = null;
+		state.admission.error = null;
+		if (!state.admission.importId) {
+			state.admission.error = "Укажите ID разобранного импорта";
+			renderManageTab();
+			return;
+		}
+		state.admission.previewing = true;
+		renderManageTab();
+		call("elms.lms.api.admission.preview_admission_import", { payload: JSON.stringify({ import_id: state.admission.importId }) }, function (report, error) {
+			state.admission.previewing = false;
+			if (!report) state.admission.error = apiErrorMessage(error);
+			else state.admission.preview = report;
+			renderManageTab();
+		});
+	}
+
+	function confirmAdmissionImport(container) {
+		var input = container.querySelector("[data-admission-import]");
+		state.admission.importId = input ? input.value.trim() : state.admission.importId;
+		if (!admissionPreviewIsValid(state.admission.preview)) return;
+		state.admission.confirming = true;
+		state.admission.result = null;
+		state.admission.error = null;
+		renderManageTab();
+		call("elms.lms.api.admission.confirm_admission_import", { payload: JSON.stringify({ import_id: state.admission.importId }) }, function (report, error) {
+			state.admission.confirming = false;
+			if (!report) state.admission.error = apiErrorMessage(error);
+			else state.admission.result = report;
+			renderManageTab();
+		});
+	}
+
 	function renderManageTab() {
 		var pane = state.root && state.root.querySelector("#elms-tab-manage");
 		if (!pane || (!state.admin.can_manage && !state.admin.can_view_learner_profile)) return;
 		var actionRow = state.admin.can_manage ? '<div class="elms-action-row"><button class="elms-btn-action" data-action="course-new">Создать курс</button><button class="elms-btn-secondary" data-action="program-new">Создать программу</button><button class="elms-btn-secondary" data-action="batch-new">Создать поток</button><button class="elms-btn-secondary" data-action="quiz-new">Создать тест</button><button class="elms-btn-secondary" data-action="enroll">Оформить зачисление</button></div>' : '<span class="elms-status-pill success">Доступ к профилям по DocPerm</span>';
-		pane.innerHTML = [renderLearnerProfile(), '<div class="elms-section-intro"><div><div class="elms-kicker">МЕТОДИЧЕСКИЙ КОНТУР</div><h2>Управление обучением</h2><p>Ищите по названию потока, курса, урока, теста или слушателя. Результаты собраны вокруг курса и показывают все связи.</p></div>' + actionRow + '</div>', relationshipSearchPanel(), renderRelationshipGroups(), '<div class="elms-admin-hint"><b>Поток</b> — это календарная группа слушателей одного курса с датами, куратором и организацией-заказчиком. Нажмите на слушателя для просмотра прогресса и истории.</div>'].join("");
+		pane.innerHTML = [state.admin.can_manage ? renderAdmissionSurface() : "", renderLearnerProfile(), '<div class="elms-section-intro"><div><div class="elms-kicker">МЕТОДИЧЕСКИЙ КОНТУР</div><h2>Управление обучением</h2><p>Ищите по названию потока, курса, урока, теста или слушателя. Результаты собраны вокруг курса и показывают все связи.</p></div>' + actionRow + '</div>', relationshipSearchPanel(), renderRelationshipGroups(), '<div class="elms-admin-hint"><b>Поток</b> — это календарная группа слушателей одного курса с датами, куратором и организацией-заказчиком. Нажмите на слушателя для просмотра прогресса и истории.</div>'].join("");
 		bindActions(pane);
 		var search = pane.querySelector("[data-relationship-search]");
 		if (search) search.addEventListener("keydown", function (event) { if (event.key === "Enter") searchRelationships(pane); });
@@ -562,6 +639,8 @@
 					else openForm(element.getAttribute("data-doctype"), element.getAttribute("data-name"));
 				}
 				if (action === "close-learner-profile") { state.profile = null; state.profileError = null; renderManageTab(); }
+				if (action === "admission-preview") previewAdmissionImport(container || state.root);
+				if (action === "admission-confirm") confirmAdmissionImport(container || state.root);
 				if (action === "relationship-search") searchRelationships(container || state.root);
 				if (action === "relationship-clear") {
 					state.relationshipSearch = "";

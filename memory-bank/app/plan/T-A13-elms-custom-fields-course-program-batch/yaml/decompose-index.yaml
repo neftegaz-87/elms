@@ -1,0 +1,125 @@
+schema: epic-decompose-index/v1
+epic_id: T-A13-elms-custom-fields-course-program-batch
+plan_id: T-A13-elms-custom-fields-course-program-batch
+role: app
+phase: DECOMPOSE
+next_phase: APP IMPLEMENT
+plan: memory-bank/app/plan/T-A13-elms-custom-fields-course-program-batch/md/plan.md
+level: L2
+sNN_cap: 2
+appetite:
+  timebox_days: 3
+  cut_list:
+  - Custom fields for Category, Chapter, Lesson, or learning-material records
+  - Admission forms, XLSX/AI parsing, payment, 1C, Bitrix, or acting-as submission
+  - File and rich-text custom field types
+  - A full learning-graph schema editor beyond Course, Program, and Batch
+  rationale: The MVP is a single org-scoped schema/value boundary for Course, Program,
+    and Batch. It keeps validation, inheritance, Desk forms, and schema management
+    together so no partial custom-field path can become a second source of truth.
+effort_probe:
+  outcomes:
+  - outcome: Org-scoped custom-field schema and typed values for Course, Program,
+      and Batch
+    hours_mid: 20.0
+    hours_range: 16-28
+    confidence: medium
+    notes: New definition DocType, typed validation service, three target DocType
+      JSON migrations, whitelist API, Desk form/page UI, inheritance merge, tests,
+      and browser/wire checks.
+  total_hours: 20.0
+  effort_hours_total: 20.0
+  effort_class: M
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 2
+  sNN_target: 1
+split_rationale: 'Keep one mixed vertical slice: a field definition is not done unless
+  a permitted manager can define it, a Course/Program/Batch form can save a typed
+  value, the value can be read with Program-to-Course-to-Batch override semantics,
+  and a foreign organization is denied on the same server boundary. Backend, Desk
+  UI, inheritance, and wire checks have no independent acceptance seam here.'
+steps:
+- id: s01
+  file: s01-custom-fields-vertical-slice.yaml
+  title: Course, Program, and Batch custom-fields vertical slice
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Org-scoped typed field definitions support text, number, date, select,
+    and checkbox for Course, Program, or Batch.
+- id: FR-002
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Target documents persist JSON values, validate on write, and resolve
+    Program defaults through Course to Batch overrides.
+- id: FR-003
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Desk schema manager and Course/Program/Batch forms expose the Additional
+    fields section through the same API.
+- id: NFR-001
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Definition reads/writes and target values are restricted to the actor
+    organization, with owner-catalog access only in its owner organization.
+- id: NFR-002
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Definition and value payloads carry an explicit schema version and
+    fail closed on incompatible or unknown data.
+- id: AC-001
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Admin defines a select field on Course; value saved and shown.
+- id: AC-002
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Invalid type produces ValidationError and is not persisted.
+- id: AC-003
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Other organization cannot read or write a foreign organization's schema
+    or values.
+- id: AC-004
+  step: s01
+  step_id: s01-custom-fields-vertical-slice
+  description: Chapter/Lesson custom schema endpoints are absent or explicitly 404/not
+    in MVP UI.
+stages_coverage:
+- stage: Stage s01 org-scoped custom-fields vertical slice
+  step: s01
+outcome_map:
+- outcome: A permitted manager can define and use typed Course, Program, and Batch
+    fields.
+  step: s01
+- outcome: Values are validated, versioned, persisted as JSON, and merged with thin
+    inheritance.
+  step: s01
+- outcome: Foreign organization access and Category/Chapter/Lesson expansion are fail-closed.
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Fixed-schema-only school metadata and any ad-hoc custom-field value
+      path.
+    target: ELMS Custom Field Definition plus target custom_field_values JSON as the
+      sole custom-field SoT.
+    step: s01
+    policy: replace in-epic
+  items:
+  - symbol: Untyped long-text or parallel free-text custom-field dump
+    kind: C
+    replacement: Versioned JSON values validated against ELMS Custom Field Definition.
+    step: s01
+    policy: deny in-epic
+  - symbol: Custom schema for Category, Chapter, or Lesson
+    kind: B
+    replacement: Explicit follow-up defer-list item; no endpoint or MVP UI path.
+    step: s01
+    policy: deny in-epic
+  sunset:
+  - Any custom-field endpoint whose target is outside Course, Program, or Batch
+  - Any second store that mirrors custom values in prose or an untyped long-text field

@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "organization",
+  "subscription_id",
   "source_file_name",
   "source_file",
   "file_hash",
@@ -24,6 +25,7 @@
  ],
  "fields": [
   {"fieldname":"organization","fieldtype":"Link","label":"Organization","options":"ELMS Organization","reqd":1},
+  {"fieldname":"subscription_id","fieldtype":"Link","label":"Subscription / Quota","options":"ELMS Subscription","in_list_view":1},
   {"fieldname":"source_file_name","fieldtype":"Data","label":"Source file","reqd":1},
   {"fieldname":"source_file","fieldtype":"Attach","label":"Source workbook","read_only":1},
   {"fieldname":"file_hash","fieldtype":"Data","label":"File hash","read_only":1,"reqd":1},

@@ -1,0 +1,91 @@
+schema: epic-implement/v1
+epic_id: T-A13-elms-custom-fields-course-program-batch
+plan_id: T-A13-elms-custom-fields-course-program-batch
+step_id: s01
+role: app
+status: completed
+done:
+  - cp1-schema-and-types
+  - cp2-values-and-inheritance
+  - cp3-org-isolation
+  - cp4-desk-surface
+  - cp5-syntax
+  - cp6-wire
+  - cp7-browser
+title: Course, Program, and Batch custom-fields vertical slice
+
+files:
+  - elms/elms/lms/doctype/elms_custom_field_definition/elms_custom_field_definition.json
+  - elms/elms/lms/doctype/elms_custom_field_definition/elms_custom_field_definition.py
+  - elms/elms/lms/custom_fields.py
+  - elms/elms/lms/api/custom_fields.py
+  - elms/elms/lms/doctype/elms_course/elms_course.json
+  - elms/elms/lms/doctype/elms_program/elms_program.json
+  - elms/elms/lms/doctype/elms_batch/elms_batch.json
+  - elms/elms/lms/doctype/elms_course/elms_course.py
+  - elms/elms/lms/doctype/elms_program/elms_program.py
+  - elms/elms/lms/doctype/elms_batch/elms_batch.py
+  - elms/elms/hooks.py
+  - elms/elms/desk/workspaces.py
+  - elms/elms/lms/page/elms_custom_fields/elms_custom_fields.json
+  - elms/elms/public/js/custom-fields.js
+  - elms/elms/public/js/elms-custom-fields-page.js
+  - elms/elms/public/css/custom-fields.css
+  - elms/elms/tests/test_custom_fields.py
+  - elms/elms/tests/test_custom_fields_ui.py
+
+tests:
+  - ./bin/pytest -q elms/elms/tests/test_custom_fields.py
+  - ./bin/pytest -q elms/elms/tests/test_custom_fields_ui.py
+  - python3 -m py_compile elms/elms/lms/custom_fields.py elms/elms/lms/api/custom_fields.py elms/elms/lms/doctype/elms_custom_field_definition/elms_custom_field_definition.py elms/elms/lms/doctype/elms_course/elms_course.py elms/elms/lms/doctype/elms_program/elms_program.py elms/elms/lms/doctype/elms_batch/elms_batch.py
+  - node --check elms/elms/public/js/custom-fields.js
+  - node --check elms/elms/public/js/elms-custom-fields-page.js
+
+checkpoints:
+  - id: cp1-schema-and-types
+    status: done
+  - id: cp2-values-and-inheritance
+    status: done
+  - id: cp3-org-isolation
+    status: done
+  - id: cp4-desk-surface
+    status: done
+  - id: cp5-syntax
+    status: done
+  - id: cp6-wire
+    status: done
+  - id: cp7-browser
+    status: done
+
+wire_complete:
+  call_sites:
+    - /app/elms-custom-fields -> elms.lms.api.custom_fields.get_custom_field_schema -> org-scoped definition list
+    - Schema manager -> elms.lms.api.custom_fields.save_custom_field_definition/delete_custom_field_definition -> ELMS Custom Field Definition
+    - Course/Program/Batch form -> custom-fields.js -> get_custom_field_form_data -> Additional fields controls
+    - Course/Program/Batch save -> controller validate -> elms.lms.custom_fields.validate_document_values -> versioned custom_field_values JSON
+    - Effective read -> elms.lms.custom_fields.resolve_effective_values -> Program -> Course -> Batch merge
+  enforce_path: elms/elms/lms/custom_fields.py
+  dual_path_rg: >-
+    rg -n 'custom_field_values|validate_document_values|resolve_effective_values|get_custom_field_form_data'
+    elms/elms/lms/custom_fields.py elms/elms/lms/api/custom_fields.py
+    elms/elms/lms/doctype/elms_course/elms_course.py
+    elms/elms/lms/doctype/elms_program/elms_program.py
+    elms/elms/lms/doctype/elms_batch/elms_batch.py
+  instruction_rg: >-
+    rg -n 'elms-custom-fields|custom-fields.js|Additional fields'
+    elms/elms/hooks.py elms/elms/desk/workspaces.py
+    elms/elms/public/js/custom-fields.js
+    elms/elms/public/js/elms-custom-fields-page.js
+  deny_old_proven: true
+
+integration_check:
+  - command: ./bin/pytest -q elms/elms/tests/test_custom_fields.py elms/elms/tests/test_custom_fields_ui.py elms/elms/tests/test_workspaces.py
+    status: completed
+  - command: python3 -m py_compile elms/elms/lms/custom_fields.py elms/elms/lms/api/custom_fields.py elms/elms/lms/doctype/elms_custom_field_definition/elms_custom_field_definition.py elms/elms/lms/doctype/elms_course/elms_course.py elms/elms/lms/doctype/elms_program/elms_program.py elms/elms/lms/doctype/elms_batch/elms_batch.py
+    status: completed
+  - command: node --check elms/elms/public/js/custom-fields.js
+    status: completed
+  - command: node --check elms/elms/public/js/elms-custom-fields-page.js
+    status: completed
+  - command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+    status: completed

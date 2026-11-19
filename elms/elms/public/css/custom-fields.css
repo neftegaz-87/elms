@@ -1,0 +1,170 @@
+.elms-custom-fields-page,
+.elms-custom-fields-panel {
+	--elms-custom-ink: #0b1f33;
+	--elms-custom-muted: #66727f;
+	--elms-custom-line: #d5dce3;
+	--elms-custom-surface: #ffffff;
+	--elms-custom-paper: #f5f7fa;
+	--elms-custom-action: #0d4cd3;
+	color: var(--elms-custom-ink);
+	font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.elms-custom-fields-page {
+	background: var(--elms-custom-paper);
+	min-height: calc(100vh - 60px);
+	padding: 24px;
+}
+
+.elms-custom-fields-page-heading {
+	border-bottom: 1px solid var(--elms-custom-line);
+	margin-bottom: 18px;
+	padding-bottom: 16px;
+}
+
+.elms-custom-fields-page-heading h1,
+.elms-custom-fields-page-heading p {
+	margin: 0;
+}
+
+.elms-custom-fields-page-heading h1 {
+	font-size: 24px;
+	line-height: 1.15;
+}
+
+.elms-custom-fields-page-heading p,
+.elms-custom-fields-empty {
+	color: var(--elms-custom-muted);
+	margin-top: 7px;
+}
+
+.elms-custom-fields-toolbar,
+.elms-custom-fields-definition-form {
+	background: var(--elms-custom-surface);
+	border: 1px solid var(--elms-custom-line);
+	border-radius: 6px;
+	padding: 16px;
+}
+
+.elms-custom-fields-toolbar {
+	display: flex;
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.elms-custom-fields-form-label,
+.elms-custom-field-label {
+	display: grid;
+	font-size: 13px;
+	font-weight: 600;
+	gap: 6px;
+}
+
+.elms-custom-fields-form-label {
+	flex: 1;
+}
+
+.elms-custom-fields-form-control,
+.elms-custom-field-control {
+	background: #fff;
+	border: 1px solid var(--elms-custom-line);
+	border-radius: 4px;
+	box-sizing: border-box;
+	color: var(--elms-custom-ink);
+	font: inherit;
+	min-height: 36px;
+	padding: 8px 10px;
+	width: 100%;
+}
+
+textarea.elms-custom-fields-form-control {
+	min-height: 76px;
+	resize: vertical;
+}
+
+.elms-custom-fields-form-control:focus-visible,
+.elms-custom-field-control:focus-visible,
+.elms-custom-fields-save:focus-visible {
+	border-color: var(--elms-custom-action);
+	box-shadow: 0 0 0 2px rgba(13, 76, 211, .2);
+	outline: none;
+}
+
+.elms-custom-fields-definition-form {
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.elms-custom-fields-definition-form .elms-custom-fields-form-label:nth-child(4) {
+	grid-column: 1 / -1;
+}
+
+.elms-custom-fields-definition-form .elms-custom-fields-form-label:nth-child(5) {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 400;
+}
+
+.elms-custom-fields-definition-form .elms-custom-fields-form-label:nth-child(5) input {
+	min-height: auto;
+	width: auto;
+}
+
+.elms-custom-fields-save {
+	justify-self: start;
+}
+
+.elms-custom-fields-list {
+	display: grid;
+	gap: 8px;
+	margin-top: 14px;
+}
+
+.elms-custom-fields-list-item,
+.elms-custom-fields-panel {
+	background: var(--elms-custom-surface);
+	border: 1px solid var(--elms-custom-line);
+	border-radius: 6px;
+}
+
+.elms-custom-fields-list-item {
+	padding: 12px 14px;
+}
+
+.elms-custom-fields-panel {
+	display: grid;
+	gap: 12px;
+	margin-top: 12px;
+	padding: 14px;
+}
+
+.elms-custom-field-label input[type="checkbox"] {
+	min-height: auto;
+	width: auto;
+}
+
+.elms-custom-field-row {
+	min-width: min(100%, 360px);
+}
+
+@media (max-width: 720px) {
+	.elms-custom-fields-page {
+		padding: 16px;
+	}
+
+	.elms-custom-fields-toolbar,
+	.elms-custom-fields-definition-form {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.elms-custom-fields-page *,
+	.elms-custom-fields-panel * {
+		transition-duration: 0ms !important;
+		animation-duration: 0ms !important;
+	}
+}

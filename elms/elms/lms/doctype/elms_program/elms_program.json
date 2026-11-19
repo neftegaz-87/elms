@@ -3,7 +3,7 @@
  "creation": "2026-11-05 12:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["organization", "program_name", "program_code", "category", "total_hours", "enforce_course_order", "is_published", "description"],
+ "field_order": ["organization", "program_name", "program_code", "category", "total_hours", "enforce_course_order", "is_published", "description", "section_break_custom_fields", "custom_field_values", "custom_field_schema_version"],
  "fields": [
   {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
   {"fieldname": "program_name", "fieldtype": "Data", "in_list_view": 1, "label": "Program Name", "reqd": 1},
@@ -12,7 +12,10 @@
   {"default": 0, "fieldname": "total_hours", "fieldtype": "Int", "in_list_view": 1, "label": "Total Academic Hours"},
   {"default": 1, "fieldname": "enforce_course_order", "fieldtype": "Check", "in_list_view": 1, "label": "Enforce Course Order"},
   {"default": 1, "fieldname": "is_published", "fieldtype": "Check", "in_list_view": 1, "label": "Is Published"},
-  {"fieldname": "description", "fieldtype": "Text Editor", "label": "Description"}
+  {"fieldname": "description", "fieldtype": "Text Editor", "label": "Description"},
+  {"fieldname": "section_break_custom_fields", "fieldtype": "Section Break", "label": "Additional fields"},
+  {"fieldname": "custom_field_values", "fieldtype": "JSON", "hidden": 1, "label": "Additional fields values"},
+  {"default": 1, "fieldname": "custom_field_schema_version", "fieldtype": "Int", "hidden": 1, "label": "Additional fields schema version"}
  ],
  "links": [],
  "modified": "2026-11-05 12:00:00.000000",

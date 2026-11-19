@@ -84,8 +84,7 @@ files:
   - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
   - elms/elms/lms/page/elms-learning/elms-learning.js
   - elms/elms/lms/page/elms-learning/elms-learning.html
-  - elms/tests/test_b2b_batch_quotas.py
-  - elms/tests/e2e/b2b-batch-quotas.spec.js
+  - elms/elms/tests/test_b2b_batch_quotas.py
 context:
   consumes:
     - memory-bank/app/plan/T-A12-elms-b2b-batch-quotas/md/plan.md
@@ -101,8 +100,7 @@ context:
     - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
     - elms/elms/lms/page/elms-learning/elms-learning.js
     - elms/elms/lms/page/elms-learning/elms-learning.html
-    - elms/tests/test_b2b_batch_quotas.py
-    - elms/tests/e2e/b2b-batch-quotas.spec.js
+    - elms/elms/tests/test_b2b_batch_quotas.py
 verify:
   - ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
   - python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py

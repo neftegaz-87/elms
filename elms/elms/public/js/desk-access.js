@@ -50,6 +50,10 @@
 		return roles().indexOf(role) >= 0;
 	}
 
+	function isPlatformViewer() {
+		return hasRole("ELMS Admin") || hasRole("ELMS Operations User") || hasRole("Administrator") || hasRole("System Manager");
+	}
+
 	function field(form, name) {
 		var control = form.querySelector('[name="' + name + '"]');
 		return control ? String(control.value || "").trim() : "";
@@ -177,12 +181,13 @@
 	function render(root) {
 		var admin = hasRole("ELMS Admin") || hasRole("Administrator") || hasRole("System Manager");
 		var companyAdmin = hasRole("ELMS Company Admin");
-		var companyAdminOption = (admin || companyAdmin) ? '<option value="ELMS Company Admin Profile">ELMS Company Admin Profile — администратор компании</option>' : '';
+		var platformViewer = isPlatformViewer();
+		var companyAdminOption = companyAdmin ? '<option value="ELMS Company Admin Profile">ELMS Company Admin Profile — администратор компании</option>' : '';
 		var defaultTab = admin ? "organization" : ((admin || companyAdmin) ? "invite" : "");
 
 		root.innerHTML = [
 			'<div class="elms-access-shell">',
-			'<header class="elms-access-header"><div><div class="elms-access-kicker">OPERATIONS · B2B</div><h1>Доступ компаний</h1><p>Организация задаёт границу доступа. Приглашение создаёт пользователя в ELMS и запускает настройку пароля Keycloak.</p></div><span class="elms-access-mark">elms</span></header>',
+			'<header class="elms-access-header"><div><div class="elms-access-kicker">OPERATIONS · B2B</div><h1>Доступ компаний</h1><p>' + (platformViewer && !companyAdmin ? "режим просмотра: выбранная организация не меняет сессию и не открывает приглашения." : "Организация задаёт границу доступа. Приглашение создаёт пользователя в ELMS и запускает настройку пароля Keycloak.") + '</p></div><span class="elms-access-mark">elms</span></header>',
 			'<div class="elms-access-status" data-access-status role="status" aria-live="polite" hidden></div>',
 			'<div class="elms-access-tabs" role="tablist" aria-label="Действия доступа" data-access-tablist>',
 			'<button type="button" class="elms-access-tab' + (defaultTab === "organization" ? " is-active" : "") + '" role="tab" id="elms-access-tab-organization" data-access-tab="organization" data-access-admin-tab aria-controls="elms-access-panel-organization" aria-selected="' + (defaultTab === "organization" ? "true" : "false") + '" tabindex="' + (defaultTab === "organization" ? "0" : "-1") + '">Создать организацию</button>',
@@ -206,12 +211,12 @@
 		});
 		var inviteTab = root.querySelector("[data-access-invite-tab]");
 		var invitePanel = root.querySelector("[data-access-invite]");
-		if (!(admin || companyAdmin)) {
+		if (!companyAdmin) {
 			if (inviteTab) inviteTab.remove();
 			if (invitePanel) invitePanel.remove();
 		}
 		if (!admin && !companyAdmin) {
-			setStatus(root, "Нет роли для управления организациями. Обратитесь к администратору ELMS.", "error");
+			setStatus(root, platformViewer ? "Режим просмотра: действия доступа доступны только Company Admin своей организации." : "Нет роли для управления организациями. Обратитесь к администратору ELMS.", platformViewer ? "pending" : "error");
 			return;
 		}
 

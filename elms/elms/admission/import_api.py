@@ -6,6 +6,7 @@ from typing import Any
 
 import frappe
 
+from elms.access.api import require_organization_access, require_organization_mutation_access
 from elms.tenant import (
     ensure_platform_owner,
     is_company_admin,
@@ -59,16 +60,17 @@ def _resolve_organization(requested: str | None, *, write: bool = False) -> str:
         raise frappe.PermissionError("Для работы с импортом нужна роль администратора организации")
 
     if is_platform_admin(user):
-        return str(requested or ensure_platform_owner())
+        organization = str(requested or ensure_platform_owner())
+        return require_organization_mutation_access(organization, user) if write else require_organization_access(organization, user)
     if is_company_admin(user):
         allowed = organizations_for_user(user)
         organization = str(requested or (allowed[0] if len(allowed) == 1 else ""))
         if not organization or organization not in allowed:
             raise frappe.PermissionError("Нет доступа к данным другой организации")
-        return organization
+        return require_organization_mutation_access(organization, user) if write else require_organization_access(organization, user)
     if write:
         raise frappe.PermissionError("Операционный пользователь может только просматривать импорт")
-    return str(requested or ensure_platform_owner())
+    return require_organization_access(str(requested or ensure_platform_owner()), user)
 
 
 def _organization_for_import(import_name: str) -> str:
@@ -115,7 +117,7 @@ def inspect_import(
 	except (TypeError, ValueError) as exc:
 		raise frappe.ValidationError("Параметры страницы preview должны быть целыми числами") from exc
 	result = inspect_import_projection(import_name, page=page_number, page_length=page_size)
-	if result.get("organization") != target_organization and not is_platform_admin(_current_user()):
+	if result.get("organization") != target_organization:
 		raise frappe.PermissionError("Нет доступа к данным другой организации")
 	return result
 
@@ -126,7 +128,7 @@ def export_import(import_name: str) -> dict[str, Any]:
 
     target_organization = _resolve_organization(_organization_for_import(import_name))
     result = export_import_projection(import_name)
-    if result.get("organization") not in (None, "", target_organization) and not is_platform_admin(_current_user()):
+    if result.get("organization") not in (None, "", target_organization):
         raise frappe.PermissionError("Нет доступа к данным другой организации")
     return result
 

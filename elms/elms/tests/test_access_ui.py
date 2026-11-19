@@ -105,7 +105,7 @@ class TestAccessUI(unittest.TestCase):
         from elms.desk.workspaces import ELMS_WORKSPACE_DEFINITIONS
 
         access = next(item for item in ELMS_WORKSPACE_DEFINITIONS if item["name"] == "B2B Access")
-        self.assertEqual(access["roles"], ("ELMS Admin",))
+        self.assertEqual(access["roles"], ("ELMS Admin", "ELMS Operations User"))
         self.assertEqual(access["shortcuts"][0]["url"], "/app/elms-access")
         links = {link_to for _, link_to, _ in access["links"]}
         self.assertEqual(

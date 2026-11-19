@@ -15,10 +15,19 @@ def preview_admission_import(
 	import_id: str | None = None,
 	row_ids: Any = None,
 	payload: Any = None,
+	cmd: str | None = None,
+	csrf_token: str | None = None,
 	**kwargs: Any,
 ) -> dict[str, Any]:
 	"""Validate a parsed import and return preview data for the cabinet."""
-	request = parse_admission_request(import_id=import_id, row_ids=row_ids, payload=payload, **kwargs)
+	request = parse_admission_request(
+		import_id=import_id,
+		row_ids=row_ids,
+		payload=payload,
+		cmd=cmd,
+		csrf_token=csrf_token,
+		**kwargs,
+	)
 	return _run(lambda: B2BAdmissionService().preview(request.import_id, request.row_ids), request.import_id)
 
 
@@ -27,10 +36,19 @@ def confirm_admission_import(
 	import_id: str | None = None,
 	row_ids: Any = None,
 	payload: Any = None,
+	cmd: str | None = None,
+	csrf_token: str | None = None,
 	**kwargs: Any,
 ) -> dict[str, Any]:
 	"""Confirm selected parsed rows through the atomic admission service."""
-	request = parse_admission_request(import_id=import_id, row_ids=row_ids, payload=payload, **kwargs)
+	request = parse_admission_request(
+		import_id=import_id,
+		row_ids=row_ids,
+		payload=payload,
+		cmd=cmd,
+		csrf_token=csrf_token,
+		**kwargs,
+	)
 	return _run(lambda: B2BAdmissionService().confirm(request.import_id, request.row_ids), request.import_id)
 
 

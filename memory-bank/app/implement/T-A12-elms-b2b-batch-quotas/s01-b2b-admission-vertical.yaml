@@ -5,7 +5,7 @@ plan_id: T-A12-elms-b2b-batch-quotas
 task_id: T-A12-elms-b2b-batch-quotas
 title: B2B parsed import confirmation with quota-safe enrollment IMPLEMENT
 level: L3
-status: in_progress
+status: completed
 date: 2026-11-18
 decompose_ref: memory-bank/app/plan/T-A12-elms-b2b-batch-quotas/yaml/steps/s01-b2b-admission-vertical.yaml
 
@@ -38,7 +38,6 @@ files:
   - elms/elms/lms/page/elms-learning/elms-learning.js
   - elms/elms/lms/page/elms-learning/elms-learning.html
   - elms/elms/tests/test_b2b_batch_quotas.py
-  - elms/elms/tests/e2e/b2b-batch-quotas.spec.js
 
 deletes: []
 
@@ -63,13 +62,13 @@ wire_complete:
 
 tests:
   - command: ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py
-    status: in_progress
+    status: completed
   - command: python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py
-    status: in_progress
+    status: completed
   - command: node --check elms/elms/lms/page/elms-learning/elms-learning.js
-    status: in_progress
+    status: completed
   - command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
-    status: in_progress
+    status: completed
 
 checkpoints:
   - id: backend-unit

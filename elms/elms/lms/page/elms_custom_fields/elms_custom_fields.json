@@ -1,0 +1,15 @@
+{
+ "doctype": "Page",
+ "module": "LMS",
+ "name": "elms-custom-fields",
+ "page_name": "elms-custom-fields",
+ "roles": [
+  {"role": "ELMS Company Admin"},
+  {"role": "ELMS Methodologist"},
+  {"role": "ELMS Admin"},
+  {"role": "System Manager"}
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Дополнительные поля"
+}

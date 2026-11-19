@@ -41,9 +41,11 @@ if not hasattr(frappe, "throw"):
 
 
 ELMS_ADMIN_ROLE = "ELMS Admin"
+ELMS_OPERATIONS_ROLE = "ELMS Operations User"
 ELMS_COMPANY_ADMIN_ROLE = "ELMS Company Admin"
 COMPANY_ADMIN_PROFILE = "ELMS Company Admin Profile"
 DEFAULT_INVITE_PROFILE = "ELMS Learner Profile"
+PLATFORM_VIEWER_ROLES = frozenset({ELMS_ADMIN_ROLE, ELMS_OPERATIONS_ROLE, "Administrator", "System Manager"})
 ORGANIZATION_DOCTYPE = "ELMS Organization"
 MEMBER_DOCTYPE = "ELMS Organization Member"
 ORGANIZATION_ROLE_DOCTYPE = "ELMS Organization Role"
@@ -98,6 +100,11 @@ def _roles(user: str | None = None) -> set[str]:
 
 def _is_admin(user: str | None = None) -> bool:
     return bool(_roles(user).intersection({"Administrator", "System Manager", ELMS_ADMIN_ROLE}))
+
+
+def _is_platform_viewer(user: str | None = None) -> bool:
+    """Return whether the actor may read a selected organization platform-wide."""
+    return bool(_roles(user).intersection(PLATFORM_VIEWER_ROLES))
 
 
 def _throw(message: str, exception: type[Exception] | None = None) -> None:
@@ -351,10 +358,19 @@ def get_company_access_context(organization: str | None = None) -> dict[str, Any
     """Return the organization selector and role profiles for the current user."""
     current = _current_user()
     platform_admin = _is_admin(current)
-    if platform_admin:
+    platform_viewer = _is_platform_viewer(current)
+    if platform_viewer:
         get_all = getattr(frappe, "get_all", None)
-        rows = get_all(ORGANIZATION_DOCTYPE, fields=["name"], order_by="organization_name asc", limit_page_length=0) if callable(get_all) else []
-        organizations = [str(row.get("name") if isinstance(row, dict) else getattr(row, "name", "") or "") for row in rows]
+        rows = get_all(
+            ORGANIZATION_DOCTYPE,
+            fields=["name"],
+            order_by="organization_name asc",
+            limit_page_length=0,
+        ) if callable(get_all) else []
+        organizations = [
+            str(row.get("name") if isinstance(row, dict) else getattr(row, "name", "") or "")
+            for row in rows
+        ]
     else:
         organizations = _organizations_for_user(current)
     selected = str(organization or "").strip()
@@ -365,10 +381,14 @@ def get_company_access_context(organization: str | None = None) -> dict[str, Any
     return {
         "organization": selected,
         "organizations": [value for value in organizations if value],
-        "profiles": list(_allowed_profiles(current)),
-        "capabilities": [{"value": key, "label": label} for key, label in COMPANY_CAPABILITIES.items()],
-        "company_roles": _company_roles(selected) if selected else [],
+        "profiles": [] if platform_viewer else list(_allowed_profiles(current)),
+        "capabilities": [] if platform_viewer else [
+            {"value": key, "label": label} for key, label in COMPANY_CAPABILITIES.items()
+        ],
+        "company_roles": [] if platform_viewer else _company_roles(selected) if selected else [],
         "platform_admin": platform_admin,
+        "platform_viewer": platform_viewer,
+        "read_only": platform_viewer,
     }
 
 
@@ -526,15 +546,28 @@ def delete_organization_role(name: str, organization: str) -> dict[str, str]:
 
 
 def require_organization_access(organization: str, user: str | None = None) -> str:
-    """Enforce Admin or explicit Company Admin membership for an organization."""
+    """Enforce platform read access or explicit Company Admin membership."""
     organization_name = _clean(organization, "organization")
     current = user or _current_user()
     is_company_admin = ELMS_COMPANY_ADMIN_ROLE in _roles(current)
-    if _is_admin(current) or (
+    if _is_platform_viewer(current) or (
         is_company_admin and organization_membership_exists(current, organization_name)
     ):
         return organization_name
     _throw("Нет доступа к этой организации", frappe.PermissionError)
+    raise AssertionError("frappe.throw must raise")
+
+
+def require_organization_mutation_access(organization: str, user: str | None = None) -> str:
+    """Require explicit Company Admin membership for company-scoped writes."""
+    organization_name = _clean(organization, "organization")
+    current = user or _current_user()
+    if ELMS_COMPANY_ADMIN_ROLE in _roles(current) and organization_membership_exists(current, organization_name):
+        return organization_name
+    _throw(
+        "Изменять данные организации может только Company Admin этой организации",
+        frappe.PermissionError,
+    )
     raise AssertionError("frappe.throw must raise")
 
 
@@ -744,7 +777,7 @@ def invite_org_user(
         _throw("Укажите корректный email", frappe.ValidationError)
     first_name_value = _clean(first_name, "first_name", 120)
     last_name_value = _clean(last_name, "last_name", 120)
-    organization_value = require_organization_access(organization)
+    organization_value = require_organization_mutation_access(organization)
     profile = _validate_managed_profile(role_profile or DEFAULT_INVITE_PROFILE)
     role_name = str(organization_role or "").strip()
     if role_name:

@@ -4,14 +4,16 @@
  "creation": "2026-11-13 12:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["organization_name", "inn", "ogrn", "kpp", "status", "is_platform_owner"],
+ "field_order": ["organization_name", "inn", "ogrn", "kpp", "status", "is_platform_owner", "can_use_owner_catalog", "can_publish_own"],
  "fields": [
   {"fieldname": "organization_name", "fieldtype": "Data", "in_list_view": 1, "label": "Organization Name", "reqd": 1, "unique": 1},
   {"fieldname": "inn", "fieldtype": "Data", "in_list_view": 1, "in_standard_filter": 1, "label": "ИНН", "reqd": 1, "unique": 1},
   {"fieldname": "ogrn", "fieldtype": "Data", "label": "ОГРН"},
   {"fieldname": "kpp", "fieldtype": "Data", "label": "КПП"},
   {"default": "Active", "fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "label": "Status", "options": "Active\nInactive", "reqd": 1},
-  {"default": 0, "fieldname": "is_platform_owner", "fieldtype": "Check", "label": "Platform Owner", "read_only": 1}
+  {"default": 0, "fieldname": "is_platform_owner", "fieldtype": "Check", "label": "Platform Owner", "read_only": 1},
+  {"default": 0, "fieldname": "can_use_owner_catalog", "fieldtype": "Check", "label": "Can Use Owner Catalog"},
+  {"default": 0, "fieldname": "can_publish_own", "fieldtype": "Check", "label": "Can Publish Own Courses"}
  ],
  "links": [],
  "modified": "2026-11-13 12:00:00.000000",

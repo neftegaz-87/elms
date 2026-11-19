@@ -52,6 +52,11 @@ class ELMSAdmissionProfile(Document):
     """Keep profile writes inside the authenticated learner boundary."""
 
     def validate(self) -> None:
+        if getattr(self.flags, "from_b2b_admission", False):
+            if not getattr(self, "user", None):
+                _throw("Профиль поступления должен ссылаться на слушателя", frappe.ValidationError)
+            return
+
         current_user = _current_user()
         if current_user == "Guest":
             _throw("Требуется авторизация", frappe.PermissionError)

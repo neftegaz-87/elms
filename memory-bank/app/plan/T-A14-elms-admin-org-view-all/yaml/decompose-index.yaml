@@ -1,0 +1,144 @@
+schema: epic-decompose-index/v1
+epic_id: T-A14-elms-admin-org-view-all
+plan_id: T-A14-elms-admin-org-view-all
+role: app
+phase: DECOMPOSE
+next_phase: APP IMPLEMENT
+plan: memory-bank/app/plan/T-A14-elms-admin-org-view-all/md/plan.md
+level: L2
+sNN_cap: 1
+appetite:
+  timebox_days: 3
+  cut_list:
+  - Impersonation or session-user swapping.
+  - Any submit, import confirmation, B2C enrollment, or invite performed by a platform
+    viewer on behalf of an organization.
+  - A second roster/read model or a new audit store when the existing cabinet and
+    ELMS User Activity SoT can be reused.
+  - Cross-organization Company Admin visibility or a broader role/permission redesign.
+  rationale: The slice is limited to platform read-only organization context and the
+    existing roster/export surfaces. Mutation-as paths are explicit DENY guards; no
+    new impersonation or organization-management product is introduced.
+effort_probe:
+  outcomes:
+  - outcome: All-organization selector and selected-organization roster/export read
+      model for ELMS Admin and ELMS Operations User
+    hours_mid: 14.0
+    hours_range: 10-18
+    confidence: medium
+    notes: Reuse get_company_access_context and T-A09 cabinet APIs; replace free-text
+      selection with server-provided options and view-mode copy.
+  - outcome: Fail-closed mutate-as guards, view audit, and mixed acceptance coverage
+    hours_mid: 14.0
+    hours_range: 10-18
+    confidence: medium
+    notes: Guard B2B import upload/confirm, B2C acting enrollment, and invite; persist
+      Organization View in ELMS User Activity; prove Company Admin own-org continuity.
+  total_hours: 28.0
+  effort_hours_total: 28.0
+  effort_class: L
+  independent_outcomes: 1
+  split_seams: 0
+  sNN_cap: 1
+  sNN_target: 1
+split_rationale: 'This is one cohesive vertical boundary: an operator must select
+  an organization, read the existing roster/export for that context, and be prevented
+  from using the same context to mutate admission or invite state. Backend guards,
+  Desk UI, audit, and wire checks have no independent acceptance seam; splitting backend,
+  UI, or DENY cleanup would allow a partial bypass or a second organization SoT.'
+technology_axiom_lock:
+- Selected organization is a read context only; no session User swap or impersonation
+  state exists.
+- Roster and export reuse the T-A09 server read model and require_organization_access;
+  the UI never supplies a trusted user list.
+- Platform viewer roles may read any selected organization but mutation paths require
+  Company Admin membership in that organization.
+- Organization View audit uses the existing ELMS User Activity DocType as the sole
+  audit SoT; no parallel view log is introduced.
+steps:
+- id: s01
+  file: s01-admin-org-view-read-only-vertical-slice.yaml
+  title: Admin organization selector, read-only roster, audit, and mutate-as DENY
+  next_phase: APP IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: ELMS Admin and ELMS Operations User receive a server-backed all-organization
+    directory and selected organization read context.
+- id: FR-002
+  step: s01
+  description: Selected organization reuses get_org_roster and export with platform-view
+    access; Company Admin remains restricted to own organization.
+- id: FR-003
+  step: s01
+  description: Confirm/import, B2C acting enrollment, and invite-as-company paths
+    fail with 403 for platform view context and remain available only to a Company
+    Admin member of that organization.
+- id: FR-004
+  step: s01
+  description: Successful organization views record actor, organization, and timestamp
+    in ELMS User Activity.
+- id: NFR-001
+  step: s01
+  description: No session User swap, impersonation session, or synthetic Company Admin
+    identity is created.
+- id: NFR-002
+  step: s01
+  description: View audit uses the existing 152-FZ-governed activity retention path
+    without a parallel audit store.
+- id: AC-001
+  step: s01
+  description: Admin lists all orgs and opens roster of org X.
+- id: AC-002
+  step: s01
+  description: Admin confirm_admission_import for org X → 403.
+- id: AC-003
+  step: s01
+  description: Company Admin still cannot see other orgs.
+stages_coverage:
+- stage: Stage s01 platform organization view context and read-only cabinet
+  step: s01
+outcome_map:
+- outcome: ELMS Admin/Operations can choose any organization and read its existing
+    roster/export without impersonation.
+  step: s01
+- outcome: Company Admin remains own-organization-only and all platform mutate-as
+    paths are denied.
+  step: s01
+- outcome: Organization views are auditable through the existing ELMS User Activity
+    SoT.
+  step: s01
+replacement_cleanup:
+  s01:
+    replaces: Free-text organization entry and any implication that a selected org
+      changes the acting user.
+    target: Server-provided organization selector plus explicit read-only context
+      and server-side view/mutation guards.
+    step: s01
+    policy: replace-in-epic
+  items:
+  - symbol: Client-entered organization string used as an admin directory
+    kind: A
+    replacement: get_company_access_context supplies the allowed organization list;
+      roster/export re-authorize the selected value.
+    step: s01
+    policy: replace-in-epic
+  - symbol: ELMS Admin or ELMS Operations User reaching mutation-as paths from a selected
+      organization
+    kind: A
+    replacement: require_organization_mutation_access and explicit Company Admin own-org
+      checks return PermissionError/403.
+    step: s01
+    policy: replace-in-epic
+  - symbol: Parallel organization-view audit table or log
+    kind: C
+    replacement: ELMS User Activity with activity_type=Organization View and the selected
+      organization reference.
+    step: s01
+    policy: deny-in-epic
+  sunset:
+  - Free-text or client-only organization switchers for the admin roster path.
+  - Session-user replacement, acting-as identity, and synthetic Company Admin context.
+  - Platform viewer bypasses in B2B import, B2C enrollment, or organization invite
+    mutation paths.

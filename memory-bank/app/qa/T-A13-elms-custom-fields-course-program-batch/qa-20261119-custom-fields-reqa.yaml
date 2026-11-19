@@ -1,0 +1,281 @@
+schema: app-qa/v1
+task_id: T-A13-elms-custom-fields-course-program-batch
+plan_id: T-A13-elms-custom-fields-course-program-batch
+epic_id: T-A13-elms-custom-fields-course-program-batch
+role: app
+date: 2026-11-19
+reviewer: APP QA
+mode: diff_aware
+verdict: pass
+verify_scope: app_lanes
+suite_scope: app_lanes
+checklist_sha256: 20bc055e0951475118b99be8e27b91935d0813a843fe2cf709f6ecf8e82723f0
+charter:
+  code_under_test:
+    base: ELMS custom-fields vertical slice after BF-001
+    paths:
+      - elms/elms/lms/custom_fields.py
+      - elms/elms/lms/api/custom_fields.py
+      - elms/elms/lms/doctype/elms_custom_field_definition/elms_custom_field_definition.py
+      - elms/elms/lms/doctype/elms_course/elms_course.py
+      - elms/elms/lms/doctype/elms_program/elms_program.py
+      - elms/elms/lms/doctype/elms_batch/elms_batch.py
+      - elms/elms/public/js/custom-fields.js
+      - elms/elms/public/js/elms-custom-fields-page.js
+      - scripts/run_browser_qa.py
+  surfaces_required:
+    - backend
+    - frontend_build
+    - wire_journey
+    - leftover_sot
+  surfaces_optional: []
+  surfaces_skipped:
+    - surface: browser
+      reason: absorbed_into_wire_journey
+    - surface: live_smoke
+      reason: absorbed_into_wire_preflight_for_diff_aware
+  stack_profile: hub-default
+  wire_contract: authenticated custom-fields schema-manager and Course form journey with typed API evidence
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, auth, roles, data, security, brownfield]
+  selected:
+    - id: contract_acceptance
+      lanes: [backend, wire_journey]
+      evidence: backend contract tests pass; authenticated feature wire journey saves and reads back the Course value through the canonical form-save API
+    - id: regression
+      lanes: [backend, frontend_build, wire_journey]
+      evidence: backend, frontend, and authenticated feature wire journey checks pass
+    - id: backend_unit_component
+      lanes: [backend]
+      evidence: ./bin/pytest -q elms/elms/tests/test_custom_fields.py -> 11 passed, 6 subtests passed
+    - id: backend_integration_state
+      lanes: [backend]
+      evidence: integration pytest -> 30 passed, 6 subtests passed
+    - id: api_contract
+      lanes: [backend, wire_journey]
+      evidence: backend API contract tests pass; typed wire observes canonical Course save and custom-fields readback responses
+    - id: data_persistence_migration
+      lanes: [backend]
+      evidence: versioned JSON, validation, and inheritance tests pass
+    - id: frontend_build_assets
+      lanes: [frontend_build]
+      evidence: py_compile and both node --check commands exit 0
+    - id: wire_journey
+      lanes: [wire_journey]
+      evidence: exact typed authenticated T-A13 journey exits 0 with canonical Course save and readback API evidence
+    - id: negative_error_paths
+      lanes: [backend]
+      evidence: invalid values, incompatible versions, unsupported targets, and foreign access tests pass
+    - id: auth_session_rbac
+      lanes: [backend, wire_journey]
+      evidence: organization-role tests and runtime authentication pass; authenticated feature journey passes
+    - id: security_owasp
+      lanes: [backend]
+      evidence: fail-closed organization and target allowlist checks pass
+    - id: cleanup_sot
+      lanes: [backend, leftover_sot]
+      evidence: negative target scan exits 0 with no Chapter/Lesson/Category matches
+  not_applicable:
+    - id: browser_functional
+      reason: absorbed_into_wire_journey; separate login/browser lane is forbidden in diff_aware
+    - id: live_http_smoke
+      reason: absorbed_into_wire_preflight; wire is required in diff_aware
+    - id: external_integration
+      reason: no external provider or third-party integration is in the MVP scope
+    - id: async_jobs_workers_webhooks
+      reason: custom-field operations are synchronous Frappe requests with no worker or webhook contract
+    - id: accessibility
+      reason: no separate executable accessibility lane is declared; keyboard-visible controls remain part of the feature journey
+    - id: responsive_compatibility
+      reason: no supported viewport/client matrix or executable lane is declared for this diff_aware run
+    - id: visual_states
+      reason: no separate visual-regression lane is declared; frontend_build verifies asset syntax
+    - id: console_network
+      reason: no separate client-error lane is declared; wire evidence carries feature network assertions
+    - id: performance_resilience
+      reason: no performance, load, timeout, or retry requirement is in this MVP contract
+    - id: observability
+      reason: no logging, metrics, or tracing acceptance is in the contract
+    - id: content_i18n
+      reason: no localization or formatting acceptance is mapped to an executable lane
+    - id: exploratory
+      reason: optional exploratory lane excluded from this diff_aware run
+  not_run: []
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    commands:
+      - ./bin/pytest -q elms/elms/tests/test_custom_fields.py
+      - ./bin/pytest -q elms/elms/tests/test_custom_fields_ui.py
+      - ./bin/pytest -q elms/elms/tests/test_custom_fields.py elms/elms/tests/test_custom_fields_ui.py elms/elms/tests/test_workspaces.py
+      - python3 -m py_compile elms/elms/lms/custom_fields.py elms/elms/lms/api/custom_fields.py elms/elms/lms/doctype/elms_custom_field_definition/elms_custom_field_definition.py elms/elms/lms/doctype/elms_course/elms_course.py elms/elms/lms/doctype/elms_program/elms_program.py elms/elms/lms/doctype/elms_batch/elms_batch.py
+    evidence: 11 passed plus 6 subtests; 6 passed; integration 30 passed plus 6 subtests; py_compile exit 0
+    notes: Common validator, persistence/inheritance, API contract, role scope, and UI contract tests are green.
+  - id: frontend_build
+    required: true
+    status: pass
+    commands:
+      - node --check elms/elms/public/js/custom-fields.js
+      - node --check elms/elms/public/js/elms-custom-fields-page.js
+    evidence: both node --check commands exit 0
+    notes: Desk JavaScript assets parse successfully; no dedicated frontend bundle profile exists.
+  - id: wire_journey
+    required: true
+    status: pass
+    command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+    evidence_file: browser-artifacts/browser-evidence.json
+    evidence: >-
+      Typed authenticated JRN-T-A13-CUSTOM-FIELDS-001 reached the custom-fields
+      route, saved/read back the definition, rendered the Course Additional control,
+      observed the canonical frappe.desk.form.save.savedocs response, and read back
+      the persisted value through both custom-fields and Course document APIs.
+      Runtime activation was pass and the command exited 0 at 2026-11-19T08:29:52Z.
+    notes: Required authenticated feature journey is green; browser and live-smoke acceptance are absorbed here.
+  - id: leftover_sot
+    required: true
+    status: pass
+    command: "! rg -n 'Chapter|Lesson|Category' elms/elms/lms/api/custom_fields.py elms/elms/lms/custom_fields.py elms/elms/public/js/custom-fields.js elms/elms/public/js/elms-custom-fields-page.js elms/elms/lms/page/elms_custom_fields/elms_custom_fields.json"
+    evidence: exit 0; no Chapter/Lesson/Category matches
+    notes: The explicit Chapter/Lesson/Category MVP boundary is preserved in the custom-field surface.
+  - id: browser
+    required: false
+    status: n/a
+    reason: absorbed_into_wire_journey
+  - id: live_smoke
+    required: false
+    status: n/a
+    reason: absorbed_into_wire_preflight
+coverage_map:
+  - id: AC-001
+    kind: AC
+    scenario: Admin defines a select field on Course; value saves and is shown.
+    status: pass
+    evidence: typed wire observed HTTP 200 Course save and custom-fields/Course document readback; evidence is in browser-artifacts/browser-evidence.json
+  - id: AC-002
+    kind: AC
+    scenario: Invalid typed value is rejected before persistence.
+    status: pass
+    evidence: test_custom_fields.py passed
+  - id: AC-003
+    kind: AC
+    scenario: Foreign organization schema/value access is denied.
+    status: pass
+    evidence: focused organization-scope tests passed
+  - id: AC-004
+    kind: AC
+    scenario: Unsupported Chapter/Lesson/Category custom-field surface is absent.
+    status: pass
+    evidence: negative target scan exited 0 and UI contract tests passed
+  - id: FR-001
+    kind: FR
+    scenario: Org-scoped typed definitions for Course, Program, and Batch.
+    status: pass
+    evidence: backend and UI contract tests passed
+  - id: FR-002
+    kind: FR
+    scenario: Versioned JSON values validate and resolve Program to Course to Batch inheritance.
+    status: pass
+    evidence: test_custom_fields.py passed, including zero/false inheritance cases
+  - id: FR-003
+    kind: FR
+    scenario: Schema manager and target forms expose Additional fields through the same API.
+    status: pass
+    evidence: typed journey saved the schema, rendered the Course control, observed canonical form save, and read back the value
+  - id: NFR-001
+    kind: NFR
+    scenario: Definition and value access is restricted to the actor organization.
+    status: pass
+    evidence: organization-scope backend tests passed and authenticated runtime context resolved
+  - id: NFR-002
+    kind: NFR
+    scenario: Schema version is explicit and incompatible payloads fail closed.
+    status: pass
+    evidence: focused validator tests passed
+ac_plus: []
+ac_minus: []
+section_011: []
+scope:
+  - "task: T-A13-elms-custom-fields-course-program-batch"
+  - "files: implement s01 custom-field definition, validator, API, Course/Program/Batch fields, Desk assets, browser journey, and tests"
+  - "diff: BF-001 browser journey plus BF-002 canonical Course form-save wait repair"
+blockers: []
+issues: []
+fix_plan:
+  - "Repair the response predicate/wait in scripts/run_browser_qa.py without weakening the canonical API assertion, then rerun the exact shard browser command."
+limitations: []
+checks:
+  - "backend lane pass"
+  - "frontend_build lane pass"
+  - "required wire_journey has current typed authenticated evidence with canonical Course save/readback response and persisted value"
+  - "browser and live_smoke are correctly absorbed in diff_aware"
+  - "verify-qa recorded this product QA pass"
+live_smoke:
+  status: n/a
+  command: ""
+  evidence_file: ""
+  last_run_at: ""
+  base_url: ""
+  level: health
+  notes: absorbed_into_wire_preflight
+sunset_inventory_scan:
+  status: pass
+  scanned_at: 2026-11-19T08:06:17Z
+  rows:
+    - "Unsupported learning-graph target scan: zero matches"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: pass
+  rows:
+    - "custom_field_values and canonical custom-field API references are present in the declared path"
+review:
+  status: done
+  findings:
+    - The typed browser journey now observes the canonical Course form-save response after forcing a real dirty transition and verifies both readback APIs.
+test_audit:
+  status: done
+  checks:
+    - backend validation, persistence, inheritance, organization scope, and UI wiring assertions passed
+    - frontend Python and JavaScript syntax checks passed
+    - wire evidence is typed and current, with runtime activation pass
+  findings:
+    - Required wire acceptance is green with runtime activation pass, HTTP 200 form save, and matching custom-fields/Course document readbacks.
+browser:
+  status: n/a
+  stack_profile: hub-default
+  evidence_file: browser-artifacts/browser-evidence.json
+  last_run_at: 2026-11-19T08:29:52Z
+  journeys:
+    - JRN-T-A13-CUSTOM-FIELDS-001
+  artifacts:
+    - browser-artifacts/browser-evidence.json
+  reason: absorbed_into_wire_journey
+retro:
+  status: done
+  defect_missed: The re-QA harness journey reused an already persisted Course value, so the form stayed clean and emitted no canonical save request.
+  next_cycle_change: Preserve the explicit dirty transition and typed POST response predicate in the Course wire journey.
+  flaky_test: Page.expect_response timeout in JRN-T-A13-CUSTOM-FIELDS-001 (resolved)
+  redundant_gate: none
+verification_results:
+  - command: ./bin/pytest -q elms/elms/tests/test_custom_fields.py
+    exit_code: 0
+  - command: ./bin/pytest -q elms/elms/tests/test_custom_fields_ui.py
+    exit_code: 0
+  - command: ./bin/pytest -q elms/elms/tests/test_custom_fields.py elms/elms/tests/test_custom_fields_ui.py elms/elms/tests/test_workspaces.py
+    exit_code: 0
+  - command: python3 -m py_compile elms/elms/lms/custom_fields.py elms/elms/lms/api/custom_fields.py elms/elms/lms/doctype/elms_custom_field_definition/elms_custom_field_definition.py elms/elms/lms/doctype/elms_course/elms_course.py elms/elms/lms/doctype/elms_program/elms_program.py elms/elms/lms/doctype/elms_batch/elms_batch.py
+    exit_code: 0
+  - command: node --check elms/elms/public/js/custom-fields.js
+    exit_code: 0
+  - command: node --check elms/elms/public/js/elms-custom-fields-page.js
+    exit_code: 0
+  - command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+    exit_code: 0
+    evidence_file: browser-artifacts/browser-evidence.json
+  - command: "! rg -n 'Chapter|Lesson|Category' elms/elms/lms/api/custom_fields.py elms/elms/lms/custom_fields.py elms/elms/public/js/custom-fields.js elms/elms/public/js/elms-custom-fields-page.js elms/elms/lms/page/elms_custom_fields/elms_custom_fields.json"
+    exit_code: 0

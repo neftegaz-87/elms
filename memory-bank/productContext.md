@@ -1,7 +1,7 @@
 # Контекст продукта (productContext)
 
 **Дата:** 2026-10-29  
-**Обновлено:** 2026-11-18 (после T-A11 APP QA PASS & context sync); 2026-11-17 (после T-A10 APP QA PASS & context sync); 2026-11-14 (после T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (после T-A07 APP QA PASS & context sync); 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
+**Обновлено:** 2026-11-19 (после T-A13 APP QA PASS & context sync); 2026-11-18 (после T-A11 APP QA PASS & context sync); 2026-11-17 (после T-A10 APP QA PASS & context sync); 2026-11-14 (после T-A09 APP QA PASS & context sync; T-A08 APP QA PASS & context sync); 2026-11-13 (после T-A07 APP QA PASS & context sync); 2026-10-31 (после T-B08 QA PASS & context sync, T-B07 QA PASS & context sync, T-B06 QA PASS & context sync, T-B05 QA PASS, T-A01 APP QA PASS, T-B03 re-QA PASS и T-B04 QA PASS)
 
 ## Текущий срез (Current Wedge & Delivery Status)
 
@@ -76,7 +76,15 @@
     - Missing-email rows получают deterministic synthetic identity с защищённым одноразовым invite-token reveal/audit; Desk upload, preview, row errors, export и credential reveal используют whitelisted API.
     - Import boundary передаёт только validated structured rows к T-A12: Enrollment documents/API calls запрещены, provider/corrupt/invalid failures остаются явными failed outcomes.
     - QA PASS: required app lanes backend, frontend_build, leftover_sot и wire_journey; AC-001..AC-004, organization authz и provider/error recovery passed. Browser и live_smoke — n/a: они absorbed into wire journey/preflight. Evidence: `memory-bank/app/qa/T-A11-elms-ai-admission-parse/qa-20261118-admission-import-app-lanes-reqa.yaml`, `browser-artifacts/browser-evidence.json`, `browser-artifacts/qa-20261118-admission-live-smoke.json`; BF-001..BF-006 closed/cancelled, blockers отсутствуют, exploratory coverage optional и не запускалась.
-- **Следующие шаги (Next Foundation Wedges):**
+  - **Подтверждение B2B batch с квотой (`T-A12`):** завершено и принято APP QA как вертикальный срез от parsed import до Active enrollment:
+    - Company Admin подтверждает выбранные parsed rows через typed API/кабинет; одна транзакция атомарно проверяет quota, subscription, course/batch resolution, catalog flags и organization ownership, затем сохраняет enrollment, Learner Profile snapshot и audit.
+    - Успешный wire journey `JRN-T-A12-B2B-CONFIRM-001` подтвердил ответ `200/confirmed/ok`, `enrolled_count=1`, Active enrollment, remaining seats `98→97` и явный success report; console errors и request failures отсутствуют.
+    - QA PASS: backend (15 passed), frontend_build (py_compile и node --check), wire_journey; browser/live_smoke — n/a, absorbed by authenticated wire in diff_aware. BF-T-A12-001 closed with pass verification; next loop handoff is the queue-selected next epic.
+  - **Кастомные поля Course/Program/Batch (`T-A13`):** завершены и приняты APP QA как organization-scoped typed vertical slice:
+    - Admin определяет версионируемую JSON-схему полей для Course, Program и Batch через whitelisted API/UI; значения валидируются на записи, а наследование Program→Course→Batch поддерживает явные `false`/`0` overrides.
+    - Course/Program/Batch формы используют единый Additional-fields API и canonical form-save/readback; параллельное free-text хранилище и поверхности Chapter/Lesson/Category отсутствуют.
+    - QA PASS: backend, frontend_build, wire_journey и leftover_sot; browser/live_smoke absorbed by wire/preflight. AC-001..AC-004, FR-001..FR-003 и NFR-001..NFR-002 passed; typed wire `JRN-T-A13-CUSTOM-FIELDS-001` recorded `status=pass`, `live_evidence=true`, `exit_code=0`. BF-001..BF-003 закрыты, blockers отсутствуют; QA → completed, следующий цикл передаётся queue-selected next epic.
+  - **Следующие шаги (Next Foundation Wedges):**
   - `T-F01` (Desk workspaces / role navigation): as-built закрыт — LMS/Operations/Settings workspaces, role filter, platform workspaces скрыты; login affordance закрыт в T-A01.
   - Прикладная синхронизация Bitrix24 (LMS / Operations интеграционные сценарии) на базе стабилизированного REST-транспорта `T-B04`.
   - Follow-up boundary: `T-B09` — public edge cutover, DNS/firewall/ACME, host-Caddy ownership и maintenance-window rollback. T-B06, T-B07 и T-B08 завершены как contracts и evidence gates; реальные Vault/bootstrap, backup repository custody и production release actions остаются операторскими gates.

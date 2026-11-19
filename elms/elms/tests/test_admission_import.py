@@ -116,6 +116,7 @@ class TestAdmissionImportAPI(unittest.TestCase):
             patch.object(import_api, "is_company_admin", return_value=True),
             patch.object(import_api, "is_platform_admin", return_value=False),
             patch.object(import_api, "organizations_for_user", return_value=["ORG-OWN"]),
+            patch.object(import_api, "require_organization_mutation_access", return_value="ORG-OWN"),
         ):
             with self.assertRaises(frappe.PermissionError):
                 import_api.upload_import(
@@ -132,6 +133,7 @@ class TestAdmissionImportAPI(unittest.TestCase):
             patch.object(import_api, "is_company_admin", return_value=True),
             patch.object(import_api, "is_platform_admin", return_value=False),
             patch.object(import_api, "organizations_for_user", return_value=["ORG-OWN"]),
+            patch.object(import_api, "require_organization_mutation_access", return_value="ORG-OWN"),
             patch.object(import_api, "persist_import", return_value={"name": "ADMISSION-1"}) as persist,
             patch.object(import_api, "validate_upload"),
         ):

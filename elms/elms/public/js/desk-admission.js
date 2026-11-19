@@ -53,13 +53,24 @@
 		return item ? item.course : "";
 	}
 
-	function canManageImport() {
+	function hasRole(role) {
 		var roles = frappe.user_roles || [];
-		return roles.indexOf("ELMS Company Admin") !== -1 || roles.indexOf("ELMS Admin") !== -1 || roles.indexOf("ELMS Operations User") !== -1;
+		return roles.indexOf(role) !== -1;
+	}
+
+	function isPlatformViewer() {
+		return hasRole("ELMS Admin") || hasRole("ELMS Operations User") || hasRole("Administrator") || hasRole("System Manager");
+	}
+
+	function canManageImport() {
+		return hasRole("ELMS Company Admin");
 	}
 
 	function importMarkup() {
-		if (!canManageImport()) return "";
+		if (!canManageImport()) {
+			if (!isPlatformViewer()) return "";
+			return '<section class="elms-admission-import is-read-only" data-admission-import data-admission-read-only><div class="elms-admission-import-heading"><div><span class="elms-admission-section-label">B2B / admission desk</span><h2>режим просмотра</h2><p>Платформенный просмотр не загружает и не подтверждает заявки организации. Действие доступно Company Admin своей организации.</p></div></div></section>';
+		}
 		return [
 			'<section class="elms-admission-import" data-admission-import>',
 				'<div class="elms-admission-import-heading"><div><span class="elms-admission-section-label">B2B / admission desk</span><h2>Загрузка заявки организации</h2><p>Канонический XLSX станет проверяемым preview. Непрошедшие строки останутся с явной ошибкой.</p></div><span class="elms-admission-import-version">admission-xlsx-v1</span></div>',

@@ -30,5 +30,9 @@ class ELMSAdmissionProfile(Document):
     """Persist only complete, consented learner profile records."""
 
     def validate(self):
+        if getattr(self.flags, "from_b2b_admission", False):
+            if not self.user:
+                frappe.throw("Профиль поступления должен ссылаться на слушателя", frappe.ValidationError)
+            return
         if not self.user or not self.consent_version or not self.consent_timestamp:
             frappe.throw("Профиль должен содержать пользователя и согласие ПДн", frappe.ValidationError)

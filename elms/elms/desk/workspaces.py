@@ -43,6 +43,12 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
             },
             {
                 "type": "URL",
+                "url": "/app/elms-custom-fields",
+                "label": "Дополнительные поля",
+                "icon": "field",
+            },
+            {
+                "type": "URL",
                 "url": "/app/elms-applications",
                 "label": "Заявки из Bitrix",
                 "icon": "list",
@@ -94,7 +100,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "module": "Operations",
         "icon": "users",
         "sequence_id": 3,
-        "roles": ("ELMS Admin", "ELMS Company Admin"),
+        "roles": ("ELMS Admin", "ELMS Operations User", "ELMS Company Admin"),
         "content": "Сотрудники, администраторы и прогресс вашей организации.",
         "shortcuts": (
             {
@@ -126,7 +132,7 @@ ELMS_WORKSPACE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "module": "Operations",
         "icon": "users",
         "sequence_id": 4,
-        "roles": ("ELMS Admin",),
+        "roles": ("ELMS Admin", "ELMS Operations User"),
         "content": "Организации, участники и безопасная отправка приглашений в ELMS.",
         "shortcuts": (
             {
@@ -270,11 +276,27 @@ def _workspace_shortcuts(definition: dict[str, Any]) -> list[dict[str, Any]]:
 def filter_workspace_for_user(page_data: dict[str, Any], page: str, user: str | None = None) -> dict[str, Any]:
     """Hide LMS management links from learner-only users while keeping one LMS workspace."""
 
+    current_user = user or frappe.session.user
+    roles = set(frappe.get_roles(current_user) or [])
+
+    if page == "Моя компания" and "ELMS Operations User" in roles and not roles.intersection({"ELMS Admin", "ELMS Company Admin"}):
+        page_data["shortcuts"] = [
+            shortcut
+            for shortcut in page_data.get("shortcuts", [])
+            if shortcut.get("url") == "/app/elms-cabinet"
+        ]
+        page_data["links"] = []
+        page_data["content"] = "Режим просмотра: выбор организации и roster доступны без изменения данных компании."
+        return page_data
+
+    if page == "B2B Access" and "ELMS Operations User" in roles and "ELMS Admin" not in roles:
+        page_data["links"] = []
+        page_data["content"] = "Режим просмотра: действия доступа доступны только ELMS Admin и Company Admin своей организации."
+        return page_data
+
     if page != "LMS":
         return page_data
 
-    current_user = user or frappe.session.user
-    roles = set(frappe.get_roles(current_user) or [])
     if roles.intersection({"ELMS Admin", "ELMS Operations User", "ELMS Company Admin"}):
         return page_data
 

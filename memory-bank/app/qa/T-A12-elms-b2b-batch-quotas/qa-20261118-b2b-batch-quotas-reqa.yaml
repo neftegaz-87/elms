@@ -1,0 +1,304 @@
+schema: app-qa/v1
+role: app
+task_id: T-A12-elms-b2b-batch-quotas
+plan_id: T-A12-elms-b2b-batch-quotas
+epic_id: T-A12-elms-b2b-batch-quotas
+date: 2026-11-18
+reviewer: APP QA
+verdict: fail
+historical_baseline: true
+revalidation_note: "Pre-BUGFIX FAIL baseline that opened BF-T-A12-001. Do NOT promote this file to PASS. After verify-bugfix → re-QA, write a NEW qa-*.yaml from a fresh charter using current wire evidence (JRN-T-A12 green)."
+checklist_sha256: 20bc055e0951475118b99be8e27b91935d0813a843fe2cf709f6ecf8e82723f0
+verify_scope: app_lanes
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/lms/api/admission.py
+      - elms/elms/lms/api/schemas/admission.py
+      - elms/elms/lms/services/b2b_admission.py
+      - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+      - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+      - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+      - elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.py
+      - elms/elms/tenant.py
+      - elms/elms/lms/page/elms-learning/elms-learning.js
+      - elms/elms/lms/page/elms-learning/elms-learning.html
+      - elms/elms/tests/test_b2b_batch_quotas.py
+      - scripts/run_browser_qa.py
+  surfaces_required: [backend, frontend_build, wire_journey]
+  surfaces_optional: [exploratory]
+  surfaces_skipped:
+    - "browser — absorbed_into_wire_journey (authenticated feature journey covers login+UI)"
+    - "live_smoke — absorbed_into_wire_preflight (diff_aware; health inside wire setup)"
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, auth, roles, data, security]
+  selected:
+    - id: contract_acceptance
+      lane: backend+wire_journey
+      status: fail
+      evidence: "backend 13 passed; typed wire capture lacks T-A12 confirm journey"
+    - id: regression
+      lane: backend+wire_journey
+      status: fail
+      evidence: "backend 13 passed; typed wire capture lacks T-A12 confirm journey"
+    - id: backend_unit_component
+      lane: backend
+      status: pass
+      evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 13 passed"
+    - id: backend_integration_state
+      lane: backend
+      status: pass
+      evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 13 passed"
+    - id: api_contract
+      lane: backend+wire_journey
+      status: fail
+      evidence: "backend 13 passed; typed wire capture lacks T-A12 confirm journey"
+    - id: data_persistence_migration
+      lane: backend
+      status: pass
+      evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 13 passed"
+    - id: frontend_build_assets
+      lane: frontend_build
+      status: pass
+      evidence: "py_compile exit 0; node --check exit 0"
+    - id: wire_journey
+      lane: wire_journey
+      status: fail
+      evidence: "memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json"
+    - id: negative_error_paths
+      lane: backend+wire_journey
+      status: fail
+      evidence: "backend 13 passed; typed wire capture lacks T-A12 confirm journey"
+    - id: auth_session_rbac
+      lane: wire_journey
+      status: pass
+      evidence: "typed runtime capture authenticated ELMS Company Admin; exit 0"
+    - id: security_owasp
+      lane: backend+wire_journey
+      status: fail
+      evidence: "backend tests pass; T-A12 authenticated wire boundary absent"
+    - id: console_network
+      lane: wire_journey
+      status: pass
+      evidence: "typed runtime capture records console_errors=[] and request_failures=[]"
+  not_applicable:
+    - id: browser_functional
+      reason: absorbed_into_wire_journey
+    - id: live_http_smoke
+      reason: absorbed_into_wire_preflight_in_diff_aware
+    - id: external_integration
+      reason: out_of_scope; no external provider or third-party API
+    - id: async_jobs_workers_webhooks
+      reason: out_of_scope; confirmation is synchronous request/response
+    - id: accessibility
+      reason: no dedicated executable accessibility obligation in this diff_aware charter
+    - id: responsive_compatibility
+      reason: no supported viewport/client-matrix obligation in this diff_aware charter
+    - id: visual_states
+      reason: no dedicated visual acceptance lane; wire verifies functional report states
+    - id: performance_resilience
+      reason: no performance/load requirement in the contract
+    - id: observability
+      reason: domain audit is covered by backend acceptance; no logging/metrics/tracing change
+    - id: content_i18n
+      reason: no localization or formatting requirement in the contract
+    - id: cleanup_sot
+      reason: no legacy/fallback/source-of-truth removal in this shard
+    - id: exploratory
+      reason: optional time-boxed exploratory lane not selected for diff_aware
+  not_run: []
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py"
+    evidence: "13 passed in 0.10s; exit 0"
+    notes: "Targeted backend contract and state suite from implement shard."
+  - id: frontend_build
+    required: true
+    status: pass
+    command: "python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py && node --check elms/elms/lms/page/elms-learning/elms-learning.js"
+    evidence: "py_compile exit 0; node --check exit 0"
+    notes: "Desk asset checks per ELMS stack rules; Python compile is retained in backend evidence too."
+  - id: browser
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_journey
+  - id: live_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_preflight
+  - id: leftover_sot
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: no sunset inventory in shard
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: no agent/hook/gate behavior surface
+  - id: wire_journey
+    required: true
+    status: fail
+    command: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py"
+    evidence: "memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json"
+    notes: "Authenticated Company cabinet feature journey; not --smoke-only; covers login + UI + API."
+  - id: exploratory
+    required: false
+    status: skipped
+    command: ""
+    evidence: ""
+    notes: optional; not selected in diff_aware
+
+scope:
+  - "task: T-A12-elms-b2b-batch-quotas"
+  - "step: s01-b2b-admission-vertical"
+  - "files: implement shard files listed in charter"
+
+ac_plus: []
+ac_minus: []
+section_011: []
+
+coverage_map:
+  - id: AC-001
+    kind: AC
+    scenario: "Backend confirm contract creates Active enrollments and increments seats; authenticated Company Admin confirm journey"
+    evidence: "backend: 13 passed; wire: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json (T-A12 confirm not observed)"
+    status: fail
+  - id: AC-002
+    kind: AC
+    scenario: "Backend quota-exhaustion rollback tests; authenticated quota error report"
+    evidence: "backend: 13 passed; wire: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json (T-A12 confirm not observed)"
+    status: fail
+  - id: AC-003
+    kind: AC
+    scenario: "Backend owner-catalog denial tests; Company cabinet fail-closed result"
+    evidence: "backend: 13 passed; wire: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json (T-A12 confirm not observed)"
+    status: fail
+  - id: AC-004
+    kind: AC
+    scenario: "Backend cross-organization 403 tests; Company Admin ownership journey"
+    evidence: "backend: 13 passed; wire: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json (T-A12 confirm not observed)"
+    status: fail
+  - id: FR-001
+    kind: FR
+    scenario: "Parsed import confirmation yields Active enrollments and explicit success report in Company cabinet"
+    evidence: "wire evidence file records only JRN-A11 import preview/export/reveal; no T-A12 confirm"
+    status: fail
+  - id: FR-002
+    kind: FR
+    scenario: "Quota, subscription, course, and batch resolution are exposed through the confirm flow"
+    evidence: "backend: 13 passed; T-A12 wire journey absent from current harness capture"
+    status: fail
+  - id: FR-003
+    kind: FR
+    scenario: "Catalog flag and organization ownership guards are represented by the feature result report"
+    evidence: "backend: 13 passed; T-A12 wire journey absent from current harness capture"
+    status: fail
+  - id: FR-004
+    kind: FR
+    scenario: "Confirmation audit and Learner Profile snapshot are observed through the feature path"
+    evidence: "backend: 13 passed; T-A12 wire journey absent from current harness capture"
+    status: fail
+  - id: NFR-001
+    kind: NFR
+    scenario: "Existing B2C PII controls protect Learner Profile snapshot writes"
+    evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 13 passed"
+    status: pass
+  - id: NFR-002
+    kind: NFR
+    scenario: "Successful confirmation persists actor, source import, and confirmed row count audit data"
+    evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 13 passed"
+    status: pass
+  - id: NFR-003
+    kind: NFR
+    scenario: "No external provider or acting-as path is introduced"
+    evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 13 passed"
+    status: pass
+
+review:
+  status: done
+  scope: "B2B admission backend, Desk cabinet controls, and authenticated wire path"
+  findings:
+    - "The required T-A12 authenticated feature journey is not represented in the current browser harness output; only JRN-A11 is observed."
+  notes: "QA contract gap routed to BUGFIX."
+
+test_audit:
+  status: done
+  checks:
+    - "assertions exercise outcome, not only status/build"
+    - "no global API mocking hides production wire"
+    - "skips/xfails and route.fulfill bounded"
+    - "browser/API test included in declared CI job"
+  findings:
+    - "Backend assertions and runtime browser capture are typed; runtime capture does not cover the T-A12 confirm boundary."
+  notes: "No mocked or static trace was promoted to a wire PASS."
+
+browser:
+  status: n/a
+  stack_profile: hub-default
+  evidence_file: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json
+  last_run_at: "2026-11-18T15:19:37Z"
+  journeys: []
+  artifacts: []
+  notes: absorbed_into_wire_journey
+
+retro:
+  status: done
+  defect_missed: "The current browser harness did not exercise the new T-A12 confirm/quota/result-report journey."
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: none
+
+sunset_inventory_scan:
+  status: n/a
+  scanned_at: ""
+  rows: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: n/a
+  rows: []
+
+checks:
+  - all required lanes pass
+  - charter announced before probes
+  - wire is feature journey, not login smoke-only
+  - no duplicate browser+wire login lanes in diff_aware
+  - verify-qa PASS
+
+issues:
+  - "ac_gap|wire_journey: current typed browser capture stops at T-A11 import preview/export/reveal and has no T-A12 confirm_admission_import assertions."
+blockers:
+  - "ac_gap|wire_journey | scripts/run_browser_qa.py | Add the authenticated T-A12 Company Admin confirm journey and assert quota-safe Active enrollments plus explicit success/error result report; rerun the shard wire command."
+fix_plan:
+  - "Update scripts/run_browser_qa.py with the T-A12 confirm/quota/result-report journey, then rerun NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py."
+limitations:
+  - "Wire acceptance is not established by the current harness capture; browser/live_smoke remain absorbed and are not separate failures."
+
+live_smoke:
+  status: n/a
+  command: ""
+  evidence_file: ""
+  last_run_at: ""
+  base_url: ""
+  level: health
+  notes: absorbed_into_wire_preflight

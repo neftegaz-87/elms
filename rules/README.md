@@ -68,7 +68,7 @@ Codex **не** читает `.cursor/rules.d/*.mdc`.
 |------|------------|
 | `elms-approach.mdc` | продукт Operations+LMS; роли из LMS/`elms`; ERP/CRM только паттерны Frappe |
 | `elms-design.mdc` | UI: neftegaz-ai-layer + родной LMS |
-| `elms-testing.mdc` | разрешённые команды проверок (pytest / run_browser_qa / live_smoke); запрет bench/pnpm playwright |
+| `elms-testing.mdc` | разрешённые проверки; один `make local.restart` в начале APP QA (не на каждый browser); запрет bench/pnpm playwright |
 | `agents-overlay.md` | что из hub `AGENTS.md` не канон; стиль кода/тестов → ссылка на `elms-testing.mdc` |
 
 Продуктовый SoT рядом: `memory-bank/product/` (`modules.md`, `vision.md`, `design.md`).

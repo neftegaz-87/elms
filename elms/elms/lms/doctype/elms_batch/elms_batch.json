@@ -12,7 +12,10 @@
   "end_date",
   "instructor",
   "order_number",
-  "status"
+  "status",
+  "section_break_custom_fields",
+  "custom_field_values",
+  "custom_field_schema_version"
  ],
  "fields": [
   {"fieldname": "organization", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Organization", "options": "ELMS Organization", "reqd": 1},
@@ -62,14 +65,6 @@
    "options": "User"
   },
   {
-   "fieldname": "organization",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Customer Organization",
-   "options": "ELMS Organization",
-   "reqd": 1
-  },
-  {
    "fieldname": "order_number",
    "fieldtype": "Data",
    "label": "Order Number"
@@ -81,6 +76,24 @@
    "in_list_view": 1,
    "label": "Status",
    "options": "Planning\nActive\nCompleted\nCancelled"
+  },
+  {
+   "fieldname": "section_break_custom_fields",
+   "fieldtype": "Section Break",
+   "label": "Additional fields"
+  },
+  {
+   "fieldname": "custom_field_values",
+   "fieldtype": "JSON",
+   "hidden": 1,
+   "label": "Additional fields values"
+  },
+  {
+   "default": 1,
+   "fieldname": "custom_field_schema_version",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Additional fields schema version"
   }
  ],
  "links": [],

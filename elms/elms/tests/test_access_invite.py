@@ -51,7 +51,9 @@ class TestInviteContract(unittest.TestCase):
 
     def test_invite_returns_keycloak_identity_without_password(self):
         with (
-            patch.object(access_api, "_is_admin", return_value=True),
+            patch.object(access_api, "_is_admin", return_value=False),
+            patch.object(access_api, "_roles", return_value={"ELMS Company Admin"}),
+            patch.object(access_api, "organization_membership_exists", return_value=True),
             patch.object(access_api, "_db_exists", return_value=False),
             patch.object(access_api, "_create_or_get_frappe_user", return_value=(SimpleNamespace(name="person@example.com", flags=SimpleNamespace()), True)),
             patch.object(access_api, "_ensure_membership_and_scope"),
@@ -69,7 +71,9 @@ class TestInviteContract(unittest.TestCase):
     def test_keycloak_failure_disables_new_local_user_and_raises(self):
         user = SimpleNamespace(name="person@example.com", enabled=1, flags=SimpleNamespace(), save=MagicMock())
         with (
-            patch.object(access_api, "_is_admin", return_value=True),
+            patch.object(access_api, "_is_admin", return_value=False),
+            patch.object(access_api, "_roles", return_value={"ELMS Company Admin"}),
+            patch.object(access_api, "organization_membership_exists", return_value=True),
             patch.object(access_api, "_db_exists", return_value=False),
             patch.object(access_api, "_create_or_get_frappe_user", return_value=(user, True)),
             patch.object(access_api, "_ensure_membership_and_scope"),

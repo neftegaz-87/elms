@@ -11,6 +11,8 @@
   "course_name",
   "program_enrollment",
   "subscription",
+  "source_import",
+  "learner_profile_snapshot",
   "enrollment_date",
   "status"
  ],
@@ -61,6 +63,17 @@
    "in_list_view": 1,
    "label": "Subscription / Quota",
    "options": "ELMS Subscription"
+  },
+  {
+   "fieldname": "source_import",
+   "fieldtype": "Link",
+   "label": "Source Import",
+   "options": "ELMS Admission Import"
+  },
+  {
+   "fieldname": "learner_profile_snapshot",
+   "fieldtype": "Long Text",
+   "label": "Learner Profile Snapshot"
   },
   {
    "default": "Today",

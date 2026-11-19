@@ -1,7 +1,7 @@
 # Архитектурные паттерны системы (systemPatterns)
 
-**Дата:** 2026-11-18
-**Статус:** Базовые системные паттерны подтверждены по результатам T-A11, T-A10, T-A09 и T-A08 APP QA PASS, T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
+**Дата:** 2026-11-19
+**Статус:** Базовые системные паттерны подтверждены по результатам T-A13, T-A12, T-A11, T-A10, T-A09 и T-A08 APP QA PASS, T-B08 QA PASS, T-B07 QA PASS, T-B06 QA PASS, T-B05 QA PASS, T-A01 APP QA PASS, T-B04 QA PASS и T-B03 re-QA PASS; добавлен decision-only паттерн Central Observability
 
 ## 1. Slim Single-App Frappe Architecture
 
@@ -149,3 +149,17 @@
 - **Credential privacy:** Missing-email rows receive deterministic synthetic identity data; the protected invite token is revealed only through an authorized one-time audit path and is absent from preview data.
 - **Downstream handoff:** Upload/inspect/export/reveal stay on whitelisted API/Desk paths and emit structured rows only. The import boundary must not create or call `ELMS Enrollment`; T-A12 owns enrollment.
 - **Acceptance boundary:** APP QA PASS covered required backend, frontend_build, leftover_sot and wire_journey lanes; browser/live_smoke were n/a because wire absorbed the feature journey and preflight. AC-001..AC-004, organization authz and provider/error recovery all passed; typed wire evidence is `browser-qa-trace/v1` with `status=pass`, `live_evidence=true` and `exit_code=0`. BF-001..BF-006 are closed/cancelled; exploratory coverage remained optional/not_run and no blockers remain.
+
+## 16. B2B Admission Confirmation and Quota-Safe Enrollment (`T-A12`)
+
+- **Typed confirmation boundary:** `confirm_admission_import` accepts only parsed import state and selected rows through the typed API contract; the Company Admin cabinet is a caller of that server authority and renders the explicit result report.
+- **Atomic admission transaction:** validate all selected rows, subscription seats, exact active Course/Batch resolution, owner-catalog flags, and organization ownership before writes. Quota exhaustion, ambiguity, missing matches, and cross-organization access fail closed without partial enrollments or seat/audit mutations.
+- **Enrollment and audit state:** successful rows create/link Active `ELMS Enrollment` records, snapshot unified Learner Profile data, account subscription seats, and record actor, source import, and confirmed row count in the audit boundary.
+- **Acceptance boundary:** APP QA PASS covered backend, frontend_build, and authenticated wire_journey; browser/live_smoke were n/a because wire absorbed the feature journey and preflight. Runtime evidence passed `JRN-T-A12-B2B-CONFIRM-001` with `200/confirmed/ok`, one Active enrollment, seats `98→97`, `console_errors=[]`, and `request_failures=[]`; BF-T-A12-001 is closed.
+
+## 17. Typed Custom Fields for Course/Program/Batch (`T-A13`)
+
+- **Schema authority:** organization-scoped CustomFieldDefinition records expose only Course, Program and Batch targets through the whitelisted schema manager; versioned JSON values are validated on write and incompatible payloads fail closed.
+- **Inheritance and form contract:** Program→Course→Batch resolution preserves explicit zero/false overrides; target forms render Additional fields through the shared API and persist via canonical form save/readback, with no parallel free-text store.
+- **Surface boundary:** Chapter, Lesson and Category custom-field endpoints and UI remain outside the MVP surface; leftover-SOT checks confirm no unsupported target leakage.
+- **Acceptance boundary:** APP QA PASS covered backend, frontend_build, wire_journey and leftover_sot; browser/live_smoke were absorbed by wire/preflight. Typed evidence `JRN-T-A13-CUSTOM-FIELDS-001` has `status=pass`, `live_evidence=true`, `exit_code=0`; BF-001..BF-003 are done and no blockers remain.

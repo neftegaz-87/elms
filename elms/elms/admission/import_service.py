@@ -423,6 +423,7 @@ def _parent_projection(doc: Any) -> dict[str, Any]:
     return {
         "name": str(getattr(doc, "name", "")),
         "status": str(getattr(doc, "status", "")),
+        "subscription_id": str(getattr(doc, "subscription_id", "") or ""),
         "schema_version": str(getattr(doc, "schema_version", SCHEMA_VERSION)),
         "file_hash": str(getattr(doc, "file_hash", "")),
         "revision": int(getattr(doc, "revision", 1) or 1),
@@ -438,6 +439,7 @@ def persist_import(
     file_name: str,
     content: bytes,
     new_revision: bool = False,
+    subscription_id: str | None = None,
     provider: Callable[[WorkbookDraft, str | None], tuple[AdmissionAIResponse, str]] = call_grounded_parser,
 ) -> dict[str, Any]:
     digest = file_hash(content)
@@ -447,6 +449,8 @@ def persist_import(
     revision = int((existing or {}).get("revision", 0) or 0) + 1 if isinstance(existing, dict) else 1
     parent = frappe.new_doc(IMPORT_DOCTYPE)
     parent.organization = organization
+    if subscription_id:
+        parent.subscription_id = subscription_id
     parent.source_file_name = file_name
     parent.file_hash = digest
     parent.schema_version = SCHEMA_VERSION

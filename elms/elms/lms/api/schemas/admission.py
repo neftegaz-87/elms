@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+FRAPPE_TRANSPORT_KEYS = frozenset({"cmd", "csrf_token"})
+
 
 class AdmissionConfirmRequest(BaseModel):
     """Validated payload accepted by preview and confirmation endpoints."""
@@ -85,6 +87,8 @@ def parse_admission_request(
         raise ValueError("Admission payload must be a JSON object")
     normalized = dict(value)
     normalized.update(kwargs)
+    for key in FRAPPE_TRANSPORT_KEYS:
+        normalized.pop(key, None)
     if import_id is not None:
         normalized["import_id"] = import_id
     if row_ids is not None:

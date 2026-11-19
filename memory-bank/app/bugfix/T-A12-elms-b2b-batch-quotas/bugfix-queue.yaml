@@ -1,0 +1,45 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A12-elms-b2b-batch-quotas
+role: app
+status: closed
+source_qa: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/qa-20261118-b2b-batch-quotas-reqa.yaml
+checklist_sha256: 20bc055e0951475118b99be8e27b91935d0813a843fe2cf709f6ecf8e82723f0
+created_at: '2026-11-18T15:19:37Z'
+updated_at: '2026-11-18T21:44:05Z'
+current_id: BF-T-A12-001
+verification:
+  status: pass
+  command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence_file: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json
+  last_run_at: '2026-11-18T21:44:05Z'
+  evidence: Wire PASS. JRN-A11 and JRN-T-A12-B2B-CONFIRM-001 green; confirm returns
+    ok/confirmed with enrolled_count=1. Thrashing loop stopped; one restart policy
+    applied; cmd/csrf strip + Admission Profile B2B path + enrollment user/org fields
+    + audit activity_type/timestamp + harness race clear fixed.
+items:
+- id: BF-T-A12-001
+  status: done
+  class: product_bugfix
+  title: 'product_bugfix: B2B confirm wire — transport parse, profile, enrollment,
+    audit, harness'
+  blocker_ref: resolved|wire green JRN-T-A12-B2B-CONFIRM-001
+  fix_plan_ref: Strip Frappe transport keys; enable platform-owner catalog flags;
+    upsert ELMS Admission Profile via from_b2b_admission; enrollment user+organization+snapshot;
+    audit activity_type/timestamp; save_point= kwarg; harness clear preview/result
+    race.
+  targets:
+  - elms/elms/lms/api/schemas/admission.py
+  - elms/elms/lms/api/admission.py
+  - elms/elms/lms/services/b2b_admission.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+  - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+  - elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.py
+  - elms/elms/tenant.py
+  - elms/elms/tests/test_b2b_batch_quotas.py
+  - scripts/run_browser_qa.py
+  - memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json
+  verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence_file: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json
+  done_at: '2026-11-18T21:44:05Z'
+  evidence: browser QA PASSED; exit_code 0; both journeys pass
+  notes: Do not reopen as harness_probe_race. Restart only once at QA start.

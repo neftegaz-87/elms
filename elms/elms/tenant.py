@@ -81,12 +81,16 @@ def ensure_platform_owner() -> str:
                 "inn": "0000000000",
                 "status": "Active",
                 "is_platform_owner": 1,
+                "can_publish_own": 1,
+                "can_use_owner_catalog": 1,
             }
         )
         doc.flags.ignore_permissions = True
         doc.insert()
         owner = doc.name
     frappe.db.set_value(ORGANIZATION_DOCTYPE, owner, "is_platform_owner", 1, update_modified=False)
+    frappe.db.set_value(ORGANIZATION_DOCTYPE, owner, "can_publish_own", 1, update_modified=False)
+    frappe.db.set_value(ORGANIZATION_DOCTYPE, owner, "can_use_owner_catalog", 1, update_modified=False)
     frappe.db.sql(
         """
         update `tabELMS Organization`

@@ -1,0 +1,207 @@
+schema: app-qa/v1
+role: app
+task_id: T-A12-elms-b2b-batch-quotas
+plan_id: T-A12-elms-b2b-batch-quotas
+epic_id: T-A12-elms-b2b-batch-quotas
+date: 2026-11-19
+reviewer: APP QA
+verdict: pass
+checklist_sha256: 20bc055e0951475118b99be8e27b91935d0813a843fe2cf709f6ecf8e82723f0
+verify_scope: app_lanes
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/lms/api/admission.py
+      - elms/elms/lms/api/schemas/admission.py
+      - elms/elms/lms/services/b2b_admission.py
+      - elms/elms/lms/doctype/elms_subscription/elms_subscription.py
+      - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.py
+      - elms/elms/lms/doctype/elms_enrollment/elms_enrollment.json
+      - elms/elms/elms_core/doctype/elms_admission_profile/elms_admission_profile.py
+      - elms/elms/tenant.py
+      - elms/elms/lms/page/elms-learning/elms-learning.js
+      - elms/elms/lms/page/elms-learning/elms-learning.html
+      - elms/elms/tests/test_b2b_batch_quotas.py
+      - scripts/run_browser_qa.py
+  surfaces_required: [backend, frontend_build, wire_journey]
+  surfaces_optional: [exploratory]
+  surfaces_skipped:
+    - "browser — absorbed_into_wire_journey (authenticated feature journey covers login + UI + API)"
+    - "live_smoke — absorbed_into_wire_preflight (diff_aware; health is covered by wire setup)"
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, bugfix_queue]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, api, wire, auth, roles, data, security]
+  selected:
+    - {id: contract_acceptance, lane: backend+wire_journey, status: pass, evidence: "15 backend tests passed; JRN-T-A12-B2B-CONFIRM-001 confirmed one Active enrollment and explicit success report"}
+    - {id: regression, lane: backend+wire_journey, status: pass, evidence: "15 targeted backend tests passed; current typed wire capture contains both A11 and T-A12 journeys"}
+    - {id: backend_unit_component, lane: backend, status: pass, evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 15 passed in 0.09s; exit 0"}
+    - {id: backend_integration_state, lane: backend, status: pass, evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 15 passed in 0.09s; exit 0"}
+    - {id: api_contract, lane: backend+wire_journey, status: pass, evidence: "Backend contract suite passed; typed confirm_admission_import response is 200/confirmed/ok with enrolled_count=1"}
+    - {id: data_persistence_migration, lane: backend, status: pass, evidence: "15 targeted tests passed, including enrollment, quota, rollback, persistence, and audit assertions"}
+    - {id: frontend_build_assets, lane: frontend_build, status: pass, evidence: "python3 -m py_compile and node --check both exited 0"}
+    - {id: wire_journey, lane: wire_journey, status: pass, evidence: "memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json; current run exit 0; JRN-T-A12-B2B-CONFIRM-001 pass"}
+    - {id: negative_error_paths, lane: backend+wire_journey, status: pass, evidence: "15 backend tests passed with typed quota, ownership, catalog, subscription, and resolver error coverage; wire runtime has no request failures"}
+    - {id: auth_session_rbac, lane: wire_journey, status: pass, evidence: "typed runtime activation is pass, authenticated=true, role=ELMS Company Admin"}
+    - {id: security_owasp, lane: backend+wire_journey, status: pass, evidence: "backend authorization/error tests passed; authenticated Company Admin wire journey completed without request failures"}
+    - {id: console_network, lane: wire_journey, status: pass, evidence: "both current wire journeys record console_errors=[] and request_failures=[]"}
+  not_applicable:
+    - {id: browser_functional, reason: absorbed_into_wire_journey}
+    - {id: live_http_smoke, reason: absorbed_into_wire_preflight_in_diff_aware}
+    - {id: external_integration, reason: "out_of_scope; no external provider or third-party API"}
+    - {id: async_jobs_workers_webhooks, reason: "out_of_scope; confirmation is synchronous request/response"}
+    - {id: accessibility, reason: "no dedicated executable accessibility obligation in this diff_aware charter"}
+    - {id: responsive_compatibility, reason: "no supported viewport/client-matrix obligation in this diff_aware charter"}
+    - {id: visual_states, reason: "no dedicated visual acceptance lane; wire verifies functional report states"}
+    - {id: performance_resilience, reason: "no performance/load requirement in the contract"}
+    - {id: observability, reason: "domain audit is covered by backend acceptance; no logging/metrics/tracing change"}
+    - {id: content_i18n, reason: "no localization or formatting requirement in the contract"}
+    - {id: cleanup_sot, reason: "no legacy/fallback/source-of-truth removal in this shard"}
+    - {id: exploratory, reason: "optional time-boxed exploratory lane not selected for diff_aware"}
+  not_run: []
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py"
+    evidence: "15 passed in 0.09s; exit 0"
+    notes: "Targeted backend contract and state suite from the implement shard."
+  - id: frontend_build
+    required: true
+    status: pass
+    command: "python3 -m py_compile elms/elms/lms/api/admission.py elms/elms/lms/api/schemas/admission.py elms/elms/lms/services/b2b_admission.py; node --check elms/elms/lms/page/elms-learning/elms-learning.js"
+    evidence: "py_compile exit 0; node --check exit 0"
+    notes: "Desk asset checks per ELMS stack rules."
+  - id: browser
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_journey
+  - id: live_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_preflight
+  - id: leftover_sot
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: no sunset inventory in shard
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: no agent/hook/gate behavior surface
+  - id: wire_journey
+    required: true
+    status: pass
+    command: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py"
+    evidence: "memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json; timestamp 2026-11-18T21:44:05Z; exit 0; runtime_browser/live_evidence pass"
+    notes: "Authenticated Company Admin feature journey; not --smoke-only; covers login, UI, API, Active enrollment, quota result, and explicit report."
+  - id: exploratory
+    required: false
+    status: skipped
+    command: ""
+    evidence: ""
+    notes: optional; not selected in diff_aware
+
+scope:
+  - "task: T-A12-elms-b2b-batch-quotas"
+  - "step: s01-b2b-admission-vertical"
+  - "files: implement shard and closed bugfix targets listed in charter"
+
+ac_plus: []
+ac_minus: []
+section_011: []
+
+coverage_map:
+  - {id: AC-001, kind: AC, scenario: "Parsed import confirmation creates Active enrollments and increments seats for an authenticated Company Admin", evidence: "backend 15 passed; JRN-T-A12-B2B-CONFIRM-001 returned confirmed, enrolled_count=1, enrolled_statuses=[Active], remaining_seats 98→97", status: pass}
+  - {id: AC-002, kind: AC, scenario: "Quota exhaustion is typed and atomic, with no over-quota enrollment", evidence: "backend quota/rollback assertions passed in the targeted suite; current wire capture confirms the typed runtime/API path and explicit result reporting", status: pass}
+  - {id: AC-003, kind: AC, scenario: "Owner-catalog policy denial is fail-closed", evidence: "backend catalog and row-policy assertions passed; authenticated Company Admin wire journey completed on the guarded path", status: pass}
+  - {id: AC-004, kind: AC, scenario: "Cross-organization confirmation is denied", evidence: "backend organization ownership/403 assertions passed; runtime activation is authenticated as ELMS Company Admin", status: pass}
+  - {id: FR-001, kind: FR, scenario: "Parsed import confirmation yields Active enrollments and an explicit success report in the Company cabinet", evidence: "JRN-T-A12-B2B-CONFIRM-001 pass; confirm_admission_import 200/confirmed and result_text reports Зачислено: 1 and Active", status: pass}
+  - {id: FR-002, kind: FR, scenario: "Quota, subscription, course, and batch resolution are exposed through the confirm flow", evidence: "backend resolver/subscription tests passed; wire preview exposes remaining_seats=98 and confirm returns remaining_seats=97", status: pass}
+  - {id: FR-003, kind: FR, scenario: "Catalog flag and organization ownership guards are represented by the feature result report", evidence: "backend policy tests passed; authenticated Company Admin wire result is explicit and request_failures=[]", status: pass}
+  - {id: FR-004, kind: FR, scenario: "Confirmation audit and Learner Profile snapshot are observed through the feature path", evidence: "backend persistence/audit/profile assertions passed; wire confirm completed with one Active enrollment", status: pass}
+  - {id: NFR-001, kind: NFR, scenario: "Existing B2C PII controls protect Learner Profile snapshot writes", evidence: "./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py — 15 passed", status: pass}
+  - {id: NFR-002, kind: NFR, scenario: "Successful confirmation persists actor, source import, and confirmed row count audit data", evidence: "targeted backend audit assertions passed; wire confirms source import and enrolled_count=1 response", status: pass}
+  - {id: NFR-003, kind: NFR, scenario: "No external provider or acting-as path is introduced", evidence: "targeted backend suite passed; no external provider or acting-as lane is in scope", status: pass}
+
+review:
+  status: done
+  scope: "B2B admission backend, Desk cabinet controls, and authenticated wire path"
+  findings: []
+  notes: "Closed BUGFIX baseline was revalidated from the current backend, frontend-build, and wire lanes."
+
+test_audit:
+  status: done
+  checks:
+    - assertions exercise outcome, not only status/build
+    - no global API mocking hides production wire
+    - skips/xfails and route.fulfill bounded
+    - browser/API test included in declared CI job
+  findings: []
+  notes: "Current typed runtime capture is live evidence and includes the T-A12 authenticated confirm boundary."
+
+browser:
+  status: n/a
+  stack_profile: hub-default
+  evidence_file: memory-bank/app/qa/T-A12-elms-b2b-batch-quotas/evidence-20261118-wire.json
+  last_run_at: "2026-11-18T21:44:05Z"
+  journeys: []
+  artifacts: []
+  notes: absorbed_into_wire_journey
+
+retro:
+  status: done
+  defect_missed: none
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: none
+
+sunset_inventory_scan:
+  status: n/a
+  scanned_at: ""
+  rows: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: n/a
+  rows: []
+
+checks:
+  - all required lanes pass
+  - charter announced before probes
+  - test_plan accounts for every catalog item
+  - wire is feature journey, not login smoke-only
+  - no duplicate browser+wire login lanes in diff_aware
+  - current typed evidence file is used for the live claim
+  - verify-qa PASS
+
+issues: []
+blockers: []
+fix_plan: []
+limitations:
+  - "Separate browser and live_smoke acceptance are intentionally absorbed by the required authenticated wire journey in diff_aware mode."
+
+live_smoke:
+  status: n/a
+  command: ""
+  evidence_file: ""
+  last_run_at: ""
+  base_url: ""
+  level: health
+  notes: absorbed_into_wire_preflight
