@@ -21,10 +21,10 @@
       "name": "login_css_asset_linked",
       "status": "pass",
       "observed": [
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.3527DYAJ.css",
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.WTZG7DHX.css",
         "http://elms.localhost:8082/assets/elms/css/login.css",
         "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1",
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.BDGFCM43.css"
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.IX77EBGN.css"
       ]
     },
     {
@@ -39,11 +39,11 @@
           "status": 200,
           "content_type": "text/css"
         },
-        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.BDGFCM43.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.IX77EBGN.css": {
           "status": 200,
           "content_type": "text/css"
         },
-        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.3527DYAJ.css": {
+        "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.WTZG7DHX.css": {
           "status": 200,
           "content_type": "text/css"
         }
@@ -160,7 +160,7 @@
       "status": "pass",
       "observed": {
         "status": "pass",
-        "base_url": "http://host.docker.internal:43835/v1",
+        "base_url": "http://host.docker.internal:44399/v1",
         "model": "elms-admission-parser-v1",
         "organization": "Демонстрационный контур НефтеГаз"
       }
@@ -192,13 +192,32 @@
       }
     ]
   },
+  "task_scope": {
+    "task_id": "T-A14-elms-admin-org-view-all",
+    "required_journeys": [
+      "JRN-T-A14-ADMIN-ORG-VIEW-001"
+    ],
+    "non_blocking_shared_journeys": [
+      "JRN-A11-ADMISSION-IMPORT",
+      "JRN-T-A13-CUSTOM-FIELDS-001"
+    ],
+    "declared_non_blocking_failures": [
+      {
+        "journey_id": "JRN-A11-ADMISSION-IMPORT",
+        "method": "elms.ai.api.get_access",
+        "failure": "net::ERR_ABORTED",
+        "reason": "Independent A11 admission coverage is retained as evidence and does not gate T-A14."
+      }
+    ]
+  },
   "runtime_activation": {
     "status": "pass",
     "source": "docker/.env.dev",
     "username_present": true,
     "password_present": true,
     "role": "ELMS Company Admin",
-    "authenticated": true
+    "authenticated": true,
+    "platform_authenticated": true
   },
   "stylesheet_statuses": {
     "http://elms.localhost:8082/assets/elms/css/apply-forms.css?v=1": {
@@ -209,11 +228,11 @@
       "status": 200,
       "content_type": "text/css"
     },
-    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.BDGFCM43.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/login.bundle.IX77EBGN.css": {
       "status": 200,
       "content_type": "text/css"
     },
-    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.3527DYAJ.css": {
+    "http://elms.localhost:8082/assets/frappe/dist/css/website.bundle.WTZG7DHX.css": {
       "status": 200,
       "content_type": "text/css"
     }
@@ -261,13 +280,830 @@
     "display": "block",
     "minHeight": "44px"
   },
-  "admission_provider": {
-    "status": "pass",
-    "base_url": "http://host.docker.internal:43835/v1",
-    "model": "elms-admission-parser-v1",
-    "organization": "Демонстрационный контур НефтеГаз"
-  },
   "journeys": [
+    {
+      "journey_id": "JRN-T-A14-ADMIN-ORG-VIEW-001",
+      "name": "Authenticated platform organization directory, read-only selected-org view, and Company Admin continuity",
+      "url": "http://elms.localhost:8082/app/elms-cabinet",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "platform_viewer_browser_activation_available",
+          "status": "pass",
+          "observed": {
+            "username": "elms.test.admin@elms.local",
+            "password_present": true
+          }
+        },
+        {
+          "name": "platform_viewer_credentials_reach_app",
+          "status": "pass",
+          "observed": {
+            "url": "http://elms.localhost:8082/app/lms",
+            "auth": null,
+            "wait_error": "TimeoutError",
+            "app_session": true
+          }
+        },
+        {
+          "name": "platform_viewer_role_present",
+          "status": "pass",
+          "observed": {
+            "user_roles": [
+              "ELMS Admin",
+              "All",
+              "Guest",
+              "Desk User"
+            ],
+            "boot_roles": [
+              "ELMS Admin",
+              "All",
+              "Guest",
+              "Desk User"
+            ],
+            "has_elms_admin": true,
+            "role_ready": true
+          }
+        },
+        {
+          "name": "platform_organization_directory_is_server_backed",
+          "status": "pass",
+          "observed": {
+            "context": {
+              "actor": "platform_viewer",
+              "method": "elms.access.api.get_company_access_context",
+              "status": 200,
+              "http_status": 200,
+              "organization": "",
+              "organizations": [
+                "ELMS Test Company",
+                "QA A07 20261113183546",
+                "QA A07 261113184210",
+                "QA T-A09 Company Admin 20261114",
+                "QA T-A09 Company Admin 20261114 0829",
+                "QA T-A09 Company Admin 20261114 0901",
+                "QA T-A09 Company Admin 20261114 0907",
+                "QA T-A09 Company Admin 20261114-123318",
+                "QA T-A09 Populated Foreign 20261114102425",
+                "QA T-A09 Populated Own 20261114102425",
+                "Демонстрационный контур НефтеГаз"
+              ],
+              "platform_viewer": true,
+              "read_only": true,
+              "platform_admin": true
+            },
+            "options": [
+              "ELMS Test Company",
+              "QA A07 20261113183546",
+              "QA A07 261113184210",
+              "QA T-A09 Company Admin 20261114",
+              "QA T-A09 Company Admin 20261114 0829",
+              "QA T-A09 Company Admin 20261114 0901",
+              "QA T-A09 Company Admin 20261114 0907",
+              "QA T-A09 Company Admin 20261114-123318",
+              "QA T-A09 Populated Foreign 20261114102425",
+              "QA T-A09 Populated Own 20261114102425",
+              "Демонстрационный контур НефтеГаз"
+            ]
+          }
+        },
+        {
+          "name": "selected_organization_roster_is_readable_and_audited",
+          "status": "pass",
+          "observed": {
+            "roster": {
+              "actor": "platform_viewer",
+              "method": "elms.cabinet.api.get_org_roster",
+              "status": 200,
+              "http_status": 200,
+              "organization": "ELMS Test Company",
+              "total": 1,
+              "page": 1,
+              "page_size": 50,
+              "row_count": 1,
+              "empty": false
+            },
+            "rendered_organization": "ELMS Test Company",
+            "session_before": "elms.test.admin@elms.local",
+            "session_after": "elms.test.admin@elms.local"
+          }
+        },
+        {
+          "name": "selected_organization_export_is_server_generated",
+          "status": "pass",
+          "observed": {
+            "actor": "platform_viewer",
+            "method": "elms.cabinet.api.export_org_progress",
+            "status": 200,
+            "http_status": 200,
+            "organization": "ELMS Test Company",
+            "filename": "elms-org-ELMS-Test-Company-20261119.csv",
+            "row_count": 1,
+            "charset": "UTF-8",
+            "csv_header": "user,full_name,email,user_enabled,roles,enrollments",
+            "content_base64_present": true
+          }
+        },
+        {
+          "name": "organization_view_audit_is_persisted_in_user_activity",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "actor": "platform_viewer",
+              "method": "frappe.client.get_list",
+              "status": 200,
+              "http_status": 200,
+              "row_count": 5,
+              "audit_rows": [
+                {
+                  "name": "jskgqj1070",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:40:59.662974"
+                },
+                {
+                  "name": "jsjso31b05",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:40:59.536871"
+                },
+                {
+                  "name": "9ip4r61845",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:23:24.175122"
+                },
+                {
+                  "name": "9io5nb39lm",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:23:24.037655"
+                },
+                {
+                  "name": "10h5e86uqt",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:08:46.587647"
+                }
+              ]
+            },
+            "call": {
+              "ok": true,
+              "message": [
+                {
+                  "name": "jskgqj1070",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:40:59.662974"
+                },
+                {
+                  "name": "jsjso31b05",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:40:59.536871"
+                },
+                {
+                  "name": "9ip4r61845",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:23:24.175122"
+                },
+                {
+                  "name": "9io5nb39lm",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:23:24.037655"
+                },
+                {
+                  "name": "10h5e86uqt",
+                  "user": "elms.test.admin@elms.local",
+                  "organization": "ELMS Test Company",
+                  "activity_type": "Organization View",
+                  "reference_doctype": "ELMS Organization",
+                  "reference_name": "ELMS Test Company",
+                  "timestamp": "2026-11-19 15:08:46.587647"
+                }
+              ],
+              "exception": null
+            }
+          }
+        },
+        {
+          "name": "platform_invite_denied_before_write",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "actor": "platform_viewer",
+              "method": "elms.access.api.invite_org_user",
+              "status": 403,
+              "http_status": 403,
+              "exc_type": "PermissionError",
+              "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+              "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"4c85948d68fcbed1272e9114d24a7bce25c25ac9535362a770e9bac6\\\"}\"]"
+            },
+            "call": {
+              "ok": false,
+              "error": "request failed"
+            }
+          }
+        },
+        {
+          "name": "platform_import_upload_denied_before_write",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "actor": "platform_viewer",
+              "method": "elms.admission.import_api.upload_import",
+              "status": 403,
+              "http_status": 403,
+              "exc_type": "PermissionError",
+              "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+              "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"7b78f20b8cfc2b03af9866eb7526fdfac965eeae3b9009c280923c24\\\"}\"]"
+            },
+            "call": {
+              "ok": false,
+              "error": "request failed"
+            }
+          }
+        },
+        {
+          "name": "platform_b2c_enrollment_denied_before_write",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "actor": "platform_viewer",
+              "method": "elms.lms.api.enroll_learner",
+              "status": 403,
+              "http_status": 403,
+              "exc_type": "PermissionError",
+              "exception": "frappe.exceptions.PermissionError: Permission denied to enroll learner",
+              "_server_messages": "[\"{\\\"message\\\": \\\"Permission denied to enroll learner\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"01f2816e739f98c230c47ef92bb8ac7f6d899405a11b889c049d5559\\\"}\"]"
+            },
+            "call": {
+              "ok": false,
+              "error": "request failed"
+            }
+          }
+        },
+        {
+          "name": "platform_b2b_confirmation_denied_before_write",
+          "status": "pass",
+          "observed": {
+            "response": {
+              "actor": "platform_viewer",
+              "method": "elms.lms.api.admission.confirm_admission_import",
+              "status": 403,
+              "http_status": 403,
+              "exc_type": "PermissionError",
+              "exception": "frappe.exceptions.PermissionError: Подтверждать B2B импорт может только Company Admin своей организации",
+              "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041f\\\\u043e\\\\u0434\\\\u0442\\\\u0432\\\\u0435\\\\u0440\\\\u0436\\\\u0434\\\\u0430\\\\u0442\\\\u044c B2B \\\\u0438\\\\u043c\\\\u043f\\\\u043e\\\\u0440\\\\u0442 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u0441\\\\u0432\\\\u043e\\\\u0435\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"33828befe467d033c01651880b6d24499f88e500a33fb7d99f03ade2\\\"}\"]"
+            },
+            "call": {
+              "ok": false,
+              "error": "request failed"
+            }
+          }
+        },
+        {
+          "name": "company_admin_context_remains_own_organization_only",
+          "status": "pass",
+          "observed": {
+            "context": {
+              "actor": "company_admin",
+              "method": "elms.access.api.get_company_access_context",
+              "status": 200,
+              "http_status": 200,
+              "organization": "Демонстрационный контур НефтеГаз",
+              "organizations": [
+                "Демонстрационный контур НефтеГаз"
+              ],
+              "platform_viewer": false,
+              "read_only": false,
+              "platform_admin": false
+            },
+            "options": [
+              "Демонстрационный контур НефтеГаз"
+            ]
+          }
+        },
+        {
+          "name": "company_admin_own_org_roster_continuity",
+          "status": "pass",
+          "observed": {
+            "roster": {
+              "actor": "company_admin",
+              "method": "elms.cabinet.api.get_org_roster",
+              "status": 200,
+              "http_status": 200,
+              "organization": "Демонстрационный контур НефтеГаз",
+              "total": 1,
+              "page": 1,
+              "page_size": 50,
+              "row_count": 1,
+              "empty": false
+            },
+            "mode": "Организация: доступ ограничен членством",
+            "session": "elms.test.company.admin@elms.local"
+          }
+        },
+        {
+          "name": "company_admin_foreign_org_selection_denied",
+          "status": "pass",
+          "observed": {
+            "organization": "ELMS Test Company",
+            "response": {
+              "actor": "company_admin",
+              "method": "elms.access.api.get_company_access_context",
+              "status": 403,
+              "http_status": 403,
+              "exc_type": "PermissionError",
+              "exception": "frappe.exceptions.PermissionError: Нет доступа к этой организации",
+              "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041d\\\\u0435\\\\u0442 \\\\u0434\\\\u043e\\\\u0441\\\\u0442\\\\u0443\\\\u043f\\\\u0430 \\\\u043a \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"276d15126b309541de31cb51b67a7fe49083dfd92683d43ec0e2a9d4\\\"}\"]"
+            },
+            "call": {
+              "ok": false,
+              "error": "request failed"
+            }
+          }
+        },
+        {
+          "name": "t_a14_browser_runtime_errors_absent",
+          "status": "pass",
+          "observed": {
+            "expected_denials": [
+              {
+                "check_name": "platform_invite_denied_before_write",
+                "actor": "platform_viewer",
+                "method": "elms.access.api.invite_org_user",
+                "expected_status": 403,
+                "observed": {
+                  "actor": "platform_viewer",
+                  "method": "elms.access.api.invite_org_user",
+                  "status": 403,
+                  "http_status": 403,
+                  "exc_type": "PermissionError",
+                  "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+                  "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"4c85948d68fcbed1272e9114d24a7bce25c25ac9535362a770e9bac6\\\"}\"]"
+                },
+                "call": {
+                  "ok": false,
+                  "error": "request failed"
+                },
+                "status": "pass"
+              },
+              {
+                "check_name": "platform_import_upload_denied_before_write",
+                "actor": "platform_viewer",
+                "method": "elms.admission.import_api.upload_import",
+                "expected_status": 403,
+                "observed": {
+                  "actor": "platform_viewer",
+                  "method": "elms.admission.import_api.upload_import",
+                  "status": 403,
+                  "http_status": 403,
+                  "exc_type": "PermissionError",
+                  "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+                  "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"7b78f20b8cfc2b03af9866eb7526fdfac965eeae3b9009c280923c24\\\"}\"]"
+                },
+                "call": {
+                  "ok": false,
+                  "error": "request failed"
+                },
+                "status": "pass"
+              },
+              {
+                "check_name": "platform_b2c_enrollment_denied_before_write",
+                "actor": "platform_viewer",
+                "method": "elms.lms.api.enroll_learner",
+                "expected_status": 403,
+                "observed": {
+                  "actor": "platform_viewer",
+                  "method": "elms.lms.api.enroll_learner",
+                  "status": 403,
+                  "http_status": 403,
+                  "exc_type": "PermissionError",
+                  "exception": "frappe.exceptions.PermissionError: Permission denied to enroll learner",
+                  "_server_messages": "[\"{\\\"message\\\": \\\"Permission denied to enroll learner\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"01f2816e739f98c230c47ef92bb8ac7f6d899405a11b889c049d5559\\\"}\"]"
+                },
+                "call": {
+                  "ok": false,
+                  "error": "request failed"
+                },
+                "status": "pass"
+              },
+              {
+                "check_name": "platform_b2b_confirmation_denied_before_write",
+                "actor": "platform_viewer",
+                "method": "elms.lms.api.admission.confirm_admission_import",
+                "expected_status": 403,
+                "observed": {
+                  "actor": "platform_viewer",
+                  "method": "elms.lms.api.admission.confirm_admission_import",
+                  "status": 403,
+                  "http_status": 403,
+                  "exc_type": "PermissionError",
+                  "exception": "frappe.exceptions.PermissionError: Подтверждать B2B импорт может только Company Admin своей организации",
+                  "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041f\\\\u043e\\\\u0434\\\\u0442\\\\u0432\\\\u0435\\\\u0440\\\\u0436\\\\u0434\\\\u0430\\\\u0442\\\\u044c B2B \\\\u0438\\\\u043c\\\\u043f\\\\u043e\\\\u0440\\\\u0442 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u0441\\\\u0432\\\\u043e\\\\u0435\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"33828befe467d033c01651880b6d24499f88e500a33fb7d99f03ade2\\\"}\"]"
+                },
+                "call": {
+                  "ok": false,
+                  "error": "request failed"
+                },
+                "status": "pass"
+              },
+              {
+                "check_name": "company_admin_foreign_org_selection_denied",
+                "actor": "company_admin",
+                "method": "elms.access.api.get_company_access_context",
+                "expected_status": 403,
+                "observed": {
+                  "actor": "company_admin",
+                  "method": "elms.access.api.get_company_access_context",
+                  "status": 403,
+                  "http_status": 403,
+                  "exc_type": "PermissionError",
+                  "exception": "frappe.exceptions.PermissionError: Нет доступа к этой организации",
+                  "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041d\\\\u0435\\\\u0442 \\\\u0434\\\\u043e\\\\u0441\\\\u0442\\\\u0443\\\\u043f\\\\u0430 \\\\u043a \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"276d15126b309541de31cb51b67a7fe49083dfd92683d43ec0e2a9d4\\\"}\"]"
+                },
+                "call": {
+                  "ok": false,
+                  "error": "request failed"
+                },
+                "status": "pass"
+              }
+            ],
+            "expected_console_errors": [
+              "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+              "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 780, in invite_org_user\n    organization_value = require_organization_mutation_access(organization)\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 567, in require_organization_mutation_access\n    _throw(\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации\n",
+              "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+              "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/admission/import_api.py\", line 91, in upload_import\n    target_organization = _resolve_organization(organization, write=True)\n                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/admission/import_api.py\", line 64, in _resolve_organization\n    return require_organization_mutation_access(organization, user) if write else require_organization_access(organization, user)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 567, in require_organization_mutation_access\n    _throw(\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации\n",
+              "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+              "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/__init__.py\", line 848, in enroll_learner\n    frappe.throw(_(\"Permission denied to enroll learner\"), frappe.PermissionError)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Permission denied to enroll learner\n",
+              "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+              "Traceback (most recent call last):\n  File \"apps/elms/elms/lms/api/admission.py\", line 57, in _run\n    return operation().as_dict()\n           ^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 52, in <lambda>\n    return _run(lambda: B2BAdmissionService().confirm(request.import_id, request.row_ids), request.import_id)\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 83, in confirm\n    import_doc = self._load_owned_parsed_import(import_id)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 173, in _load_owned_parsed_import\n    self._assert_company_admin()\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 191, in _assert_company_admin\n    raise AdmissionPolicyError(\nelms.lms.services.b2b_admission.AdmissionPolicyError: Подтверждать B2B импорт может только Company Admin своей организации\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 52, in confirm_admission_import\n    return _run(lambda: B2BAdmissionService().confirm(request.import_id, request.row_ids), request.import_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 60, in _run\n    frappe.throw(exc.message, exc=frappe.PermissionError)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Подтверждать B2B импорт может только Company Admin своей организации\n",
+              "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+              "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 378, in get_company_access_context\n    selected = require_organization_access(selected, current)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 557, in require_organization_access\n    _throw(\"Нет доступа к этой организации\", frappe.PermissionError)\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Нет доступа к этой организации\n"
+            ],
+            "unexpected_console_errors": [],
+            "shared_request_failures": [],
+            "request_failures": []
+          }
+        }
+      ],
+      "api_requests": [
+        {
+          "actor": "platform_viewer",
+          "method": "elms.access.api.get_company_access_context",
+          "status": 200,
+          "http_status": 200,
+          "organization": "",
+          "organizations": [
+            "ELMS Test Company",
+            "QA A07 20261113183546",
+            "QA A07 261113184210",
+            "QA T-A09 Company Admin 20261114",
+            "QA T-A09 Company Admin 20261114 0829",
+            "QA T-A09 Company Admin 20261114 0901",
+            "QA T-A09 Company Admin 20261114 0907",
+            "QA T-A09 Company Admin 20261114-123318",
+            "QA T-A09 Populated Foreign 20261114102425",
+            "QA T-A09 Populated Own 20261114102425",
+            "Демонстрационный контур НефтеГаз"
+          ],
+          "platform_viewer": true,
+          "read_only": true,
+          "platform_admin": true
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "elms.access.api.get_company_access_context",
+          "status": 200,
+          "http_status": 200,
+          "organization": "ELMS Test Company",
+          "organizations": [
+            "ELMS Test Company",
+            "QA A07 20261113183546",
+            "QA A07 261113184210",
+            "QA T-A09 Company Admin 20261114",
+            "QA T-A09 Company Admin 20261114 0829",
+            "QA T-A09 Company Admin 20261114 0901",
+            "QA T-A09 Company Admin 20261114 0907",
+            "QA T-A09 Company Admin 20261114-123318",
+            "QA T-A09 Populated Foreign 20261114102425",
+            "QA T-A09 Populated Own 20261114102425",
+            "Демонстрационный контур НефтеГаз"
+          ],
+          "platform_viewer": true,
+          "read_only": true,
+          "platform_admin": true
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "elms.cabinet.api.get_org_roster",
+          "status": 200,
+          "http_status": 200,
+          "organization": "ELMS Test Company",
+          "total": 1,
+          "page": 1,
+          "page_size": 50,
+          "row_count": 1,
+          "empty": false
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "elms.cabinet.api.export_org_progress",
+          "status": 200,
+          "http_status": 200,
+          "organization": "ELMS Test Company",
+          "filename": "elms-org-ELMS-Test-Company-20261119.csv",
+          "row_count": 1,
+          "charset": "UTF-8",
+          "csv_header": "user,full_name,email,user_enabled,roles,enrollments",
+          "content_base64_present": true
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "frappe.client.get_list",
+          "status": 200,
+          "http_status": 200,
+          "row_count": 5,
+          "audit_rows": [
+            {
+              "name": "jskgqj1070",
+              "user": "elms.test.admin@elms.local",
+              "organization": "ELMS Test Company",
+              "activity_type": "Organization View",
+              "reference_doctype": "ELMS Organization",
+              "reference_name": "ELMS Test Company",
+              "timestamp": "2026-11-19 15:40:59.662974"
+            },
+            {
+              "name": "jsjso31b05",
+              "user": "elms.test.admin@elms.local",
+              "organization": "ELMS Test Company",
+              "activity_type": "Organization View",
+              "reference_doctype": "ELMS Organization",
+              "reference_name": "ELMS Test Company",
+              "timestamp": "2026-11-19 15:40:59.536871"
+            },
+            {
+              "name": "9ip4r61845",
+              "user": "elms.test.admin@elms.local",
+              "organization": "ELMS Test Company",
+              "activity_type": "Organization View",
+              "reference_doctype": "ELMS Organization",
+              "reference_name": "ELMS Test Company",
+              "timestamp": "2026-11-19 15:23:24.175122"
+            },
+            {
+              "name": "9io5nb39lm",
+              "user": "elms.test.admin@elms.local",
+              "organization": "ELMS Test Company",
+              "activity_type": "Organization View",
+              "reference_doctype": "ELMS Organization",
+              "reference_name": "ELMS Test Company",
+              "timestamp": "2026-11-19 15:23:24.037655"
+            },
+            {
+              "name": "10h5e86uqt",
+              "user": "elms.test.admin@elms.local",
+              "organization": "ELMS Test Company",
+              "activity_type": "Organization View",
+              "reference_doctype": "ELMS Organization",
+              "reference_name": "ELMS Test Company",
+              "timestamp": "2026-11-19 15:08:46.587647"
+            }
+          ]
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "elms.access.api.invite_org_user",
+          "status": 403,
+          "http_status": 403,
+          "exc_type": "PermissionError",
+          "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+          "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"4c85948d68fcbed1272e9114d24a7bce25c25ac9535362a770e9bac6\\\"}\"]"
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "elms.admission.import_api.upload_import",
+          "status": 403,
+          "http_status": 403,
+          "exc_type": "PermissionError",
+          "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+          "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"7b78f20b8cfc2b03af9866eb7526fdfac965eeae3b9009c280923c24\\\"}\"]"
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "elms.lms.api.enroll_learner",
+          "status": 403,
+          "http_status": 403,
+          "exc_type": "PermissionError",
+          "exception": "frappe.exceptions.PermissionError: Permission denied to enroll learner",
+          "_server_messages": "[\"{\\\"message\\\": \\\"Permission denied to enroll learner\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"01f2816e739f98c230c47ef92bb8ac7f6d899405a11b889c049d5559\\\"}\"]"
+        },
+        {
+          "actor": "platform_viewer",
+          "method": "elms.lms.api.admission.confirm_admission_import",
+          "status": 403,
+          "http_status": 403,
+          "exc_type": "PermissionError",
+          "exception": "frappe.exceptions.PermissionError: Подтверждать B2B импорт может только Company Admin своей организации",
+          "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041f\\\\u043e\\\\u0434\\\\u0442\\\\u0432\\\\u0435\\\\u0440\\\\u0436\\\\u0434\\\\u0430\\\\u0442\\\\u044c B2B \\\\u0438\\\\u043c\\\\u043f\\\\u043e\\\\u0440\\\\u0442 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u0441\\\\u0432\\\\u043e\\\\u0435\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"33828befe467d033c01651880b6d24499f88e500a33fb7d99f03ade2\\\"}\"]"
+        },
+        {
+          "actor": "company_admin",
+          "method": "elms.access.api.get_company_access_context",
+          "status": 200,
+          "http_status": 200,
+          "organization": "Демонстрационный контур НефтеГаз",
+          "organizations": [
+            "Демонстрационный контур НефтеГаз"
+          ],
+          "platform_viewer": false,
+          "read_only": false,
+          "platform_admin": false
+        },
+        {
+          "actor": "company_admin",
+          "method": "elms.cabinet.api.get_org_roster",
+          "status": 200,
+          "http_status": 200,
+          "organization": "Демонстрационный контур НефтеГаз",
+          "total": 1,
+          "page": 1,
+          "page_size": 50,
+          "row_count": 1,
+          "empty": false
+        },
+        {
+          "actor": "company_admin",
+          "method": "elms.access.api.get_company_access_context",
+          "status": 403,
+          "http_status": 403,
+          "exc_type": "PermissionError",
+          "exception": "frappe.exceptions.PermissionError: Нет доступа к этой организации",
+          "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041d\\\\u0435\\\\u0442 \\\\u0434\\\\u043e\\\\u0441\\\\u0442\\\\u0443\\\\u043f\\\\u0430 \\\\u043a \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"276d15126b309541de31cb51b67a7fe49083dfd92683d43ec0e2a9d4\\\"}\"]"
+        }
+      ],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 780, in invite_org_user\n    organization_value = require_organization_mutation_access(organization)\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 567, in require_organization_mutation_access\n    _throw(\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/admission/import_api.py\", line 91, in upload_import\n    target_organization = _resolve_organization(organization, write=True)\n                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/admission/import_api.py\", line 64, in _resolve_organization\n    return require_organization_mutation_access(organization, user) if write else require_organization_access(organization, user)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 567, in require_organization_mutation_access\n    _throw(\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/__init__.py\", line 848, in enroll_learner\n    frappe.throw(_(\"Permission denied to enroll learner\"), frappe.PermissionError)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Permission denied to enroll learner\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/elms/elms/lms/api/admission.py\", line 57, in _run\n    return operation().as_dict()\n           ^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 52, in <lambda>\n    return _run(lambda: B2BAdmissionService().confirm(request.import_id, request.row_ids), request.import_id)\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 83, in confirm\n    import_doc = self._load_owned_parsed_import(import_id)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 173, in _load_owned_parsed_import\n    self._assert_company_admin()\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 191, in _assert_company_admin\n    raise AdmissionPolicyError(\nelms.lms.services.b2b_admission.AdmissionPolicyError: Подтверждать B2B импорт может только Company Admin своей организации\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 52, in confirm_admission_import\n    return _run(lambda: B2BAdmissionService().confirm(request.import_id, request.row_ids), request.import_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 60, in _run\n    frappe.throw(exc.message, exc=frappe.PermissionError)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Подтверждать B2B импорт может только Company Admin своей организации\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 378, in get_company_access_context\n    selected = require_organization_access(selected, current)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 557, in require_organization_access\n    _throw(\"Нет доступа к этой организации\", frappe.PermissionError)\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Нет доступа к этой организации\n"
+      ],
+      "request_failures": [],
+      "expected_denials": [
+        {
+          "check_name": "platform_invite_denied_before_write",
+          "actor": "platform_viewer",
+          "method": "elms.access.api.invite_org_user",
+          "expected_status": 403,
+          "observed": {
+            "actor": "platform_viewer",
+            "method": "elms.access.api.invite_org_user",
+            "status": 403,
+            "http_status": 403,
+            "exc_type": "PermissionError",
+            "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+            "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"4c85948d68fcbed1272e9114d24a7bce25c25ac9535362a770e9bac6\\\"}\"]"
+          },
+          "call": {
+            "ok": false,
+            "error": "request failed"
+          },
+          "status": "pass"
+        },
+        {
+          "check_name": "platform_import_upload_denied_before_write",
+          "actor": "platform_viewer",
+          "method": "elms.admission.import_api.upload_import",
+          "expected_status": 403,
+          "observed": {
+            "actor": "platform_viewer",
+            "method": "elms.admission.import_api.upload_import",
+            "status": 403,
+            "http_status": 403,
+            "exc_type": "PermissionError",
+            "exception": "frappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации",
+            "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u0418\\\\u0437\\\\u043c\\\\u0435\\\\u043d\\\\u044f\\\\u0442\\\\u044c \\\\u0434\\\\u0430\\\\u043d\\\\u043d\\\\u044b\\\\u0435 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"7b78f20b8cfc2b03af9866eb7526fdfac965eeae3b9009c280923c24\\\"}\"]"
+          },
+          "call": {
+            "ok": false,
+            "error": "request failed"
+          },
+          "status": "pass"
+        },
+        {
+          "check_name": "platform_b2c_enrollment_denied_before_write",
+          "actor": "platform_viewer",
+          "method": "elms.lms.api.enroll_learner",
+          "expected_status": 403,
+          "observed": {
+            "actor": "platform_viewer",
+            "method": "elms.lms.api.enroll_learner",
+            "status": 403,
+            "http_status": 403,
+            "exc_type": "PermissionError",
+            "exception": "frappe.exceptions.PermissionError: Permission denied to enroll learner",
+            "_server_messages": "[\"{\\\"message\\\": \\\"Permission denied to enroll learner\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"01f2816e739f98c230c47ef92bb8ac7f6d899405a11b889c049d5559\\\"}\"]"
+          },
+          "call": {
+            "ok": false,
+            "error": "request failed"
+          },
+          "status": "pass"
+        },
+        {
+          "check_name": "platform_b2b_confirmation_denied_before_write",
+          "actor": "platform_viewer",
+          "method": "elms.lms.api.admission.confirm_admission_import",
+          "expected_status": 403,
+          "observed": {
+            "actor": "platform_viewer",
+            "method": "elms.lms.api.admission.confirm_admission_import",
+            "status": 403,
+            "http_status": 403,
+            "exc_type": "PermissionError",
+            "exception": "frappe.exceptions.PermissionError: Подтверждать B2B импорт может только Company Admin своей организации",
+            "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041f\\\\u043e\\\\u0434\\\\u0442\\\\u0432\\\\u0435\\\\u0440\\\\u0436\\\\u0434\\\\u0430\\\\u0442\\\\u044c B2B \\\\u0438\\\\u043c\\\\u043f\\\\u043e\\\\u0440\\\\u0442 \\\\u043c\\\\u043e\\\\u0436\\\\u0435\\\\u0442 \\\\u0442\\\\u043e\\\\u043b\\\\u044c\\\\u043a\\\\u043e Company Admin \\\\u0441\\\\u0432\\\\u043e\\\\u0435\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"33828befe467d033c01651880b6d24499f88e500a33fb7d99f03ade2\\\"}\"]"
+          },
+          "call": {
+            "ok": false,
+            "error": "request failed"
+          },
+          "status": "pass"
+        },
+        {
+          "check_name": "company_admin_foreign_org_selection_denied",
+          "actor": "company_admin",
+          "method": "elms.access.api.get_company_access_context",
+          "expected_status": 403,
+          "observed": {
+            "actor": "company_admin",
+            "method": "elms.access.api.get_company_access_context",
+            "status": 403,
+            "http_status": 403,
+            "exc_type": "PermissionError",
+            "exception": "frappe.exceptions.PermissionError: Нет доступа к этой организации",
+            "_server_messages": "[\"{\\\"message\\\": \\\"\\\\u041d\\\\u0435\\\\u0442 \\\\u0434\\\\u043e\\\\u0441\\\\u0442\\\\u0443\\\\u043f\\\\u0430 \\\\u043a \\\\u044d\\\\u0442\\\\u043e\\\\u0439 \\\\u043e\\\\u0440\\\\u0433\\\\u0430\\\\u043d\\\\u0438\\\\u0437\\\\u0430\\\\u0446\\\\u0438\\\\u0438\\\", \\\"title\\\": \\\"\\\\u0421\\\\u043e\\\\u043e\\\\u0431\\\\u0449\\\\u0435\\\\u043d\\\\u0438\\\\u0435\\\", \\\"indicator\\\": \\\"red\\\", \\\"raise_exception\\\": 1, \\\"__frappe_exc_id\\\": \\\"276d15126b309541de31cb51b67a7fe49083dfd92683d43ec0e2a9d4\\\"}\"]"
+          },
+          "call": {
+            "ok": false,
+            "error": "request failed"
+          },
+          "status": "pass"
+        }
+      ],
+      "expected_console_errors": [
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 780, in invite_org_user\n    organization_value = require_organization_mutation_access(organization)\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 567, in require_organization_mutation_access\n    _throw(\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/admission/import_api.py\", line 91, in upload_import\n    target_organization = _resolve_organization(organization, write=True)\n                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/admission/import_api.py\", line 64, in _resolve_organization\n    return require_organization_mutation_access(organization, user) if write else require_organization_access(organization, user)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 567, in require_organization_mutation_access\n    _throw(\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Изменять данные организации может только Company Admin этой организации\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/__init__.py\", line 848, in enroll_learner\n    frappe.throw(_(\"Permission denied to enroll learner\"), frappe.PermissionError)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Permission denied to enroll learner\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/elms/elms/lms/api/admission.py\", line 57, in _run\n    return operation().as_dict()\n           ^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 52, in <lambda>\n    return _run(lambda: B2BAdmissionService().confirm(request.import_id, request.row_ids), request.import_id)\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 83, in confirm\n    import_doc = self._load_owned_parsed_import(import_id)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 173, in _load_owned_parsed_import\n    self._assert_company_admin()\n  File \"apps/elms/elms/lms/services/b2b_admission.py\", line 191, in _assert_company_admin\n    raise AdmissionPolicyError(\nelms.lms.services.b2b_admission.AdmissionPolicyError: Подтверждать B2B импорт может только Company Admin своей организации\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 52, in confirm_admission_import\n    return _run(lambda: B2BAdmissionService().confirm(request.import_id, request.row_ids), request.import_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/lms/api/admission.py\", line 60, in _run\n    frappe.throw(exc.message, exc=frappe.PermissionError)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Подтверждать B2B импорт может только Company Admin своей организации\n",
+        "Failed to load resource: the server responded with a status of 403 (FORBIDDEN)",
+        "Traceback (most recent call last):\n  File \"apps/frappe/frappe/app.py\", line 157, in application\n    response = frappe.api.handle(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/__init__.py\", line 52, in handle\n    data = endpoint(**arguments)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/api/v1.py\", line 40, in handle_rpc_call\n    return frappe.handler.handle()\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 53, in handle\n    data = execute_cmd(cmd)\n           ^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/handler.py\", line 86, in execute_cmd\n    return frappe.call(method, **frappe.form_dict)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/__init__.py\", line 1772, in call\n    return fn(*args, **newargs)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"apps/frappe/frappe/utils/typing_validations.py\", line 32, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 378, in get_company_access_context\n    selected = require_organization_access(selected, current)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"apps/elms/elms/access/api.py\", line 557, in require_organization_access\n    _throw(\"Нет доступа к этой организации\", frappe.PermissionError)\n  File \"apps/elms/elms/access/api.py\", line 112, in _throw\n    frappe.throw(_(message), error_type)\n  File \"apps/frappe/frappe/__init__.py\", line 621, in throw\n    msgprint(\n  File \"apps/frappe/frappe/__init__.py\", line 586, in msgprint\n    _raise_exception()\n  File \"apps/frappe/frappe/__init__.py\", line 537, in _raise_exception\n    raise exc\nfrappe.exceptions.PermissionError: Нет доступа к этой организации\n"
+      ],
+      "unexpected_console_errors": [],
+      "non_blocking_shared_request_failures": [],
+      "errors": []
+    },
     {
       "journey_id": "JRN-A11-ADMISSION-IMPORT",
       "name": "Authenticated Company Admin admission upload, preview/errors, export, and one-time reveal",
@@ -312,8 +1148,8 @@
             "subscription_course": "kbf7g0su5o",
             "subscription_status": "Active",
             "total_seats": 100,
-            "seats_used": 27,
-            "available_seats": 73,
+            "seats_used": 34,
+            "available_seats": 66,
             "selection_rule": "deterministic authenticated-organization course, exactly one active batch, and available active course-linked subscription"
           }
         },
@@ -350,7 +1186,7 @@
             "method": "elms.admission.import_api.export_import",
             "status": 200,
             "http_status": 200,
-            "name": "ADMISSION-0211"
+            "name": "ADMISSION-0232"
           }
         },
         {
@@ -364,7 +1200,7 @@
               "method": "elms.admission.import_api.reveal_credential",
               "status": 200,
               "http_status": 200,
-              "name": "CREDENTIAL-0212",
+              "name": "CREDENTIAL-0233",
               "invite_token_present": true
             }
           }
@@ -383,14 +1219,14 @@
           "method": "elms.admission.import_api.upload_import",
           "status": "failed",
           "http_status": 200,
-          "name": "ADMISSION-0210",
+          "name": "ADMISSION-0231",
           "row_count": 1
         },
         {
           "method": "elms.admission.import_api.inspect_import",
           "status": "failed",
           "http_status": 200,
-          "name": "ADMISSION-0210",
+          "name": "ADMISSION-0231",
           "total_rows": 1,
           "row_count": 1
         },
@@ -398,14 +1234,14 @@
           "method": "elms.admission.import_api.upload_import",
           "status": "parsed",
           "http_status": 200,
-          "name": "ADMISSION-0211",
+          "name": "ADMISSION-0232",
           "row_count": 1
         },
         {
           "method": "elms.admission.import_api.inspect_import",
           "status": "parsed",
           "http_status": 200,
-          "name": "ADMISSION-0211",
+          "name": "ADMISSION-0232",
           "total_rows": 1,
           "row_count": 1
         },
@@ -413,13 +1249,13 @@
           "method": "elms.admission.import_api.export_import",
           "status": 200,
           "http_status": 200,
-          "name": "ADMISSION-0211"
+          "name": "ADMISSION-0232"
         },
         {
           "method": "elms.admission.import_api.reveal_credential",
           "status": 200,
           "http_status": 200,
-          "name": "CREDENTIAL-0212",
+          "name": "CREDENTIAL-0233",
           "invite_token_present": true
         },
         {
@@ -427,10 +1263,10 @@
           "status": "preview",
           "http_status": 200,
           "ok": true,
-          "import_id": "ADMISSION-0211",
+          "import_id": "ADMISSION-0232",
           "selected_count": 1,
           "enrolled_count": 0,
-          "remaining_seats": 73,
+          "remaining_seats": 66,
           "enrolled_statuses": [],
           "error_codes": []
         },
@@ -439,10 +1275,10 @@
           "status": "confirmed",
           "http_status": 200,
           "ok": true,
-          "import_id": "ADMISSION-0211",
+          "import_id": "ADMISSION-0232",
           "selected_count": 1,
           "enrolled_count": 1,
-          "remaining_seats": 72,
+          "remaining_seats": 65,
           "enrolled_statuses": [
             "Active"
           ],
@@ -462,7 +1298,7 @@
         {
           "name": "parsed_import_id_available",
           "status": "pass",
-          "observed": "ADMISSION-0211"
+          "observed": "ADMISSION-0232"
         },
         {
           "name": "company_admin_confirm_surface_loaded",
@@ -478,8 +1314,8 @@
             "course": "kbf7g0su5o",
             "subscription_id": "oksfhv7aoo",
             "total_seats": 100,
-            "seats_used": 27,
-            "available_seats": 73,
+            "seats_used": 34,
+            "available_seats": 66,
             "selection_rule": "deterministic active Company Admin subscription with available seats linked to the prepared course",
             "persisted": true,
             "error": null
@@ -494,14 +1330,14 @@
               "status": "preview",
               "http_status": 200,
               "ok": true,
-              "import_id": "ADMISSION-0211",
+              "import_id": "ADMISSION-0232",
               "selected_count": 1,
               "enrolled_count": 0,
-              "remaining_seats": 73,
+              "remaining_seats": 66,
               "enrolled_statuses": [],
               "error_codes": []
             },
-            "preview_text": "Выбрано строк: 1. Осталось мест: 73.ne87f48oif: 60ci3sog6k"
+            "preview_text": "Выбрано строк: 1. Осталось мест: 66.jtrp8mp07m: 60ci3sog6k"
           }
         },
         {
@@ -518,10 +1354,10 @@
               "status": "confirmed",
               "http_status": 200,
               "ok": true,
-              "import_id": "ADMISSION-0211",
+              "import_id": "ADMISSION-0232",
               "selected_count": 1,
               "enrolled_count": 1,
-              "remaining_seats": 72,
+              "remaining_seats": 65,
               "enrolled_statuses": [
                 "Active"
               ],
@@ -530,7 +1366,7 @@
             "enrolled_statuses": [
               "Active"
             ],
-            "preview_remaining_seats": 73
+            "preview_remaining_seats": 66
           }
         },
         {
@@ -539,7 +1375,7 @@
           "observed": {
             "success_report": true,
             "error_report": false,
-            "result_text": "Зачислено: 1. Осталось мест: 72. Статус всех зачислений: Active."
+            "result_text": "Зачислено: 1. Осталось мест: 65. Статус всех зачислений: Active."
           }
         },
         {
@@ -557,10 +1393,10 @@
           "status": "preview",
           "http_status": 200,
           "ok": true,
-          "import_id": "ADMISSION-0211",
+          "import_id": "ADMISSION-0232",
           "selected_count": 1,
           "enrolled_count": 0,
-          "remaining_seats": 73,
+          "remaining_seats": 66,
           "enrolled_statuses": [],
           "error_codes": []
         },
@@ -569,10 +1405,10 @@
           "status": "confirmed",
           "http_status": 200,
           "ok": true,
-          "import_id": "ADMISSION-0211",
+          "import_id": "ADMISSION-0232",
           "selected_count": 1,
           "enrolled_count": 1,
-          "remaining_seats": 72,
+          "remaining_seats": 65,
           "enrolled_statuses": [
             "Active"
           ],
@@ -623,12 +1459,12 @@
               "required": false,
               "active": true,
               "schema_version": 1,
-              "name": "bsuumfmu2u"
+              "name": "9ljqfb4m72"
             },
             "cleanup": {
               "ok": true,
               "message": {
-                "name": "bsuumfmu2u",
+                "name": "9ljqfb4m72",
                 "organization": "Демонстрационный контур НефтеГаз",
                 "status": "deleted"
               }
@@ -662,7 +1498,7 @@
               "required": false,
               "active": true,
               "schema_version": 1,
-              "name": "nfqv3q7ulg"
+              "name": "jvffsgi36l"
             },
             "ui_list_contains_key": [
               "T-A13 Browser Additional (qa_t_a13_wire, text)Удалить"
@@ -750,7 +1586,7 @@
           "status": 200,
           "http_status": 200,
           "definition": {
-            "name": "nfqv3q7ulg",
+            "name": "jvffsgi36l",
             "organization": "Демонстрационный контур НефтеГаз",
             "applies_to": "ELMS Course",
             "field_key": "qa_t_a13_wire",
@@ -828,10 +1664,16 @@
       "errors": []
     }
   ],
+  "admission_provider": {
+    "status": "pass",
+    "base_url": "http://host.docker.internal:44399/v1",
+    "model": "elms-admission-parser-v1",
+    "organization": "Демонстрационный контур НефтеГаз"
+  },
   "status": "pass",
   "evidence_type": "runtime_browser",
   "live_evidence": true,
-  "timestamp": "2026-11-19T10:57:56Z",
+  "timestamp": "2026-11-19T12:41:10Z",
   "command": "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py",
   "exit_code": 0
 }

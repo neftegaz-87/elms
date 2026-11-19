@@ -1,14 +1,6 @@
 version: roadmap-queue/v2
 role: app
-queue:
-- id: T-A14
-  epic_id: T-A14-elms-admin-org-view-all
-  kind: feature
-  plan: plan/T-A14-elms-admin-org-view-all/md/plan.md
-  batch: elms-admission-surfaces
-  deps:
-  - T-A07
-  - T-A09
+queue: []
 done:
 - id: T-A01
   epic_id: T-A01-elms-keycloak-login-ui
@@ -98,6 +90,14 @@ done:
   batch: elms-admission-surfaces
   deps:
   - T-A02
+- id: T-A14
+  epic_id: T-A14-elms-admin-org-view-all
+  kind: feature
+  plan: plan/T-A14-elms-admin-org-view-all/md/plan.md
+  batch: elms-admission-surfaces
+  deps:
+  - T-A07
+  - T-A09
 batches:
   elms-auth-surface:
     title: ELMS Keycloak login surface and brokered SSO journey

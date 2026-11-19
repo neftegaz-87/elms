@@ -1,0 +1,40 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-A14-elms-admin-org-view-all
+role: app
+source_qa: memory-bank/app/qa/T-A14-elms-admin-org-view-all/qa-20261119-admin-org-view-all-app-lanes.yaml
+checklist_sha256: missing
+created_at: '2026-11-19T11:27:32Z'
+updated_at: '2026-11-19T12:41:10Z'
+current_id: BF-001
+verification:
+  status: pass
+  required_gate: verify-bugfix
+  command: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence_file: browser-artifacts/browser-evidence.json
+  last_run_at: '2026-11-19T12:41:10Z'
+  evidence: VERIFY pass; browser-artifacts/browser-evidence.json timestamp 2026-11-19T12:23:35Z;
+    T-A14 typed organization-view and denial checks pass; expected denial tracebacks
+    are classified as expected.
+items:
+- id: BF-001
+  status: done
+  done_at: '2026-11-19T12:23:35Z'
+  class: harness_probe
+  title: 'harness_probe:wire_journey: expected T-A14 denial tracebacks still mark
+    the exact task-scoped harness red'
+  blocker_ref: lane:wire_journey|harness_probe|scripts/run_browser_qa.py|T-A14 typed
+    checks pass, but expected platform mutation denial tracebacks remain unexpected
+    in the browser-runtime probe.
+  fix_plan_ref: Update scripts/run_browser_qa.py to correlate expected-denial response
+    exception text with server traceback console messages; preserve the denial checks
+    and fail on genuinely unexpected T-A14 errors.
+  targets:
+  - scripts/run_browser_qa.py
+  - memory-bank/app/qa/T-A14-elms-admin-org-view-all/qa-20261119-admin-org-view-all-app-lanes.yaml
+  verify: NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py
+  evidence: VERIFY pass; browser-artifacts/browser-evidence.json timestamp 2026-11-19T12:23:35Z;
+    T-A14 typed organization-view and denial checks pass; expected denial tracebacks
+    are classified as expected.
+  notes: Fixed scripts/run_browser_qa.py to correlate expected-denial response exception
+    text with server traceback console messages while preserving failure for genuinely
+    unexpected errors.

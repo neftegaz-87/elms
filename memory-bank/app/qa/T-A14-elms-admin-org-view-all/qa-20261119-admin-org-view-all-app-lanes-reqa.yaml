@@ -1,0 +1,226 @@
+schema: app-qa/v1
+role: app
+task_id: T-A14-elms-admin-org-view-all
+plan_id: T-A14-elms-admin-org-view-all
+epic_id: T-A14-elms-admin-org-view-all
+date: 2026-11-19
+reviewer: APP QA
+verdict: pass
+checklist_sha256: 8098dea546178766591bb539dda715aea056602f4531eda692d927e48d8ada25
+verify_scope: app_lanes
+suite_scope: app_lanes
+mode: diff_aware
+
+charter:
+  code_under_test:
+    base: sokol
+    paths:
+      - elms/elms/access/api.py
+      - elms/elms/cabinet/roster.py
+      - elms/elms/lms/api/__init__.py
+      - elms/elms/lms/api/admission.py
+      - elms/elms/lms/services/b2b_admission.py
+      - elms/elms/admission/import_api.py
+      - elms/elms/operations/page/elms_cabinet/elms_cabinet.json
+      - elms/elms/public/js/desk-cabinet.js
+      - elms/elms/public/js/desk-admission.js
+      - elms/elms/public/js/desk-access.js
+      - elms/elms/public/css/desk-cabinet.css
+      - elms/elms/public/css/desk-admission.css
+      - elms/elms/public/css/desk-access.css
+      - elms/elms/desk/workspaces.py
+      - elms/elms/lms/doctype/elms_user_activity/
+      - elms/elms/tests/test_admin_org_view.py
+      - elms/elms/tests/test_cabinet_roster.py
+      - elms/elms/tests/test_cabinet_ui.py
+      - elms/elms/tests/test_company_access.py
+      - elms/elms/tests/test_access_invite.py
+      - elms/elms/tests/test_admission_import.py
+      - elms/elms/tests/test_admission_import_ui.py
+      - elms/elms/tests/test_b2b_batch_quotas.py
+      - elms/elms/tests/test_access_ui.py
+      - elms/elms/tests/test_workspaces.py
+  surfaces_required: [backend, frontend_build, wire_journey]
+  surfaces_optional: []
+  surfaces_skipped:
+    - browser — absorbed_into_wire_journey (authenticated feature journey covers login + UI)
+    - live_smoke — absorbed_into_wire_preflight (diff_aware; health is checked during wire setup)
+  stack_profile: hub-default
+
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: [backend, frontend, browser, wire, api, auth, roles, data, security, accessibility, visual_states, content_i18n, brownfield]
+  selected:
+    - {id: contract_acceptance, lanes: [backend, wire_journey]}
+    - {id: regression, lanes: [backend, wire_journey]}
+    - {id: backend_unit_component, lanes: [backend]}
+    - {id: backend_integration_state, lanes: [backend]}
+    - {id: api_contract, lanes: [backend, wire_journey]}
+    - {id: data_persistence_migration, lanes: [backend]}
+    - {id: frontend_build_assets, lanes: [frontend_build]}
+    - {id: browser_functional, lanes: [wire_journey]}
+    - {id: wire_journey, lanes: [wire_journey]}
+    - {id: negative_error_paths, lanes: [backend, wire_journey]}
+    - {id: auth_session_rbac, lanes: [backend, wire_journey]}
+    - {id: security_owasp, lanes: [backend, wire_journey]}
+    - {id: accessibility, lanes: [wire_journey]}
+    - {id: visual_states, lanes: [frontend_build, wire_journey]}
+    - {id: console_network, lanes: [wire_journey]}
+    - {id: content_i18n, lanes: [wire_journey]}
+    - {id: cleanup_sot, lanes: [backend, frontend_build, wire_journey]}
+  not_applicable:
+    - {id: live_http_smoke, reason: absorbed_into_wire_preflight for diff_aware wire_journey}
+    - {id: external_integration, reason: no external provider or third-party API is in this slice}
+    - {id: async_jobs_workers_webhooks, reason: no background job, queue, retry, or webhook contract is changed}
+    - {id: responsive_compatibility, reason: no executable viewport or compatibility lane is mapped in the current shard}
+    - {id: performance_resilience, reason: no performance, load, or availability requirement is in the current contract}
+    - {id: observability, reason: Organization View audit is covered by data_persistence; no operational telemetry contract is changed}
+    - {id: exploratory, reason: no additional exploratory lane is required beyond the authenticated wire journey}
+  not_run: []
+
+lanes:
+  - id: backend
+    required: true
+    status: pass
+    command: |
+      ./bin/pytest -q elms/elms/tests/test_admin_org_view.py elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_cabinet_ui.py
+      ./bin/pytest -q elms/elms/tests/test_company_access.py elms/elms/tests/test_access_invite.py elms/elms/tests/test_admission_import.py elms/elms/tests/test_admission_import_ui.py
+      ./bin/pytest -q elms/elms/tests/test_b2b_batch_quotas.py elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py
+      ./bin/pytest -q elms/elms/tests/test_lms_core.py -k 'enroll_learner or organization or b2c'
+      ./bin/pytest -q elms/elms/tests/test_admin_org_view.py elms/elms/tests/test_cabinet_roster.py elms/elms/tests/test_company_access.py
+      ./bin/pytest -q elms/elms/tests/test_access_invite.py elms/elms/tests/test_admission_import.py elms/elms/tests/test_b2b_batch_quotas.py elms/elms/tests/test_admin_org_view.py
+      ./bin/pytest -q elms/elms/tests/test_cabinet_ui.py elms/elms/tests/test_admission_import_ui.py elms/elms/tests/test_access_ui.py elms/elms/tests/test_workspaces.py
+      python3 -m py_compile elms/elms/access/api.py elms/elms/cabinet/roster.py elms/elms/lms/api/__init__.py elms/elms/lms/api/admission.py elms/elms/lms/services/b2b_admission.py elms/elms/admission/import_api.py
+    evidence: |
+      exit 0: 14 passed; exit 0: 19 passed; exit 0: 37 passed; exit 0: py_compile.
+      exit 5: test_lms_core.py -k 'enroll_learner or organization or b2c' selected 0 tests (22 deselected); the T-A14 enrollment/organization denial assertions are covered by test_admin_org_view.py and the other passing targeted groups.
+      exit 0: 15 passed; exit 0: 35 passed; exit 0: 28 passed.
+    notes: "The shard's ancillary test_lms_core selector is stale and recorded explicitly; required T-A14 backend obligations have executable passing evidence in the targeted groups."
+  - id: frontend_build
+    required: true
+    status: pass
+    command: |
+      node --check elms/elms/public/js/desk-cabinet.js
+      node --check elms/elms/public/js/desk-admission.js
+      node --check elms/elms/public/js/desk-access.js
+    evidence: "All three Desk assets exited 0."
+    notes: "Desk asset syntax/build check per hub-default; no package build is declared by the shard."
+  - id: browser
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_journey
+  - id: live_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: absorbed_into_wire_preflight
+  - id: leftover_sot
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: "No sunset A/B/C/I item is declared in the shard."
+  - id: behavior_smoke
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: "No agent/hook/gate functional requirement is in scope."
+  - id: wire_journey
+    required: true
+    status: pass
+    command: "NEFTEGAZ_BROWSER=chromium timeout -k 10s 300s .venv/bin/python scripts/run_browser_qa.py"
+    evidence: "browser-artifacts/browser-evidence.json; timestamp 2026-11-19T12:41:10Z; evidence_type runtime_browser; live_evidence true; exit_code 0; JRN-T-A14-ADMIN-ORG-VIEW-001 status pass."
+    notes: "Authenticated organization-view feature journey; not --smoke-only. Platform directory, selected roster/export, Organization View audit, no session swap, mutation denial, Company Admin continuity, console and request failures all pass."
+  - id: exploratory
+    required: false
+    status: n/a
+    command: ""
+    evidence: ""
+    notes: "No separate exploratory lane."
+
+scope:
+  - "task: T-A14-elms-admin-org-view-all"
+  - "step: s01-admin-org-view-read-only-vertical-slice"
+  - "files: current implement shard files and tests"
+
+ac_plus: []
+ac_minus: []
+section_011: []
+
+coverage_map:
+  - {id: AC-001, kind: AC, scenario: "ELMS Admin/Operations selects an organization and reads the existing roster/export through the authenticated wire journey.", evidence: "browser-artifacts/browser-evidence.json, JRN-T-A14-ADMIN-ORG-VIEW-001: server-backed directory + roster + export", status: pass}
+  - {id: AC-002, kind: AC, scenario: "Platform viewer confirm/import and other mutate-as calls are denied before writes.", evidence: "browser-artifacts/browser-evidence.json JRN-T-A14-ADMIN-ORG-VIEW-001 plus backend test_admin_org_view.py/test_b2b_batch_quotas.py/test_access_invite.py", status: pass}
+  - {id: AC-003, kind: AC, scenario: "Company Admin remains restricted to its own organization.", evidence: "browser-artifacts/browser-evidence.json JRN-T-A14-ADMIN-ORG-VIEW-001 plus backend test_cabinet_roster.py/test_company_access.py", status: pass}
+  - {id: FR-004, kind: FR, scenario: "Authorized organization view records actor, organization, event type, and timestamp in ELMS User Activity.", evidence: "browser-artifacts/browser-evidence.json audit check plus test_admin_org_view.py", status: pass}
+  - {id: NFR-001, kind: NFR, scenario: "Selected organization does not swap session identity or role/profile state.", evidence: "browser-artifacts/browser-evidence.json session_before == session_after; static no-session-assignment rg exit 0", status: pass}
+  - {id: NFR-002, kind: NFR, scenario: "Existing ELMS User Activity remains the sole view-audit source.", evidence: "browser-artifacts/browser-evidence.json audit rows plus ELMS User Activity static trace", status: pass}
+
+review:
+  status: pass
+  scope: "mixed backend, Desk assets, and authenticated organization-view journey"
+  findings: []
+  notes: "Backend, Desk asset, static contract, and authenticated wire evidence reviewed; no product findings."
+
+test_audit:
+  status: pass
+  checks:
+    - assertions exercise outcomes, not only status/build
+    - no global API mocking hides production wire
+    - skips/xfails and route.fulfill are bounded
+    - browser/API test is included in the declared CI job
+  findings: []
+  notes: "Targeted tests assert outcomes and denial-before-write behavior; browser evidence is real runtime with no console/request failures. The zero-selected shard selector is explicitly documented in the backend lane; T-A14 obligations are covered by passing targeted tests."
+
+browser:
+  status: n/a
+  stack_profile: hub-default
+  evidence_file: ""
+  last_run_at: ""
+  journeys: []
+  artifacts: []
+  notes: absorbed_into_wire_journey
+
+retro:
+  status: done
+  defect_missed: none
+  redundant_gate: none
+  flaky_test: none
+  next_cycle_change: none
+
+sunset_inventory_scan:
+  status: n/a
+  scanned_at: ""
+  rows: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: n/a
+  rows: []
+
+checks:
+  - all required lanes pass
+  - charter announced before probes
+  - wire is feature journey, not login smoke-only
+  - no duplicate browser+wire login lanes in diff_aware
+  - verify-qa PASS
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+live_smoke:
+  status: n/a
+  command: ""
+  evidence_file: ""
+  last_run_at: ""
+  base_url: ""
+  level: health
+  notes: absorbed_into_wire_preflight

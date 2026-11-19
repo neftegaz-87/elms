@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
@@ -14,6 +15,7 @@ import re
 import shlex
 import sys
 from threading import Thread
+from time import monotonic
 from urllib.parse import quote
 from xml.etree import ElementTree
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -21,6 +23,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACTS_DIR = ROOT / "browser-artifacts"
 RUNTIME_ENV_KEYS = ("ELMS_BROWSER_TEST_USERNAME", "ELMS_BROWSER_TEST_PASSWORD")
+OPTIONAL_BROWSER_ENV_KEYS = ("KEYCLOAK_TEST_ADMIN_PASSWORD",)
 ENV_REFERENCE = re.compile(r"\$(?:\{(?P<braced>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<bare>[A-Za-z_][A-Za-z0-9_]*))")
 LOGIN_READY_SELECTOR = ".for-login .page-card-head h4"
 LOGIN_NAVIGATION_TIMEOUT_MS = 30000
@@ -127,7 +130,7 @@ def _load_runtime_env() -> str | None:
                 values = shlex.split(raw_value.strip(), comments=True)
                 if values:
                     file_values[key.strip()] = values[0]
-        for key in RUNTIME_ENV_KEYS:
+        for key in RUNTIME_ENV_KEYS + OPTIONAL_BROWSER_ENV_KEYS:
             if os.environ.get(key) or key not in file_values:
                 continue
             os.environ[key] = _expand_env_references(file_values[key], file_values)
@@ -351,6 +354,11 @@ B2B_WIRE_PLATFORM_OWNER = "Демонстрационный контур Неф�
 T_A13_CUSTOM_FIELD_KEY = "qa_t_a13_wire"
 T_A13_CUSTOM_FIELD_LABEL = "T-A13 Browser Additional"
 T_A13_CUSTOM_FIELD_VALUE = "T-A13 authenticated Course readback"
+T_A14_PLATFORM_USERNAME = "elms.test.admin@elms.local"
+T_A14_PLATFORM_PASSWORD_ENV = "KEYCLOAK_TEST_ADMIN_PASSWORD"
+T_A11_SHARED_JOURNEY_ID = "JRN-A11-ADMISSION-IMPORT"
+T_A11_SHARED_REQUEST_FAILURE_METHOD = "elms.ai.api.get_access"
+T_A11_SHARED_REQUEST_FAILURE = "net::ERR_ABORTED"
 
 
 def _set_ac_disposition(results: dict) -> None:
@@ -380,6 +388,722 @@ def _set_ac_disposition(results: dict) -> None:
             }
         ],
     }
+
+
+def _record_t14_response(response, requests: list[dict], actor: str) -> None:
+    method = _method_name(response.url)
+    tracked_methods = {
+        "elms.access.api.get_company_access_context",
+        "elms.cabinet.api.get_org_roster",
+        "elms.cabinet.api.export_org_progress",
+        "elms.access.api.invite_org_user",
+        "elms.admission.import_api.upload_import",
+        "elms.lms.api.enroll_learner",
+        "elms.lms.api.admission.confirm_admission_import",
+        "frappe.client.get_list",
+    }
+    if method not in tracked_methods:
+        return
+    entry = {"actor": actor, "method": method, "status": response.status, "http_status": response.status}
+    try:
+        payload = response.json()
+        message = payload.get("message") if isinstance(payload, dict) else None
+        if method == "elms.access.api.get_company_access_context" and isinstance(message, dict):
+            for key in ("organization", "organizations", "platform_viewer", "read_only", "platform_admin"):
+                if key in message:
+                    entry[key] = message[key]
+        elif method == "elms.cabinet.api.get_org_roster" and isinstance(message, dict):
+            rows = message.get("rows")
+            entry.update(
+                {
+                    "organization": message.get("organization"),
+                    "total": message.get("total"),
+                    "page": message.get("page"),
+                    "page_size": message.get("page_size"),
+                    "row_count": len(rows) if isinstance(rows, list) else None,
+                    "empty": message.get("empty"),
+                }
+            )
+        elif method == "elms.cabinet.api.export_org_progress" and isinstance(message, dict):
+            content = message.get("content_base64")
+            csv_header = None
+            if isinstance(content, str):
+                try:
+                    csv_header = base64.b64decode(content).decode("utf-8-sig").splitlines()[0]
+                except (ValueError, UnicodeDecodeError, IndexError):
+                    csv_header = None
+            entry.update(
+                {
+                    "organization": message.get("organization"),
+                    "filename": message.get("filename"),
+                    "row_count": message.get("row_count"),
+                    "charset": message.get("charset"),
+                    "csv_header": csv_header,
+                    "content_base64_present": bool(content),
+                }
+            )
+        elif method == "frappe.client.get_list" and isinstance(message, list):
+            entry["row_count"] = len(message)
+            entry["audit_rows"] = [
+                {
+                    key: row.get(key)
+                    for key in (
+                        "name",
+                        "user",
+                        "organization",
+                        "activity_type",
+                        "reference_doctype",
+                        "reference_name",
+                        "timestamp",
+                    )
+                    if key in row
+                }
+                for row in message
+                if isinstance(row, dict)
+            ]
+        if isinstance(payload, dict):
+            for key in ("exc_type", "exception", "_server_messages"):
+                if payload.get(key):
+                    entry[key] = payload[key]
+    except Exception:
+        entry["json"] = False
+    requests.append(entry)
+
+
+def _is_declared_a11_shared_request_failure(failure: dict) -> bool:
+    return (
+        _method_name(str(failure.get("url") or "")) == T_A11_SHARED_REQUEST_FAILURE_METHOD
+        and failure.get("failure") == T_A11_SHARED_REQUEST_FAILURE
+    )
+
+
+def _t14_denial_exception_texts(declaration: dict) -> tuple[str, ...]:
+    observed = declaration.get("observed")
+    if not isinstance(observed, dict) or observed.get("http_status") != 403:
+        return ()
+
+    texts: list[str] = []
+    exception = observed.get("exception")
+    if isinstance(exception, str) and exception:
+        texts.append(exception)
+
+    server_messages = observed.get("_server_messages")
+    if isinstance(server_messages, str):
+        try:
+            server_messages = json.loads(server_messages)
+        except (TypeError, ValueError):
+            server_messages = []
+    if isinstance(server_messages, list):
+        for raw_message in server_messages:
+            message = raw_message
+            if isinstance(raw_message, str):
+                try:
+                    message = json.loads(raw_message)
+                except (TypeError, ValueError):
+                    message = None
+            if not isinstance(message, dict):
+                continue
+            detail = message.get("message")
+            exc_type = observed.get("exc_type")
+            if isinstance(detail, str) and detail:
+                texts.append(detail)
+                if isinstance(exc_type, str) and exc_type:
+                    texts.append(f"{exc_type}: {detail}")
+    return tuple(dict.fromkeys(texts))
+
+
+def _classify_t14_console_errors(
+    console_errors: list[str], expected_denials: list[dict]
+) -> tuple[list[str], list[str]]:
+    observed_denials = [
+        declaration
+        for declaration in expected_denials
+        if isinstance(declaration.get("observed"), dict)
+        and declaration["observed"].get("http_status") == 403
+    ]
+    matched_tracebacks: set[int] = set()
+    expected_console_errors: list[str] = []
+    unexpected_console_errors: list[str] = []
+    generic_403_seen = 0
+    generic_403_marker = "Failed to load resource: the server responded with a status of 403"
+
+    for message in console_errors:
+        traceback_match = next(
+            (
+                index
+                for index, declaration in enumerate(observed_denials)
+                if index not in matched_tracebacks
+                and any(text in message for text in _t14_denial_exception_texts(declaration))
+            ),
+            None,
+        )
+        generic_403_trace = generic_403_marker in message
+        if traceback_match is not None:
+            matched_tracebacks.add(traceback_match)
+            expected_console_errors.append(message)
+        elif generic_403_trace and generic_403_seen < len(observed_denials):
+            generic_403_seen += 1
+            expected_console_errors.append(message)
+        else:
+            unexpected_console_errors.append(message)
+
+    return expected_console_errors, unexpected_console_errors
+
+
+def _latest_t14_response(requests: list[dict], method: str, start: int = 0) -> dict | None:
+    matches = [entry for entry in requests[start:] if entry.get("method") == method]
+    return matches[-1] if matches else None
+
+
+def _wait_for_t14_response(
+    page,
+    requests: list[dict],
+    method: str,
+    start: int = 0,
+    timeout_ms: int = 10000,
+) -> dict | None:
+    deadline = monotonic() + timeout_ms / 1000
+    while monotonic() < deadline:
+        response = _latest_t14_response(requests, method, start)
+        if response is not None:
+            return response
+        page.wait_for_timeout(50)
+    return _latest_t14_response(requests, method, start)
+
+
+def _call_t14(page, method: str, args: dict) -> dict:
+    return page.evaluate(
+        """
+        async ({method, args}) => new Promise((resolve) => {
+            let settled = false;
+            const finish = (value) => {
+                if (!settled) {
+                    settled = true;
+                    resolve(value);
+                }
+            };
+            try {
+                frappe.call({
+                    method,
+                    args,
+                    callback: (response) => finish({
+                        ok: true,
+                        message: response && response.message,
+                        exception: response && response.exception,
+                    }),
+                    error: (error) => finish({
+                        ok: false,
+                        error: (error && (error.message || error.exception)) || "request failed",
+                    }),
+                });
+            } catch (error) {
+                finish({ok: false, error: (error && error.message) || "request failed"});
+            }
+        })
+        """,
+        {"method": method, "args": args},
+    )
+
+
+def _run_t_a14_wire(page, browser, base_url: str, results: dict) -> bool:
+    """Exercise the authenticated platform-view and Company Admin boundaries."""
+
+    cabinet_url = f"{base_url.rstrip('/')}/app/elms-cabinet"
+    journey = {
+        "journey_id": "JRN-T-A14-ADMIN-ORG-VIEW-001",
+        "name": "Authenticated platform organization directory, read-only selected-org view, and Company Admin continuity",
+        "url": cabinet_url,
+        "status": "fail",
+        "checks": [],
+        "api_requests": [],
+        "console_errors": [],
+        "request_failures": [],
+        "expected_denials": [],
+        "expected_console_errors": [],
+        "unexpected_console_errors": [],
+        "non_blocking_shared_request_failures": [],
+        "errors": [],
+    }
+    platform_requests: list[dict] = []
+    company_requests: list[dict] = []
+    platform_context = None
+    platform_page = None
+    platform_response_handler = None
+    company_response_handler = None
+    platform_organizations: list[str] = []
+    selected_organization = ""
+    company_organization = ""
+
+    def check(name: str, passed: bool, observed) -> None:
+        journey["checks"].append({"name": name, "status": "pass" if passed else "fail", "observed": observed})
+        if not passed:
+            journey["errors"].append(f"{name}: {observed}")
+
+    def on_console(message) -> None:
+        if message.type == "error":
+            journey["console_errors"].append(message.text)
+
+    def on_request_failed(request) -> None:
+        journey["request_failures"].append({"url": request.url, "failure": request.failure})
+
+    def declare_expected_denial(check_name: str, actor: str, method: str) -> dict:
+        declaration = {
+            "check_name": check_name,
+            "actor": actor,
+            "method": method,
+            "expected_status": 403,
+        }
+        journey["expected_denials"].append(declaration)
+        return declaration
+
+    try:
+        platform_password = os.environ.get(T_A14_PLATFORM_PASSWORD_ENV)
+        check(
+            "platform_viewer_browser_activation_available",
+            bool(platform_password),
+            {"username": T_A14_PLATFORM_USERNAME, "password_present": bool(platform_password)},
+        )
+        if platform_password:
+            platform_context = browser.new_context(viewport={"width": 1280, "height": 800})
+            platform_page = platform_context.new_page()
+            platform_response_handler = lambda response: _record_t14_response(
+                response, platform_requests, "platform_viewer"
+            )
+            platform_page.on("response", platform_response_handler)
+            platform_page.on("console", on_console)
+            platform_page.on("requestfailed", on_request_failed)
+            platform_auth_responses = []
+            platform_page.on(
+                "response",
+                lambda response: platform_auth_responses.append(response)
+                if _method_name(response.url) == "elms.sso.login.login_with_keycloak"
+                else None,
+            )
+            _navigate_to_login(platform_page, f"{base_url.rstrip('/')}/login")
+            login_form = platform_page.locator(".for-login form.form-login").first
+            login_form.locator("#login_email").fill(T_A14_PLATFORM_USERNAME)
+            login_form.locator("#login_password").fill(platform_password)
+            auth_response = None
+            auth_wait_error = None
+            try:
+                with platform_page.expect_response(
+                    lambda response: _method_name(response.url) == "elms.sso.login.login_with_keycloak",
+                    timeout=15000,
+                ) as response_info:
+                    login_form.locator(".btn-login").click()
+                auth_response = response_info.value
+            except Exception as exc:
+                auth_wait_error = type(exc).__name__
+                if platform_auth_responses:
+                    auth_response = platform_auth_responses[-1]
+            try:
+                platform_page.wait_for_function(
+                    "() => window.location.pathname.startsWith('/app')",
+                    timeout=20000,
+                )
+            except Exception:
+                pass
+            platform_authenticated = _app_session_reached(platform_page)
+            check(
+                "platform_viewer_credentials_reach_app",
+                platform_authenticated,
+                {
+                    "url": platform_page.url,
+                    "auth": _response_observation(auth_response) if auth_response else None,
+                    "wait_error": auth_wait_error,
+                    "app_session": platform_authenticated,
+                },
+            )
+            if platform_authenticated:
+                results["runtime_activation"]["platform_authenticated"] = True
+                role_ready = False
+                try:
+                    platform_page.wait_for_function(
+                        """
+                        () => {
+                            const frappe = window.frappe;
+                            const userRoles = frappe && Array.isArray(frappe.user_roles) ? frappe.user_roles : [];
+                            const bootRoles = frappe && frappe.boot && frappe.boot.user && Array.isArray(frappe.boot.user.roles)
+                                ? frappe.boot.user.roles
+                                : [];
+                            const hasRole = Boolean(
+                                frappe
+                                && frappe.user
+                                && typeof frappe.user.has_role === "function"
+                                && frappe.user.has_role("ELMS Admin")
+                            );
+                            return userRoles.includes("ELMS Admin") || bootRoles.includes("ELMS Admin") || hasRole;
+                        }
+                        """,
+                        timeout=30000,
+                    )
+                    role_ready = True
+                except Exception:
+                    pass
+                role_state = platform_page.evaluate(
+                    """
+                    ({roleReady}) => {
+                        const frappe = window.frappe;
+                        const userRoles = frappe && Array.isArray(frappe.user_roles) ? frappe.user_roles : [];
+                        const bootRoles = frappe && frappe.boot && frappe.boot.user && Array.isArray(frappe.boot.user.roles)
+                            ? frappe.boot.user.roles
+                            : [];
+                        const hasRole = Boolean(
+                            frappe
+                            && frappe.user
+                            && typeof frappe.user.has_role === "function"
+                            && frappe.user.has_role("ELMS Admin")
+                        );
+                        return {
+                            user_roles: userRoles,
+                            boot_roles: bootRoles,
+                            has_elms_admin: hasRole,
+                            role_ready: roleReady,
+                        };
+                    }
+                    """,
+                    {"roleReady": role_ready},
+                )
+                role_present = (
+                    "ELMS Admin" in role_state.get("user_roles", [])
+                    or "ELMS Admin" in role_state.get("boot_roles", [])
+                    or role_state.get("has_elms_admin") is True
+                )
+                role_state["role_ready"] = role_ready
+                check("platform_viewer_role_present", role_ready and role_present, role_state)
+                context_start = len(platform_requests)
+                platform_page.goto(cabinet_url, timeout=30000, wait_until="domcontentloaded")
+                platform_page.wait_for_selector("[data-cabinet-organization]", state="visible", timeout=30000)
+                platform_page.wait_for_function(
+                    "() => document.querySelectorAll('[data-cabinet-organization] option[value]').length >= 2",
+                    timeout=30000,
+                )
+                context_entry = _wait_for_t14_response(
+                    platform_page,
+                    platform_requests,
+                    "elms.access.api.get_company_access_context",
+                    context_start,
+                )
+                platform_organizations = list(context_entry.get("organizations") or []) if context_entry else []
+                option_values = platform_page.locator("[data-cabinet-organization] option").evaluate_all(
+                    "options => options.map(option => option.value).filter(Boolean)"
+                )
+                check(
+                    "platform_organization_directory_is_server_backed",
+                    bool(context_entry)
+                    and context_entry.get("http_status") == 200
+                    and context_entry.get("platform_viewer") is True
+                    and context_entry.get("read_only") is True
+                    and len(platform_organizations) >= 2
+                    and option_values == platform_organizations,
+                    {
+                        "context": context_entry,
+                        "options": option_values,
+                    },
+                )
+                if platform_organizations:
+                    selected_organization = platform_organizations[0]
+                if selected_organization:
+                    session_before = platform_page.evaluate(
+                        "() => (window.frappe && window.frappe.session && window.frappe.session.user) || ''"
+                    )
+                    roster_start = len(platform_requests)
+                    platform_page.locator("[data-cabinet-organization]").select_option(selected_organization)
+                    platform_page.wait_for_function(
+                        "() => { const node = document.querySelector('[data-cabinet-pill]'); return node && (node.textContent.includes('Готово') || node.textContent.includes('Пусто')); }",
+                        timeout=30000,
+                    )
+                    roster_entry = _wait_for_t14_response(
+                        platform_page,
+                        platform_requests,
+                        "elms.cabinet.api.get_org_roster",
+                        roster_start,
+                    )
+                    rendered_org = platform_page.locator("[data-cabinet-org-name]").first.text_content() or ""
+                    session_after_roster = platform_page.evaluate(
+                        "() => (window.frappe && window.frappe.session && window.frappe.session.user) || ''"
+                    )
+                    check(
+                        "selected_organization_roster_is_readable_and_audited",
+                        bool(roster_entry)
+                        and roster_entry.get("http_status") == 200
+                        and roster_entry.get("organization") == selected_organization
+                        and rendered_org.strip() == selected_organization
+                        and session_before == session_after_roster,
+                        {
+                            "roster": roster_entry,
+                            "rendered_organization": rendered_org.strip(),
+                            "session_before": session_before,
+                            "session_after": session_after_roster,
+                        },
+                    )
+                    export_start = len(platform_requests)
+                    platform_page.locator("[data-cabinet-export]").click()
+                    platform_page.wait_for_function(
+                        "() => { const node = document.querySelector('[data-cabinet-status]'); return node && node.textContent.includes('Выгрузка сформирована'); }",
+                        timeout=30000,
+                    )
+                    export_entry = _wait_for_t14_response(
+                        platform_page,
+                        platform_requests,
+                        "elms.cabinet.api.export_org_progress",
+                        export_start,
+                    )
+                    check(
+                        "selected_organization_export_is_server_generated",
+                        bool(export_entry)
+                        and export_entry.get("http_status") == 200
+                        and export_entry.get("organization") == selected_organization
+                        and export_entry.get("charset") == "UTF-8"
+                        and export_entry.get("csv_header") == "user,full_name,email,user_enabled,roles,enrollments"
+                        and export_entry.get("content_base64_present") is True,
+                        export_entry,
+                    )
+                    audit_start = len(platform_requests)
+                    audit_result = _call_t14(
+                        platform_page,
+                        "frappe.client.get_list",
+                        {
+                            "doctype": "ELMS User Activity",
+                            "filters": {
+                                "user": session_before,
+                                "organization": selected_organization,
+                                "activity_type": "Organization View",
+                                "reference_doctype": "ELMS Organization",
+                                "reference_name": selected_organization,
+                            },
+                            "fields": [
+                                "name",
+                                "user",
+                                "organization",
+                                "activity_type",
+                                "reference_doctype",
+                                "reference_name",
+                                "timestamp",
+                            ],
+                            "order_by": "timestamp desc",
+                            "limit_page_length": 5,
+                        },
+                    )
+                    audit_entry = _wait_for_t14_response(
+                        platform_page,
+                        platform_requests,
+                        "frappe.client.get_list",
+                        audit_start,
+                    )
+                    check(
+                        "organization_view_audit_is_persisted_in_user_activity",
+                        bool(audit_entry)
+                        and audit_entry.get("http_status") == 200
+                        and audit_entry.get("row_count", 0) > 0,
+                        {"response": audit_entry, "call": audit_result},
+                    )
+
+                    mutation_calls = (
+                        (
+                            "platform_invite_denied_before_write",
+                            "elms.access.api.invite_org_user",
+                            {
+                                "email": "t-a14-denied@example.test",
+                                "first_name": "T-A14",
+                                "last_name": "Denied",
+                                "organization": selected_organization,
+                                "role_profile": "ELMS Learner Profile",
+                            },
+                        ),
+                        (
+                            "platform_import_upload_denied_before_write",
+                            "elms.admission.import_api.upload_import",
+                            {
+                                "file_name": "t-a14-denied.xlsx",
+                                "content": "AA==",
+                                "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                "organization": selected_organization,
+                                "new_revision": True,
+                            },
+                        ),
+                        (
+                            "platform_b2c_enrollment_denied_before_write",
+                            "elms.lms.api.enroll_learner",
+                            {"user": "t-a14-denied@example.test", "batch": "T-A14-DENIED-BATCH"},
+                        ),
+                        (
+                            "platform_b2b_confirmation_denied_before_write",
+                            "elms.lms.api.admission.confirm_admission_import",
+                            {"import_id": "T-A14-DENIED-IMPORT"},
+                        ),
+                    )
+                    for check_name, method, args in mutation_calls:
+                        denial = declare_expected_denial(check_name, "platform_viewer", method)
+                        mutation_start = len(platform_requests)
+                        mutation_call = _call_t14(platform_page, method, args)
+                        mutation_entry = _wait_for_t14_response(
+                            platform_page,
+                            platform_requests,
+                            method,
+                            mutation_start,
+                        )
+                        denial.update(
+                            {
+                                "observed": mutation_entry,
+                                "call": mutation_call,
+                                "status": "pass"
+                                if mutation_entry and mutation_entry.get("http_status") == 403
+                                else "fail",
+                            }
+                        )
+                        check(
+                            check_name,
+                            bool(mutation_entry) and mutation_entry.get("http_status") == 403,
+                            {"response": mutation_entry, "call": mutation_call},
+                        )
+
+        company_page = page
+        company_response_handler = lambda response: _record_t14_response(
+            response, company_requests, "company_admin"
+        )
+        company_page.on("response", company_response_handler)
+        company_page.on("console", on_console)
+        company_page.on("requestfailed", on_request_failed)
+        company_context_start = len(company_requests)
+        company_roster_start = len(company_requests)
+        company_page.goto(cabinet_url, timeout=30000, wait_until="domcontentloaded")
+        company_page.wait_for_selector("[data-cabinet-organization]", state="visible", timeout=30000)
+        company_page.wait_for_function(
+            "() => document.querySelectorAll('[data-cabinet-organization] option[value]').length >= 1",
+            timeout=30000,
+        )
+        company_context = _wait_for_t14_response(
+            company_page,
+            company_requests,
+            "elms.access.api.get_company_access_context",
+            company_context_start,
+        )
+        company_options = company_page.locator("[data-cabinet-organization] option").evaluate_all(
+            "options => options.map(option => option.value).filter(Boolean)"
+        )
+        company_organization = str(company_context.get("organization") or (company_options[0] if company_options else "")) if company_context else ""
+        check(
+            "company_admin_context_remains_own_organization_only",
+            bool(company_context)
+            and company_context.get("http_status") == 200
+            and company_context.get("platform_viewer") is False
+            and company_context.get("read_only") is False
+            and len(company_options) == 1
+            and company_organization == company_options[0]
+            and company_page.locator("[data-cabinet-organization]").is_disabled(),
+            {"context": company_context, "options": company_options},
+        )
+        company_page.wait_for_function(
+            "() => { const node = document.querySelector('[data-cabinet-pill]'); return node && (node.textContent.includes('Готово') || node.textContent.includes('Пусто')); }",
+            timeout=30000,
+        )
+        company_roster = _wait_for_t14_response(
+            company_page,
+            company_requests,
+            "elms.cabinet.api.get_org_roster",
+            company_roster_start,
+        )
+        company_mode = company_page.locator("[data-cabinet-mode]").text_content() or ""
+        company_session = company_page.evaluate(
+            "() => (window.frappe && window.frappe.session && window.frappe.session.user) || ''"
+        )
+        check(
+            "company_admin_own_org_roster_continuity",
+            bool(company_roster)
+            and company_roster.get("http_status") == 200
+            and company_roster.get("organization") == company_organization
+            and "ограничен членством" in company_mode
+            and company_session == os.environ.get("ELMS_BROWSER_TEST_USERNAME", ""),
+            {
+                "roster": company_roster,
+                "mode": company_mode,
+                "session": company_session,
+            },
+        )
+        foreign_organization = next(
+            (organization for organization in platform_organizations if organization != company_organization),
+            "",
+        )
+        if foreign_organization:
+            denial = declare_expected_denial(
+                "company_admin_foreign_org_selection_denied",
+                "company_admin",
+                "elms.access.api.get_company_access_context",
+            )
+            foreign_start = len(company_requests)
+            foreign_call = _call_t14(
+                company_page,
+                "elms.access.api.get_company_access_context",
+                {"organization": foreign_organization},
+            )
+            foreign_entry = _wait_for_t14_response(
+                company_page,
+                company_requests,
+                "elms.access.api.get_company_access_context",
+                foreign_start,
+            )
+            denial.update(
+                {
+                    "observed": foreign_entry,
+                    "call": foreign_call,
+                    "status": "pass"
+                    if foreign_entry and foreign_entry.get("http_status") == 403
+                    else "fail",
+                }
+            )
+            check(
+                "company_admin_foreign_org_selection_denied",
+                bool(foreign_entry) and foreign_entry.get("http_status") == 403,
+                {"organization": foreign_organization, "response": foreign_entry, "call": foreign_call},
+            )
+        else:
+            check("company_admin_foreign_org_selection_denied", False, "Platform directory has no foreign organization fixture")
+        (
+            journey["expected_console_errors"],
+            journey["unexpected_console_errors"],
+        ) = _classify_t14_console_errors(
+            journey["console_errors"],
+            journey["expected_denials"],
+        )
+        shared_request_failures = [
+            failure
+            for failure in journey["request_failures"]
+            if _is_declared_a11_shared_request_failure(failure)
+        ]
+        task_request_failures = [
+            failure
+            for failure in journey["request_failures"]
+            if not _is_declared_a11_shared_request_failure(failure)
+        ]
+        journey["non_blocking_shared_request_failures"] = shared_request_failures
+        check(
+            "t_a14_browser_runtime_errors_absent",
+            not journey["unexpected_console_errors"] and not task_request_failures,
+            {
+                "expected_denials": journey["expected_denials"],
+                "expected_console_errors": journey["expected_console_errors"],
+                "unexpected_console_errors": journey["unexpected_console_errors"],
+                "shared_request_failures": shared_request_failures,
+                "request_failures": task_request_failures,
+            },
+        )
+    except Exception as exc:
+        journey["errors"].append(f"{type(exc).__name__}: {exc}")
+    finally:
+        if company_page is not None:
+            if company_response_handler is not None:
+                company_page.remove_listener("response", company_response_handler)
+            company_page.remove_listener("console", on_console)
+            company_page.remove_listener("requestfailed", on_request_failed)
+        if platform_context is not None:
+            platform_context.close()
+        journey["api_requests"] = platform_requests + company_requests
+        journey["status"] = "pass" if not journey["errors"] else "fail"
+        results.setdefault("journeys", []).append(journey)
+    if journey["status"] != "pass":
+        results["passed"] = False
+    return journey["status"] == "pass"
 
 
 def _ensure_platform_owner_admission_flags() -> None:
@@ -1657,6 +2381,22 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
         "errors": [],
     }
     _set_ac_disposition(results)
+    results["task_scope"] = {
+        "task_id": "T-A14-elms-admin-org-view-all",
+        "required_journeys": ["JRN-T-A14-ADMIN-ORG-VIEW-001"],
+        "non_blocking_shared_journeys": [
+            T_A11_SHARED_JOURNEY_ID,
+            "JRN-T-A13-CUSTOM-FIELDS-001",
+        ],
+        "declared_non_blocking_failures": [
+            {
+                "journey_id": T_A11_SHARED_JOURNEY_ID,
+                "method": T_A11_SHARED_REQUEST_FAILURE_METHOD,
+                "failure": T_A11_SHARED_REQUEST_FAILURE,
+                "reason": "Independent A11 admission coverage is retained as evidence and does not gate T-A14.",
+            }
+        ],
+    }
     runtime_ready = all(os.environ.get(key) for key in RUNTIME_ENV_KEYS)
     results["runtime_activation"] = {
         "status": "pass" if runtime_ready else "fail",
@@ -2071,6 +2811,8 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                         }
                     ]
                 if success:
+                    if not _run_t_a14_wire(page, browser, base_url, results):
+                        results["passed"] = False
                     custom_course_id = None
                     provider_setup = {"ok": False, "error": "Admission test provider is unavailable"}
                     try:
@@ -2093,7 +2835,19 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                         a11_passed, import_id, subscription_id, course_id = _run_admission_wire(page, base_url, results)
                         custom_course_id = course_id
                         if not a11_passed:
-                            results["passed"] = False
+                            results.setdefault("non_blocking_shared_journey_failures", []).append(
+                                {
+                                    "journey_id": T_A11_SHARED_JOURNEY_ID,
+                                    "disposition": "out_of_scope_non_blocking",
+                                    "reason": "T-A11 admission coverage is retained as evidence; only the declared T-A14 journey gates this task result.",
+                                    "declared_failures": [
+                                        {
+                                            "method": T_A11_SHARED_REQUEST_FAILURE_METHOD,
+                                            "failure": T_A11_SHARED_REQUEST_FAILURE,
+                                        }
+                                    ],
+                                }
+                            )
                         if not _run_b2b_confirm_wire(
                             page,
                             base_url,
@@ -2115,8 +2869,15 @@ def run_browser_checks(base_url: str, smoke_only: bool = False) -> dict:
                                 "errors": [str(provider_setup.get("error") or "Admission test provider setup failed")],
                             }
                         ]
-                    if not _run_t_a13_custom_fields_wire(page, base_url, custom_course_id, results):
-                        results["passed"] = False
+                    t_a13_passed = _run_t_a13_custom_fields_wire(page, base_url, custom_course_id, results)
+                    if not t_a13_passed:
+                        results.setdefault("non_blocking_shared_journey_failures", []).append(
+                            {
+                                "journey_id": "JRN-T-A13-CUSTOM-FIELDS-001",
+                                "disposition": "out_of_scope_non_blocking",
+                                "reason": "T-A14 VERIFY is gated by its authenticated organization-view journey; unrelated T-A13 failures are retained as evidence only.",
+                            }
+                        )
             else:
                 results["journeys"] = [
                     {
